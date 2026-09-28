@@ -82,8 +82,8 @@ export function restore() {
 		if (s.advOpen === true) V.advOpen = true;
 		if (typeof s.item === 'string') V.item = s.item;
 		if (Number(s.qty) > 0) V.qty = Math.min(9999, Math.floor(Number(s.qty)));
-		if (s.wants && typeof s.wants === 'object') for (const [k, v] of Object.entries(s.wants)) if (typeof k === 'string' && Number(v) > 0) V.wants[k] = Math.min(9999, Math.floor(Number(v)));
-		if (s.matOrders && typeof s.matOrders === 'object') V.matOrders = { reach: s.matOrders.reach === 'all' ? 'all' : 'want', calls: s.matOrders.calls !== false, pace: s.matOrders.pace === 'fast' ? 'fast' : 'full', quests: QUEST_CHOICES.some(([q]) => q === s.matOrders.quests) ? s.matOrders.quests : 'near' };
+		if (s.wants && typeof s.wants === 'object') for (const [k, v] of Object.entries(s.wants)) if (typeof k === 'string' && Number(v) > 0) V.wants[k] = Math.min(9999999, Math.floor(Number(v)));
+		if (s.matOrders && typeof s.matOrders === 'object') V.matOrders = { reach: s.matOrders.reach === 'all' ? 'all' : 'want', calls: s.matOrders.calls !== false, pace: s.matOrders.pace === 'fast' ? 'fast' : 'full', quests: QUEST_CHOICES.some(([q]) => q === s.matOrders.quests) ? s.matOrders.quests : 'near', order: ['rich', 'tiers'].includes(s.matOrders.order) ? s.matOrders.order : 'short' };
 		if (ports.some(p => p.id === Number(s.port))) V.port = Number(s.port);
 		if (STASHES.includes(s.stash)) V.stash = s.stash;
 		if (s.routes && typeof s.routes.key === 'string' && Array.isArray(s.routes.ids)) V.routes = { key: s.routes.key, ids: s.routes.ids.filter(id => typeof id === 'string') };

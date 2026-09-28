@@ -1925,9 +1925,14 @@ test('a material layout read: what the builds need is chosen, today’s islands 
 	assert.equal(await count(page, '[data-act="barter-mat-fill"]'), 0, 'filled in without asking');
 	// The material is chosen by itself, since the builds are short of it.
 	const need = sel => page.evaluate((m, q) => { const sec = [...document.querySelectorAll('.mat-need')].find(el => el.querySelector('.mat-need-text b').textContent === m); return sec ? [...sec.querySelectorAll(q)].map(r => r.textContent.replace(/\s+/g, ' ').trim()) : null; }, pick.mat, sel);
-	assert.ok(await need('.mat-row'), `${pick.mat} is on the run`);
-	assert.ok((await need('.mat-row:not(.off)')).length >= 1, 'the island whose give is held can be done');
-	assert.ok((await need('.mat-row.off')).length >= 1, 'the one whose give is not held cannot');
+	assert.ok(await need('.mat-need-text'), `${pick.mat} is on the run`);
+	// The material says what doing all of it takes; its islands are a press away.
+	assert.match((await need('.mat-need-text small')).join(' '), /1 island today you can trade with.*all of them: [\d,]+ Parley for [\d,–]+.*whose give you do not hold/);
+	assert.deepEqual(await need('.mat-row'), [], 'no island list on the page');
+	await page.evaluate(m => document.querySelector(`[data-act="barter-mat-isles"][data-item="${window.CSS.escape(m)}"]`).click(), pick.mat); await wait(400);
+	assert.ok(await count(page, '#dialog .mat-row:not(.off)') >= 1, 'the island whose give is held can be done');
+	assert.ok(await count(page, '#dialog .mat-row.off') >= 1, 'the one whose give is not held cannot');
+	await page.evaluate(() => document.querySelector('#dialog [data-close]').click()); await wait(300);
 	assert.equal(await count(page, '[data-act="barter-mat-only"], [data-act="barter-mat-tick"]'), 0, 'no filters, nothing to tick');
 	// One route, for what can be done: the harbour where the give is kept, then the island.
 	await laidOut(page);
@@ -1967,14 +1972,20 @@ test('a material layout read: what the builds need is chosen, today’s islands 
 	// Taken off the run, and back through the picker.
 	await toPlan(page);
 	await page.evaluate(m => document.querySelector(`.mat-need-head [data-act="barter-mat-drop"][data-item="${window.CSS.escape(m)}"]`).click(), pick.mat); await wait(400);
-	assert.equal(await need('.mat-row'), null, 'off the run');
+	assert.equal(await need('.mat-need-text'), null, 'off the run');
 	await page.evaluate(() => document.querySelector('[data-act="barter-mat-add"]').click()); await wait(300);
 	await page.type('.picker-in', pick.mat); await wait(150);
 	await page.keyboard.press('Enter'); await wait(500);
-	assert.ok(await need('.mat-row'), 'back on the run');
+	assert.ok(await need('.mat-need-text'), 'back on the run');
 	// Its want is its own.
 	await page.evaluate(m => { const el = [...document.querySelectorAll('.mat-need')].find(x => x.querySelector('.mat-need-text b').textContent === m).querySelector('[data-act="barter-mat-want"]'); el.value = '7'; el.dispatchEvent(new Event('change', { bubbles: true })); }, pick.mat); await wait(400);
 	assert.equal(await page.evaluate(async m => (await import('/js/barter/state.js')).V.wants[m], pick.mat), 7);
+	// And back to what the builds need.
+	await page.evaluate(m => document.querySelector(`[data-act="barter-mat-want-reset"][data-item="${window.CSS.escape(m)}"]`).click(), pick.mat); await wait(400);
+	assert.equal(await page.evaluate(async m => (await import('/js/barter/state.js')).V.wants[m], pick.mat), undefined);
+	// The island order is the sailor's to choose.
+	await page.evaluate(() => document.querySelector('[data-act="barter-order"][data-k="barter-mat-order"][data-v="rich"]').click()); await wait(400);
+	assert.equal(await page.evaluate(async () => (await import('/js/barter/state.js')).V.matOrders.order), 'rich');
 	// And the orders are chips, like the trade goods' run.
 	await page.evaluate(() => document.querySelector('[data-act="barter-order"][data-k="barter-mat-reach"][data-v="all"]').click()); await wait(400);
 	assert.ok(await page.$eval('[data-act="barter-order"][data-k="barter-mat-reach"][data-v="all"]', el => el.classList.contains('active')));

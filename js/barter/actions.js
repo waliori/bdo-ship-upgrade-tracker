@@ -30,7 +30,7 @@ import { openRolls } from './rolls.js';
 import { bringUp } from './cockpit.js';
 import { castOffFx } from './setsail.js';
 import { aboardStock, unloadTo, held, openSheet, shoreAboard } from './hold.js';
-import { matBoardNow, matFitNow, takeMatOffers, openMatBook, pickGood, pickMaterial, matOn } from './material.js';
+import { matBoardNow, matFitNow, takeMatOffers, openMatBook, pickGood, pickMaterial, matOn, openMatIsles } from './material.js';
 import { packedNow, unloadMoves, packApply, toldOf } from './packing.js';
 import { parleyRefilled, retickIfAuto, ordersNow, setOrders, applySaved, dropSaved, askSaveOrders, sellFrom, keepFrom, readBagShot, chainStepsDialog, chainClaimDialog } from './plan.js';
 import { STASHES, bagSet, legsOf, skippedToday, pulledToday, ledgerOf } from './route.js';
@@ -202,6 +202,8 @@ export function barterAction(act, el, redraw) {
 		case 'barter-mat-go': matOn(el.dataset.item, true); return true;
 		case 'barter-mat-drop': matOn(el.dataset.item, false); return true;
 		case 'barter-mat-add': pickMaterial(redraw); return false;
+		case 'barter-mat-want-reset': delete V.wants[el.dataset.item]; persist(); return true;
+		case 'barter-mat-isles': openMatIsles(el.dataset.item); return false;
 		case 'barter-trip': openTripLog(); return false;
 		case 'barter-board-ask': pickOffer(Number(el.dataset.npc), redraw); return false;
 		// The paste zone, pressed: the pictures are chosen straight away,
@@ -661,10 +663,12 @@ export function barterChange(el, parseAmount) {
 			return true;
 		}
 		case 'barter-port': V.port = ports.some(p => p.id === Number(el.value)) ? Number(el.value) : 0; persist(); return true;
+		// A want typed for today; emptied, it is what the builds need again.
 		case 'barter-mat-want': {
-			const n = parseAmount(el.value);
-			if (n === null || !el.dataset.item) return true;
-			V.wants[el.dataset.item] = Math.max(1, Math.min(99999, Math.floor(n)));
+			if (!el.dataset.item) return true;
+			const n = el.value.trim() ? parseAmount(el.value) : null;
+			if (n === null || !(n > 0)) delete V.wants[el.dataset.item];
+			else V.wants[el.dataset.item] = Math.max(1, Math.min(9999999, Math.floor(n)));
 			persist();
 			return true;
 		}
@@ -677,6 +681,7 @@ export function barterChange(el, parseAmount) {
 			return true;
 		}
 		case 'barter-mat-reach': V.matOrders = { ...V.matOrders, reach: el.value === 'all' ? 'all' : 'want' }; persist(); return true;
+		case 'barter-mat-order': V.matOrders = { ...V.matOrders, order: ['rich', 'tiers'].includes(el.value) ? el.value : 'short' }; persist(); return true;
 		case 'barter-mat-calls': V.matOrders = { ...V.matOrders, calls: el.checked }; persist(); return true;
 		case 'barter-mat-pace': V.matOrders = { ...V.matOrders, pace: el.value === 'fast' ? 'fast' : 'full' }; persist(); return true;
 		case 'barter-good-set': {

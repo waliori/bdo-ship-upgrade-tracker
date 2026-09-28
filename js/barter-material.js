@@ -79,7 +79,7 @@ export { tour };
  * casting off (`bought`: { item, n, each, how, total }) and their
  * `cost`; how many times the run went back to a harbour (`returns`).
  */
-export function materialRun({ picks = [], wants = new Map(), reach = 'want', pace = 'full', calls = true, buy = true, assume = true, stock = {}, dock = {}, stores = [], bags = {}, prices = {}, hold, start = null, startWharf = null, npcById, parley = null } = {}) {
+export function materialRun({ picks = [], wants = new Map(), reach = 'want', pace = 'full', calls = true, buy = true, assume = true, stock = {}, dock = {}, stores = [], bags = {}, prices = {}, hold, start = null, startWharf = null, npcById, parley = null, order = 'short' } = {}) {
 	const wantOf = wants instanceof Map ? wants : new Map(Object.entries(wants));
 	const limit = pace === 'fast' ? hold.free : (hold.deal ?? hold.free);
 	const place = x => npcById.get(x.npcId);
@@ -218,6 +218,36 @@ export function materialRun({ picks = [], wants = new Map(), reach = 'want', pac
 		return best;
 	};
 	const weighs = nds => nds.reduce((a, nd) => a + nd.n * weightOf(nd.give), 0);
+
+	// The order a trip takes its islands in. 'short' is the shortest way.
+	// 'rich' is the best payers first -- a coin day's islands pay from
+	// four hundred down to sixty, and a run cut short by the clock or the
+	// Parley should have had the four hundreds. 'tiers' is between the
+	// two: the rich islands and the middling ones close to them, by the
+	// shortest way, then the other middling ones, then the poor. What an
+	// island pays is weighed against the best payer of the same material.
+	const bestOf = new Map();
+	for (const i of isles) bestOf.set(i.item, Math.max(bestOf.get(i.item) || 0, (i.recvMin + i.recvMax) / 2));
+	const valueOf = i => ((i.recvMin + i.recvMax) / 2) / (bestOf.get(i.item) || 1);
+	const ordered = (list, from, end) => {
+		const byTour = (xs, a, b) => tour(xs.map(place), { start: a, end: b }).map(k => xs[k]);
+		if (order === 'short' || list.length < 2) return byTour(list, from, end);
+		if (order === 'rich') return [...list].sort((a, b) => valueOf(b) - valueOf(a) || dist(from, place(a)) - dist(from, place(b)));
+		const high = list.filter(i => valueOf(i) >= 0.7), mid = list.filter(i => valueOf(i) >= 0.4 && valueOf(i) < 0.7), low = list.filter(i => valueOf(i) < 0.4);
+		// "Close" is as close as the rich islands are to one another.
+		const gaps = high.map(h => Math.min(...high.filter(x => x !== h).map(x => dist(place(h), place(x))))).filter(Number.isFinite);
+		const reachOf = gaps.length ? gaps.reduce((a, b) => a + b, 0) / gaps.length : Infinity;
+		const near = mid.filter(i => high.some(h => dist(place(h), place(i)) <= reachOf));
+		const groups = [[...high, ...near], mid.filter(i => !near.includes(i)), low].filter(g => g.length);
+		const out = [];
+		let at = from;
+		groups.forEach((g, k) => {
+			const seq = byTour(g, at, k === groups.length - 1 ? end : null);
+			out.push(...seq);
+			at = place(seq[seq.length - 1]);
+		});
+		return out;
+	};
 	// Whether some island still to come is paid for from what is aboard:
 	// the hold gets lighter at it, so a give that does not fit now may.
 	const later = () => pending.some(i => i.needs.every(nd => nd.loaded) && i.needs.some(nd => isGood(nd.give)));
@@ -230,7 +260,7 @@ export function materialRun({ picks = [], wants = new Map(), reach = 'want', pac
 	const callAt = H => {
 		const stop = { wharf: H.wharf, dropped: [], sale: null, loads: [], hold };
 		const feeds = pending.filter(i => i.needs.some(nd => !nd.loaded && nd.src === H.town));
-		const seq = tour(feeds.map(place), { start: H.wharf }).map(k => feeds[k]);
+		const seq = ordered(feeds, H.wharf, null);
 		const loadOf = i => i.needs.filter(nd => !nd.loaded && nd.src === H.town);
 		if (weight + weighs(seq.flatMap(loadOf)) > limit + 1e-6) {
 			for (const [name, n] of spare()) {
@@ -327,9 +357,7 @@ export function materialRun({ picks = [], wants = new Map(), reach = 'want', pac
 		const ready = pending.filter(i => i.needs.every(nd => nd.loaded));
 		if (ready.length) {
 			const H = nextHarbour();
-			const order = tour(ready.map(place), { start: pos, end: H ? H.wharf : null });
-			for (const k of order) {
-				const isle = ready[k];
+			for (const isle of ordered(ready, pos, H ? H.wharf : null)) {
 				for (const nd of isle.needs) {
 					if (!heldMax.has(nd.give)) continue;
 					heldMax.set(nd.give, (heldMax.get(nd.give) || 0) - nd.n);

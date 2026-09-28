@@ -232,3 +232,19 @@ test('a give kept where the run cannot load it -- a town without a wharf, or a h
 	assert.deepEqual(off.missing[0].heldAt, [{ town: 'Heidel', n: 5 }, { town: 'Iliya Island', n: 1 }]);
 	assert.deepEqual(names(off.stops), ['Velia+2', 'A'], 'both brought to Velia first, then loaded');
 });
+
+test('the islands can be taken best payers first, or the rich ones with the middling ones near them, rather than by the shortest way', () => {
+	// A pays the least and E the most; the shortest way from Velia is A first.
+	const picks = [pick(1, SCALE, { recv: '60-80' }), pick(2, SCALE, { recv: '300-400' }), pick(3, SCALE, { recv: '150-200' }), pick(4, SCALE, { recv: '310-390' }), pick(5, SCALE, { recv: '350-450' })];
+	const base = { picks, wants: { [SCALE]: 99999 }, reach: 'all', stock: { [L5]: 10 }, hold: { free: 20000, deal: 25000, max: 30000 }, start: velia, startWharf: veliaWharf, npcById };
+	const isles = run => names(run.stops).filter(n => !n.includes('+'));
+	const rich = materialRun({ ...base, order: 'rich' });
+	assert.deepEqual(isles(rich), ['E', 'B', 'D', 'C', 'A'], 'by what each pays, most first');
+	const tiers = materialRun({ ...base, order: 'tiers' });
+	const t = isles(tiers);
+	// C pays middling and lies among the rich ones, so it is taken on the
+	// way; A pays little and comes last.
+	assert.deepEqual(t, ['B', 'C', 'D', 'E', 'A'], t.join(' '));
+	const short = materialRun({ ...base });
+	assert.equal(short.trades, rich.trades, 'the same trades, another order');
+});
