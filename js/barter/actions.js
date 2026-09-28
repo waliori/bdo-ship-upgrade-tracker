@@ -30,7 +30,7 @@ import { openRolls } from './rolls.js';
 import { bringUp } from './cockpit.js';
 import { castOffFx } from './setsail.js';
 import { aboardStock, unloadTo, held, openSheet, shoreAboard } from './hold.js';
-import { matBoardNow, matFitNow, takeMatOffers, openMatBook, pickGood, pickMaterial, matOn, openMatIsles, pickShipAt } from './material.js';
+import { matBoardNow, matFitNow, takeMatOffers, openMatBook, openMatRolls, pickGood, pickMaterial, matOn, openMatIsles, pickShipAt } from './material.js';
 import { packedNow, unloadMoves, packApply, toldOf } from './packing.js';
 import { parleyRefilled, retickIfAuto, ordersNow, setOrders, applySaved, dropSaved, askSaveOrders, sellFrom, keepFrom, readBagShot, chainStepsDialog, chainClaimDialog } from './plan.js';
 import { STASHES, bagSet, legsOf, skippedToday, pulledToday, ledgerOf } from './route.js';
@@ -227,6 +227,7 @@ export function barterAction(act, el, redraw) {
 		case 'barter-pace-set': setOrders({ pace: el.dataset.id === 'full' ? 'full' : el.dataset.id === 'steady' ? 'steady' : 'fast' }); return true;
 		case 'barter-mat-pace-set': V.matOrders = { ...V.matOrders, pace: el.dataset.id === 'fast' ? 'fast' : 'full' }; persist(); return true;
 		case 'barter-mat-book': openMatBook(redraw); return false;
+		case 'barter-mat-rolls': openMatRolls(redraw); return false;
 		case 'barter-mat-fill': {
 			const fit = matFitNow();
 			if (!fit.sure) return true;

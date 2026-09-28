@@ -12,7 +12,7 @@ import { npcById, ports, isleOf, whoOf, isleShort } from '../barter_npcs.js';
 import { fmtDistance } from '../sailing.js';
 import { QUEST_CHOICES, VOUCHER_CHOICES } from '../barter-orders.js';
 import { landPrices } from '../land-cost.js';
-import { GOODS, PARLEY, levelOf, npcGate, npcOpen } from '../barter.js';
+import { GOODS, PARLEY, levelOf } from '../barter.js';
 import { weightOf, sellOf, exchanges } from '../barter-plan.js';
 import { shotGuideHTML } from '../barter-import.js';
 import { bookFromGame, fitOf as matFitOf, MIN_FIT as MAT_MIN_FIT } from '../material-book.js';
@@ -33,7 +33,8 @@ import { stashes, withWaits, legsOf, questPlan, questsLine, questsPanels, TIER, 
 import { packingHTML, packingCount, leaveHomeHTML, afterShelfHTML } from './packing.js';
 import { sailing, ticked } from './sail.js';
 import { coinWorth } from './search.js';
-import { persist, editsBy } from './view.js';
+import { persist, editsBy, redrawTab } from './view.js';
+import { fleetRolls } from './fleet.js';
 import { coinPrice } from '../coin-shop.js';
 
 /**
@@ -182,6 +183,152 @@ function matShotHelp(open = false) {
 	</details>`;
 }
 
+/* ------------------------------------------------------------------ *
+ * the islands a layout of the list leaves to chance
+ * ------------------------------------------------------------------ */
+
+const optKey = o => `${o.give}|${o.recv}`;
+
+/** What a rolled slot can show this sailor, each exchange once, with
+ *  the game's odds of it: the table lists an exchange as often as it
+ *  weighs, and an exchange the barter count has not opened is left out. */
+function matRollOptions(slot) {
+	const n = Number(barterProfile().barterCount);
+	const by = new Map();
+	for (const o of slot.options) {
+		if (Number.isFinite(n) && (o.gate || 0) > n) continue;
+		const was = by.get(optKey(o));
+		if (was) was.odds += o.chance || 1;
+		else by.set(optKey(o), { ...o, odds: o.chance || 1 });
+	}
+	const all = [...by.values()];
+	const sum = all.reduce((a, o) => a + o.odds, 0) || 1;
+	return all.map(o => ({ ...o, odds: o.odds / sum })).sort((a, b) => b.odds - a.odds);
+}
+
+/** The option a roll is likeliest to show: the fleet's majority (three
+ *  sightings at least), else the sailor's own, else the game's odds. */
+function matLikely(page, npcId, options) {
+	const best = counts => {
+		if (!counts) return null;
+		const total = Object.values(counts).reduce((a, b) => a + b, 0);
+		const [key, n] = Object.entries(counts).sort((a, b) => b[1] - a[1])[0] || [];
+		return key && total >= 3 && n * 2 > total ? options.find(o => optKey(o) === key) || null : null;
+	};
+	const f = fleetRolls(page.id, npcId);
+	const mine = (store.getProfile('rolls', {}) || {})[`${page.id}|${npcId}`];
+	return best(f && f.seen) || best(mine && mine.seen) || options[0] || null;
+}
+
+/**
+ * The rolled islands of today's list, once its layout is known: each
+ * with what it can show, what the sailor said (`said`) and the likeliest.
+ * An island answered with something none of its options is -- a slip
+ * the fit let through -- is not asked again.
+ */
+export function matRollAsks(fit = matFitNow()) {
+	if (!fit.sure || !fit.best) return [];
+	const page = fit.best.page;
+	const answers = matBoardNow().answers;
+	const out = [];
+	for (const [npcId, slot] of page.offers) {
+		if (!slot.options || !npcById.has(npcId)) continue;
+		const options = matRollOptions(slot);
+		if (!options.length) continue;
+		const a = answers.find(x => x.npcId === npcId);
+		const said = a ? options.find(o => o.give === a.give && o.recv === a.recv) || null : null;
+		if (a && !said) continue;
+		out.push({ npcId, options, said, likely: matLikely(page, npcId, options) });
+	}
+	return out.sort((a, b) => isleOf(npcById.get(a.npcId)).localeCompare(isleOf(npcById.get(b.npcId))));
+}
+
+/** The rolls said on today's list, counted once a day in the profile's
+ *  `rolls` beside the trade board's: what the fleet's share adds up. */
+function noteMatRolls(page) {
+	const day = barterKey();
+	const all = { ...(store.getProfile('rolls', {}) || {}) };
+	let changed = false;
+	for (const x of matRollAsks()) {
+		if (!x.said || x.options.length < 2) continue;
+		const key = `${page.id}|${x.npcId}`;
+		const was = all[key] || {};
+		if (was.day === day && was.pick === optKey(x.said)) continue;
+		const seen = { ...(was.seen || {}) };
+		// Said again the same day, a different option: the first was a slip.
+		if (was.day === day && was.pick && seen[was.pick] > 0) seen[was.pick] -= 1;
+		seen[optKey(x.said)] = (seen[optKey(x.said)] || 0) + 1;
+		all[key] = { day, pick: optKey(x.said), seen: Object.fromEntries(Object.entries(seen).filter(([, n]) => n > 0)) };
+		changed = true;
+	}
+	if (changed) store.setProfile('rolls', Object.fromEntries(Object.entries(all).slice(-400)));
+}
+
+/** The dialog: each rolled island, what it can show side by side. */
+export function openMatRolls(redraw) {
+	const fit = matFitNow();
+	if (!fit.sure) return;
+	const page = fit.best.page;
+	noteMatRolls(page);
+	const draw = () => {
+		const asks = matRollAsks().filter(x => x.options.length > 1);
+		const row = x => {
+			const npc = npcById.get(x.npcId);
+			const f = fleetRolls(page.id, x.npcId);
+			// One button a good handed over, under what it pays: an island
+			// that rolls a dozen goods for the same coins reads as one list.
+			const option = o => {
+				const on = x.said === o;
+				const likely = !x.said && x.likely === o;
+				const pct = f ? Math.round(((f.seen[optKey(o)] || 0) / f.total) * 100) : null;
+				return `<button class="roll-option mini${on ? ' on' : ''}${likely ? ' likely' : ''}" data-act="barter-mat-roll-pick" data-npc="${x.npcId}" data-give="${esc(o.give)}" data-recv="${esc(o.recv)}" aria-pressed="${on}" title="${esc(gameName(o.give))} → ${esc(gameName(o.recv))}">
+					${img(o.give, 'row-icon sm')}
+					<span class="roll-name">${o.giveN > 1 ? `${F(o.giveN)}× ` : ''}${esc(gameName(o.give))}</span>
+					<span class="roll-meta">🎲${Math.round(o.odds * 100)}%${pct !== null ? ` · <i class="pay-fleet">⚓${pct}%</i>` : ''}${likely ? ` · ${T('likely')}` : ''}</span>
+				</button>`;
+			};
+			const pays = new Map();
+			for (const o of x.options) {
+				const pay = !o.recvMax || o.recvN === o.recvMax ? F(o.recvN) : `${F(o.recvN)}–${F(o.recvMax)}`;
+				const key = `${o.recv}|${pay}`;
+				if (!pays.has(key)) pays.set(key, { recv: o.recv, pay, perDay: o.perDay, list: [] });
+				pays.get(key).list.push(o);
+			}
+			const group = g => `<div class="roll-pays"><span class="roll-trade faint">→ ${img(g.recv, 'row-icon sm')} <b>${esc(gameName(g.recv))}</b> × ${esc(g.pay)} · ${T('{n} a day', { n: F(g.perDay) })}</span>
+				<div class="roll-options mini">${g.list.map(option).join('')}</div></div>`;
+			return `<div class="roll-row${x.said ? ' said' : ''}">
+				<div class="roll-head"><b>${esc(gameName(isleOf(npc)))}</b><span class="faint">${esc(gameName(npc.name))}</span>${f ? `<span class="faint">${T('the fleet saw it {n} times', { n: F(f.total) })}</span>` : ''}</div>
+				${[...pays.values()].map(group).join('')}
+			</div>`;
+		};
+		return `<h2>${T('Today’s rolls')}</h2>
+			<p class="dialog-copy">${T('This is {board}, but on it these islands are filled at random: one of a few exchanges each, a different one each day. Look at each on the window and tap what it shows. 🎲 is the game’s odds, ⚓ what the fleet saw; until an island is said it stays out of the run.', { board: esc(matPageName(page)) })}</p>
+			<div class="rolls">${asks.map(row).join('')}</div>
+			<div class="dialog-actions"><button class="act" data-close>${T('Done')}</button></div>`;
+	};
+	const host = openDialog(draw(), { onDismiss: redraw });
+	host.addEventListener('click', e => {
+		const b = e.target.closest('[data-act="barter-mat-roll-pick"]');
+		if (!b) return;
+		e.stopPropagation();
+		const npcId = Number(b.dataset.npc);
+		const mb = matBoardNow();
+		mb.answers = [...mb.answers.filter(x => x.npcId !== npcId), { npcId, give: b.dataset.give, recv: b.dataset.recv }];
+		persist();
+		noteMatSeen();
+		noteMatRolls(page);
+		host.querySelector('.dialog-box').innerHTML = draw();
+	});
+}
+
+/** The bar's chip for the rolled islands: how many are still to say. */
+function matRollsChipHTML(asks) {
+	const left = asks.filter(x => !x.said).length;
+	return left
+		? `<button class="chip tiny rolls-chip warn" data-act="barter-mat-rolls" title="${T('These islands show one of a few exchanges, a different one each day; until said they stay out of the run')}">🎲 ${left === 1 ? T('{n} island is filled at random — which exchange?', { n: F(left) }) : T('{n} islands are filled at random — which exchanges?', { n: F(left) })}</button>`
+		: `<button class="chip tiny rolls-chip ok" data-act="barter-mat-rolls" title="${T('What the islands filled at random showed today')}">🎲 ${T('rolls said')}</button>`;
+}
+
 /**
  * The material bar: today's material list. Every layout it can be is
  * known from the game's files, so one page read off the window says
@@ -220,14 +367,19 @@ export function matBarHTML() {
 	} else if (kind === 'known') {
 		const w = fit.best;
 		// The slots the game fills at random are not filled in: which of
-		// their options shows today is only on the window.
-		const have = new Set(mb.answers.map(a => a.npcId));
-		const rolled = [...w.page.offers].filter(([npcId]) => !have.has(npcId)).length;
+		// their options shows today is only on the window, so the sailor
+		// is asked -- once, as the layout is found, and by the chip after.
+		const asks = matRollAsks(fit).filter(x => x.options.length > 1);
+		if (asks.some(x => !x.said) && !mb.asked) {
+			mb.asked = true;
+			persist();
+			setTimeout(() => openMatRolls(redrawTab), 0);
+		}
 		body = `<p class="mat-say known">✓ ${w.differ.length
 			? T('This is {board}. It agrees at {n} islands and parts at one: a slip, or a slot moved.', { board: nameOf(w.page), n: F(w.agree) })
 			: T('This is {board}. It agrees at every one of the {n} islands you read.', { board: nameOf(w.page), n: F(w.agree) })}
 			${st.taken ? (st.taken === 1 ? T('Its other island is filled in from the layout.') : T('Its other {n} islands are filled in from the layout.', { n: F(st.taken) })) : ''}</p>
-			${rolled ? `<p class="board-ask-sub">${rolled === 1 ? T('{n} island the game fills at random is left out: paste the page it is on to count it.', { n: F(rolled) }) : T('{n} islands the game fills at random are left out: paste the pages they are on to count them.', { n: F(rolled) })}</p>` : ''}`;
+			${asks.length ? `<div class="mat-acts">${matRollsChipHTML(asks)}</div>` : ''}`;
 	} else {
 		body = `<p class="mat-say new">${T('What you read fits none of the game’s layouts: a row read wrong, or a patch the app has not caught up with. Check the rows against the window, or tick the islands below by hand.')}</p>
 			${drop(false, T('Paste another page'), T('Any page not read yet.'))}`;
@@ -249,6 +401,15 @@ export function heldOf(name) {
 	const total = store.getStock(name) || 0;
 	return { aboard, dock, run: aboard + dock, elsewhere: Math.max(0, total - aboard - dock) };
 }
+
+/**
+ * The Total Barters an exchange opens at, as the game's own table gives
+ * it -- each exchange its own. Not the island's: the route-unlock list
+ * said Shipwrecked Cox Pirate Ship opens at 10,000 and Marine Vessel at
+ * 20,000, and a sailor at 4,489 was trading at both (2026-09-28).
+ */
+const gateOf = (npcId, give, recv) => { const g = materialDeal(npcId, give, recv); return g && g.gate > 0 ? g.gate : 0; };
+const openTo = (npcId, give, recv, barters) => (Number(barters) || 0) >= gateOf(npcId, give, recv);
 
 /** Whether the run can hand over a give today: it is held somewhere,
  *  or it is a shore good the run buys ashore. */
@@ -315,8 +476,8 @@ function matRows(it) {
 	const tb = boardNow();
 	const tradeUsed = tb.combo && V.board.usedFor === tb.combo.id ? V.board.used || {} : {};
 	const matUsed = matBoardNow().used || {};
-	const trade = it === CROW_COIN ? tradeCoins().map(x => ({ a: { npcId: x.npcId, give: x.give, recv: x.item }, deal: { qty: x.giveText, recvMin: x.recvMin, recvMax: x.recvMax, perDay: x.tries, parley: x.parleyBase }, trade: true, open: npcOpen(x.npcId, barters), can: canGive(x.give), left: leftOf(x.npcId, x.tries, tradeUsed) })) : [];
-	const rows = [...matBoardNow().answers.filter(a => a.recv === it).map(a => { const deal = materialDeal(a.npcId, a.give, a.recv); return { a, deal, open: npcOpen(a.npcId, barters), can: canGive(a.give), left: deal ? leftOf(a.npcId, deal.perDay, matUsed) : 0 }; }), ...trade]
+	const trade = it === CROW_COIN ? tradeCoins().map(x => ({ a: { npcId: x.npcId, give: x.give, recv: x.item }, deal: { qty: x.giveText, recvMin: x.recvMin, recvMax: x.recvMax, perDay: x.tries, parley: x.parleyBase }, trade: true, open: openTo(x.npcId, x.give, x.item, barters), can: canGive(x.give), left: leftOf(x.npcId, x.tries, tradeUsed) })) : [];
+	const rows = [...matBoardNow().answers.filter(a => a.recv === it).map(a => { const deal = materialDeal(a.npcId, a.give, a.recv); return { a, deal, open: openTo(a.npcId, a.give, a.recv, barters), can: canGive(a.give), left: deal ? leftOf(a.npcId, deal.perDay, matUsed) : 0 }; }), ...trade]
 		.sort((x, y) => ((y.deal ? y.deal.recvMax : 0) - (x.deal ? x.deal.recvMax : 0)) || isleShort(npcById.get(x.a.npcId)).localeCompare(isleShort(npcById.get(y.a.npcId))));
 	return { can: rows.filter(r => r.open && r.can && r.left > 0), cant: rows.filter(r => r.open && !r.can && r.left > 0), shut: rows.filter(r => !r.open), done: rows.filter(r => r.open && !(r.left > 0)) };
 }
@@ -327,7 +488,7 @@ function matRowHTML(r) {
 	const npc = npcById.get(r.a.npcId), d = r.deal;
 	const got = d ? (d.recvMin === d.recvMax ? F(d.recvMin) : `${F(d.recvMin)}–${F(d.recvMax)}`) : '';
 	const giveN = d && d.qty && d.qty !== '1' ? `${esc(d.qty)}× ` : '';
-	const state = !r.open ? `<span class="mat-row-state shut">🔒 ${T('opens at {barters} Total Barters', { barters: F(npcGate(r.a.npcId)) })}</span>`
+	const state = !r.open ? `<span class="mat-row-state shut">🔒 ${T('opens at {barters} Total Barters', { barters: F(gateOf(r.a.npcId, r.a.give, r.a.recv)) })}</span>`
 		: !(r.left > 0) ? `<span class="mat-row-state none">✓ ${T('traded today')}</span>`
 		: `<span class="mat-row-state${r.can ? ' ok' : ' none'}">${esc(heldSaid(r.a.give))}</span>`;
 	return `<div class="mat-row${r.can && r.open ? '' : ' off'}${r.a.took ? ' took' : ''}">
@@ -390,8 +551,8 @@ export function materialParts(me, data) {
 	const tb = boardNow();
 	const tradeUsed = tb.combo && V.board.usedFor === tb.combo.id ? V.board.used || {} : {};
 	const picks = [
-		...showing.filter(a => forRun.has(a.recv) && npcOpen(a.npcId, barters) && canGive(a.give) && !skipped.has(a.npcId)).map(pickOf).filter(Boolean).map(x => ({ ...x, tries: leftOf(x.npcId, x.tries, matUsed) })),
-		...(forRun.has(CROW_COIN) ? tradeCoins().filter(x => npcOpen(x.npcId, barters) && canGive(x.give) && !skipped.has(x.npcId)).map(x => ({ ...x, tries: leftOf(x.npcId, x.tries, tradeUsed) })) : [])
+		...showing.filter(a => forRun.has(a.recv) && openTo(a.npcId, a.give, a.recv, barters) && canGive(a.give) && !skipped.has(a.npcId)).map(pickOf).filter(Boolean).map(x => ({ ...x, tries: leftOf(x.npcId, x.tries, matUsed) })),
+		...(forRun.has(CROW_COIN) ? tradeCoins().filter(x => openTo(x.npcId, x.give, x.item, barters) && canGive(x.give) && !skipped.has(x.npcId)).map(x => ({ ...x, tries: leftOf(x.npcId, x.tries, tradeUsed) })) : [])
 	].filter(x => x.tries > 0);
 	// Aboard and given by no island of the run: put in the home harbour's
 	// storage before casting off, and the run laid without it.
@@ -538,7 +699,7 @@ export function materialParts(me, data) {
 		holdCls === 'warn' ? `<b class="warn">${T('too heavy')}</b>` : holdCls === 'amber' ? `<b class="amber">${T('over the limit')}</b>` : ''
 	]) : '';
 	if (plan.stops.length) keepRoute(plan, legs, book, segs, it || (mats[0] && mats[0].it) || '');
-	const routeFold = plan.stops.length ? `<details class="panel route-fold"${sailing() || narrow() ? '' : ' open'}><summary><b>${T('The route, stop by stop')}</b><span class="panel-sub">${mats.length ? T('for {materials}', { materials: esc(few(got.length ? got : mats, m => gameName(m.it))) }) : T('for a material')}${legs.total ? ` · ≈ ${esc(runTime(legs, book))}` : ''}${from ? ` · ${T('from {port}', { port: esc(gameName(from.name)) })}` : ''}</span>${questsLine(qp, V.matOrders.quests)}<span class="panel-spacer"></span>${chartButton(plan.stops, it || (mats[0] && mats[0].it) || '')}</summary>${segs}</details>` : '';
+	const routeFold = plan.stops.length ? `<details class="panel route-fold"${sailing() || narrow() ? '' : ' open'}><summary><b>${T('The route, stop by stop')}</b><span class="panel-sub">${mats.length ? T('for {materials}', { materials: esc(few(got.length ? got : mats, m => gameName(m.it))) }) : T('for a material')}${legs.total ? ` · ≈ ${esc(runTime(legs, book))}` : ''}${atSea ? ` · ${T('from {port}', { port: esc(gameName(isleShort(npcById.get(V.matAt)))) })}` : from ? ` · ${T('from {port}', { port: esc(gameName(from.name)) })}` : ''}</span>${questsLine(qp, V.matOrders.quests)}<span class="panel-spacer"></span>${chartButton(plan.stops, it || (mats[0] && mats[0].it) || '')}</summary>${segs}</details>` : '';
 	const matsSaid = mats.length ? few(mats, m => (Number.isFinite(m.qty) ? `${F(m.qty)}× ${gameName(m.it)}` : `${gameName(m.it)} (${T('all')})`)) : T('nothing on the run yet');
 	const gotSome = mats.filter(m => !nothing.includes(m));
 	const comes = plan.ticked && gotSome.length ? few(gotSome, m => `${gotText(m)} ${T('of {want}', { want: wantSaid(m.qty) })} ${gameName(m.it)}`) : plan.ticked ? T('nothing comes of it today') : T('nothing ticked yet');
@@ -775,8 +936,12 @@ const leftOf = (npcId, tries, used) => Math.max(0, (Number(tries) || 0) - ((used
  *  without asking, as the trade goods' board is. */
 function matAutoFill() {
 	const fit = matFitNow();
-	if (fit.sure && fit.fill.length) {
-		takeMatOffers(fit.fill, 'book');
+	if (!fit.sure) return;
+	// A slot the game rolls among copies of one exchange is no roll.
+	const one = matRollAsks(fit).filter(x => x.options.length === 1 && !x.said).map(x => ({ npcId: x.npcId, ...x.options[0] }));
+	const fill = [...fit.fill, ...one];
+	if (fill.length) {
+		takeMatOffers(fill, 'book');
 		matBoardNow().from = { kind: 'book', id: String(fit.best.page.id) };
 		persist();
 	}

@@ -1888,6 +1888,22 @@ test('the material book is the game’s own layouts, every one, and a page read 
 	}); await wait(800);
 	assert.match(await text(page, '.mat-say'), /board M11/, 'the coin rows found their material board');
 	assert.equal(await count(page, '.mat-steps, [data-act="barter-mat-tell"], [data-act="barter-mat-fleet-take"]'), 0, 'no steps to share it by');
+	// The islands M11 fills at random are asked about as it is found:
+	// each once, its exchanges under what they pay, with the game's odds.
+	await page.waitForSelector('.dialog .rolls', { timeout: 5000 });
+	const asked = await count(page, '.dialog .roll-row');
+	assert.ok(asked >= 2, `the rolled islands asked about: ${asked}`);
+	assert.match(await text(page, '.dialog .roll-option .roll-meta'), /🎲\d+%/);
+	await page.evaluate(() => document.querySelector('.dialog [data-act="barter-mat-roll-pick"][data-npc="50817"]').click()); await wait(200);
+	const picked = await page.evaluate(async () => {
+		const { V } = await import('/js/barter/state.js'); const store = await import('/js/state.js');
+		const b = document.querySelector('.dialog [data-npc="50817"][aria-pressed="true"]');
+		return { on: !!b, answered: V.matBoard.answers.some(a => a.npcId === 50817 && a.give === b.dataset.give && !a.took), kept: Object.keys(store.getProfile('rolls', {})).includes('M11|50817') };
+	});
+	assert.deepEqual(picked, { on: true, answered: true, kept: true }, 'said, taken onto the list, counted for the fleet');
+	await page.evaluate(() => document.querySelector('.dialog [data-close]').click()); await wait(500);
+	assert.equal(await count(page, '.dialog .rolls'), 0, 'asked once, not again at the redraw');
+	assert.match(await text(page, '.mat-bar .rolls-chip'), new RegExp(`${asked - 1} island`), 'the chip counts what is left to say');
 	// The window is one list: with today's trade board known, its own coin
 	// islands -- cheaper in Parley -- are sailed for too.
 	const both = await page.evaluate(async () => {
@@ -1916,6 +1932,18 @@ test('the material book is the game’s own layouts, every one, and a page read 
 		return (V.shownPlan ? V.shownPlan.stops : []).some(x => x.npcId === row.npcId) ? 'on the route' : `off: ${row.npcId}`;
 	});
 	assert.equal(read, 'on the route');
+	// Each exchange opens at its own count, as the game's table has it --
+	// not at a route-unlock list's figure for the island: Shipwrecked Cox
+	// Pirate Ship was held back to 10,000 barters from a sailor at 4,489
+	// trading there.
+	const cox = await page.evaluate(async () => {
+		const store = await import('/js/state.js'); const { V } = await import('/js/barter/state.js'); const ui = await import('/js/ui.js');
+		store.setProfile('barterCount', 4489);
+		ui.render();
+		await new Promise(r => setTimeout(r, 500));
+		return (V.shownPlan ? V.shownPlan.stops : []).some(x => x.npcId === 50822);
+	});
+	assert.ok(cox, 'Shipwrecked Cox Pirate Ship is sailed for at 4,489 barters');
 	assert.deepEqual(errors, []);
 	await context.close();
 });

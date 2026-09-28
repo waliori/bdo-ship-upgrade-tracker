@@ -135,6 +135,8 @@ export function restore() {
 			// The attempts each island dealt on the runs recorded on this list.
 			if (s.matBoard.used && typeof s.matBoard.used === 'object') V.matBoard.used = Object.fromEntries(Object.entries(s.matBoard.used).map(([k, v]) => [k, Math.max(0, Math.round(Number(v) || 0))]).filter(([k, v]) => npcById.has(Number(k)) && v > 0));
 			else delete V.matBoard.used;   // kept before attempts were: read back from today's runs
+			// The rolled islands were asked about once this list: not again.
+			if (s.matBoard.asked === true) V.matBoard.asked = true;
 		}
 		if (s.board && Array.isArray(s.board.answers)) {
 			V.board = {

@@ -3413,6 +3413,7 @@
 	"These are what <b>{label}</b> is assumed to use: the NA/EU clock. No public source has tested {label}, so if your game says otherwise, this is where to say so.": "Считается, что <b>{label}</b> живёт по расписанию NA/EU. Открытых проверок для {label} нет, так что если игра говорит иначе — скажите об этом здесь.",
 	"These are written as what is kept at <b>{place}</b>, so anything of yours that is there and not in the shot should be unticked.": "Это записывается как то, что лежит в <b>{place}</b>, поэтому всё ваше, что там есть, но не попало на снимок, стоит снять с отметки.",
 	"These islands pay a good or Crow Coins, a different one each day; which one changes the route": "Эти острова каждый день дают товар или Монеты ворон; от этого зависит маршрут",
+	"These islands show one of a few exchanges, a different one each day; until said they stay out of the run": "Эти острова показывают один из нескольких обменов, каждый день другой; пока он не указан, они не входят в маршрут",
 	"They are listed below, locked, and left out of the run and of the runs worth sailing.": "Они перечислены ниже, закрытыми, и не участвуют ни в рейсе, ни в рейсах, которые стоит идти.",
 	"They are read by every screen, so they are set once, here — and the barter count decides which islands will deal with you at all.": "Их читает каждый экран, поэтому задаются они один раз, здесь, — а счёт бартеров решает, какие острова вообще станут с вами торговать.",
 	"They are read in this browser and never uploaded — the first read fetches about 6 MB of reader, once.": "Они читаются в этом браузере и никуда не отправляются — при первом чтении один раз скачивается около 6 МБ распознавания.",
@@ -3443,6 +3444,7 @@
 	"This hull is not one of your saved setups yet": "Этот корпус ещё не входит в ваши сохранённые корабли",
 	"This is the run laid out on the right": "Это рейс, разложенный справа",
 	"This is what a chime will look like when the ship is in.": "Вот так будет выглядеть сигнал, когда корабль придёт.",
+	"This is {board}, but on it these islands are filled at random: one of a few exchanges each, a different one each day. Look at each on the window and tap what it shows. 🎲 is the game’s odds, ⚓ what the fleet saw; until an island is said it stays out of the run.": "Это {board}, но эти острова на нём выпадают случайно: один из нескольких обменов, каждый день другой. Посмотрите каждый в окне и нажмите то, что он показывает. 🎲 — шансы игры, ⚓ — что видел флот; пока остров не указан, он не входит в маршрут.",
 	"This is {board}. It agrees at every one of the {n} islands you read.": "Это {board}. Совпадает на каждом из {n} прочитанных островов.",
 	"This is {board}. It agrees at {n} islands and parts at one: a slip, or a slot moved.": "Это {board}. Совпадает на {n} островах и расходится на одном: ошибка чтения или сдвинутая ячейка.",
 	"This island pays <b>{range}</b> a trade. Tap what it paid — the run is then recorded exactly.": "Этот остров платит <b>{range}</b> за обмен. Нажмите, сколько он заплатил, — и рейс запишется точно.",
@@ -3740,6 +3742,7 @@
 	"What the coin islands will take on this board": "Что возьмут монетные острова на этой доске",
 	"What the game’s own files had to say": "Что сказали собственные файлы игры",
 	"What the island paid, as the game’s window showed it": "Сколько заплатил остров — как показывало окно игры",
+	"What the islands filled at random showed today": "Что сегодня показали случайные острова",
 	"What the islands that roll a good or coins showed today": "Что сегодня показали острова, где выпадает товар или монеты",
 	"What the pool shows now; blank for full": "Что показывает запас сейчас; пусто — значит полный",
 	"What the purse and the horizon between them could not cover.": "То, чего кошелёк и горизонт вместе не покрыли.",
@@ -6426,6 +6429,7 @@
 		"one": "{n} остров, как вы его прочли",
 		"other": "{n} островов, как вы их прочли"
 	},
+	"{n} island is filled at random — which exchange?": "случайных островов: {n} — какой обмен?",
 	"{n} island on this run pays a range": "островов с диапазоном в этом рейсе: {n}",
 	"{n} island paying": {
 		"few": "{n} острова платят",
@@ -6450,7 +6454,6 @@
 		"many": "{n} островов убрано",
 		"other": "{n} островов убрано"
 	},
-	"{n} island the game fills at random is left out: paste the page it is on to count it.": "Островов, которые игра заполняет случайно, пропущено: {n} — вставьте страницу, где он есть, чтобы его учесть.",
 	"{n} island ticked from {board}": "{n} остров отмечен по доске {board}",
 	"{n} island today you can trade with": "Островов сегодня для обмена: {n}",
 	"{n} islands": {
@@ -6459,6 +6462,7 @@
 		"one": "{n} остров",
 		"other": "{n} островов"
 	},
+	"{n} islands are filled at random — which exchanges?": "случайных островов: {n} — какие обмены?",
 	"{n} islands as you read them": {
 		"few": "{n} острова, как вы их прочли",
 		"many": "{n} островов, как вы их прочли",
@@ -6495,7 +6499,6 @@
 		"many": "{n} островов убрано",
 		"other": "{n} островов убрано"
 	},
-	"{n} islands the game fills at random are left out: paste the pages they are on to count them.": "Островов, которые игра заполняет случайно, пропущено: {n} — вставьте страницы, где они есть, чтобы их учесть.",
 	"{n} islands ticked from {board}": "Островов, отмеченных по доске {board}: {n}",
 	"{n} islands today you can trade with": "Островов сегодня для обмена: {n}",
 	"{n} islands’ pay not said": {

@@ -165,7 +165,7 @@ export function coinSides(npcId, give) {
 export function materialPages() {
 	if (!game || !game.MATERIAL) return [];
 	const rows = Math.max(0, ...Object.values(game.MATERIAL).map(s => s.length));
-	const asOffer = o => ({ give: o.give, recv: o.recv, giveN: Number(String(o.qty).split('-')[0]) || 1, recvN: o.recvMin, recvMax: o.recvMax, perDay: o.perDay, parley: o.parley, chance: o.chance });
+	const asOffer = o => ({ give: o.give, recv: o.recv, giveN: Number(String(o.qty).split('-')[0]) || 1, recvN: o.recvMin, recvMax: o.recvMax, perDay: o.perDay, parley: o.parley, gate: o.gate, chance: o.chance });
 	const pages = [];
 	for (let row = 0; row < rows; row++) {
 		const offers = new Map();
