@@ -1310,7 +1310,7 @@ button.rung-fate { cursor: pointer; }
   .barter-screen .linky { display: inline-flex; align-items: center; min-height: 34px; padding: 0 2px; }
   .barter-screen .purse-inline, .barter-screen .amt { min-height: 34px; }
   .barter-screen .copy-name, .barter-screen .map-x { min-width: 34px; min-height: 34px; }
-  .barter-screen .mat-isle, .barter-screen .mat-head-name, .barter-screen .run-quest-name { min-height: 34px; }
+  .barter-screen .run-quest-name { min-height: 34px; }
   .barter-screen .ghost-btn.sm { min-height: 36px; }
   .barter-screen .rest-dot, .barter-screen .pack-box { width: 34px; height: 34px; }
   .barter-screen .rest-row { grid-template-columns: 34px minmax(0, 1fr); }

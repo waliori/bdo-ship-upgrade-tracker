@@ -30,7 +30,7 @@ import { openRolls } from './rolls.js';
 import { bringUp } from './cockpit.js';
 import { castOffFx } from './setsail.js';
 import { aboardStock, unloadTo, held, openSheet, shoreAboard } from './hold.js';
-import { matBoardNow, matFitNow, noteMatSeen, takeMatOffers, openMatBook, pickGood, pickMaterial, setMaterial } from './material.js';
+import { matBoardNow, matFitNow, takeMatOffers, openMatBook, pickGood, pickMaterial, matOn } from './material.js';
 import { packedNow, unloadMoves, packApply, toldOf } from './packing.js';
 import { parleyRefilled, retickIfAuto, ordersNow, setOrders, applySaved, dropSaved, askSaveOrders, sellFrom, keepFrom, readBagShot, chainStepsDialog, chainClaimDialog } from './plan.js';
 import { STASHES, bagSet, legsOf, skippedToday, pulledToday, ledgerOf } from './route.js';
@@ -196,18 +196,11 @@ export function barterAction(act, el, redraw) {
 			return false;
 		}
 		case 'barter-qty-short': V.qty = Math.max(1, Number(el.dataset.n) || 1); if (itemNow()) V.wants[itemNow()] = V.qty; persist(); return true;
-		case 'barter-mat-pick': setMaterial(el.dataset.item === itemNow() ? '' : el.dataset.item); return true;
-		case 'barter-mat-go': setMaterial(el.dataset.item); return true;
-		case 'barter-mat-drop': {
-			// Off the run, and put down too if it was the one open, so it
-			// leaves the strip. Its islands stay ticked: the window still
-			// shows them, whether or not the run goes for them.
-			const mb = matBoardNow();
-			mb.on = mb.on.filter(m => m !== el.dataset.item);
-			if (itemNow() === el.dataset.item) setMaterial('');
-			persist();
-			return true;
-		}
+		// A material on the run or off it. One the builds are short of is
+		// on by itself, so taking it off is remembered; any other is on
+		// only once added.
+		case 'barter-mat-go': matOn(el.dataset.item, true); return true;
+		case 'barter-mat-drop': matOn(el.dataset.item, false); return true;
 		case 'barter-mat-add': pickMaterial(redraw); return false;
 		case 'barter-trip': openTripLog(); return false;
 		case 'barter-board-ask': pickOffer(Number(el.dataset.npc), redraw); return false;
@@ -229,24 +222,6 @@ export function barterAction(act, el, redraw) {
 		case 'barter-rolls': { const b = boardNow(); if (b.combo) openRolls(b.combo, redraw); return false; }
 		case 'barter-pace-set': setOrders({ pace: el.dataset.id === 'full' ? 'full' : el.dataset.id === 'steady' ? 'steady' : 'fast' }); return true;
 		case 'barter-mat-pace-set': V.matOrders = { ...V.matOrders, pace: el.dataset.id === 'fast' ? 'fast' : 'full' }; persist(); return true;
-		case 'barter-mat-tick': {
-			const mb = matBoardNow();
-			const npcId = Number(el.dataset.npc), give = el.dataset.give, recv = itemNow();
-			const i = mb.answers.findIndex(a => a.npcId === npcId);
-			const same = i >= 0 && mb.answers[i].give === give && mb.answers[i].recv === recv;
-			// A tick taken from a board, pressed, is the sailor saying the
-			// window shows it: it becomes a reading. Pressed again, it goes.
-			if (same && mb.answers[i].took) { delete mb.answers[i].took; persist(); noteMatSeen(); return true; }
-			if (i >= 0) mb.answers.splice(i, 1);   // an island shows one exchange: a new tick replaces the old
-			if (!same) mb.answers.push({ npcId, give, recv });
-			if (!same && !mb.on.includes(recv)) mb.on.push(recv);
-			persist();
-			// Into the record, so the material list's habits can be learnt.
-			const seen = { ...(store.getProfile('matSeen', {}) || {}) };
-			seen[mb.day] = mb.answers.map(a => [a.npcId, a.give, a.recv]);
-			store.setProfileQuiet('matSeen', seen);
-			return true;
-		}
 		case 'barter-mat-book': openMatBook(redraw); return false;
 		case 'barter-mat-fill': {
 			const fit = matFitNow();
@@ -262,9 +237,6 @@ export function barterAction(act, el, redraw) {
 			if (!el.dataset.keepParley) parleyRefilled();
 			persist();
 			return true;
-		case 'barter-mat-only': V.matOnly = V.matOnly === el.dataset.id ? '' : el.dataset.id; return true;
-		case 'barter-mat-lv': V.matLv = V.matLv === Number(el.dataset.lv) ? 0 : Number(el.dataset.lv); return true;
-		case 'barter-mat-filters-clear': V.matQ = ''; V.matOnly = ''; V.matLv = 0; return true;
 		// From the material run to the item board: the chains that reach
 		// the give not held, and no others, until cleared.
 		case 'barter-reach': V.reach = el.dataset.item || ''; V.goal = 'silver'; persist(); return true;
@@ -655,7 +627,6 @@ export function barterAction(act, el, redraw) {
 export function barterType(el) {
 	if (el.dataset.act === 'barter-hold-q') { V.holdQ = el.value; return true; }
 	if (el.dataset.act === 'barter-chain-q') { V.chainQ = el.value; return true; }
-	if (el.dataset.act === 'barter-mat-q') { V.matQ = el.value; return true; }
 	return false;
 }
 
@@ -690,6 +661,13 @@ export function barterChange(el, parseAmount) {
 			return true;
 		}
 		case 'barter-port': V.port = ports.some(p => p.id === Number(el.value)) ? Number(el.value) : 0; persist(); return true;
+		case 'barter-mat-want': {
+			const n = parseAmount(el.value);
+			if (n === null || !el.dataset.item) return true;
+			V.wants[el.dataset.item] = Math.max(1, Math.min(99999, Math.floor(n)));
+			persist();
+			return true;
+		}
 		case 'barter-qty': {
 			const n = parseAmount(el.value);
 			if (n === null) return true;

@@ -618,7 +618,7 @@ export function readBagShot(files) {
 	run(files);
 }
 
-function orderRow(act, label, value, options, title = '') {
+export function orderRow(act, label, value, options, title = '') {
 	const chosen = options.find(([v]) => String(v) === String(value)) || options[0];
 	const pick = options.length > 6
 		? `<select class="field select" data-act="${act}" aria-label="${esc(label)}">${options.map(([v, t]) => `<option value="${esc(String(v))}"${String(v) === String(value) ? ' selected' : ''}>${esc(said(t))}</option>`).join('')}</select>`

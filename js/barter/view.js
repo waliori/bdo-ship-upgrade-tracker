@@ -129,7 +129,8 @@ export function restore() {
 			};
 			// A day kept before the run had its own list sailed for
 			// every material ticked.
-			V.matBoard.on = Array.isArray(s.matBoard.on) ? s.matBoard.on.filter(m => typeof m === 'string') : [...new Set(V.matBoard.answers.map(a => a.recv))];
+			V.matBoard.on = Array.isArray(s.matBoard.on) ? s.matBoard.on.filter(m => typeof m === 'string') : [];
+			V.matBoard.off = Array.isArray(s.matBoard.off) ? s.matBoard.off.filter(m => typeof m === 'string') : [];
 		}
 		if (s.board && Array.isArray(s.board.answers)) {
 			V.board = {

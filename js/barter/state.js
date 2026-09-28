@@ -88,11 +88,6 @@ export const V = {
 	shortMemo: { key: '', res: null },
 	appearMemo: { key: '', rows: [] },
 	matBookMemo: null,
-	matAutoTold: '',
-	// The material list's filters, for the session.
-	matQ: '',
-	matOnly: '',
-	matLv: 0,
 	untilBeat: null,
 	fleet: { day: '', list: [], asked: false },
 };
