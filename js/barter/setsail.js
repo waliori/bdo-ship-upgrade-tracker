@@ -93,7 +93,7 @@ export function castOffFx() {
 	const h = new Float32Array(N), v = new Float32Array(N);
 	const gShip = (H0 * 2.4) / Z0, gA = (H0 * 1.9) / Z0, gB = Hf * 5;
 	let t = 0, mode = 'fall', hitAt = 0, morphAt = 0, u = 0, e = 0;
-	let drops = [], foam = [], sprite = null;
+	let drops = [], foam = [], sprite = null, whole = null;
 	let W = start.width, H = start.height;
 	const ship = { y: yb + ((-H0 * 0.9 + sw1 * Z0 * 0.9) - H0 * SEA) / Z0, vy: 0, rot: -0.05, vr: 0 };
 
@@ -183,13 +183,6 @@ export function castOffFx() {
 			const sL = surfAt(cx - sw * 0.3), sR = surfAt(cx + sw * 0.3), slope = Math.atan2(sR - sL, sw * 0.6), aimY = (sL + sR) / 2, prev = ship.y;
 			ship.vy += (aimY - ship.y) * lerp(22, 40, e) * dt - ship.vy * lerp(2.6, 4, e) * dt; ship.y += ship.vy * dt;
 			ship.vr += (slope * 0.5 - ship.rot) * 14 * dt - ship.vr * 3 * dt; ship.rot += ship.vr * dt;
-			// Afloat in close-up, the picture's top stays past the card's
-			// edge: the icon ends flat over the sails, and the splash's dip
-			// showed it.
-			if (mode === 'float') {
-				const { Z, ty } = cam(), deep = (-4 - ty) / Z + sh1 * (WATERLINE - 0.03);
-				if (ship.y > deep) { ship.y = deep; if (ship.vy > 0) ship.vy = 0; }
-			}
 			const dy = ship.y - prev;
 			if (Math.abs(dy) > 0.01 && e < 1) for (let i = idx(cx - sw * 0.4); i <= idx(cx + sw * 0.4); i++) v[i] += dy * 0.1;
 		}
@@ -237,9 +230,26 @@ export function castOffFx() {
 			}
 			// Drawn as the clock draws it, so the hand-over does not move it:
 			// the same sprite, made once at the close-up's sharpness.
-			if (!sprite) sprite = shipSprite(pic, sw, sh, d * Z0);
+			if (!sprite) {
+				sprite = shipSprite(pic, sw, sh, d * Z0);
+				// The icon ends flat over the sails; close up, and bobbing on
+				// the splash, that edge showed. Its top is faded into the sky.
+				const g = sprite.c.getContext('2d'), top = (sprite.oy - sh * WATERLINE) * d * Z0, fade = sh * 0.16 * d * Z0;
+				const gr = g.createLinearGradient(0, top, 0, top + fade);
+				gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+				g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'destination-out';
+				g.fillStyle = gr; g.fillRect(0, 0, sprite.c.width, top + fade);
+				g.globalCompositeOperation = 'source-over';
+			}
 			ctx.save(); ctx.translate(cx, ship.y + sh * 0.03); ctx.rotate(ship.rot * 0.6);
-			ctx.drawImage(sprite.c, -sprite.ox, -sprite.oy, sprite.w, sprite.h); ctx.restore();
+			ctx.drawImage(sprite.c, -sprite.ox, -sprite.oy, sprite.w, sprite.h);
+			// Pulling back, the whole picture comes in over the faded one: the
+			// clock draws it whole, and the hand-over must not change it.
+			if (e > 0) {
+				if (!whole) whole = shipSprite(pic, sw, sh, d * Z0);
+				ctx.globalAlpha = e; ctx.drawImage(whole.c, -whole.ox, -whole.oy, whole.w, whole.h); ctx.globalAlpha = 1;
+			}
+			ctx.restore();
 		}
 		water(ctx, surf, 0.5, vx0, vx1, vy1, lw);
 		const blob = foamSprite();
