@@ -694,6 +694,7 @@ export function barterChange(el, parseAmount) {
 			return true;
 		}
 		case 'barter-mat-reach': V.matOrders = { ...V.matOrders, reach: el.value === 'all' ? 'all' : 'want' }; persist(); return true;
+		case 'barter-mat-at': V.matAt = npcById.has(Number(el.value)) ? Number(el.value) : 0; persist(); return true;
 		case 'barter-mat-order': V.matOrders = { ...V.matOrders, order: ['rich', 'tiers'].includes(el.value) ? el.value : 'short' }; persist(); return true;
 		case 'barter-mat-calls': V.matOrders = { ...V.matOrders, calls: el.checked }; persist(); return true;
 		case 'barter-mat-pace': V.matOrders = { ...V.matOrders, pace: el.value === 'fast' ? 'fast' : 'full' }; persist(); return true;

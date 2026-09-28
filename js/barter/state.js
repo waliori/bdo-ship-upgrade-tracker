@@ -31,6 +31,9 @@ export const V = {
 	// chooses -- a whole window read, or a board taken, shows far more than
 	// anyone sails for.
 	matBoard: { day: '', answers: [], on: [] },
+	// Where the ship is when a material run is taken up again at sea: an
+	// island's id, or 0 for the home port. For the day.
+	matAt: 0,
 	planSec: 'ladder', // the part of the plan that is open: parley | ladder | how | chains | all | none
 	advOpen: false, // every order, unfolded
 	ownWay: false, // "my own way" chosen, whether or not the orders happen to match a card

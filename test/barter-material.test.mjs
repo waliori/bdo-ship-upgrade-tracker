@@ -228,3 +228,15 @@ test('the islands can be taken best payers first, or the rich ones with the midd
 	const short = materialRun({ ...base });
 	assert.equal(short.trades, rich.trades, 'the same trades, another order');
 });
+
+test('a run taken up again at sea starts at the island the ship is at, with what is aboard, and calls home only for the rest', () => {
+	// Two Figurines aboard, four more at Velia; the ship is at C.
+	const picks = [pick(1), pick(2), pick(3)];
+	const at = npcById.get(3);
+	const run = materialRun({ picks, wants: { [SCALE]: 99 }, reach: 'all', stock: { [L5]: 2 }, dock: { [L5]: 4 }, hold: { free: 20000, deal: 25000, max: 30000 }, start: velia, startWharf: veliaWharf, npcById, at });
+	const seq = names(run.stops);
+	assert.notEqual(seq[0], 'Velia+4', `no call at home before the first island: ${seq.join(' > ')}`);
+	assert.ok(!run.stops[0].wharf, 'the first stop is an island, dealt from what is aboard');
+	assert.ok(seq.some(n => n.startsWith('Velia')), `home for the rest: ${seq.join(' > ')}`);
+	assert.equal(run.trades, 6);
+});

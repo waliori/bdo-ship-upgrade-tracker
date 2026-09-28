@@ -1902,6 +1902,20 @@ test('the material book is the game’s own layouts, every one, and a page read 
 	});
 	assert.ok(both.includes(21650), `a trade-list coin island on the route: ${both.join(', ')}`);
 	assert.ok(both.includes(29430), 'beside the material list\'s');
+	// Read off the window, a trade list coin island is certain even when the
+	// board has not settled on a layout: it is sailed for all the same.
+	const read = await page.evaluate(async () => {
+		const { V } = await import('/js/barter/state.js'); const { barterKey } = await import('/js/clock.js'); const ui = await import('/js/ui.js'); const L = await import('/js/barter-layouts.js');
+		const onMat = new Set(V.matBoard.answers.map(a => a.npcId));
+		let row = null;
+		for (const c of L.layouts().combos) { const o = c.offers.find(x => x[3] === 'Crow Coin' && !onMat.has(x[0]) && x[1] === '[Level 4] Pirate\'s Key'); if (o) { row = { npcId: o[0], give: o[1], recv: o[3] }; break; } }
+		if (!row) return 'no row';
+		V.board = { ...V.board, day: barterKey(), answers: [row], pinned: '' };
+		ui.render();
+		await new Promise(r => setTimeout(r, 500));
+		return (V.shownPlan ? V.shownPlan.stops : []).some(x => x.npcId === row.npcId) ? 'on the route' : `off: ${row.npcId}`;
+	});
+	assert.equal(read, 'on the route');
 	assert.deepEqual(errors, []);
 	await context.close();
 });

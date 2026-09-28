@@ -88,8 +88,17 @@ export function withWaits(stops, weightStart = 0) {
 	return out;
 }
 
+/**
+ * Where a run's first leg starts: the harbour it sails from -- or, a
+ * material run taken up again at sea, the island the ship is at.
+ */
+export function startPlace() {
+	if (V.goal === 'material' && V.matAt && npcById.has(V.matAt)) return npcById.get(V.matAt);
+	return ports.find(p => p.id === V.port) || null;
+}
+
 export function legsOf(stops) {
-	const from = ports.find(p => p.id === V.port) || null;
+	const from = startPlace();
 	const pts = [...(from ? [from] : []), ...stops.map(placeOf).filter(Boolean)];
 	if (pts.length < 2) return { total: 0, legs: [], time: '', timeWith: () => '' };
 	// Bending the legs round the land is the dear part of a redraw, and
@@ -513,7 +522,7 @@ export function stopRows(stops, legs, { k0 = 0, board = false, sailing = null, t
 				<div class="run-stop-head">${s.wait ? `<span class="run-anchor" title="${T('A wait for a voucher’s cooldown, not a barter')}">⏳</span>` : s.wharf ? `<span class="run-anchor" title="${T('A pause at a wharf, not a barter')}">⚓</span>` : s.quest ? `<span class="run-anchor" title="${s.hunt ? T('A stop put in to hunt, not a barter') : T('A stop put in for a quest, not a barter')}">${s.hunt ? '🎯' : '📜'}</span>` : ''}${map ? `<button class="run-stop-fly" data-act="map-step" data-i="${k}" title="${T('Fly the chart here, and step to it')}">${esc(s.quest ? gameName(place.name) : s.wharf ? T('{at} wharf', { at: gameName(place.at) }) : gameName(isleOf(place)))}</button>` : `<b class="run-stop-name">${esc(s.quest ? gameName(place.name) : s.wharf ? T('{at} wharf', { at: gameName(place.at) }) : gameName(isleOf(place)))}</b>`}<span>${esc(s.quest ? gameName(place.who) : s.wharf ? gameName(place.name) : gameName(whoOf(place)))}</span>${tag ? tag(s) : ''}${leg}</div>
 				${did}
 				${edit && s.npcId ? `<div class="route-edit"><button class="chip tiny" data-act="barter-route-nudge" data-npc="${s.npcId}" data-by="-1" title="${T('Sail here one stop sooner')}" aria-label="${T('Sooner')}">↑</button><button class="chip tiny" data-act="barter-route-nudge" data-npc="${s.npcId}" data-by="1" title="${T('Sail here one stop later')}" aria-label="${T('Later')}">↓</button><button class="chip tiny warn" data-act="barter-route-skip" data-npc="${s.npcId}" title="${T('Take this island off the route: its chain stops before it, and the rest of the route is laid again without it')}">${T('skip')}</button></div>` : ''}
-				${snap ? legSnap(i > 0 ? placeOf(stops[i - 1]) : k0 === 0 ? ports.find(p => p.id === V.port) : before ? placeOf(before) : null, place) : ''}
+				${snap ? legSnap(i > 0 ? placeOf(stops[i - 1]) : k0 === 0 ? startPlace() : before ? placeOf(before) : null, place) : ''}
 				${notes && notes.at(k).length ? `<div class="run-quests">${notes.at(k).map(x => questChip(x, wanted, notes.trades || 0, made)).join('')}</div>` : ''}
 				${check(s, k)}
 			</div>

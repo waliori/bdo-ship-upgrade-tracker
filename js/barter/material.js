@@ -46,7 +46,7 @@ import { coinPrice } from '../coin-shop.js';
 export function matBoardNow() {
 	// A new barter day, a new list: and what was typed for the old one
 	// goes with it, the wants back to what the builds need.
-	if (V.matBoard.day !== barterKey()) { V.matBoard = { day: barterKey(), answers: [], on: [], used: {} }; V.wants = {}; persist(); }
+	if (V.matBoard.day !== barterKey()) { V.matBoard = { day: barterKey(), answers: [], on: [], used: {} }; V.wants = {}; V.matAt = 0; persist(); }
 	// A list read before its islands' attempts were kept: what today's
 	// recorded material runs traded on it, taken from their logs once.
 	if (!V.matBoard.used) {
@@ -397,7 +397,8 @@ export function materialParts(me, data) {
 	// storage before casting off, and the run laid without it.
 	const gives = new Set(picks.map(x => x.give));
 	const aboard = aboardStock();
-	const spares = from ? Object.entries(aboard).filter(([n, q]) => q > 0 && levelOf(n) !== null && !gives.has(n)).map(([item, n]) => ({ item, n, sell: false })) : [];
+	const atSea = !!(V.matAt && npcById.has(V.matAt));
+	const spares = from && !atSea ? Object.entries(aboard).filter(([n, q]) => q > 0 && levelOf(n) !== null && !gives.has(n)).map(([item, n]) => ({ item, n, sell: false })) : [];
 	const stock = { ...aboard };
 	for (const x of spares) delete stock[x.item];
 	// The Parley the day has, the bar and the vouchers the orders let the
@@ -405,10 +406,11 @@ export function materialParts(me, data) {
 	const pr = parleyOf(barterProfile());
 	const parley = { budget: pr.bar, costOf: x => Math.floor((x.parleyBase || PARLEY.perMaterialTrade) * pr.rate) };
 	const layFor = () => materialRun({
-		picks, wants: new Map(mats.map(m => [m.it, m.qty])), reach: V.matOrders.reach, calls: V.matOrders.calls, assume: false, parley, order: V.matOrders.order || 'short',
+		picks, wants: new Map(mats.map(m => [m.it, m.qty])), reach: V.matOrders.reach, calls: V.matOrders.calls, assume: false, parley, buy: !atSea, order: V.matOrders.order || 'short',
 		stock, dock: dockStock(), stores: storesElsewhere(), bags: bagsNow(),
 		prices: landPrices([...new Set(picks.map(x => x.give).filter(g => levelOf(g) === null))], store.getProfile('homemade', []) || []),
-		hold: me.hold, start: from, startWharf: from ? stashes.find(w => w.at === from.name) || null : null, npcById
+		hold: me.hold, start: from, startWharf: from ? stashes.find(w => w.at === from.name) || null : null, npcById,
+		at: V.matAt && npcById.has(V.matAt) ? npcById.get(V.matAt) : null
 	});
 	let plan = layFor();
 	// A coin day's want, when not typed: what the shop asks for everything
@@ -450,7 +452,8 @@ export function materialParts(me, data) {
 		${orderRow('barter-vouchers', T('trade vouchers'), ordersNow().vouchers, VOUCHER_CHOICES, T('Whether the run draws on the Crow’s Trade Vouchers you carry; each is a quarter of a bar, on its own two-hour cooldown'))}
 		${orderRow('barter-mat-quests', T('quests on the way'), V.matOrders.quests, QUEST_CHOICES, T('The dailies and weeklies already taken, handed in where the run passes their taker or at a stop put in a short way off the route; the hunts only when their grounds lie on the way'))}
 		${orderRow('barter-mat-calls', T('a give kept at another harbour'), V.matOrders.calls ? 'true' : 'false', [['true', T('call there for it')], ['false', T('bring it first')]], T('Put in at another harbour on the way for a give kept in its storage, or bring it to the harbour the run sails from before casting off'))}
-		${orderRow('barter-port', T('from'), V.port, [[0, T('the first stop')], ...ports.map(p => [p.id, gameName(p.name)])])}
+		${orderRow('barter-mat-at', T('the ship is now'), V.matAt || 0, [[0, T('at the home port')], ...[...npcById.values()].filter(n => showing.some(a => a.npcId === n.id)).sort((a, b) => isleShort(a).localeCompare(isleShort(b))).map(n => [n.id, T('at {isle}', { isle: gameName(isleShort(n)) })])], T('Where the ship is: taken up again at sea, the run starts at that island with what is aboard, and the home port stays home -- its storage is still what the run comes back to'))}
+		${orderRow('barter-port', T('home port'), V.port, [[0, T('the first stop')], ...ports.map(p => [p.id, gameName(p.name)])])}
 	</div>`;
 	// What the run comes to: each material against its want, as a bar;
 	// then the run in figures, each with its sign.
@@ -497,7 +500,7 @@ export function materialParts(me, data) {
 	</section>` : '';
 	// A ship already heavier than the pace allows, and no harbour to leave
 	// the rest at: the run cannot lighten it, so it says how to.
-	const heavyStart = !from && plan.weightStart > me.hold.free + 1e-6
+	const heavyStart = !from && !atSea && plan.weightStart > me.hold.free + 1e-6
 		? `<div class="barter-shut hold-over"><b>${T('The ship leaves heavier than its limit')}</b> — ${T('{n} LT of goods aboard. Choose your home port under Before you sail, and what this run does not use is put in its storage before casting off.', { n: F(Math.round(plan.weightStart)) })}</div>`
 		: '';
 	// What comes home: the materials the run brings, one tile a kind.
@@ -543,7 +546,7 @@ export function materialParts(me, data) {
 		secs: [
 			['parley', T('Before you sail'), esc(parleyLine(barterProfile())), parleyHTML(barterProfile())],
 			['ladder', T('The materials wanted'), esc(matsSaid), `${listPanel}<div class="plan-next"><span class="panel-spacer"></span><button class="act" data-act="barter-sec" data-id="how">${T('OK, that’s the goal')} ›</button></div>`],
-			['how', T('How to sail it'), esc([V.matOrders.reach === 'all' ? T('every island I can trade with') : T('the wants, then home'), from ? T('from {port}', { port: gameName(from.name) }) : ''].filter(Boolean).join(' · ')), `${ordersRow}<div class="plan-next"><span class="panel-spacer"></span><button class="act" data-act="barter-sec" data-id="chains">${T('OK, see what comes of it')} ›</button></div>`],
+			['how', T('How to sail it'), esc([V.matOrders.reach === 'all' ? T('every island I can trade with') : T('the wants, then home'), atSea ? T('from {port}', { port: gameName(isleShort(npcById.get(V.matAt))) }) : from ? T('from {port}', { port: gameName(from.name) }) : ''].filter(Boolean).join(' · ')), `${ordersRow}<div class="plan-next"><span class="panel-spacer"></span><button class="act" data-act="barter-sec" data-id="chains">${T('OK, see what comes of it')} ›</button></div>`],
 			['chains', T('What comes of it'), esc(comes), summary || `<p class="empty">${T('Nothing ticked. Open a material and tap each island showing it today — the run lays itself out here.')}</p>`]
 		],
 		load: `${heavyStart}${empty}${packing}${before}${missing}${ashore}${after}${questsPanels(qp, from)}${routeFold}`,
@@ -691,9 +694,15 @@ function pickOf(a) {
  */
 function tradeCoins() {
 	const b = boardNow();
-	if (!b.combo) return [];
 	const onMaterial = new Set(matBoardNow().answers.map(a => a.npcId));
-	return exchanges(b.data).filter(x => x.item === CROW_COIN && npcById.has(x.npcId) && !onMaterial.has(x.npcId));
+	const known = b.combo ? exchanges(b.data).filter(x => x.item === CROW_COIN && npcById.has(x.npcId) && !onMaterial.has(x.npcId)) : [];
+	// And the coin rows read off the window itself, which are certain
+	// whether or not a layout has been settled: a screenshot of a coin day
+	// carries the trade list's coin islands beside the material list's,
+	// and a board still split between layouts has no combo to give them.
+	const have = new Set(known.map(x => x.npcId));
+	const read = (V.board.answers || []).filter(a => a.recv === CROW_COIN && !have.has(a.npcId) && !onMaterial.has(a.npcId)).map(pickOf).filter(Boolean);
+	return [...known, ...read];
 }
 
 /**

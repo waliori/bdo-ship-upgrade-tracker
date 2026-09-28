@@ -115,6 +115,7 @@ export function restore() {
 		if (typeof s.reach === 'string') V.reach = s.reach;
 		if (s.questSkip && typeof s.questSkip.day === 'string' && Array.isArray(s.questSkip.ids)) V.questSkip = { day: s.questSkip.day, ids: s.questSkip.ids.filter(id => typeof id === 'string') };
 		if (s.questPull && typeof s.questPull.day === 'string' && Array.isArray(s.questPull.ids)) V.questPull = { day: s.questPull.day, ids: s.questPull.ids.filter(id => typeof id === 'string') };
+		V.matAt = npcById.has(Number(s.matAt)) ? Number(s.matAt) : 0;
 		if (s.matBoard && Array.isArray(s.matBoard.answers)) {
 			V.matBoard = {
 				day: String(s.matBoard.day || ''),
@@ -196,7 +197,7 @@ function logBoard() {
 /** The view as memory holds it, for a write. The bag's packing marks
  *  ride with it: a reload before casting off kept every hold row's tick
  *  (they read the hold) and lost the bag's. */
-export const viewNow = () => ({ goal: V.goal, climb: V.climb, planSec: V.planSec, ownWay: V.ownWay, routeEdit: V.routeEdit, stock: V.stockGoal, item: V.item, qty: V.qty, wants: V.wants, matOrders: V.matOrders, port: V.port, routes: V.routes, shape: V.shape, routesOther: V.routesOther, stash: V.stash, board: V.board, matBoard: V.matBoard, sail: V.sail, reach: V.reach, questSkip: V.questSkip, questPull: V.questPull, packed: [...V.packed].slice(0, 60), packLog: V.packLog });
+export const viewNow = () => ({ goal: V.goal, climb: V.climb, planSec: V.planSec, ownWay: V.ownWay, routeEdit: V.routeEdit, stock: V.stockGoal, item: V.item, qty: V.qty, wants: V.wants, matOrders: V.matOrders, port: V.port, routes: V.routes, shape: V.shape, routesOther: V.routesOther, stash: V.stash, board: V.board, matBoard: V.matBoard, matAt: V.matAt, sail: V.sail, reach: V.reach, questSkip: V.questSkip, questPull: V.questPull, packed: [...V.packed].slice(0, 60), packLog: V.packLog });
 
 /**
  * The view written now, as a change Undo can take back: an edit to the

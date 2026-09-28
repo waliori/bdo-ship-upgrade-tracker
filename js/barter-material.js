@@ -77,7 +77,7 @@ export { tour };
  * casting off (`bought`: { item, n, each, how, total }) and their
  * `cost`; how many times the run went back to a harbour (`returns`).
  */
-export function materialRun({ picks = [], wants = new Map(), reach = 'want', pace = 'full', calls = true, buy = true, assume = true, stock = {}, dock = {}, stores = [], bags = {}, prices = {}, hold, start = null, startWharf = null, npcById, parley = null, order = 'short' } = {}) {
+export function materialRun({ picks = [], wants = new Map(), reach = 'want', pace = 'full', calls = true, buy = true, assume = true, stock = {}, dock = {}, stores = [], bags = {}, prices = {}, hold, start = null, startWharf = null, npcById, parley = null, order = 'short', at = null } = {}) {
 	const wantOf = wants instanceof Map ? wants : new Map(Object.entries(wants));
 	// Everything a material run carries is loaded at a wharf, and the game
 	// loads no cargo past the hold's limit -- the barter ceiling is only
@@ -196,7 +196,9 @@ export function materialRun({ picks = [], wants = new Map(), reach = 'want', pac
 	let weight = weightHeld(heldMax);
 	const weightStart = weight;
 	let peak = weight;
-	let pos = start;
+	// Where the ship is: the start harbour, or -- a run taken up again at
+	// sea -- the island it stopped at, with what is aboard.
+	let pos = at || start;
 	const stops = [];
 	const noRoom = new Map();   // give -> { n, islands }
 	const called = new Map();   // town -> times called
@@ -339,7 +341,7 @@ export function materialRun({ picks = [], wants = new Map(), reach = 'want', pac
 	// The start harbour first: its storage is loaded before casting
 	// off, and what the run will not spend is left there rather than
 	// carried round the sea.
-	if (home) {
+	if (home && !at) {
 		if (harbours.has(home.town)) callAt(home);
 		else if (weight > limit + 1e-6 && spare().length) {
 			const stop = { wharf: startWharf, dropped: [], sale: null, loads: [], hold };
