@@ -22,7 +22,7 @@
 
 import { timerState } from './sail-timer.js';
 
-const DX = 3;              // strip pixels a spring of the sea stands for
+const DX = 4;              // strip pixels a spring of the sea stands for
 const PAD = 90;            // sea kept either side of the view
 const CALM_MS = 1000 / 30; // a ship just sailing: thirty frames a second
 const FAST_MS = 0;         // a rush, a splash, a voyage: every frame the screen has
@@ -205,7 +205,7 @@ function sim() {
 	if (simL.length !== N) { simL = new Float32Array(N); simR = new Float32Array(N); }
 	const L = simL, R = simR;
 	for (let i = 0; i < N; i++) v[i] += -h[i] * 0.02 - v[i] * 0.04;
-	for (let p = 0; p < 5; p++) {
+	for (let p = 0; p < 4; p++) {
 		for (let i = 0; i < N; i++) {
 			if (i > 0) { L[i] = 0.14 * (h[i] - h[i - 1]); v[i - 1] += L[i]; }
 			if (i < N - 1) { R[i] = 0.14 * (h[i] - h[i + 1]); v[i + 1] += R[i]; }
@@ -221,7 +221,7 @@ function sim() {
 
 /** How much of each the sea may hold at once: a splash is a handful of
  *  things in the air, not hundreds, and each is drawn every frame. */
-const MAX_FOAM = 40, MAX_DROPS = 40, WAKE_PER_S = 24;
+const MAX_FOAM = 24, MAX_DROPS = 24, WAKE_PER_S = 16;
 const foamIn = f => { if (s.foam.length < MAX_FOAM) s.foam.push(f); };
 const dropIn = d => { if (s.drops.length < MAX_DROPS) s.drops.push(d); };
 
@@ -252,10 +252,10 @@ function land() {
 	s.mode = 'arrived'; s.arrivedAt = s.t; s.rv = 0; s.px = 1;
 	if (still()) return;
 	for (let i = idx(bow - 8); i <= idx(pierX); i++) s.v[i] += 2.2 * k;
-	for (let i = 0; i < 30; i++) dropIn({ x: bow + Math.random() * 10, y: sy, vx: (10 + Math.random() * 110) * k, vy: -(60 + Math.random() * 190) * k, r: 0.6 + Math.random() * 1.6, a: 0.5 + Math.random() * 0.5, life: 1 });
-	for (let i = 0; i < 12; i++) foamIn({ x: bow - 6 + Math.random() * 22, vx: 10 + Math.random() * 30, r: 3 + Math.random() * 6, a: 0.2 + Math.random() * 0.25, life: 1, decay: 0.35 + Math.random() * 0.3 });
+	for (let i = 0; i < 16; i++) dropIn({ x: bow + Math.random() * 10, y: sy, vx: (10 + Math.random() * 110) * k, vy: -(60 + Math.random() * 190) * k, r: 0.6 + Math.random() * 1.6, a: 0.5 + Math.random() * 0.5, life: 1 });
+	for (let i = 0; i < 8; i++) foamIn({ x: bow - 6 + Math.random() * 22, vx: 10 + Math.random() * 30, r: 3 + Math.random() * 6, a: 0.2 + Math.random() * 0.25, life: 1, decay: 0.35 + Math.random() * 0.3 });
 	for (let i = 0; i < 3; i++) s.rings.push({ x: bow + 6, t0: s.t + i * 0.14 });
-	for (let i = 0; i < 18; i++) {
+	for (let i = 0; i < 12; i++) {
 		const a = -Math.PI / 2 + (Math.random() - 0.5) * 1.9, v = 70 + Math.random() * 150;
 		s.sparks.push({ x: pierX - 4, y: sy - 12, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 1, decay: 0.55 + Math.random() * 0.45, c: Math.random() < 0.55 ? palette.teal : palette.gold, r: 0.9 + Math.random() * 1.4 });
 	}
@@ -310,8 +310,12 @@ function step(dt) {
 		b.rot += (-0.09 * Math.min(1, s.rv / s.W) - b.rot) * 6 * dt;
 		if (s.px >= 1) land();
 	} else if (s.mode === 'transit') {
+		// The clock started the new leg when Traded was pressed; the voyage
+		// makes for where the clock says the ship is by now, not for the
+		// start of the leg, so it hands over to the leg without a jump.
 		const tr = s.tr, u = Math.min(1, (s.t - tr.t0) / TRANSIT);
-		const sx = lerp(tr.sxA, tr.sxB, ease(u)), sp = (sx - tr.sx) / Math.max(dt, 1e-3);
+		tr.p = leg.leg === tr.to && !leg.there ? leg.p : tr.p || 0;
+		const sx = lerp(tr.sxA, tr.sxB + tr.p * L, ease(u)), sp = (sx - tr.sx) / Math.max(dt, 1e-3);
 		tr.sx = sx;
 		s.camX = lerp(tr.camA, tr.camB, ease(Math.max(0, Math.min(1, (u - 0.08) / 0.92))));
 		shiftGrid();
@@ -319,7 +323,7 @@ function step(dt) {
 		b.rot += (-0.07 * Math.min(1, sp / s.W) - b.rot) * 5 * dt;
 		if (u >= 1) {
 			s.leg = tr.to; s.camX = tr.camB; shiftGrid();
-			s.mode = 'run'; s.px = 0; s.rv = 0; s.tr = null;
+			s.mode = 'run'; s.px = tr.p; s.rv = 0; s.tr = null;
 		}
 	}
 	const x = geo().cx;
@@ -350,6 +354,7 @@ function water(ctx, fn, front, x0, x1) {
 	for (let i = ia; i <= ib; i++) ctx.lineTo(colX(i), fn(i));
 	ctx.lineTo(colX(ib), s.H); ctx.closePath();
 	ctx.fillStyle = front ? grads.front : grads.back; ctx.fill();
+	if (!front) return;
 	ctx.beginPath();
 	for (let i = ia; i <= ib; i++) { const x = colX(i), y = fn(i); if (i === ia) ctx.moveTo(x, y); else ctx.lineTo(x, y); }
 	ctx.strokeStyle = grads.line; ctx.lineWidth = 1; ctx.stroke();
@@ -432,7 +437,9 @@ function draw() {
 	ctx.globalAlpha = 1;
 }
 
-const dpr = () => Math.min(2, (typeof window !== 'undefined' && window.devicePixelRatio) || 1);
+// Drawn at most half again the screen's pixels: a strip of sea wants no
+// more, and a canvas twice over is four times the pixels to fill.
+const dpr = () => Math.min(1.5, (typeof window !== 'undefined' && window.devicePixelRatio) || 1);
 function size() {
 	// Measured when the box changed, not every frame: reading a size
 	// makes the browser lay the page out there and then.
@@ -484,6 +491,18 @@ export function mountScene() {
 	const el = document.querySelector('canvas[data-sail-scene]');
 	if (!el) { canvas = null; return; }
 	if (el === canvas && raf) return;
+	// The tab drew itself again and put a blank canvas where the clock is:
+	// the live one goes back in its place, pixels, context and all, so a
+	// press never blanks the sea or starts it over.
+	if (canvas && !canvas.isConnected && canvas.width) {
+		const src = el.dataset.ship || '';
+		el.replaceWith(canvas);
+		canvas.dataset.ship = src;
+		if (src !== imgSrc) { imgSrc = src; img = new Image(); img.src = src; if (s) s.sprite = null; }
+		sized = true;
+		if (!raf) { last = 0; raf = requestAnimationFrame(frame); }
+		return;
+	}
 	canvas = el;
 	palette = colours(); grads = null; sized = true;
 	if (typeof window !== 'undefined' && typeof window.ResizeObserver === 'function') {
@@ -498,4 +517,4 @@ export function mountScene() {
 
 /** Where the ship is, for a test: how far along the leg, which leg, what
  *  it is doing, and where the view is. Null when nothing is drawn. */
-export const sceneNow = () => (s ? { px: s.px, leg: s.leg, mode: s.mode, camX: s.camX } : null);
+export const sceneNow = () => (s ? { px: s.px, leg: s.leg, mode: s.mode, camX: s.camX, x: s.W && s.leg >= 0 ? geo().cx : null } : null);
