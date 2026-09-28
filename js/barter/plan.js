@@ -618,6 +618,12 @@ export function readBagShot(files) {
 	run(files);
 }
 
+/** BreezySail kept going or not: what the route's rations count. A
+ *  setting of the sailor's, the same whatever the run is for. */
+export function breezyRow() {
+	return orderRow('barter-breezy', T('BreezySail'), store.getProfile('breezy', false) === true ? 'on' : 'off', [['off', T('not used'), T('The rations count the ticks alone')], ['on', T('kept going'), T('Continuously use BreezySail: 8,150 rations a use, about every 20 s, while the hold is under its limit — the leg times already have its speed in them')]], T('Whether you sail with Continuously use BreezySail on; the calls for supplies follow from it'));
+}
+
 export function orderRow(act, label, value, options, title = '') {
 	const chosen = options.find(([v]) => String(v) === String(value)) || options[0];
 	const pick = options.length > 6
@@ -671,6 +677,7 @@ export function howHTML(o, figs = null) {
 		${orderRow('barter-way', T('the way round'), o.way, WAY_CHOICES, T('One route through every rung of every chain ticked, each after the rung beneath it — the nearest islands first, whatever chain they belong to — or each chain climbed to its top before the next'))}
 		${named ? `<p class="orders-set-k">${T('And, whichever way you sail')}</p>` : ''}
 		${orderRow('barter-stash', T('storage at'), V.stash, [['', T('the nearest wharf')], ...stashes.map(w => [w.at, gameName(STORE_NAMES[w.at] || w.at)])])}
+		${breezyRow()}
 		${orderRow('barter-quests', T('quests on the way'), o.quests, QUEST_CHOICES, T('The dailies and weeklies already taken, handed in where the run passes their taker or at a stop put in a short way off the route; the barter quests counted off the run\'s trades; the hunts only when their grounds lie on the way'))}
 `;
 	const fromLadder = `<div class="from-ladder"><span>${T('From the step above')}</span><b>${esc(goalLine(o))}</b><button class="linky" data-act="barter-sec" data-id="ladder">${T('change it there')} ›</button></div>`;

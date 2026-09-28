@@ -8,11 +8,12 @@ import * as store from '../state.js';
 import { img } from '../ui-bits.js';
 import { barterData, barterProfile } from '../ui-state.js';
 import { barterKey, periodKey } from '../clock.js';
-import { currentShip, shownHold } from '../ship.js';
+import { currentShip, shownHold, rationDrain } from '../ship.js';
 import { npcById, ports, isleOf, whoOf, isleShort, TILES, TILE, MAX_ZOOM } from '../barter_npcs.js';
 import { seaRoute, seaLeg } from '../searoute.js';
 import { tileSrc } from '../map.js';
-import { pathLength, legLengths, sailRange, fmtRange, fmtDistance } from '../sailing.js';
+import { pathLength, legLengths, sailRange, fmtRange, fmtDistance, METRES_PER_PX } from '../sailing.js';
+import { rationsOver, RATION_RESERVE, fmtRations } from '../rations.js';
 import { quests, cadenceOf } from '../quests.js';
 import { questDone, wantedQuests } from '../screen-quests.js';
 import { layQuests } from '../quest-places.js';
@@ -86,6 +87,106 @@ export function withWaits(stops, weightStart = 0) {
 		out = next;
 	}
 	return out;
+}
+
+// The harbours a hull puts in at for rations: the wharves on the sea.
+// A river wharf -- Calpheon, Altinova, O'dyllita, Kamasylvia -- sells
+// them as well, but is no place to take a Carrack.
+const SUPPLY_AT = ['Velia', 'Port Epheria', 'Iliya Island', 'Ancado Inner Harbor', "Oquilla's Eye", 'Lema Island', "Crow's Nest", 'Pirate Island', 'Margoria', 'Tarif', 'Papuraora Island', 'Crioniak Island', 'Abandoned Pier', 'Arehaza', 'Angavu', 'Western Guard Camp', 'Dami Pier', 'Dallae Pier', 'Byukgye Island', 'Haemo Island', 'Cheongsa Island', 'Dalbeol Village', 'Bukpo'];
+export const supplies = docks.filter(w => SUPPLY_AT.includes(w.at));
+// Within this of each other, two wharves are one harbour (chart px).
+const HARBOUR_PX = 2000;
+
+/** The leg that arrives at stop k: the first leaves the harbour when
+ *  the run has one. */
+const legInto = (legs, k) => (legs.from ? legs.legs[k] : k > 0 ? legs.legs[k - 1] : null);
+
+/**
+ * The ship's rations over the run, and the calls put in to fill them.
+ *
+ * The pool leaves the harbour full and falls leg by leg -- a tick of
+ * the hull's take and the crew's appetite every seven seconds, and a
+ * BreezySail's 8,150 every twenty when the sailor keeps it going and
+ * the hold is under its limit. Every wharf the run calls at anyway fills
+ * it again. Where it would fall under the reserve before the next stop,
+ * a call is put in at a sea wharf: of the legs since it was last full,
+ * the one with the wharf that bends the way least, among those the
+ * pool can still reach. The call is a wharf stop like any other, marked
+ * `refill`, so the list, the chart and the checklist carry it as they
+ * do the rest. Each stop is left with `pool`: what is aboard on arrival
+ * and, at a wharf, what it takes on.
+ */
+export function withRations(stops, weightStart = 0) {
+	const me = currentShip();
+	const full = me.rations;
+	if (!(full > 0) || !stops.length) return stops;
+	const drain = rationDrain(me);
+	const floor = full * RATION_RESERVE;
+	const eat = (secs, weight) => rationsOver(secs, { tick: drain.tick, breezy: weight <= me.hold.free ? drain.breezy : 0 });
+	const weightInto = (list, k) => (k > 0 ? Number(list[k - 1].weightAfter) || 0 : weightStart);
+	// A plan kept between redraws comes back with the calls put in last
+	// time: laid again from without them.
+	let out = stops.filter(s => !s.refill);
+	if (!out.length) return out;
+	for (let round = 0; ; round++) {
+		const legs = legsOf(out);
+		const at = [];   // the pool as each leg sets off
+		let pool = full, bad = -1, lastFull = 0;
+		out.forEach((s, k) => {
+			at[k] = pool;
+			const m = legInto(legs, k);
+			const use = m != null && legs.secondsOf ? eat(legs.secondsOf(m), weightInto(out, k)) : 0;
+			// Low into a wharf is no matter: it fills there. Empty is.
+			if (bad < 0 && pool - use < (s.wharf ? 0 : floor)) bad = k;
+			pool = Math.max(0, pool - use);
+			s.pool = { left: Math.round(pool), full, take: s.wharf ? Math.round(full - pool) : 0, short: false };
+			if (s.wharf) { pool = full; if (bad < 0) lastFull = k + 1; }
+		});
+		if (bad < 0) return out;
+		// Of the legs since the pool was last full, the one to break with
+		// a call: the least bend, at a wharf the pool still makes.
+		let best = null;
+		for (let j = lastFull; j <= bad; j++) {
+			const a = j > 0 ? placeOf(out[j - 1]) : legs.from;
+			const b = placeOf(out[j]);
+			if (!a || !b) continue;
+			const w0 = weightInto(out, j);
+			const straight = Math.hypot(b.x - a.x, b.y - a.y);
+			for (const w of supplies) {
+				const toW = Math.hypot(w.x - a.x, w.y - a.y);
+				// Already there -- a harbour keeps two managers a stone's
+				// throw apart -- is no call.
+				if (toW < HARBOUR_PX || (out[j].wharf && Math.hypot(w.x - b.x, w.y - b.y) < HARBOUR_PX)) continue;
+				// the sea's way is longer than the line: a quarter more, to be safe
+				const reach = at[j] - eat(legs.secondsOf(toW * METRES_PER_PX * 1.25), w0);
+				if (reach < 0) continue;
+				const bend = toW + Math.hypot(b.x - w.x, b.y - w.y) - straight;
+				if (!best || bend < best.bend) best = { j, w, bend };
+			}
+		}
+		if (!best || round >= 30) {
+			// Nothing reachable, or it will not settle: the stop is marked
+			// short, for the list to say so, and the run stands as it is.
+			if (out[bad]) out[bad].pool = { ...out[bad].pool, short: true };
+			return out;
+		}
+		const prev = out[best.j - 1];
+		const call = { wharf: { name: best.w.name, at: best.w.at, x: best.w.x, y: best.w.y }, dropped: [], loads: [], weightAfter: weightInto(out, best.j), chain: prev ? prev.chain : out[0].chain, hold: prev ? prev.hold : me.hold, refill: true };
+		out = [...out.slice(0, best.j), call, ...out.slice(best.j)];
+	}
+}
+
+/** The rations after a stop, drawn under the Parley bar. */
+function rationsBar(s) {
+	const p = s.pool;
+	if (!p || !(p.full > 0)) return '';
+	const pct = Math.max(0, Math.min(100, p.left / p.full * 100));
+	const low = p.short || p.left < p.full * RATION_RESERVE;
+	return `<div class="run-rations${low ? ' low' : ''}">
+		<div><span>${T('rations')}</span><b class="${low ? 'warn' : ''}">${esc(fmtRations(p.left))}</b>${p.take > 0 ? `<small>+${esc(fmtRations(p.take))}</small>` : ''}</div>
+		<div class="run-bar rations"><i style="width:${pct.toFixed(1)}%"></i></div>
+		${p.short ? `<div class="run-note warn">${T('The rations run out before here and no wharf on the way can be reached in time')}</div>` : ''}
+	</div>`;
 }
 
 /**
@@ -297,7 +398,7 @@ export function ledgerOf(stops, legs) {
 export const runTime = (legs, book) => (book && book.waited ? legs.timeWith(book.waited) : legs.time);
 
 /** What pressing a stop done is called, by the sort of stop it is. */
-export const doneLabel = s => (s.wait ? T('Waited — voucher drawn') : s.wharf ? (s.loads && s.loads.length ? (s.sale ? T('Loaded and sold') : T('Loaded')) : T('Called here')) : s.hunt ? T('Hunted here') : s.quest ? T('Handed in') : T('Traded here'));
+export const doneLabel = s => (s.wait ? T('Waited — voucher drawn') : s.refill ? T('Supplied') : s.wharf ? (s.loads && s.loads.length ? (s.sale ? T('Loaded and sold') : T('Loaded')) : T('Called here')) : s.hunt ? T('Hunted here') : s.quest ? T('Handed in') : T('Traded here'));
 
 /**
  * Which of its four [Level 7]s an island has paid, run after run: a
@@ -350,7 +451,7 @@ export function stopDid(s, board = false) {
 	if (s.quest) return '';
 	// A wait trades nothing: it stands still for a voucher's cooldown.
 	if (s.wait) return `<div class="run-trade">${img(VOUCHER, 'row-icon sm')}<span>${T('Wait {n} min', { n: F(s.wait) })} — ${T('the voucher’s cooldown, then one is drawn and the run goes on')}</span></div>`;
-	if (s.wharf) return `${bagMovesHTML(s)}${s.loads && s.loads.length ? `<div class="run-leave"><span class="run-leave-k">${T('Loads from storage')}</span>${s.loads.map(d => `<span class="run-leave-good">${img(d.item, 'row-icon sm')}<b>${n1(d.n)}×</b>${esc(gameName(d.item))}</span>`).join('')}</div>` : ''}${s.dropped.length ? `<div class="run-leave"><span class="run-leave-k">${T('Leaves in storage')}</span>${s.dropped.map(d => `<span class="run-leave-good">${img(d.item, 'row-icon sm')}<b>${n1(d.n)}×</b>${esc(gameName(d.item))}</span>`).join('')}</div>` : ''}${s.sale ? `<div class="run-sell">${T('sells {n} {what} here for {silver}', { n: n1(s.sale.n), what: s.sale.levels && s.sale.levels.length === 1 ? `[Level ${s.sale.levels[0]}]` : T('goods'), silver: FC(Math.round(s.sale.total)) })}</div>` : ''}`;
+	if (s.wharf) return `${s.pool && s.pool.take > 0 ? `<div class="run-supply">🍞 <span>${s.refill ? T('Put in for rations: Buy Supplies at the wharf manager, {n} back to full', { n: esc(fmtRations(s.pool.take)) }) : T('Buy Supplies while here: {n} back to full', { n: esc(fmtRations(s.pool.take)) })}</span></div>` : ''}${bagMovesHTML(s)}${s.loads && s.loads.length ? `<div class="run-leave"><span class="run-leave-k">${T('Loads from storage')}</span>${s.loads.map(d => `<span class="run-leave-good">${img(d.item, 'row-icon sm')}<b>${n1(d.n)}×</b>${esc(gameName(d.item))}</span>`).join('')}</div>` : ''}${s.dropped.length ? `<div class="run-leave"><span class="run-leave-k">${T('Leaves in storage')}</span>${s.dropped.map(d => `<span class="run-leave-good">${img(d.item, 'row-icon sm')}<b>${n1(d.n)}×</b>${esc(gameName(d.item))}</span>`).join('')}</div>` : ''}${s.sale ? `<div class="run-sell">${T('sells {n} {what} here for {silver}', { n: n1(s.sale.n), what: s.sale.levels && s.sale.levels.length === 1 ? `[Level ${s.sale.levels[0]}]` : T('goods'), silver: FC(Math.round(s.sale.total)) })}</div>` : ''}`;
 	return `<div class="run-trade">${img(s.give, 'row-icon sm')}<span>${esc(s.giveText)}× ${esc(gameName(s.give))}</span><span class="run-arrow">→</span><span class="run-to" style="--tier:${TIER(levelOf(s.item))}"><i></i>${esc(s.recvText)}× ${esc(gameName(sevenOf(s)))}${fourNote(s, board)}</span><span class="run-got"><span class="run-times">×${s.times}</span>${img(sevenOf(s), 'row-icon sm')}</span></div>`;
 }
 
@@ -394,6 +495,28 @@ export function stopAsks(s, k, stops, on, { paid = true } = {}) {
  * taken off, each with a way back, the stops moved, and one press to
  * have the planner's route again.
  */
+/**
+ * The run's rations in a line: what it eats, the calls put in for
+ * supplies, and what a tick is made of -- the hull's take, read in game
+ * or guessed, and the crew's appetite -- with BreezySail when it is kept
+ * going.
+ */
+export function rationsLine(stops) {
+	const me = currentShip();
+	if (!(me.rations > 0) || !stops.length || !stops.some(s => s.pool)) return '';
+	const d = rationDrain(me);
+	let eaten = 0, last = me.rations;
+	for (const s of stops) {
+		if (!s.pool) continue;
+		eaten += Math.max(0, last - s.pool.left);
+		last = s.wharf ? s.pool.full : s.pool.left;
+	}
+	const calls = stops.filter(s => s.refill).length;
+	const short = stops.some(s => s.pool && s.pool.short);
+	const tick = T('a tick every 7 s: {hull} the hull{guess} + {crew} the crew', { hull: F(d.hull), guess: d.measured ? '' : T(' (a guess — not read for this ship yet)'), crew: F(d.crew) });
+	return `<p class="run-rations-line${short ? ' warn' : ''}">🍞 ${T('The run eats about {n} rations of {full}', { n: esc(fmtRations(eaten)), full: esc(fmtRations(me.rations)) })} · ${calls ? (calls === 1 ? T('{n} call for supplies put in', { n: calls }) : T('{n} calls for supplies put in', { n: calls })) : T('no call for supplies needed')} · <span class="faint">${tick}${d.breezy ? ` · ${T('BreezySail every {s} s', { s: d.breezy })}` : ''}</span></p>`;
+}
+
 export function routeEditBar(plan) {
 	const moved = Object.keys(V.routeEdit.nudge).length;
 	const tripsMoved = (V.routeEdit.trips || []).length ? 1 : 0;
@@ -531,6 +654,7 @@ export function stopRows(stops, legs, { k0 = 0, board = false, sailing = null, t
 				<div class="run-bar"><i style="width:${w.fill.toFixed(1)}%"></i><i class="over" style="width:${w.extra.toFixed(1)}%"></i><i class="heavy" style="width:${w.worse.toFixed(1)}%"></i></div>
 				${w.note ? `<div class="run-note${dead || heavy ? ' warn' : ''}">${w.note}</div>` : ''}
 				${parleyBar(book, ledger ? k : k - k0, s)}
+				${rationsBar(s)}
 			</div>
 		</div>`;
 	}).join('');

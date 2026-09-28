@@ -28,8 +28,8 @@ import { fromPort, materials, keepRoute, boardNow } from './board.js';
 import { narrow, lvTag } from './cockpit.js';
 import { aboardStock, dockStock, storesElsewhere, bagsNow } from './hold.js';
 import { runDockHTML } from './parts.js';
-import { chartButton, parleyLine, parleyHTML, parleyOf, orderRow, ordersNow } from './plan.js';
-import { stashes, withWaits, legsOf, questPlan, questsLine, questsPanels, TIER, ledgerOf, runTime, stopRows, routeEditBar } from './route.js';
+import { chartButton, parleyLine, parleyHTML, parleyOf, orderRow, ordersNow, breezyRow } from './plan.js';
+import { stashes, withWaits, withRations, rationsLine, legsOf, questPlan, questsLine, questsPanels, TIER, ledgerOf, runTime, stopRows, routeEditBar } from './route.js';
 import { packingHTML, packingCount, leaveHomeHTML, afterShelfHTML } from './packing.js';
 import { sailing, ticked } from './sail.js';
 import { coinWorth } from './search.js';
@@ -591,7 +591,7 @@ export function materialParts(me, data) {
 	const rate = pr.rate;
 	for (const s of plan.stops) if (s.npcId && s.times > 0) s.parley = s.times * Math.floor((s.parleyBase || PARLEY.perMaterialTrade) * rate);
 	const qp = questPlan(plan.stops, V.matOrders.quests, me.hold, plan.weightStart);
-	plan.stops = withWaits(qp.stops, plan.weightStart);
+	plan.stops = withRations(withWaits(qp.stops, plan.weightStart), plan.weightStart);
 	plan.questsHome = qp.home;
 	V.shownPlan = plan.stops.length ? { stops: plan.stops, cost: plan.cost, bought: plan.bought || [], trades: plan.trades, parleyUsed: plan.stops.reduce((a, x) => a + (Number(x.parley) || 0), 0), questsHome: qp.home } : null;
 	const legs = legsOf(plan.stops);
@@ -612,6 +612,7 @@ export function materialParts(me, data) {
 		${orderRow('barter-mat-order', T('island order'), V.matOrders.order || 'short', [['short', T('shortest way'), T('The islands in the order that makes the shortest way')], ['rich', T('best payers first'), T('The islands that pay the most first, whatever the way round: a run cut short has had the best of the day')], ['tiers', T('best payers, and the middling ones near them'), T('The islands that pay the most, with the middling ones close to them on the way; then the other middling ones; then the poorest')]], T('The order the run takes the islands in'))}
 		${orderRow('barter-vouchers', T('trade vouchers'), ordersNow().vouchers, VOUCHER_CHOICES, T('Whether the run draws on the Crow’s Trade Vouchers you carry; each is a quarter of a bar, on its own two-hour cooldown'))}
 		${orderRow('barter-mat-quests', T('quests on the way'), V.matOrders.quests, QUEST_CHOICES, T('The dailies and weeklies already taken, handed in where the run passes their taker or at a stop put in a short way off the route; the hunts only when their grounds lie on the way'))}
+		${breezyRow()}
 		${orderRow('barter-mat-calls', T('a give kept at another harbour'), V.matOrders.calls ? 'true' : 'false', [['true', T('call there for it')], ['false', T('bring it first')]], T('Put in at another harbour on the way for a give kept in its storage, or bring it to the harbour the run sails from before casting off'))}
 		<div class="order-row" title="${T('Where the ship is: taken up again at sea, the run starts at that island with what is aboard, and the home port stays home -- its storage is still what the run comes back to')}"><span class="order-k">${T('the ship is now')}</span><div class="order-v"><span class="chips"><button class="chip tiny active" data-act="barter-mat-at-pick">${atSea ? `📍 ${esc(T('at {isle}', { isle: gameName(isleShort(npcById.get(V.matAt))) }))}` : esc(T('at the home port'))} ▾</button>${atSea ? `<button class="chip tiny" data-act="barter-mat-at-home">${T('back at the home port')}</button>` : ''}</span></div></div>
 		${orderRow('barter-port', T('home port'), V.port, [[0, T('the first stop')], ...ports.map(p => [p.id, gameName(p.name)])])}
@@ -637,6 +638,7 @@ export function materialParts(me, data) {
 		${fig(img(currentShip().name, 'ship-ico'), plan.islands === 1 ? T('{n} island', { n: plan.islands }) : T('{n} islands', { n: plan.islands }), plan.trades === 1 ? T('{n} trade', { n: plan.trades }) : T('{n} trades', { n: plan.trades }))}
 		${plan.calls ? fig('⚓', plan.calls === 1 ? T('{n} harbour call', { n: plan.calls }) : T('{n} harbour calls', { n: plan.calls }), plan.returns ? T('{n} departures: the hold cannot carry every give at once', { n: plan.returns + 1 }) : T('to load from storage')) : ''}
 		${fig('⚖', esc(peakM.text), `${T('at its fullest')} · ${holdCls === 'ok' ? T('under the limit') : holdCls === 'amber' ? T('over the limit: sailing slower') : T('over {n}: too heavy to barter', { n: F(peakM.deal) })}`, holdCls)}
+		${(n => (n ? fig('🍞', n === 1 ? T('{n} call for supplies', { n }) : T('{n} calls for supplies', { n }), T('put in where the rations would run low')) : ''))(plan.stops.filter(s => s.refill).length)}
 		${legs.total ? fig('⏱', esc(runTime(legs, book)), `${T('{dist} at {speed}%', { dist: esc(fmtDistance(legs.total)), speed: me.speed.total })}${from ? ` ${T('from {port}', { port: esc(gameName(from.name)) })}` : ''}`) : ''}
 		${plan.cost ? fig(img(SILVER, 'row-icon xs'), FC(plan.cost), T('to buy ashore first')) : ''}
 		${fig('◈', T('{n} Parley', { n: F(book.spent) }), [T('{n} left', { n: F(book.end) }), book.vouchersUsed ? (book.vouchersUsed === 1 ? T('{n} voucher drawn', { n: book.vouchersUsed }) : T('{n} vouchers drawn', { n: book.vouchersUsed })) : '', book.waited ? T('waits {n} min for a cooldown', { n: F(book.waited) }) : '', plan.dry ? (plan.dry === 1 ? T('{n} trade more wanted than the Parley pays for', { n: plan.dry }) : T('{n} trades more wanted than the Parley pays for', { n: plan.dry })) : ''].filter(Boolean).join(' · '), plan.dry || book.short ? 'amber' : '')}
@@ -686,7 +688,7 @@ export function materialParts(me, data) {
 	const got = mats.filter(m => plan.got.get(m.it).max > 0);
 	const segs = plan.stops.length ? `<section class="panel run-seg mat-seg" style="--tier:${TIER(6)}">
 		<div class="run-seg-head"><span class="mat-seg-icons">${(got.length ? got : mats.slice(0, 1)).map(m => img(m.it, 'row-icon xs')).join('')}</span><b>${esc(few(got.length ? got : mats.slice(0, 1), m => gameName(m.it)))}</b><span>${plan.islands === 1 ? T('{n} island', { n: plan.islands }) : T('{n} islands', { n: plan.islands })} · ${plan.trades === 1 ? T('{n} trade', { n: plan.trades }) : T('{n} trades', { n: plan.trades })}${plan.calls ? ` · ${plan.calls === 1 ? T('{n} harbour call', { n: plan.calls }) : T('{n} harbour calls', { n: plan.calls })}` : ''}${plan.returns ? ` · ${T('{n} departures', { n: plan.returns + 1 })}` : ''}</span>${got.map(m => { const g = plan.got.get(m.it); return `<em class="mat-got${g.min >= m.qty ? ' met' : ''}" title="${esc(gameName(m.it))}: ${T('{got} of the {want} wanted', { got: gotText(m), want: wantSaid(m.qty) })}">${T('{got} of {want}', { got: gotText(m), want: wantSaid(m.qty) })}</em>`; }).join('')}</div>
-		${sailing() ? '' : routeEditBar(plan)}<div class="run-stops">${stopRows(plan.stops, legs, { sailing: sailing(), notes: qp, ledger: book, edit: !sailing() })}</div>
+		${rationsLine(plan.stops)}${sailing() ? '' : routeEditBar(plan)}<div class="run-stops">${stopRows(plan.stops, legs, { sailing: sailing(), notes: qp, ledger: book, edit: !sailing() })}</div>
 	</section>` : '';
 	const empty = !plan.ticked
 		? `<div class="run-empty">${it ? T('Nothing ticked. Open the barter window in game and tap each island of the list that shows <b>{name}</b> today — the run lays itself out here.', { name: esc(gameName(it)) }) : T('Nothing ticked. Open a material and tap each island showing it today — the run lays itself out here.')}</div>`

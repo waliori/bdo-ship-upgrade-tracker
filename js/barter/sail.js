@@ -550,11 +550,13 @@ export function markDone(on, k) {
 export function sailRecord(plan) {
 	const num = v => (Number.isFinite(Number(v)) ? Math.round(Number(v) * 10) / 10 : 0);
 	const questsOf = s => (s.quests || []).map(x => ({ id: x.q.id, what: x.step.what, who: x.step.who || '' }));
-	const stops = plan.stops.map(x => (x.npcId
+	// The rations on arrival, and what a wharf takes on: withRations' marks.
+	const poolOf = x => (x.pool ? { pool: { left: num(x.pool.left), full: num(x.pool.full), take: num(x.pool.take), short: x.pool.short === true } } : {});
+	const stops = plan.stops.map(x => ({ ...(x.npcId
 		? { npcId: x.npcId, npc: x.npc, give: x.give, giveText: x.giveText, giveN: num(x.giveN), item: x.item, recv: num(x.recv), recvMin: num(x.recvMin), recvMax: num(x.recvMax), rangeMin: num(x.rangeMin ?? x.recvMin), rangeMax: num(x.rangeMax ?? x.recvMax), recvText: x.recvText, times: num(x.times), parley: num(x.parley), weightAfter: num(x.weightAfter), level: num(x.level), chain: num(x.chain), quests: questsOf(x) }
 		: x.wait ? { wait: num(x.wait), waitAt: x.waitAt, weightAfter: num(x.weightAfter), chain: num(x.chain) }
 		: x.quest ? { quest: true, hunt: x.hunt ? String(x.hunt) : null, place: { name: x.place.name, who: x.place.who || '', x: num(x.place.x), y: num(x.place.y) }, weightAfter: num(x.weightAfter), chain: num(x.chain), quests: questsOf(x) }
-			: { wharf: { name: x.wharf.name, at: x.wharf.at, x: num(x.wharf.x), y: num(x.wharf.y) }, dropped: (x.dropped || []).map(d => ({ item: d.item, n: num(d.n) })), loads: (x.loads || []).map(l => ({ item: l.item, n: num(l.n) })), ...(x.toBag ? { toBag: x.toBag.map(d => ({ item: d.item, n: num(d.n) })) } : {}), ...(x.fromBag ? { fromBag: x.fromBag.map(d => ({ item: d.item, n: num(d.n) })) } : {}), sale: x.sale ? { n: num(x.sale.n), total: num(x.sale.total), levels: (x.sale.levels || []).map(num), items: (x.sale.items || []).map(i => ({ item: i.item, n: num(i.n), total: num(i.total) })) } : null, weightAfter: num(x.weightAfter), chain: num(x.chain), quests: questsOf(x) }));
+			: { wharf: { name: x.wharf.name, at: x.wharf.at, x: num(x.wharf.x), y: num(x.wharf.y) }, dropped: (x.dropped || []).map(d => ({ item: d.item, n: num(d.n) })), loads: (x.loads || []).map(l => ({ item: l.item, n: num(l.n) })), ...(x.toBag ? { toBag: x.toBag.map(d => ({ item: d.item, n: num(d.n) })) } : {}), ...(x.fromBag ? { fromBag: x.fromBag.map(d => ({ item: d.item, n: num(d.n) })) } : {}), sale: x.sale ? { n: num(x.sale.n), total: num(x.sale.total), levels: (x.sale.levels || []).map(num), items: (x.sale.items || []).map(i => ({ item: i.item, n: num(i.n), total: num(i.total) })) } : null, weightAfter: num(x.weightAfter), chain: num(x.chain), quests: questsOf(x), ...(x.refill ? { refill: true } : {}) }), ...poolOf(x) }));
 	const legs = legsOf(plan.stops);
 	const book = ledgerOf(plan.stops, legs);
 	return {

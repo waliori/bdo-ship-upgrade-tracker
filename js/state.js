@@ -730,6 +730,7 @@ export function getProfile(key, fallback = null) {
 const PROFILE_LABELS = {
 	barterCount: () => T('Changed your barter count'),
 	valuePack: () => T('Changed the Value Pack'),
+	breezy: () => T('Changed BreezySail'),
 	level: () => T('Changed your barter level'),
 	vouchers: () => T('Changed your vouchers'),
 	parleyHeld: () => T('Changed the parley you hold'),

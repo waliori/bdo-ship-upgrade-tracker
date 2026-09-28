@@ -219,7 +219,7 @@ function statCards(ship, stats, totals) {
 		${card(T('Accel from crew'), pct(totals.accel), T('hull {accel}% before crew', { accel: stats.accel }), totals.accel ? 'teal' : '')}
 		${card(T('Turn / brake from crew'), `${pct(totals.turn)} / ${pct(totals.brake)}`, named ? T('the wheel counts double') : T('no wheel seat on this hull'), totals.turn || totals.brake ? 'teal' : '')}
 		${card(T('Durability from crew'), `+${F(totals.durability)}`, named ? T('the Deck: 10,000 per cabin the sailor costs') : T('the Deck seat is a Carrack’s'), totals.durability ? 'amber' : '')}
-		${card(T('Rations from crew'), `+${F(totals.rations)}`, named ? T('the Mess: 5,000 per cabin · crew eats {n}/day', { n: F(totals.appetite) }) : T('crew eats {n}/day', { n: F(totals.appetite) }), totals.rations ? 'amber' : '')}
+		${card(T('Rations from crew'), `+${F(totals.rations)}`, named ? T('the Mess: 5,000 per cabin · crew eats {n} a tick (7 s)', { n: F(totals.appetite) }) : T('crew eats {n} a tick (7 s)', { n: F(totals.appetite) }), totals.rations ? 'amber' : '')}
 		${card(T('Weight of crew'), `+${F(totals.weight)} LT`, totals.sick ? T('{n} hired · {cap} at most · {sick} sick', { n: roster().length, cap: SAILOR_CAP, sick: totals.sick }) : T('{n} hired · {cap} at most', { n: roster().length, cap: SAILOR_CAP }))}
 		${cannon}
 	</div>`;
@@ -377,7 +377,7 @@ function sailorSheet(s, { ship, where = null, readOnly = false } = {}) {
 			<i><b style="width:${s.cond}%;background:${condColor(s.cond)}"></b></i></div>
 		${stats.length ? `<div class="sel-stats">${stats.join('')}</div>` : ''}
 		<div class="sel-note">${t.mate ? T('A named mate has no growths of their own: the First Mate seat pays their skill instead.') : readOnly ? T('Each level-up rolls inside a hidden range, so a growth not typed in is an estimate; a typed one is judged against the level’s band.') : T('Each level-up rolls inside a hidden range, so these are estimates — type what the sailor window shows and they outrank it, judged against the level\'s band.')}</div>
-		<div class="sel-facts">${T('cabins <b>{cabins}</b> · eats <b>{appetite}</b>/day · weight <b>+{weight} LT</b>', { cabins: t.cabin ?? '—', appetite: t.appetite ?? '—', weight: t.weight ?? 0 })}</div>
+		<div class="sel-facts">${T('cabins <b>{cabins}</b> · eats <b>{appetite}</b> a tick · weight <b>+{weight} LT</b>', { cabins: t.cabin ?? '—', appetite: t.appetite ?? '—', weight: t.weight ?? 0 })}</div>
 		${levelLogHTML(s)}
 		${!hasSeats(ship)
 		? `<div class="sel-facts sel-seats quiet" data-tip="${T('The game draws the named positions on a Carrack and the Panokseon only.')}">${t.mate ? T('this hull draws no positions — aboard, a mate\'s skill stays off') : T('this hull draws no positions — aboard, their growths count once')}</div>`
@@ -705,7 +705,7 @@ function shipSpecs(me, stats) {
 		${tile(T('Turn'), `${me.turn}%`, sum(me.terms.turn))}
 		${tile(T('Brake'), `${me.brake}%`, sum(me.terms.brake))}
 		${tile(T('Durability'), F(me.durability), me.durability !== stats.durability ? T('hull {n}', { n: F(stats.durability) }) : '')}
-		${tile(T('Rations'), F(me.rations), me.crew.appetite ? T('the crew eats {n} a day', { n: F(me.crew.appetite) }) : '')}
+		${tile(T('Rations'), F(me.rations), me.crew.appetite ? T('the crew eats {n} a tick (7 s)', { n: F(me.crew.appetite) }) : '')}
 		${me.dp ? tile(T('DP'), F(me.dp), T('from the parts')) : ''}
 		${stats.cannons ? tile(T('Cannons'), me.damage ? `${F(me.damage)} × ${F(me.fit.total.hits || stats.cannons)}` : T('{n} a side', { n: stats.cannons }), [me.damage ? T('{n} a side', { n: stats.cannons }) : '', stats.reload ? T('reloads in {s} s', { s: stats.reload }) : ''].filter(Boolean).join(' · ')) : ''}
 	</div>`;

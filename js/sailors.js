@@ -33,7 +33,8 @@ export const contract = {
  * The hiring pool. The name a sailor is hired under is the type itself.
  *
  * `cabin` is the cabin space each one spends aboard; `appetite` how many
- * rations a day they eat; `weight` what they add to the hull's limit.
+ * rations they eat a tick of the ship's pool, about every 7 s under sail
+ * (js/rations.js); `weight` what they add to the hull's limit.
  * The four movement numbers and the three cannon numbers are the
  * level-1 base; `l10` is that stat's [min, avg, max] at level 10.
  * `at` is where the type turns up for hire.
@@ -155,7 +156,7 @@ export const SAILOR_CAP = 60;
  * the First Mate seat switches on.
  */
 // A mate's own figures, read off the game's Selected Sailor panel for
-// Proix (2026-09-09): 150 rations a day, 200 LT, no Cabin Cost line at
+// Proix (2026-09-09): an appetite of 150, 200 LT, no Cabin Cost line at
 // all -- and no growths. The panel a mate gets has no Endurance, Wits,
 // Awareness or Strength row on it; the seat pays their skill, not
 // numbers. (The app used to credit each mate half a point of all four,

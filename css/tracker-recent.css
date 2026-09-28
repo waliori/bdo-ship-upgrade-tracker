@@ -666,12 +666,28 @@ body.map-turned .toast { left: 40px; top: 50%; bottom: auto; transform: translat
 .run-parley.low .run-bar.parley i { background: var(--amber); }
 .run-parley.short .run-bar.parley i { background: var(--red); }
 .run-note.teal { color: var(--teal); }
+/* The rations under the Parley bar, and a wharf call's supplies. */
+.run-rations { margin-top: 8px; padding-top: 6px; border-top: 1px dashed var(--line); }
+.run-rations > div:first-child { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
+.run-rations span { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
+.run-rations b { font-family: var(--font-display); font-size: 12px; font-weight: 600; color: var(--ink-mute); }
+.run-rations b.warn { color: var(--red); }
+.run-rations small { font-size: 10px; color: var(--teal); margin-left: auto; }
+.run-bar.rations i { background: var(--amber); }
+.run-rations.low .run-bar.rations i { background: var(--red); }
+.run-supply { margin-top: 7px; display: inline-flex; align-items: center; gap: 7px; background: var(--panel-inset); border: 1px solid var(--line); border-radius: 7px; padding: 4px 11px; font-size: 12px; font-weight: 600; }
+.run-rations-line { margin: 4px 0 8px; font-size: 12.5px; }
+.run-rations-line.warn { color: var(--red); }
 @media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
   .run-hold { flex-wrap: wrap; }
   .run-parley { flex: 1 1 100%; display: flex; align-items: center; gap: 10px; margin-top: 4px; padding-top: 4px; }
   .run-parley > div:first-child { flex: none; }
   .run-parley .run-bar { flex: 1 1 auto; margin-top: 0; }
   .run-parley .run-note { flex: 1 1 100%; }
+  .run-rations { flex: 1 1 100%; display: flex; align-items: center; gap: 10px; margin-top: 4px; padding-top: 4px; }
+  .run-rations > div:first-child { flex: none; }
+  .run-rations .run-bar { flex: 1 1 auto; margin-top: 0; }
+  .run-rations .run-note { flex: 1 1 100%; }
 }
 
 /* The three paces, compared, under the run's tiles. */

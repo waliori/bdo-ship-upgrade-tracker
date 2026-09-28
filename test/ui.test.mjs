@@ -1862,6 +1862,35 @@ async function toPlan(page) {
 	await page.waitForSelector('.barter-screen.step-plan', { timeout: 10000 });
 }
 
+test('a run long enough to eat the rations puts in at a sea wharf for supplies, and BreezySail eats more', async () => {
+	const { page, context, errors } = await open('#barter');
+	await page.waitForSelector('.barter-screen', { timeout: 15000 }); await wait(600);
+	const got = await page.evaluate(async () => {
+		const R = await import('/js/barter/route.js'); const store = await import('/js/state.js'); const { npcById } = await import('/js/barter_npcs.js');
+		store.addTarget('Carrack (Advance)', 1); store.setProfile('crewShip', 'Carrack (Advance)');
+		// Back and forth between Iliya's coin islands and Ancado's, far
+		// enough apart that the pool cannot last the round.
+		const far = [...npcById.values()].filter(n => n.x > 100000).slice(0, 2), near = [...npcById.values()].filter(n => n.x > 70000 && n.x < 76000).slice(0, 2);
+		const stops = [];
+		for (let i = 0; i < 16; i++) stops.push({ npcId: (i % 2 ? far : near)[i % 4 < 2 ? 0 : 1].id, weightAfter: 0, times: 1 });
+		const run = on => { store.setProfile('breezy', on); return R.withRations(stops.map(s => ({ ...s })), 0); };
+		const plain = run(false), breezy = run(true);
+		const low = list => list.filter(s => s.npcId && s.pool && s.pool.left < s.pool.full * 0.1).length;
+		const calls = list => list.filter(s => s.refill);
+		const L = R.legsOf(breezy); const dbg = breezy.map((s, k) => [s.refill ? 'R' : s.wharf ? 'W' : 'i', s.pool && Math.round(s.pool.left / 1000), L.legs[k] != null ? Math.round(L.secondsOf(L.legs[k])) : null]);
+		return { dbg, from: !!L.from, plain: calls(plain).length, breezy: calls(breezy).length, at: [...new Set(calls(breezy).map(s => s.wharf.at))], low: low(plain) + low(breezy), short: breezy.some(s => s.pool && s.pool.short), line: R.rationsLine(breezy) };
+	});
+	assert.ok(got.plain >= 1, `a call for supplies: ${JSON.stringify(got)}`);
+	assert.ok(got.breezy >= got.plain, `BreezySail kept going needs as many calls or more: ${JSON.stringify(got)}`);
+	assert.equal(got.low, 0, `never under the reserve at an island: ${JSON.stringify(got.dbg)}`);
+	assert.equal(got.short, false);
+	assert.ok(got.at.every(at => !['Calpheon City', 'Altinova', "O'dyllita"].includes(at)), 'only sea wharves');
+	assert.match(got.line, /calls? for supplies put in/);
+	assert.match(got.line, /BreezySail every 20 s/);
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
 test('the material book is the game’s own layouts, every one, and a page read off the window says which it is', async () => {
 	const { page, context, errors } = await open('#barter');
 	await page.waitForSelector('.barter-screen', { timeout: 15000 }); await wait(600);

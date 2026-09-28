@@ -23,7 +23,7 @@ import { aboardStock, everythingHeld, floorsShut, cashFloorNow, dockStock } from
 import { heldOf } from './material.js';
 import { packedNow, sparesOf, packingOf, packingLT, packingCount, tripsOf, stagedRun, tripsHTML, leaveHomeHTML, packingHTML, afterShelfHTML } from './packing.js';
 import { chartButton, parleyGuessed, parleyOf, stashAt, ordersNow, payRangeHTML, perUnitText, perHourText, stockGains, aheadHTML, goalLine, ladderHTML, howLine, howHTML, parleyLine, parleyHTML, marketDead, chainRow, soloRun } from './plan.js';
-import { docks, bagNow, stashes, withWaits, legsOf, questPlan, questsLine, questsPanels, n1, TIER, ledgerOf, runTime, routeEditBar, castOffRow, stopRows, cutsHTML } from './route.js';
+import { docks, bagNow, stashes, withWaits, withRations, rationsLine, legsOf, questPlan, questsLine, questsPanels, n1, TIER, ledgerOf, runTime, routeEditBar, castOffRow, stopRows, cutsHTML } from './route.js';
 import { sailing, planSeen, syncSail, castOffCaps, castOffLand } from './sail.js';
 import { SEARCH_BUDGET_MS, presetSearch, proposeAsync, searching, redrawSoon, expectedBest } from './search.js';
 import { coinsOf, coinRange, bonusNote, coinPurseHTML, shortSummary, shortHTML, canAppearHTML } from './short.js';
@@ -468,7 +468,7 @@ export function silverParts(me, b) {
 	// The quests handed in on the way, with a stop put in for a taker
 	// off the route: the run's stops from here on are those.
 	const qp = questPlan(plan.stops, o.quests, me.hold, plan.weightStart);
-	plan.stops = withWaits(qp.stops, plan.weightStart);
+	plan.stops = withRations(withWaits(qp.stops, plan.weightStart), plan.weightStart);
 	plan.questsHome = qp.home;
 	V.shownPlan = plan;
 	syncSail(plan);
@@ -478,7 +478,7 @@ export function silverParts(me, b) {
 	const book = ledgerOf(plan.stops, legs);
 	const parley = parleyOf(prof);
 	const yard = yardsticks(plan.net, plan.parleyUsed, legs.mid / 3600);
-	const islands = plan.stops.filter(s => s.npcId).length, wharfs = plan.stops.filter(s => s.wharf).length;
+	const islands = plan.stops.filter(s => s.npcId).length, wharfs = plan.stops.filter(s => s.wharf && !s.refill).length, supplyN = plan.stops.filter(s => s.refill).length;
 	// A fast run refuses a hold over the limit and trades nothing; say
 	// so, since the empty run looks like a board with nothing on it.
 	const heavy = pace === 'fast' && plan.trades === 0 && chosen.length > 0 && plan.weightStart > me.hold.free;
@@ -506,19 +506,19 @@ export function silverParts(me, b) {
 		${tile(T('Trades'), plan.trades ? F(plan.trades) : '—', plan.trades ? `${T('{spent} Parley of {bar}', { spent: F(Math.round(plan.parleyUsed)), bar: F(plan.parleyBar) })} · ${T('{n} barters behind you, {after} after', { n: F(prof.barterCount), after: F(prof.barterCount + plan.trades) })}${plan.coins && plan.parleyUsed ? ` · ${T('{n} coins a Parley unit', { n: F(Math.round(purse.min / (plan.parleyUsed / PARLEY_UNIT))) })}` : ''}` : T('one barter counts as one, whatever it trades'), 'gold')}
 		${tile(T('Hold at its fullest'), plan.stops.length ? esc(peak.text) : '—', `${peak.note || T('under the limit')} · ${peak.deal === peak.max ? T('barters and moves to {max}', { max: F(peak.max) }) : T('barters to {deal} · moves to {max}', { deal: F(peak.deal), max: F(peak.max) })}`, peak.state === 'heavy' || peak.state === 'dead' ? 'warn' : peak.state === 'over' ? 'amber' : 'teal')}
 		${tile(T('Parley at the end'), plan.stops.length ? F(book.end) : '—', `${T('{spent} spent from {held}', { spent: F(book.spent), held: F(parley.held) })}${parleyGuessed(prof) ? ` · ${T('a full bar, taken as read — type yours under Before you sail')}` : ''}${prof.vouchers ? ` · ${prof.vouchers === 1 ? T('{used} of {of} voucher drawn on', { used: book.vouchersUsed, of: prof.vouchers }) : T('{used} of {of} vouchers drawn on', { used: book.vouchersUsed, of: prof.vouchers })}` : ''}${book.waited ? ` · <b class="amber">${T('waits {n} min for a cooldown', { n: F(book.waited) })}</b>` : ''}${book.short ? ` · <b class="warn">${T('runs dry at stop {n}', { n: book.dryAt + 1 })}</b>` : ''}`, book.short ? 'warn' : book.waited ? 'amber' : book.end < PARLEY.max * 0.1 ? 'amber' : 'teal')}
-		${tile(T('Under way'), legs.total ? esc(fmtDistance(legs.total)) : '—', legs.total ? `${T('≈ {time} at {speed}%', { time: esc(runTime(legs, book)), speed: me.speed.total })} · ${islands === 1 ? T('{n} island', { n: islands }) : T('{n} islands', { n: islands })}${wharfs ? `, ${wharfs === 1 ? T('{n} wharf call', { n: wharfs }) : T('{n} wharf calls', { n: wharfs })}` : ''}${from ? ` · ${T('from {port}', { port: esc(gameName(from.name)) })}` : ''}` : T('pick a chain'))}
+		${tile(T('Under way'), legs.total ? esc(fmtDistance(legs.total)) : '—', legs.total ? `${T('≈ {time} at {speed}%', { time: esc(runTime(legs, book)), speed: me.speed.total })} · ${islands === 1 ? T('{n} island', { n: islands }) : T('{n} islands', { n: islands })}${wharfs ? `, ${wharfs === 1 ? T('{n} wharf call', { n: wharfs }) : T('{n} wharf calls', { n: wharfs })}` : ''}${supplyN ? `, ${supplyN === 1 ? T('{n} call for supplies', { n: supplyN }) : T('{n} calls for supplies', { n: supplyN })}` : ''}${from ? ` · ${T('from {port}', { port: esc(gameName(from.name)) })}` : ''}` : T('pick a chain'))}
 	</div>${coinPurseHTML(plan)}` : stocking ? `<div class="run-tiles">
 		${tile(T('The stock gains'), gains.total ? `+${F(gains.total)}` : '—', gains.total ? `${gains.byLevel.map(([lv, n]) => `${lvTag(lv)} +${F(n)}`).join(' · ')}${gains.spare ? ` · ${T('{n} over the targets, to climb with', { n: F(gains.spare) })}` : ''}` : chosen.length ? T('nothing this run banks is short') : T('pick a chain'), 'teal')}
 		${tile(T('Trades'), plan.trades ? F(plan.trades) : '—', plan.trades ? `${T('{spent} Parley of {bar}', { spent: F(Math.round(plan.parleyUsed)), bar: F(plan.parleyBar) })} · ${T('{n} barters behind you, {after} after', { n: F(prof.barterCount), after: F(prof.barterCount + plan.trades) })}` : T('one barter counts as one, whatever it trades'), 'gold')}
 		${tile(T('Hold at its fullest'), plan.stops.length ? esc(peak.text) : '—', `${peak.note || T('under the limit')} · ${peak.deal === peak.max ? T('barters and moves to {max}', { max: F(peak.max) }) : T('barters to {deal} · moves to {max}', { deal: F(peak.deal), max: F(peak.max) })}`, peak.state === 'heavy' || peak.state === 'dead' ? 'warn' : peak.state === 'over' ? 'amber' : 'teal')}
 		${tile(T('Parley at the end'), plan.stops.length ? F(book.end) : '—', `${T('{spent} spent from {held}', { spent: F(book.spent), held: F(parley.held) })}${parleyGuessed(prof) ? ` · ${T('a full bar, taken as read — type yours under Before you sail')}` : ''}${prof.vouchers ? ` · ${prof.vouchers === 1 ? T('{used} of {of} voucher drawn on', { used: book.vouchersUsed, of: prof.vouchers }) : T('{used} of {of} vouchers drawn on', { used: book.vouchersUsed, of: prof.vouchers })}` : ''}${book.waited ? ` · <b class="amber">${T('waits {n} min for a cooldown', { n: F(book.waited) })}</b>` : ''}${book.short ? ` · <b class="warn">${T('runs dry at stop {n}', { n: book.dryAt + 1 })}</b>` : ''}`, book.short ? 'warn' : book.waited ? 'amber' : book.end < PARLEY.max * 0.1 ? 'amber' : 'teal')}
-		${tile(T('Under way'), legs.total ? esc(fmtDistance(legs.total)) : '—', legs.total ? `${T('≈ {time} at {speed}%', { time: esc(runTime(legs, book)), speed: me.speed.total })} · ${islands === 1 ? T('{n} island', { n: islands }) : T('{n} islands', { n: islands })}${wharfs ? `, ${wharfs === 1 ? T('{n} wharf call', { n: wharfs }) : T('{n} wharf calls', { n: wharfs })}` : ''}${from ? ` · ${T('from {port}', { port: esc(gameName(from.name)) })}` : ''}` : T('pick a chain'))}
+		${tile(T('Under way'), legs.total ? esc(fmtDistance(legs.total)) : '—', legs.total ? `${T('≈ {time} at {speed}%', { time: esc(runTime(legs, book)), speed: me.speed.total })} · ${islands === 1 ? T('{n} island', { n: islands }) : T('{n} islands', { n: islands })}${wharfs ? `, ${wharfs === 1 ? T('{n} wharf call', { n: wharfs }) : T('{n} wharf calls', { n: wharfs })}` : ''}${supplyN ? `, ${supplyN === 1 ? T('{n} call for supplies', { n: supplyN }) : T('{n} calls for supplies', { n: supplyN })}` : ''}${from ? ` · ${T('from {port}', { port: esc(gameName(from.name)) })}` : ''}` : T('pick a chain'))}
 	</div>${aheadHTML(gains, plan, prof)}` : `<div class="run-tiles">
 		${tile(plan.cost ? T('Silver, net') : T('Sold in port'), plan.silver ? FC(Math.round(plan.net)) : '—', plan.silver ? `${T('{what} sold at the wharf', { what: soldWhat })}${plan.cost ? ` ${T('for {silver} · {cost} of land goods bought', { silver: FC(Math.round(plan.silver)), cost: FC(Math.round(plan.cost)) })}` : ''}${plan.bought.some(b => b.how === 'unpriced') ? ` · ${T('some land goods unpriced')}` : ''}` : chosen.length ? (short ? T('nothing on this trip sells — see what it is worth kept, under Fits on the way') : T('no chain ticked sells')) : short ? T('pick a trade') : T('pick a chain'), plan.net < 0 ? 'warn' : 'gold')}
 		${tile(T('A Parley unit pays'), yard.perUnit ? FC(Math.round(yard.perUnit)) : '—', yard.perUnit ? `${T('{spent} Parley of {bar}', { spent: F(Math.round(plan.parleyUsed)), bar: F(plan.parleyBar) })} · ${plan.trades === 1 ? T('{n} trade', { n: F(plan.trades) }) : T('{n} trades', { n: F(plan.trades) })}${yard.perHour ? ` · ${T('≈ {silver} an hour', { silver: FC(Math.round(yard.perHour)) })}` : ''}` : `${plan.trades === 1 ? T('{n} trade', { n: F(plan.trades) }) : T('{n} trades', { n: F(plan.trades) })} · ${T('one unit is one normal trade’s Parley')}`, 'gold')}
 		${tile(T('Hold at its fullest'), plan.stops.length ? esc(peak.text) : '—', `${peak.note || T('under the limit')} · ${peak.deal === peak.max ? T('barters and moves to {max}', { max: F(peak.max) }) : T('barters to {deal} · moves to {max}', { deal: F(peak.deal), max: F(peak.max) })}`, peak.state === 'heavy' || peak.state === 'dead' ? 'warn' : peak.state === 'over' ? 'amber' : 'teal')}
 		${tile(T('Parley at the end'), plan.stops.length ? F(book.end) : '—', `${T('{spent} spent from {held}', { spent: F(book.spent), held: F(parley.held) })}${parleyGuessed(prof) ? ` · ${T('a full bar, taken as read — type yours under Before you sail')}` : ''}${prof.vouchers ? ` · ${prof.vouchers === 1 ? T('{used} of {of} voucher drawn on', { used: book.vouchersUsed, of: prof.vouchers }) : T('{used} of {of} vouchers drawn on', { used: book.vouchersUsed, of: prof.vouchers })}` : ''}${book.waited ? ` · <b class="amber">${T('waits {n} min for a cooldown', { n: F(book.waited) })}</b>` : ''}${book.short ? ` · <b class="warn">${T('runs dry at stop {n}', { n: book.dryAt + 1 })}</b>` : ''}`, book.short ? 'warn' : book.waited ? 'amber' : book.end < PARLEY.max * 0.1 ? 'amber' : 'teal')}
-		${tile(T('Under way'), legs.total ? esc(fmtDistance(legs.total)) : '—', legs.total ? `${T('≈ {time} at {speed}%', { time: esc(runTime(legs, book)), speed: me.speed.total })} · ${islands === 1 ? T('{n} island', { n: islands }) : T('{n} islands', { n: islands })}${wharfs ? `, ${wharfs === 1 ? T('{n} wharf call', { n: wharfs }) : T('{n} wharf calls', { n: wharfs })}` : ''}${from ? ` · ${T('from {port}', { port: esc(gameName(from.name)) })}` : ''}` : T('pick a chain'))}
+		${tile(T('Under way'), legs.total ? esc(fmtDistance(legs.total)) : '—', legs.total ? `${T('≈ {time} at {speed}%', { time: esc(runTime(legs, book)), speed: me.speed.total })} · ${islands === 1 ? T('{n} island', { n: islands }) : T('{n} islands', { n: islands })}${wharfs ? `, ${wharfs === 1 ? T('{n} wharf call', { n: wharfs }) : T('{n} wharf calls', { n: wharfs })}` : ''}${supplyN ? `, ${supplyN === 1 ? T('{n} call for supplies', { n: supplyN }) : T('{n} calls for supplies', { n: supplyN })}` : ''}${from ? ` · ${T('from {port}', { port: esc(gameName(from.name)) })}` : ''}` : T('pick a chain'))}
 	</div>`;
 	// One route through every chain: the stops in sailing order, each
 	// tagged with its chain, the chains named in the head with the way
@@ -601,7 +601,7 @@ export function silverParts(me, b) {
 	// loaded for. Drawn from whichever run it is handed, so the same
 	// sheet serves the full plan and the part of it that is aboard.
 	const routeFoldOf = (plan, legs, book, qp) => {
-		const islands = plan.stops.filter(s => s.npcId).length, wharfs = plan.stops.filter(s => s.wharf).length;
+		const islands = plan.stops.filter(s => s.npcId).length, wharfs = plan.stops.filter(s => s.wharf && !s.refill).length, supplyN = plan.stops.filter(s => s.refill).length;
 		// A run of trips says where each one begins: the call that picks
 		// up its goods, and what that call sells of the trip before.
 		const tripAt = new Map(stagedRun(plan) ? tripsOf(plan).filter(t => t.head >= 0).map(t => [t.head, t]) : []);
@@ -613,7 +613,7 @@ export function silverParts(me, b) {
 		};
 		const oneRoute = o.way === 'sea' && plan.order.length > 1;
 		const segs = oneRoute ? (plan.stops.length ? `<section class="panel run-seg run-seg-all" style="--tier:${TIER(Math.max(...plan.order.map(c => c.top)))}">
-				<div class="run-seg-head"><i></i><b>${plan.lots.length > 1 ? T('One route, {n} lots', { n: plan.lots.length }) : T('One route, every chain at once')}</b><span>${islands === 1 ? T('{n} island', { n: islands }) : T('{n} islands', { n: islands })}${wharfs ? `, ${wharfs === 1 ? T('{n} wharf call', { n: wharfs }) : T('{n} wharf calls', { n: wharfs })}` : ''} · ${T('the nearest rung the ship holds the give for, whatever its chain')}${plan.lots.length > 1 ? ` · ${T('as many chains at once as the hold carries, the tops sold before the next lot')}` : ''}</span></div>
+				<div class="run-seg-head"><i></i><b>${plan.lots.length > 1 ? T('One route, {n} lots', { n: plan.lots.length }) : T('One route, every chain at once')}</b><span>${islands === 1 ? T('{n} island', { n: islands }) : T('{n} islands', { n: islands })}${wharfs ? `, ${wharfs === 1 ? T('{n} wharf call', { n: wharfs }) : T('{n} wharf calls', { n: wharfs })}` : ''}${supplyN ? `, ${supplyN === 1 ? T('{n} call for supplies', { n: supplyN }) : T('{n} calls for supplies', { n: supplyN })}` : ''} · ${T('the nearest rung the ship holds the give for, whatever its chain')}${plan.lots.length > 1 ? ` · ${T('as many chains at once as the hold carries, the tops sold before the next lot')}` : ''}</span></div>
 				<div class="run-seg-chains">${plan.lots.map(lot => lot.map(k => {
 					const c = plan.order[k];
 					const isl = plan.stops.filter(s => s.chain === k && s.npcId).length;
@@ -623,7 +623,7 @@ export function silverParts(me, b) {
 						: isl === 1 ? T('{n} island', { n: isl }) : T('{n} islands', { n: isl });
 					return `<span class="run-chain-tag" style="--tier:${TIER(c.top)}"><i></i>${chainName(c)}<em>L${c.top}</em><small${cutHere ? ` class="short" title="${T('This chain does not get to the top — see the note under the tiles')}"` : ''}>${count}</small><button class="map-x" data-act="barter-chain" data-id="${esc(c.id)}" aria-label="${T('Untick this chain')}">×</button></span>`;
 				}).join('')).join(`<span class="run-lot-sep">${T('then')}</span>`)}</div>
-				${routeEditBar(plan)}<div class="run-stops">${castOffRow(plan, from)}${stopRows(plan.stops, legs, { board: true, sailing: sailing(), edit: !sailing(), notes: qp, ledger: book, trip: tripHead, tag: s => (s.npcId ? `<em class="run-chain-tag sm" style="--tier:${TIER(plan.order[s.chain].top)}"><i></i>${chainName(plan.order[s.chain])}</em>` : '') })}</div>
+				${rationsLine(plan.stops)}${routeEditBar(plan)}<div class="run-stops">${castOffRow(plan, from)}${stopRows(plan.stops, legs, { board: true, sailing: sailing(), edit: !sailing(), notes: qp, ledger: book, trip: tripHead, tag: s => (s.npcId ? `<em class="run-chain-tag sm" style="--tier:${TIER(plan.order[s.chain].top)}"><i></i>${chainName(plan.order[s.chain])}</em>` : '') })}</div>
 			</section>` : '') : plan.order.map((c, k) => {
 			const first = plan.stops.findIndex(s => s.chain === k);
 			const mine = plan.stops.filter(s => s.chain === k);
@@ -674,7 +674,7 @@ export function silverParts(me, b) {
 		rPlan = chainRun({ ...opts, dock: {}, chosen: ready, ...edits });
 		for (const x of rPlan.stops) x.hold = me.hold;
 		rQp = questPlan(rPlan.stops, o.quests, me.hold, rPlan.weightStart);
-		rPlan.stops = withWaits(rQp.stops, rPlan.weightStart);
+		rPlan.stops = withRations(withWaits(rQp.stops, rPlan.weightStart), rPlan.weightStart);
 		rPlan.questsHome = rQp.home;
 		rLegs = legsOf(rPlan.stops);
 		rBook = ledgerOf(rPlan.stops, rLegs);

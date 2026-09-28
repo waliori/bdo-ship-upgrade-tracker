@@ -17,6 +17,7 @@ import { partStats, slotOf, fitsShip, statsAt, sumStats, loadout, partLT } from 
 import { families, FAMILY_RANK } from './enhancement.js';
 import { crewTotals, mateAboard, fitSeats } from './sailors.js';
 import { crystalById, crystalStats } from './crystals.js';
+import { hullTick, BREEZY_EVERY } from './rations.js';
 
 export const SLOTS = ['cannon', 'sail', 'figurehead', 'plating'];
 
@@ -334,6 +335,18 @@ export function setSkinAll(ship, on) {
 /** What the set on this hull is adding right now. */
 export function skinTotals(ship) {
 	return skinStats(ship, skinWorn(ship));
+}
+
+/**
+ * What the ship eats under sail: a tick of the hull's own take and the
+ * appetite of everyone seated, and a BreezySail every BREEZY_EVERY
+ * seconds when the sailor keeps it going (`breezy`: that interval, or
+ * 0). `measured` says whether this hull's take was read in game.
+ */
+export function rationDrain(me = currentShip()) {
+	const hull = hullTick(me.name);
+	const crew = (me.crew && me.crew.appetite) || 0;
+	return { tick: hull.n + crew, hull: hull.n, crew, measured: hull.measured, breezy: store.getProfile('breezy', false) === true ? BREEZY_EVERY : 0 };
 }
 
 export function currentShip() {
