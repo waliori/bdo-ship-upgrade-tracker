@@ -26,6 +26,10 @@ import { shipSprite, foamSprite, legNow, WATERLINE } from '../sail-scene.js';
 
 const FLOAT = 2.4;          // seconds afloat in close-up, the title up
 const MORPH = 3.4;          // seconds for the camera to pull back
+// Where the sea stands in the close-up, as a share of the card's height:
+// high enough that the top of the ship's picture is past the card's edge,
+// the icon's flat top never showing over the sails.
+const SEA = 0.55;
 const lerp = (a, b, u) => a + (b - a) * u;
 const ease = u => (u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2);
 
@@ -91,7 +95,7 @@ export function castOffFx() {
 	let t = 0, mode = 'fall', hitAt = 0, morphAt = 0, u = 0, e = 0;
 	let drops = [], foam = [], sprite = null;
 	let W = start.width, H = start.height;
-	const ship = { y: yb + ((-H0 * 0.9 + sw1 * Z0 * 0.9) - H0 * 0.7) / Z0, vy: 0, rot: -0.05, vr: 0 };
+	const ship = { y: yb + ((-H0 * 0.9 + sw1 * Z0 * 0.9) - H0 * SEA) / Z0, vy: 0, rot: -0.05, vr: 0 };
 
 	// The clock started at the press, so by the time the camera has pulled
 	// back the ship is some way along the leg: it sails there by the clock
@@ -110,7 +114,7 @@ export function castOffFx() {
 	const surfAt = x => { const f = ((Math.max(-pad, Math.min(Wf, x)) + pad) / (Wf + pad)) * (N - 1), i = Math.max(0, Math.min(N - 2, Math.floor(f))), r = f - i; return surf(i) * (1 - r) + surf(i + 1) * r; };
 	const cam = () => {
 		const ez = ease(Math.min(1, u / 0.62));
-		const Z = Math.pow(Z0, 1 - ez), fxs = lerp(fx0, cx, ez), fys = H * lerp(0.7, 0.66, e);
+		const Z = Math.pow(Z0, 1 - ez), fxs = lerp(fx0, cx, ez), fys = H * lerp(SEA, 0.66, e);
 		return { Z, tx: fxs - cx * Z, ty: fys - yb * Z };
 	};
 	const sim = () => {
@@ -179,6 +183,13 @@ export function castOffFx() {
 			const sL = surfAt(cx - sw * 0.3), sR = surfAt(cx + sw * 0.3), slope = Math.atan2(sR - sL, sw * 0.6), aimY = (sL + sR) / 2, prev = ship.y;
 			ship.vy += (aimY - ship.y) * lerp(22, 40, e) * dt - ship.vy * lerp(2.6, 4, e) * dt; ship.y += ship.vy * dt;
 			ship.vr += (slope * 0.5 - ship.rot) * 14 * dt - ship.vr * 3 * dt; ship.rot += ship.vr * dt;
+			// Afloat in close-up, the picture's top stays past the card's
+			// edge: the icon ends flat over the sails, and the splash's dip
+			// showed it.
+			if (mode === 'float') {
+				const { Z, ty } = cam(), deep = (-4 - ty) / Z + sh1 * (WATERLINE - 0.03);
+				if (ship.y > deep) { ship.y = deep; if (ship.vy > 0) ship.vy = 0; }
+			}
 			const dy = ship.y - prev;
 			if (Math.abs(dy) > 0.01 && e < 1) for (let i = idx(cx - sw * 0.4); i <= idx(cx + sw * 0.4); i++) v[i] += dy * 0.1;
 		}
