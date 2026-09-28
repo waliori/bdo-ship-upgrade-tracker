@@ -372,7 +372,10 @@ export function cockpitHTML({ map = false } = {}) {
 		<div class="cockpit-voucher-text"><b>${T('Draw a voucher here')}</b><em>${T('+{n} Parley — a quarter of the bar back, and its two-hour cooldown starts', { n: F(PARLEY.voucher) })}</em></div>
 	</div>` : '';
 	const endNote = s.wait && !done ? `<p class="cockpit-ask">${T('Ending here records what is ticked so far; the barters after this wait stay on the board for later.')}</p>` : '';
-	const head = `<div class="panel-head cockpit-head"><h2 class="panel-title">${T('Stop {n} of {of}', { n: at + 1, of: stops.length })}</h2><span class="panel-sub">${esc(legOf(at))}</span>${arrivedHTML(on, s, key, at, legs)}${parleyNotes(book, at, s).tag}<span class="panel-spacer"></span>${timeLegsChip()}${map ? '' : `<button class="linky" data-act="barter-glance">${V.glance ? T('full view') : T('Glance mode')}</button>`}</div>${clock ? `<div class="cockpit-clock">${clock}</div>` : ''}`;
+	// A voucher here has its own block in the stop's body, so the head
+	// does not say it again.
+	const pn = parleyNotes(book, at, s), headTag = pn.cls === 'voucher' ? '' : pn.tag;
+	const head = `<div class="panel-head cockpit-head"><h2 class="panel-title">${T('Stop {n} of {of}', { n: at + 1, of: stops.length })}</h2><span class="panel-sub">${esc(legOf(at))}</span>${arrivedHTML(on, s, key, at, legs)}${headTag}<span class="panel-spacer"></span>${timeLegsChip()}${map ? '' : `<button class="linky" data-act="barter-glance">${V.glance ? T('full view') : T('Glance mode')}</button>`}</div>${clock ? `<div class="cockpit-clock">${clock}</div>` : ''}`;
 	const didLink = s.npcId && !didAsk ? `<button class="linky" data-act="barter-did-open" data-npc="${s.npcId}">${T('traded another number of times?')}</button>` : '';
 	const under = `<div class="cockpit-under">${didLink ? `${didLink}<span>·</span>` : ''}<button class="linky" data-act="barter-sail-skip" data-k="${esc(key)}">${s.npcId ? T('island didn’t deal — skip it') : T('skip this stop')}</button><span>·</span><button class="linky" data-act="barter-step" data-id="results">${T('stop here, see the results')}</button></div>`;
 	const next = stops[at + 1];
