@@ -433,11 +433,15 @@ export function readProfile(raw) {
 		const ratios = {};
 		for (const [k, counts] of Object.entries(raw.ratios).slice(0, 400)) {
 			if (k.length > 200 || !isProfile(counts)) continue;
-			const clean = {};
-			for (const [n, c] of Object.entries(counts)) {
-				const v = Math.floor(Number(c));
-				if (/^\d{1,2}$/.test(n) && Number.isFinite(v) && v > 0) clean[n] = Math.min(9999, v);
-			}
+			// A count of any size: a coin island pays in the hundreds, and a
+			// two-digit rule dropped every one of them. The most seen kept,
+			// two dozen an exchange at most.
+			const clean = Object.fromEntries(Object.entries(counts)
+				.map(([n, c]) => [n, Math.floor(Number(c))])
+				.filter(([n, v]) => /^\d{1,6}$/.test(n) && Number.isFinite(v) && v > 0)
+				.sort((a, b) => b[1] - a[1])
+				.slice(0, 24)
+				.map(([n, v]) => [n, Math.min(9999, v)]));
 			if (Object.keys(clean).length) ratios[k] = clean;
 		}
 		if (Object.keys(ratios).length) out.ratios = ratios;

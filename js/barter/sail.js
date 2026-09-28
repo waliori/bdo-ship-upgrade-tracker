@@ -11,7 +11,7 @@ import { npcById, ports, isleOf, isleShort } from '../barter_npcs.js';
 import { quests, cadenceOf } from '../quests.js';
 import { questDone, rewardOf } from '../screen-quests.js';
 import { ratioKey } from '../barter-orders.js';
-import { PARLEY, COIN, levelOf, ROUTE_UNLOCKS, countBonus, withBonus } from '../barter.js';
+import { PARLEY, COIN, levelOf, ROUTE_UNLOCKS } from '../barter.js';
 import { weightOf } from '../barter-plan.js';
 import { toast } from '../dialogs.js';
 import { cheer } from '../cheer.js';
@@ -154,22 +154,14 @@ export function runMarks(plan, legs, book) {
 }
 
 /**
- * What this run's islands were seen to pay, as the plan counts it.
- *
- * A coin figure is typed off the game's window, which shows it with the
- * sailor's barter bonus on; the plan counts coins bare and puts the
- * bonus on at the end. Fed back as typed, the bonus went on twice. So a
- * coin island's figure has it taken off again here, and everything else
- * passes through.
+ * What this run's islands were seen to pay, as the plan counts it: the
+ * window's own figures. Coins included -- the window pays what the
+ * island states, with no barter-count bonus on top (397 at a 360-440
+ * island, 2026-09-28), so there is nothing to take off.
  */
-function bareCoins(n) {
-	const { pct } = countBonus(barterProfile().barterCount);
-	return Math.max(1, Math.round(n / (1 + pct / 100)));
-}
 export function planSeen(on) {
 	if (!on || !on.seen) return {};
-	const coinIsles = new Set((on.stops || []).filter(x => x.item === COIN).map(x => String(x.npcId)));
-	return Object.fromEntries(Object.entries(on.seen).map(([id, n]) => [id, coinIsles.has(String(id)) ? bareCoins(n) : n]));
+	return { ...on.seen };
 }
 
 /** The most counts an island may pay before chips stop being an answer. */
@@ -306,13 +298,10 @@ export function tripOf(plan, on, from) {
 			continue;
 		}
 		const paid = paidAt(s, on);
-		// Coins come with the sailor's barter-count bonus -- a fifth more
-		// past two thousand barters. The plan has always promised them
-		// with it and the recording wrote them without, so every coin
-		// day came up short by exactly the bonus. A figure the sailor
-		// typed is the window's own and has it on already.
+		// Coins not said are recorded at the middle of the range, as the
+		// island states it: no barter-count bonus is paid on coins.
 		if (s.item === COIN && !((on.seen || {})[s.npcId] > 0)) {
-			add(COIN, withBonus(s.times * paid, countBonus(barterProfile().barterCount).pct));
+			add(COIN, s.times * paid);
 			handOver(s.give, s.times * s.giveN);
 			trades += s.times;
 			continue;
@@ -901,7 +890,7 @@ export function recordTrip(plan, from, on = sailing()) {
 	const sevens = { ...(store.getProfile('sevens', {}) || {}) };
 	for (const [k, s] of plan.stops.entries()) {
 		if (!ticked(on.done, s, k, plan.stops) || !s.npcId) continue;
-		const n = on.seen[s.npcId] && s.item === COIN ? bareCoins(on.seen[s.npcId]) : on.seen[s.npcId];
+		const n = on.seen[s.npcId];
 		if (n && s.recvMin !== s.recvMax) {
 			const key = ratioKey(s);
 			ratios[key] = { ...(ratios[key] || {}), [n]: ((ratios[key] || {})[n] || 0) + s.times };

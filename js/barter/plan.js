@@ -5,13 +5,13 @@ import { esc, F, FC } from '../fmt.js';
 import { T, said, gameName } from '../i18n.js';
 import * as store from '../state.js';
 import { img, amountInput } from '../ui-bits.js';
-import { barterData, barterProfile, SILVER } from '../ui-state.js';
+import { barterData, SILVER } from '../ui-state.js';
 import { barterKey, currentPlan } from '../clock.js';
 import { currentShip } from '../ship.js';
 import { npcById, ports, isleOf, isleShort } from '../barter_npcs.js';
 import { sailSeconds, METRES_PER_PX } from '../sailing.js';
 import { WAY_CHOICES, QUEST_CHOICES, SELL_CHOICES, LAND_CHOICES, VOUCHER_CHOICES, HOUR_CHOICES, AIM_CHOICES, NOTHING, STOCK_LEVELS, SAIL_PRESETS, sailPresetOf, readOrders, readStock, yardsticks } from '../barter-orders.js';
-import { PARLEY, COIN, COIN_LEVEL, dailyCapacity, parleyPerTrade, parleyRate, levelOf, countBonus, withBonus } from '../barter.js';
+import { PARLEY, COIN, COIN_LEVEL, dailyCapacity, parleyPerTrade, parleyRate, levelOf } from '../barter.js';
 import { goodsHeld, landHeld } from '../barter-plan.js';
 import { pickShots } from '../barter-import.js';
 import { readWords, shotLang, triage } from '../shot-reader.js';
@@ -252,7 +252,7 @@ export function payRangeHTML(plan, opts, chosen, edits, seen, coining, stocking)
 		for (const s of open) s2[s.npcId] = pick(s.rangeMin ?? s.recvMin, s.rangeMax ?? s.recvMax);
 		return chainRun({ ...opts, seen: s2, chosen, ...edits });
 	};
-	const val = run => (coining ? withBonus(run.coins || 0, countBonus(barterProfile().barterCount).pct) : run.net || 0);
+	const val = run => (coining ? run.coins || 0 : run.net || 0);
 	const said = v => (coining ? `${F(Math.round(v))} ${T('coins')}` : FC(Math.round(v)));
 	const most = at((a, b) => b);
 	// The top rung is capped by its island's attempts, so an island that

@@ -13,6 +13,8 @@ import { fmtDistance } from '../sailing.js';
 import { paceNow, LEARN_AT, timingLegs } from '../ship-pace.js';
 import { questDone } from '../screen-quests.js';
 import { PARLEY, COIN, levelOf } from '../barter.js';
+import { ratioKey } from '../barter-orders.js';
+import { fleetPaid } from './fleet.js';
 import { VOUCHER_COOLDOWN_MIN } from '../parley-ledger.js';
 import { V } from './state.js';
 import { timerHTML, timerState, spanText } from '../sail-timer.js';
@@ -262,6 +264,29 @@ function arrivedHTML(on, s, key, at, legs) {
 	return `<button class="chip tiny arrived-btn" data-act="barter-arrived" data-k="${esc(key)}" data-at="${at}" title="${T('Press as the ship reaches the island, before trading: the leg is timed, and the chart learns how fast your ship really sails')}">⚓ ${T('Arrived')}</button>`;
 }
 
+/**
+ * The values a sailor can take instead of typing one: the least, the
+ * middle and the most of the range, and what the fleet was most often
+ * paid there -- by sailors of the same barter level and Total Barters
+ * first. As the game's window shows them: a coin island's with the
+ * sailor's barter count bonus on. A pick only says what was paid; the
+ * Traded button under it is still the press that says it was done.
+ */
+function paidPicks(s, on, map) {
+	const { lo, hi } = rangeOf(s);
+	const prof = barterProfile();
+	const win = n => n;
+	const said = on.seen[s.npcId];
+	const f = fleetPaid(ratioKey(s), prof.level, prof.barterCount);
+	const picks = [
+		[win(lo), T('the least'), ''],
+		[win(Math.round((lo + hi) / 2)), T('the middle'), ''],
+		[win(hi), T('the most'), ''],
+		...(f ? [[win(f.value), f.scope === 'like' ? T('sailors like you · {pct}%', { pct: f.pct }) : f.scope === 'level' ? T('your barter level · {pct}%', { pct: f.pct }) : T('the fleet · {pct}%', { pct: f.pct }), f.total === 1 ? T('{n} reading', { n: f.total }) : T('{n} readings', { n: f.total })]] : [])
+	];
+	return `<div class="paid-picks">${picks.map(([v, k, sub]) => `<button class="chip paid-pick${said === v ? ' active' : ''}${sub ? ' fleet' : ''}" data-act="barter-paid-set"${map ? ' data-map="1"' : ''} data-npc="${s.npcId}" data-n="${v}" aria-pressed="${said === v}"${sub ? ` title="${esc(sub)}"` : ''}><b>${F(v)}</b><small>${k}</small></button>`).join('')}</div>`;
+}
+
 export function cockpitHTML({ map = false } = {}) {
 	const on = sailing();
 	const plan = on ? sailedPlan() : null;
@@ -329,10 +354,10 @@ export function cockpitHTML({ map = false } = {}) {
 			? `<button class="cockpit-go done" data-act="barter-stop-done" data-k="${esc(key)}">✓ ${T('Done')} — ${T('untick')}</button>`
 			: owesCount(s, on)
 				? `<button class="cockpit-go waits" disabled title="${T('Type what the window showed first')}">${T('Traded ×{n}', { n: F(s.times) })} — ${T('type what it paid')}</button>`
-				: `<button class="cockpit-go" data-act="barter-stop-done" data-k="${esc(key)}">${s.npcId ? T('Traded ×{n}', { n: F(s.times) }) : doneLabel(s)}</button>${s.wait ? `<button class="cockpit-go end" data-act="barter-step" data-id="results" title="${T('What is ticked so far is the run; the results step records it')}">${T('End the run here')}</button>` : ''}`;
+				: `<button class="cockpit-go" data-act="barter-stop-done" data-k="${esc(key)}">${s.npcId ? `${T('Traded ×{n}', { n: F(s.times) })}${hi > lo && said > 0 ? ` · ${T('paid {n}', { n: F(said) })}` : ''}` : doneLabel(s)}</button>${s.wait ? `<button class="cockpit-go end" data-act="barter-step" data-id="results" title="${T('What is ticked so far is the run; the results step records it')}">${T('End the run here')}</button>` : ''}`;
 	const ask = s.npcId && hi > lo
 		? (fewPays ? `<p class="cockpit-ask">${T('This island pays <b>{range}</b> a trade. Tap what it paid — the run is then recorded exactly.', { range: `${lo}-${hi}` })}</p>`
-			: `<p class="cockpit-ask">${T('This island pays a range. Type what the window showed:')} ${paidAsk(s, on.seen[s.npcId])} <span class="${on.seen[s.npcId] > 0 ? 'teal' : 'guess'}">${on.seen[s.npcId] > 0 ? T('recorded exactly') : T('else the middle of the range is assumed')}</span></p>`)
+			: `<p class="cockpit-ask">${T('This island pays a range. Type what the window showed, or pick one:')} ${paidAsk(s, on.seen[s.npcId])}${on.seen[s.npcId] > 0 ? ` <span class="teal">${T('then press Traded')}</span>` : ''}</p>${paidPicks(s, on, map)}`)
 		: '';
 	const extra = stopAsks(s, at, stops, on, { paid: false });
 	// A stop traded another number of times than the run said: the count

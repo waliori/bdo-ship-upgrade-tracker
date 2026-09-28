@@ -28,7 +28,6 @@ export const DATA = [
 	{ what: TT('Crow Coin Shop prices'), asOf: '2026-08-25', from: TT('the shop at Oquilla’s Eye') },
 	{ what: TT('Falasi’s prices'), asOf: '2026-08-25', from: 'Port Epheria' },
 	{ what: TT('Parley rates and discounts'), asOf: '2026-08-29', from: TT('the Barter Information window') },
-	{ what: TT('What Total Barters adds to an exchange — the six bands'), asOf: '2026-09-14', from: TT('the game client’s own variedtradecount table') },
 	{ what: TT('Vell’s timetable (EU, NA)'), asOf: '2026-08-30', from: 'mmotimer.com' },
 	{ what: TT('Sea crystals — 287 variants and the Nols'), asOf: '2026-08-31', from: 'BDOCodex' },
 	{ what: TT('Central Market prices'), asOf: 'live', from: TT('the community market API, per region') }

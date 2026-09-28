@@ -12,7 +12,7 @@ import { fmtRange, fmtDistance } from '../sailing.js';
 import { PARLEY_UNIT, NOTHING, SAIL_PRESETS, sailPresetOf, stockOrders, yardsticks } from '../barter-orders.js';
 import { landPrices } from '../land-cost.js';
 import { marketStatus } from '../market.js';
-import { PARLEY, COIN, COIN_LEVEL, levelOf, countBonus, withBonus } from '../barter.js';
+import { PARLEY, COIN, COIN_LEVEL, levelOf } from '../barter.js';
 import { exchanges, landHeld } from '../barter-plan.js';
 import { chains, chainRun, tailOf } from '../barter-chains.js';
 import { shortTrades } from '../barter-short.js';
@@ -557,7 +557,7 @@ export function silverParts(me, b) {
 	const handPicked = chosen.length && !V.routesAuto && !(V.proposed.best && sameSet(V.proposed.best.ids, V.routes.ids));
 	const figOf = run => {
 		const lg = legsOf(run.stops);
-		const big = coining ? (run.coins ? `${F(withBonus(run.coins, countBonus(prof.barterCount).pct))}+` : '—') : stocking ? (() => { const g = stockGains(run, stock); return g.total ? `+${F(g.total)}` : '—'; })() : run.silver ? FC(Math.round(run.net)) : '—';
+		const big = coining ? (run.coins ? `${F(run.coins)}+` : '—') : stocking ? (() => { const g = stockGains(run, stock); return g.total ? `+${F(g.total)}` : '—'; })() : run.silver ? FC(Math.round(run.net)) : '—';
 		const calls = run.stops.filter(x => x.wharf).length;
 		const chainsN = (run.order || []).length;
 		// The waits for a voucher's cooldown are part of how long it takes.
@@ -579,7 +579,7 @@ export function silverParts(me, b) {
 			if (!mineBy.has(mkey)) {
 				const oo = { ...o, ...p.orders };
 				const mine = chainRun({ ...opts, pace: oo.pace, orders: oo, chosen });
-				mineBy.set(mkey, coining ? (mine.coins ? `${F(withBonus(mine.coins, countBonus(prof.barterCount).pct))}+` : '—') : stocking ? (() => { const g = stockGains(mine, stock); return g.total ? `+${F(g.total)}` : '—'; })() : mine.silver ? FC(Math.round(mine.net)) : '—');
+				mineBy.set(mkey, coining ? (mine.coins ? `${F(mine.coins)}+` : '—') : stocking ? (() => { const g = stockGains(mine, stock); return g.total ? `+${F(g.total)}` : '—'; })() : mine.silver ? FC(Math.round(mine.net)) : '—');
 				if (mineBy.size > 24) mineBy.delete(mineBy.keys().next().value);
 			}
 			f.mine = mineBy.get(mkey);

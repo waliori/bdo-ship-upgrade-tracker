@@ -2453,7 +2453,18 @@ test('the run laid out is the wharf step: a strip along the foot appears as chai
 			if (chips.length) { await chips[chips.length - 1].evaluate(b => b.click()); await wait(900); continue; }
 			const typed = await page.$('.cockpit [data-act="barter-paid-n"]');
 			if (!typed) break;
-			await page.evaluate(() => { const el = document.querySelector('.cockpit [data-act="barter-paid-n"]'); el.value = String(Math.round((Number(el.min) || 0) || 400)); el.dispatchEvent(new Event('change', { bubbles: true })); });
+			// A range: the value is typed -- or, the first time, taken off the
+			// chips under the box -- and the stop waits for Traded to be
+			// pressed, rather than moving on the moment a number is in.
+			const place = await text(page, '.cockpit-place');
+			if (!i) {
+				assert.ok(await count(page, '.cockpit .paid-pick') >= 3, 'the least, the middle, the most');
+				await page.evaluate(() => [...document.querySelectorAll('.cockpit .paid-pick')][1].click());
+			} else await page.evaluate(() => { const el = document.querySelector('.cockpit [data-act="barter-paid-n"]'); el.value = String(Math.round((Number(el.min) || 0) || 400)); el.dispatchEvent(new Event('change', { bubbles: true })); });
+			await wait(700);
+			assert.equal(await text(page, '.cockpit-place'), place, 'still at the same stop');
+			assert.match(await text(page, '.cockpit-press'), /Traded ×\d+ · paid [\d,]+/, 'the press says what was paid');
+			await page.evaluate(() => document.querySelector('.cockpit-press [data-act="barter-stop-done"]').click());
 			await wait(900);
 		}
 	}

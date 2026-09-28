@@ -84,7 +84,7 @@ export const HULL_TIER = {
  *   2  the ship score reads part quality and the crystal; `sets`,
  *      `gear` and the face's `worth` are new.
  */
-export const DIGEST_V = 5;
+export const DIGEST_V = 6;
 
 const SLOT_FAMILY = 11;
 const HULL_WORTH = 1000;
@@ -431,6 +431,32 @@ function rollsOf(profile) {
 	return out;
 }
 
+/**
+ * Which sailors are alike for what an exchange pays: the barter level's
+ * name ("Artisan" of "Artisan 3") and the Total Barters in bands. Shared
+ * with the client, which asks for its own band first.
+ */
+export function paidBand(level, barters) {
+	const tier = typeof level === 'string' && level.trim() ? level.trim().split(/\s+/)[0].slice(0, 16) : '-';
+	const n = Number(barters) || 0;
+	const bucket = n < 1000 ? 0 : n < 5000 ? 1 : n < 10000 ? 2 : n < 20000 ? 3 : 4;
+	return `${tier}|${bucket}`;
+}
+
+/** What each exchange that pays a range paid this sailor, and how often:
+ *  the fleet's "most paid" on a stop is added up from these. Keyed
+ *  'npc|give|recv', each value -> times; Crow Coins without the barter
+ *  count's bonus, as the record keeps them. */
+function paidOf(profile) {
+	const out = {};
+	for (const [key, counts] of Object.entries(obj(profile.ratios)).slice(0, 300)) {
+		if (!/^\d+\|.{1,80}\|.{1,80}$/.test(key)) continue;
+		const clean = Object.fromEntries(Object.entries(obj(counts)).filter(([k, v]) => /^\d{1,6}$/.test(k) && Number(v) > 0).slice(0, 12).map(([k, v]) => [k, Math.min(9999, Math.floor(Number(v)))]));
+		if (Object.keys(clean).length) out[key] = clean;
+	}
+	return out;
+}
+
 export function digest(save) {
 	const s = save && typeof save === 'object' ? save : {};
 	// Through the profile's own reading first, so every string is cut
@@ -452,6 +478,7 @@ export function digest(save) {
 		boards: boardsOf(profile),
 		sevens: sevensOf(profile),
 		rolls: rollsOf(profile),
+		paid: paidOf(profile),
 		stock: stockOf(s),
 		ship: shipOf(profile, fleet)
 	};

@@ -24,7 +24,7 @@
 
 import express from 'express';
 import crypto from 'node:crypto';
-import { digest, BOARDS, DIGEST_V } from '../js/digest.js';
+import { digest, BOARDS, DIGEST_V, paidBand } from '../js/digest.js';
 import { config } from './config.js';
 import { listCommunity, putCommunity, putDigest, deleteCommunity, getShareState, setCommunityOff } from './db.js';
 import { onSaveChanged, readSave } from './saves.js';
@@ -159,6 +159,10 @@ function aggregate(rows) {
 	const sevens = {};
 	// 'layout|npc' -> 'give|recv' -> times the fleet saw a roll come up so
 	const rolls = {};
+	// 'npc|give|recv' -> band -> value -> times the fleet saw an exchange
+	// that pays a range pay so; the band is the sender's barter level and
+	// Total Barters, so a sailor is shown what sailors like them were paid
+	const paid = {};
 	const masteryBuckets = [0, 0, 0, 0, 0, 0];   // <500, <1000, <1500, <2000, <2500, 2500+
 	const crewLevels = new Array(10).fill(0);
 	const fleetSizes = [0, 0, 0, 0];   // 0, 1, 2, 3+
@@ -193,6 +197,12 @@ function aggregate(rows) {
 			const at = rolls[key] || (rolls[key] = {});
 			for (const [pick, c] of Object.entries(counts || {})) add(at, pick, c);
 		}
+		const band = paidBand(d.level, d.barters);
+		for (const [key, counts] of Object.entries(d.paid || {})) {
+			const at = paid[key] || (paid[key] = {});
+			const b = at[band] || (at[band] = {});
+			for (const [v, c] of Object.entries(counts || {})) add(b, v, c);
+		}
 		fleetSizes[Math.min(3, d.fleet.n)]++;
 		d.runs.days.forEach((c, i) => { runDays[i] += c; });
 	}
@@ -201,7 +211,7 @@ function aggregate(rows) {
 		hulls: top(hulls, 16), sailing: top(sailing, 16), parts: top(parts, 15), crystals: top(crystals, 10),
 		sailorTypes: top(sailorTypes, 15), quests: top(quests, 15), hunts: top(hunts, 12), builds: top(builds, 15),
 		shipsMade: top(shipsMade, 12), islands: top(islands, 15), levels: top(levels, 12), layouts: top(layouts, 45),
-		masteryBuckets, crewLevels, fleetSizes, runDays, sevens, rolls
+		masteryBuckets, crewLevels, fleetSizes, runDays, sevens, rolls, paid
 	};
 }
 

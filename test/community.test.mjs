@@ -86,6 +86,14 @@ test('the digest counts what each roll showed, per layout and island, and nothin
 	assert.deepEqual(d.rolls, { '31|58966': { '[Level 4] Panacea|Crow Coin': 3, "[Level 4] Panacea|[Level 5] Statue's Tear": 1 } });
 });
 
+test('the digest counts what each exchange that pays a range paid, and nothing that is not a count', () => {
+	const d = digest(save({ ratios: {
+		'58966|[Level 4] Panacea|Crow Coin': { 380: 2, 400: 1, bad: 3 },
+		'not a key': { 5: 1 }
+	} }));
+	assert.deepEqual(d.paid, { '58966|[Level 4] Panacea|Crow Coin': { 380: 2, 400: 1 } });
+});
+
 test('the digest reads the fleet, the crew and the career off a save', () => {
 	const d = digest(save({
 		sailingMastery: 1200, level: 'Master 1', barterCount: 40, crewShip: 'Carrack (Advance)',
@@ -239,8 +247,8 @@ test('the boards are empty until someone takes part, and readable signed out', a
 
 test('taking part puts the digest of the save on the boards, by name or unnamed', async () => {
 	for (const [cookie, profile] of [
-		[admiral, { sailingMastery: 1500, barterCount: 300, tally: { runs: 50, silver: 5e9 }, boardLog: [['2026-09-10', '16', 0], ['2026-09-11', '7', 0]], rolls: { '31|58966': { day: '2026-09-27', pick: '[Level 4] Panacea|Crow Coin', seen: { '[Level 4] Panacea|Crow Coin': 2 } } } }],
-		[deckhand, { sailingMastery: 900, barterCount: 20, tally: { runs: 5, silver: 1e8 }, boardLog: [['2026-09-10', '16', 1]], rolls: { '31|58966': { day: '2026-09-26', pick: "[Level 4] Panacea|[Level 5] Statue's Tear", seen: { '[Level 4] Panacea|Crow Coin': 1, "[Level 4] Panacea|[Level 5] Statue's Tear": 1 } } } }],
+		[admiral, { sailingMastery: 1500, barterCount: 300, level: 'Artisan 3', tally: { runs: 50, silver: 5e9 }, boardLog: [['2026-09-10', '16', 0], ['2026-09-11', '7', 0]], rolls: { '31|58966': { day: '2026-09-27', pick: '[Level 4] Panacea|Crow Coin', seen: { '[Level 4] Panacea|Crow Coin': 2 } } }, ratios: { '58966|[Level 4] Panacea|Crow Coin': { 380: 2 } } }],
+		[deckhand, { sailingMastery: 900, barterCount: 20, tally: { runs: 5, silver: 1e8 }, boardLog: [['2026-09-10', '16', 1]], rolls: { '31|58966': { day: '2026-09-26', pick: "[Level 4] Panacea|[Level 5] Statue's Tear", seen: { '[Level 4] Panacea|Crow Coin': 1, "[Level 4] Panacea|[Level 5] Statue's Tear": 1 } } }, ratios: { '58966|[Level 4] Panacea|Crow Coin': { 400: 1 } } }],
 		[stranger, { sailingMastery: 2900, barterCount: 999 }]
 	]) {
 		const res = await call('PUT', '/api/state', { cookie, body: { rev: 0, data: save(profile), device: 'test' } });
@@ -293,6 +301,8 @@ test('taking part puts the digest of the save on the boards, by name or unnamed'
 	assert.equal(out.stats.totals.boards, 3);
 	// ...and what the islands a layout leaves to chance showed them.
 	assert.deepEqual(out.stats.rolls['31|58966'], { '[Level 4] Panacea|Crow Coin': 3, "[Level 4] Panacea|[Level 5] Statue's Tear": 1 });
+	// ...and what a range paid them, kept apart by barter level and Total Barters.
+	assert.deepEqual(out.stats.paid['58966|[Level 4] Panacea|Crow Coin'], { 'Artisan|0': { 380: 2 }, '-|0': { 400: 1 } });
 });
 
 test('a place opens a card by an opaque handle, a board shows whole, and a name can be found', async () => {

@@ -618,6 +618,13 @@ function countNpcs(item, barterData) {
  *
  * The bands are wide and the last one is open: 2,501 barters is the end
  * of the ladder, and the jump there is ten points rather than five.
+ *
+ * NOT applied to Crow Coins since 2026-09-28: the Barter window at a
+ * 360-440 coin island paid 397 to a sailor past 2,500 barters, so the
+ * coins are the island's own figure. Asked on the community Discord the
+ * same day: "has absolutely nothing to do with barter" (flock), and at
+ * one point there was a Total Barters bonus to *special* barters, removed
+ * soon after -- maybe this (RENGEREL). Kept, read, applied to nothing.
  */
 export const TRADE_COUNT_BONUS = [
 	{ from: 0, to: 500, pct: 0 },

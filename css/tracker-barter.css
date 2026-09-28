@@ -1518,3 +1518,12 @@ body.sail-scene-hold .sail-scene canvas { visibility: hidden; }
 .abandon-choice { display: flex; flex-direction: column; gap: 3px; text-align: left; padding: 10px 12px; border-radius: var(--r-btn); border: 1px solid var(--line-btn); background: var(--panel-inset); color: var(--ink); font: inherit; cursor: pointer; }
 .abandon-choice:hover, .abandon-choice:focus-visible { border-color: var(--blue-edge); }
 .abandon-choice span { font-size: 12.5px; color: var(--ink-mute); }
+/* The values a range can be taken at instead of typed: the least, the
+   middle, the most, and the fleet's most paid. */
+.paid-picks { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: -4px 0 4px; }
+.chip.paid-pick { display: inline-flex; flex-direction: column; align-items: center; gap: 1px; min-width: 84px; padding: 6px 12px; border-radius: 9px; line-height: 1.2; }
+.chip.paid-pick b { font-family: var(--font-display); font-size: 15px; color: var(--ink-hi); }
+.chip.paid-pick small { font-size: 10.5px; color: var(--ink-mute); font-weight: 500; }
+.chip.paid-pick.fleet { border-style: dashed; }
+.chip.paid-pick.active { background: rgba(78, 201, 174, 0.16); border-color: rgba(78, 201, 174, 0.6); }
+.chip.paid-pick.active b { color: var(--teal-hi); }

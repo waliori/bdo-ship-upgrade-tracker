@@ -568,6 +568,18 @@ export function barterAction(act, el, redraw) {
 			}
 			return true;
 		}
+		// A value taken off the stop's chips -- the least, the middle, the
+		// most, the fleet's -- in place of typing it. Pressed again, it is
+		// taken back.
+		case 'barter-paid-set': {
+			const on = sailing() || (el.dataset.map ? V.sail : null);
+			if (!on) return false;
+			const n = Number(el.dataset.n);
+			if (on.seen[el.dataset.npc] === n) delete on.seen[el.dataset.npc];
+			else if (n > 0) on.seen[el.dataset.npc] = n;
+			persist();
+			return true;
+		}
 		case 'barter-paid': {
 			const on = sailing() || (el.dataset.map ? V.sail : null);
 			if (!on) return false;
@@ -640,9 +652,10 @@ export function barterChange(el, parseAmount) {
 			if (!on) return false;
 			const n = parseAmount(el.value === '' ? '0' : el.value);
 			if (n === null) return true;
+			// What the window showed, said: the stop is not done until
+			// Traded is pressed under it, which is the sailor's own word.
 			if (n > 0) on.seen[el.dataset.npc] = Math.floor(n); else delete on.seen[el.dataset.npc];
 			persist();
-			if (n > 0 && !on.done.includes(`n${el.dataset.npc}`)) markDone(on, `n${el.dataset.npc}`);
 			return true;
 		}
 		// How many times an island was really traded: ten where the run said

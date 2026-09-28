@@ -5,10 +5,10 @@ import { esc, F, FC } from '../fmt.js';
 import { T, gameName } from '../i18n.js';
 import * as store from '../state.js';
 import { img } from '../ui-bits.js';
-import { barterData, barterProfile, totalsToGo } from '../ui-state.js';
+import { barterData, totalsToGo } from '../ui-state.js';
 import { boardData, gatedOffers } from '../barter-board.js';
 import { npcById, isleOf } from '../barter_npcs.js';
-import { COIN, COIN_LEVEL, levelOf, countBonus, withBonus } from '../barter.js';
+import { COIN, COIN_LEVEL, levelOf } from '../barter.js';
 import { chains } from '../barter-chains.js';
 import { margins } from '../barter-short.js';
 import { seaDist } from '../barter-route.js';
@@ -33,11 +33,13 @@ import { TIER } from './route.js';
  * `base` is what the islands state, `min`/`max` what lands.
  */
 export function coinsOf(plan) {
-	const { pct, count, next } = countBonus(barterProfile().barterCount);
+	// No barter-count bonus on coins: the game's window pays what the
+	// island states (397 at a 360-440 island, seen 2026-09-28), and what
+	// the client's barter-count table scales is not the coins.
 	return {
 		baseMin: Math.round(plan.coins), baseMax: Math.round(plan.coinsMax),
-		min: withBonus(plan.coins, pct), max: withBonus(plan.coinsMax, pct),
-		pct, count, next,
+		min: Math.round(plan.coins), max: Math.round(plan.coinsMax),
+		pct: 0,
 		any: plan.coins > 0
 	};
 }
@@ -47,10 +49,8 @@ export function coinsOf(plan) {
 export const coinRange = (a, b, sign = '') => (b > a ? T('{a} to {b}', { a: `${sign}${F(a)}`, b: `${sign}${F(b)}` }) : `${sign}${F(a)}`);
 
 /** Where the bonus came from, for the line under a coin figure. */
-export function bonusNote(c) {
-	if (!c.count) return T('set your Total Barters in the bar to count the barter bonus');
-	if (!c.pct) return T('no barter bonus yet · {n} more barters for +{pct}%', { n: F(c.next ? c.next.from - c.count : 0), pct: c.next ? c.next.pct : 0 });
-	return T('{range} at the islands · <b>+{pct}%</b> for {n} barters', { range: coinRange(c.baseMin, c.baseMax), pct: c.pct, n: F(c.count) });
+export function bonusNote() {
+	return T('as the islands state it');
 }
 
 /**
