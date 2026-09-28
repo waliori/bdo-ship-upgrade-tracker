@@ -13,7 +13,7 @@ import { fmtDistance } from '../sailing.js';
 import { QUEST_CHOICES, VOUCHER_CHOICES } from '../barter-orders.js';
 import { landPrices } from '../land-cost.js';
 import { GOODS, PARLEY, levelOf, npcGate, npcOpen } from '../barter.js';
-import { weightOf, sellOf } from '../barter-plan.js';
+import { weightOf, sellOf, exchanges } from '../barter-plan.js';
 import { shotGuideHTML } from '../barter-import.js';
 import { bookFromGame, fitOf as matFitOf, MIN_FIT as MAT_MIN_FIT } from '../material-book.js';
 import { materialPages, materialDeal } from '../barter-layouts.js';
@@ -24,7 +24,7 @@ import { landGoods } from '../land_goods.js';
 import { openPicker } from '../picker.js';
 import { toast, openDialog } from '../dialogs.js';
 import { V } from './state.js';
-import { fromPort, materials, keepRoute } from './board.js';
+import { fromPort, materials, keepRoute, boardNow } from './board.js';
 import { narrow, lvTag } from './cockpit.js';
 import { aboardStock, dockStock, storesElsewhere, bagsNow } from './hold.js';
 import { runDockHTML } from './parts.js';
@@ -297,11 +297,12 @@ function matNeedHTML(mats) {
  *  ones their barter count has not opened. */
 function matRows(it) {
 	const barters = barterProfile().barterCount;
-	const rows = matBoardNow().answers.filter(a => a.recv === it).map(a => ({ a, deal: materialDeal(a.npcId, a.give, a.recv), open: npcOpen(a.npcId, barters), can: canGive(a.give) }))
+	const trade = it === CROW_COIN ? tradeCoins().map(x => ({ a: { npcId: x.npcId, give: x.give, recv: x.item }, deal: { qty: x.giveText, recvMin: x.recvMin, recvMax: x.recvMax, perDay: x.tries, parley: x.parleyBase }, trade: true, open: npcOpen(x.npcId, barters), can: canGive(x.give) })) : [];
+	const rows = [...matBoardNow().answers.filter(a => a.recv === it).map(a => ({ a, deal: materialDeal(a.npcId, a.give, a.recv), open: npcOpen(a.npcId, barters), can: canGive(a.give) })), ...trade]
 		.sort((x, y) => ((y.deal ? y.deal.recvMax : 0) - (x.deal ? x.deal.recvMax : 0)) || isleShort(npcById.get(x.a.npcId)).localeCompare(isleShort(npcById.get(y.a.npcId))));
 	return { can: rows.filter(r => r.open && r.can), cant: rows.filter(r => r.open && !r.can), shut: rows.filter(r => !r.open) };
 }
-const rowsN = it => matBoardNow().answers.filter(a => a.recv === it).length;
+const rowsN = it => matBoardNow().answers.filter(a => a.recv === it).length + (it === CROW_COIN ? tradeCoins().length : 0);
 
 /** One island of the list, as the dialog draws it. */
 function matRowHTML(r) {
@@ -311,7 +312,7 @@ function matRowHTML(r) {
 	const state = !r.open ? `<span class="mat-row-state shut">🔒 ${T('opens at {barters} Total Barters', { barters: F(npcGate(r.a.npcId)) })}</span>`
 		: `<span class="mat-row-state${r.can ? ' ok' : ' none'}">${esc(heldSaid(r.a.give))}</span>`;
 	return `<div class="mat-row${r.can && r.open ? '' : ' off'}${r.a.took ? ' took' : ''}">
-		<span class="mat-row-isle"><b>${esc(gameName(isleShort(npc)))}</b><small>${esc(gameName(whoOf(npc)))}</small></span>
+		<span class="mat-row-isle"><b>${esc(gameName(isleShort(npc)))}</b><small>${esc(gameName(whoOf(npc)))}${r.trade ? ` · ${T('trade goods list')}` : ''}</small></span>
 		<span class="mat-row-swap">${img(r.a.give, 'row-icon sm')}<span>${giveN}${esc(gameName(r.a.give))}</span><span class="run-arrow">→</span><b>${got}×</b></span>
 		<span class="mat-row-day">${d && d.perDay ? T('×{n} a day', { n: F(d.perDay) }) : ''}</span>
 		${state}
@@ -363,7 +364,10 @@ export function materialParts(me, data) {
 	// the rest are listed, not sailed for.
 	const forRun = new Set(mats.map(m => m.it));
 	const barters = barterProfile().barterCount;
-	const picks = showing.filter(a => forRun.has(a.recv) && npcOpen(a.npcId, barters) && canGive(a.give) && !skipped.has(a.npcId)).map(pickOf).filter(Boolean);
+	const picks = [
+		...showing.filter(a => forRun.has(a.recv) && npcOpen(a.npcId, barters) && canGive(a.give) && !skipped.has(a.npcId)).map(pickOf).filter(Boolean),
+		...(forRun.has(CROW_COIN) ? tradeCoins().filter(x => npcOpen(x.npcId, barters) && canGive(x.give) && !skipped.has(x.npcId)) : [])
+	];
 	// Aboard and given by no island of the run: put in the home harbour's
 	// storage before casting off, and the run laid without it.
 	const gives = new Set(picks.map(x => x.give));
@@ -605,6 +609,7 @@ const shortOf = m => (m.name === CROW_COIN ? coinsShort() : m.short);
 function matsToday() {
 	const mb = matBoardNow();
 	const dealt = new Set(mb.answers.map(a => a.recv));
+	if (mb.answers.length && tradeCoins().length) dealt.add(CROW_COIN);
 	const off = new Set(mb.off || []), on = new Set(mb.on || []);
 	return materials().map(m => ({ ...m, short: shortOf(m) })).filter(m => dealt.has(m.name) && (m.short > 0 ? !off.has(m.name) : on.has(m.name)))
 		.map(m => ({ it: m.name, qty: wantOf(m.name, m.short), short: m.short, typed: V.wants[m.name] > 0 }));
@@ -649,6 +654,21 @@ function pickOf(a) {
 		recvText: g.recvMin === g.recvMax ? String(g.recvMin) : `${g.recvMin}-${g.recvMax}`,
 		tries: g.perDay, parleyBase: g.parley
 	};
+}
+
+/**
+ * The Crow Coin islands of today's trade board. The barter window is one
+ * list: a coin day on the material list sits beside the trade board's own
+ * coin exchanges -- cheaper in Parley, often paying as much -- and a run
+ * for coins sails for both. Only when the trade board's layout is known:
+ * the whole table is every island that could ever pay, and a fiction.
+ * Each as the run takes it, the exchange row with its own figures.
+ */
+function tradeCoins() {
+	const b = boardNow();
+	if (!b.combo) return [];
+	const onMaterial = new Set(matBoardNow().answers.map(a => a.npcId));
+	return exchanges(b.data).filter(x => x.item === CROW_COIN && npcById.has(x.npcId) && !onMaterial.has(x.npcId));
 }
 
 /** Once the layout is known, the rest of it is today's list: filled in

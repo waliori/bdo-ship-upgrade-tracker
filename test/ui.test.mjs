@@ -1888,6 +1888,20 @@ test('the material book is the game’s own layouts, every one, and a page read 
 	}); await wait(800);
 	assert.match(await text(page, '.mat-say'), /board M11/, 'the coin rows found their material board');
 	assert.equal(await count(page, '.mat-steps, [data-act="barter-mat-tell"], [data-act="barter-mat-fleet-take"]'), 0, 'no steps to share it by');
+	// The window is one list: with today's trade board known, its own coin
+	// islands -- cheaper in Parley -- are sailed for too.
+	const both = await page.evaluate(async () => {
+		const { V } = await import('/js/barter/state.js'); const { barterKey } = await import('/js/clock.js'); const ui = await import('/js/ui.js'); const store = await import('/js/state.js');
+		store.setProfile('barterCount', 20000);
+		store.addTarget('Carrack (Advance)', 1); store.setProfile('crewShip', 'Carrack (Advance)');
+		for (const g of ['[Level 4] Pirate\'s Key', '[Level 4] Solidified Lava', '[Level 4] Seashell Deco', "[Level 4] Marine Knights' Spear", '[Level 4] Panacea', '[Level 4] Amethyst Fragment', '[Level 4] Headless Dragon Figurine', '[Level 4] Old Chest with Gold Coins', '[Level 4] Stolen Pirate Dagger', '[Level 4] Green Salt Lump']) store.setStock(g, 3);
+		V.board = { ...V.board, day: barterKey(), answers: [], pinned: '4' };
+		ui.render();
+		await new Promise(r => setTimeout(r, 500));
+		return [...new Set((V.shownPlan ? V.shownPlan.stops : []).filter(x => x.npcId).map(x => x.parleyBase))];
+	});
+	assert.ok(both.includes(21650), `a trade-list coin island on the route: ${both.join(', ')}`);
+	assert.ok(both.includes(29430), 'beside the material list\'s');
 	assert.deepEqual(errors, []);
 	await context.close();
 });

@@ -130,7 +130,12 @@ export function materialRun({ picks = [], wants = new Map(), reach = 'want', pac
 	const mine = picks.filter(x => wantOf.has(x.item) && npcById.has(x.npcId));
 	const need = new Map(wantOf);
 	const missing = new Map();   // give -> { n, islands }
-	mine.sort((a, b) => Number(availOf(b.give) > 0) - Number(availOf(a.give) > 0) || (b.recv / b.giveN) - (a.recv / a.giveN) || dist(start, place(a)) - dist(start, place(b)));
+	// The best rate first: what a trade brings for what it costs -- the
+	// Parley, when the run has a bar to spend, since that is what runs
+	// out; a coin island on the trade goods list pays as much as one on
+	// the material list for three quarters of the Parley.
+	const rate = x => (parley && parley.costOf(x) > 0 ? x.recv / parley.costOf(x) : x.recv / x.giveN);
+	mine.sort((a, b) => Number(availOf(b.give) > 0) - Number(availOf(a.give) > 0) || rate(b) - rate(a) || dist(start, place(a)) - dist(start, place(b)));
 	const isles = [];
 	const bought = new Map();   // land good -> n
 	let budget = parley ? parley.budget : Infinity;
