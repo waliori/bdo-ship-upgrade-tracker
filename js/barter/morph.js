@@ -10,7 +10,7 @@ const PARTS = ['.cockpit-head', '.cockpit-clock', '.cockpit-place', '.cockpit-tr
 const FADE = ['.cockpit-who'];
 // What each view words differently: faded in rather than moved.
 const AGAIN = ['.cockpit-under'];
-const MS = 460;
+const MS = 850;
 const EASE = 'cubic-bezier(.2,.8,.2,1)';
 
 const panelOf = () => document.querySelector('section.panel.cockpit:not(.compact)');

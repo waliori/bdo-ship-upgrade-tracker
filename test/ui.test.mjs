@@ -2232,7 +2232,7 @@ test('the running clock draws the sailor’s own ship crossing the leg', async (
 	const glanced = await count(page, '.cockpit.glance');
 	const moving = await page.evaluate(() => { document.querySelector('[data-act="barter-glance"]').click(); return document.getAnimations().length; });
 	assert.ok(moving > 0, `the parts travel: ${moving} animations`);
-	await wait(900);
+	await wait(1500);
 	assert.notEqual(await count(page, '.cockpit.glance'), glanced, 'the view changed');
 	assert.equal(await page.$eval('section.panel.cockpit', el => el.getAttribute('style') || ''), '', 'nothing left on the panel');
 	assert.equal(await count(page, 'section.panel.cockpit > div[style*="z-index"]'), 0, 'and its stand-in face is gone');
