@@ -198,7 +198,7 @@ export function holdBarHTML(me, tickedLT = 0) {
 				<div class="hold-purse" title="${T('Your barter count and level are set in the bar at the top of the page; the Parley under Before you sail, step 1')}">
 					<span class="hold-purse-n"><b>${F(parley)}</b><span>${T('Parley')}</span></span>
 					${prof.vouchers ? `<span class="hold-purse-n"><b>${F(prof.vouchers)}</b><span>${prof.vouchers === 1 ? T('voucher') : T('vouchers')}</span></span>` : ''}
-					<span class="hold-purse-n"><b>${F(parleyOf(prof).perTrade)}</b><span>${T('a trade')}</span></span>
+					<span class="hold-purse-n"><b>${F(V.goal === 'material' ? Math.floor(PARLEY.perMaterialTrade * parleyOf(prof).rate) : parleyOf(prof).perTrade)}</b><span>${V.goal === 'material' ? T('a material trade') : T('a trade')}</span></span>
 				</div>
 				<div class="hold-purse-sub">${esc(prof.level || T('no level set'))} · −${(levelDiscount(prof.level) * 100).toFixed(2)}%${prof.valuePack ? ` ${T('−10% pack')}` : ''}${prof.crew ? ` ${T('−10% crew')}` : ''}</div>
 			</section>

@@ -479,7 +479,7 @@ function legSnap(from, to) {
 	return `<div class="leg-snap" aria-hidden="true"><div class="leg-snap-in" style="width:${SNAP.w}px;height:${SNAP.h}px"><div class="leg-snap-tiles" style="width:${Math.ceil(vw)}px;height:${Math.ceil(vh)}px;transform:scale(${k.toFixed(4)})">${tiles.join('')}</div><svg viewBox="0 0 ${SNAP.w} ${SNAP.h}" width="${SNAP.w}" height="${SNAP.h}"><polyline points="${pts.map(p => px(p).join(',')).join(' ')}"/><circle class="from" cx="${ax}" cy="${ay}" r="4"/><circle class="to" cx="${ex}" cy="${ey}" r="5"/></svg></div></div>`;
 }
 
-export function stopRows(stops, legs, { k0 = 0, board = false, sailing = null, tag = null, notes = null, ledger = null, map = false, edit = false, trip = null, before = null } = {}) {
+export function stopRows(stops, legs, { k0 = 0, board = false, sailing = null, tag = null, notes = null, ledger = null, map = false, edit = false, snap = edit, trip = null, before = null } = {}) {
 	const wanted = notes ? questWanted() : new Set();
 	// The bar after each stop: the whole run's book when the caller
 	// drew it up -- these stops may be one chain's segment of it, so
@@ -513,7 +513,7 @@ export function stopRows(stops, legs, { k0 = 0, board = false, sailing = null, t
 				<div class="run-stop-head">${s.wait ? `<span class="run-anchor" title="${T('A wait for a voucher’s cooldown, not a barter')}">⏳</span>` : s.wharf ? `<span class="run-anchor" title="${T('A pause at a wharf, not a barter')}">⚓</span>` : s.quest ? `<span class="run-anchor" title="${s.hunt ? T('A stop put in to hunt, not a barter') : T('A stop put in for a quest, not a barter')}">${s.hunt ? '🎯' : '📜'}</span>` : ''}${map ? `<button class="run-stop-fly" data-act="map-step" data-i="${k}" title="${T('Fly the chart here, and step to it')}">${esc(s.quest ? gameName(place.name) : s.wharf ? T('{at} wharf', { at: gameName(place.at) }) : gameName(isleOf(place)))}</button>` : `<b class="run-stop-name">${esc(s.quest ? gameName(place.name) : s.wharf ? T('{at} wharf', { at: gameName(place.at) }) : gameName(isleOf(place)))}</b>`}<span>${esc(s.quest ? gameName(place.who) : s.wharf ? gameName(place.name) : gameName(whoOf(place)))}</span>${tag ? tag(s) : ''}${leg}</div>
 				${did}
 				${edit && s.npcId ? `<div class="route-edit"><button class="chip tiny" data-act="barter-route-nudge" data-npc="${s.npcId}" data-by="-1" title="${T('Sail here one stop sooner')}" aria-label="${T('Sooner')}">↑</button><button class="chip tiny" data-act="barter-route-nudge" data-npc="${s.npcId}" data-by="1" title="${T('Sail here one stop later')}" aria-label="${T('Later')}">↓</button><button class="chip tiny warn" data-act="barter-route-skip" data-npc="${s.npcId}" title="${T('Take this island off the route: its chain stops before it, and the rest of the route is laid again without it')}">${T('skip')}</button></div>` : ''}
-				${edit ? legSnap(i > 0 ? placeOf(stops[i - 1]) : k0 === 0 ? ports.find(p => p.id === V.port) : before ? placeOf(before) : null, place) : ''}
+				${snap ? legSnap(i > 0 ? placeOf(stops[i - 1]) : k0 === 0 ? ports.find(p => p.id === V.port) : before ? placeOf(before) : null, place) : ''}
 				${notes && notes.at(k).length ? `<div class="run-quests">${notes.at(k).map(x => questChip(x, wanted, notes.trades || 0, made)).join('')}</div>` : ''}
 				${check(s, k)}
 			</div>

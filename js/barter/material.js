@@ -340,7 +340,7 @@ export function materialParts(me, data) {
 	const qp = questPlan(plan.stops, V.matOrders.quests, me.hold, plan.weightStart);
 	plan.stops = withWaits(qp.stops, plan.weightStart);
 	plan.questsHome = qp.home;
-	V.shownPlan = plan.stops.length ? { stops: plan.stops, cost: plan.cost, bought: plan.bought || [], parleyUsed: plan.stops.reduce((a, x) => a + (Number(x.parley) || 0), 0), questsHome: qp.home } : null;
+	V.shownPlan = plan.stops.length ? { stops: plan.stops, cost: plan.cost, bought: plan.bought || [], trades: plan.trades, parleyUsed: plan.stops.reduce((a, x) => a + (Number(x.parley) || 0), 0), questsHome: qp.home } : null;
 	const legs = legsOf(plan.stops);
 	const book = ledgerOf(plan.stops, legs);
 	// What is short splits two ways: some of it may sit in a storage the
@@ -374,6 +374,7 @@ export function materialParts(me, data) {
 	// What the run comes to: each material against its want, as a bar;
 	// then the run in figures, each with its sign.
 	const nothing = plan.ticked ? mats.filter(m => plan.got.get(m.it).max <= 0) : [];
+	const few = (list, say) => (list.length > 3 ? `${list.slice(0, 3).map(say).join(', ')} ${T('and {n} more', { n: list.length - 3 })}` : list.map(say).join(', '));
 	const yieldRows = mats.filter(m => !nothing.includes(m)).map(m => {
 		const g = plan.got.get(m.it), w = plan.waits.get(m.it);
 		const pct = m.qty > 0 ? Math.min(100, g.min / m.qty * 100) : 0;
@@ -432,8 +433,8 @@ export function materialParts(me, data) {
 	// The head says what comes of it for each material against its want.
 	const got = mats.filter(m => plan.got.get(m.it).max > 0);
 	const segs = plan.stops.length ? `<section class="panel run-seg mat-seg" style="--tier:${TIER(6)}">
-		<div class="run-seg-head"><span class="mat-seg-icons">${(got.length ? got : mats.slice(0, 1)).map(m => img(m.it, 'row-icon xs')).join('')}</span><b>${esc((got.length ? got : mats.slice(0, 1)).map(m => gameName(m.it)).join(', '))}</b><span>${plan.islands === 1 ? T('{n} island', { n: plan.islands }) : T('{n} islands', { n: plan.islands })} · ${plan.trades === 1 ? T('{n} trade', { n: plan.trades }) : T('{n} trades', { n: plan.trades })}${plan.calls ? ` · ${plan.calls === 1 ? T('{n} harbour call', { n: plan.calls }) : T('{n} harbour calls', { n: plan.calls })}` : ''}${plan.returns ? ` · ${T('{n} departures', { n: plan.returns + 1 })}` : ''}</span>${mats.map(m => { const g = plan.got.get(m.it); return `<em class="mat-got${g.min >= m.qty ? ' met' : ''}" title="${esc(gameName(m.it))}: ${T('{got} of the {want} wanted', { got: gotText(m), want: F(m.qty) })}">${T('{got} of {want}', { got: gotText(m), want: F(m.qty) })}</em>`; }).join('')}</div>
-		<div class="run-stops">${stopRows(plan.stops, legs, { sailing: sailing(), notes: qp })}</div>
+		<div class="run-seg-head"><span class="mat-seg-icons">${(got.length ? got : mats.slice(0, 1)).map(m => img(m.it, 'row-icon xs')).join('')}</span><b>${esc(few(got.length ? got : mats.slice(0, 1), m => gameName(m.it)))}</b><span>${plan.islands === 1 ? T('{n} island', { n: plan.islands }) : T('{n} islands', { n: plan.islands })} · ${plan.trades === 1 ? T('{n} trade', { n: plan.trades }) : T('{n} trades', { n: plan.trades })}${plan.calls ? ` · ${plan.calls === 1 ? T('{n} harbour call', { n: plan.calls }) : T('{n} harbour calls', { n: plan.calls })}` : ''}${plan.returns ? ` · ${T('{n} departures', { n: plan.returns + 1 })}` : ''}</span>${got.map(m => { const g = plan.got.get(m.it); return `<em class="mat-got${g.min >= m.qty ? ' met' : ''}" title="${esc(gameName(m.it))}: ${T('{got} of the {want} wanted', { got: gotText(m), want: F(m.qty) })}">${T('{got} of {want}', { got: gotText(m), want: F(m.qty) })}</em>`; }).join('')}</div>
+		<div class="run-stops">${stopRows(plan.stops, legs, { sailing: sailing(), notes: qp, ledger: book, snap: !sailing() })}</div>
 	</section>` : '';
 	const empty = !plan.ticked
 		? `<div class="run-empty">${it ? T('Nothing ticked. Open the barter window in game and tap each island of the list that shows <b>{name}</b> today — the run lays itself out here.', { name: esc(gameName(it)) }) : T('Nothing ticked. Open a material and tap each island showing it today — the run lays itself out here.')}</div>`
@@ -446,8 +447,7 @@ export function materialParts(me, data) {
 		holdCls === 'warn' ? `<b class="warn">${T('too heavy')}</b>` : holdCls === 'amber' ? `<b class="amber">${T('over the limit')}</b>` : ''
 	]) : '';
 	if (plan.stops.length) keepRoute(plan, legs, book, segs, it || (mats[0] && mats[0].it) || '');
-	const routeFold = plan.stops.length ? `<details class="panel route-fold"${sailing() || narrow() ? '' : ' open'}><summary><b>${T('The route, stop by stop')}</b><span class="panel-sub">${mats.length ? T('for {materials}', { materials: esc(mats.map(m => gameName(m.it)).join(', ')) }) : T('for a material')}${legs.total ? ` · ≈ ${esc(runTime(legs, book))}` : ''}${from ? ` · ${T('from {port}', { port: esc(gameName(from.name)) })}` : ''}</span>${questsLine(qp, V.matOrders.quests)}<span class="panel-spacer"></span>${chartButton(plan.stops, it || (mats[0] && mats[0].it) || '')}</summary>${segs}</details>` : '';
-	const few = (list, say) => (list.length > 3 ? `${list.slice(0, 3).map(say).join(', ')} ${T('and {n} more', { n: list.length - 3 })}` : list.map(say).join(', '));
+	const routeFold = plan.stops.length ? `<details class="panel route-fold"${sailing() || narrow() ? '' : ' open'}><summary><b>${T('The route, stop by stop')}</b><span class="panel-sub">${mats.length ? T('for {materials}', { materials: esc(few(got.length ? got : mats, m => gameName(m.it))) }) : T('for a material')}${legs.total ? ` · ≈ ${esc(runTime(legs, book))}` : ''}${from ? ` · ${T('from {port}', { port: esc(gameName(from.name)) })}` : ''}</span>${questsLine(qp, V.matOrders.quests)}<span class="panel-spacer"></span>${chartButton(plan.stops, it || (mats[0] && mats[0].it) || '')}</summary>${segs}</details>` : '';
 	const matsSaid = mats.length ? few(mats, m => `${F(m.qty)}× ${gameName(m.it)}`) : T('nothing on the run yet');
 	const gotSome = mats.filter(m => !nothing.includes(m));
 	const comes = plan.ticked && gotSome.length ? few(gotSome, m => `${gotText(m)} ${T('of {want}', { want: F(m.qty) })} ${gameName(m.it)}`) : plan.ticked ? T('nothing comes of it today') : T('nothing ticked yet');

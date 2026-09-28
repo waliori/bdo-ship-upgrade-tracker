@@ -123,7 +123,7 @@ export function resultsHTML() {
 	// they cost, these say what they were.
 	for (const [k, s] of stops.entries()) if (s.npcId && levelOf(s.give) === null && ticked(on.done, s, k, stops)) gave[s.give] = (gave[s.give] || 0) + Math.round(s.times * s.giveN);
 	const gained = Object.values(got).reduce((a, n) => a + n, 0);
-	const stocking = (on.goal || V.goal) === 'stock', coining = (on.goal || V.goal) === 'coin';
+	const stocking = (on.goal || V.goal) === 'stock', coining = (on.goal || V.goal) === 'coin', materialing = (on.goal || V.goal) === 'material';
 	const tile = (k, v, sub, cls = '') => `<div><div class="summary-k">${k}</div><div class="summary-v${cls ? ` ${cls}` : ''}">${v}</div><div class="summary-sub">${sub}</div></div>`;
 	const timer = timerState();
 	const owed = stops.filter(s => owesCount(s, on)).length;
@@ -131,6 +131,7 @@ export function resultsHTML() {
 		${tile(`⚓ ${T('Stops')}`, `${doneN} / ${stops.length}`, complete ? T('every stop ticked') : at >= 0 ? T('stop {n} is next', { n: at + 1 }) : '')}
 		${tile(`⇄ ${T('Trades made')}`, F(trip.trades), `${T('of {n} planned', { n: F(plan.trades || 0) })} · ${T('Total Barters → {n}', { n: F(prof.barterCount + Math.round(trip.trades)) })}`)}
 		${coining ? tile(`${img(COIN, 'tile-icon')}${T('Crow Coins so far')}`, coins ? `+${F(coins)}` : '—', guessedCoins ? T('the middle of the range assumed until typed') : T('as typed at each island'), 'gold')
+		: materialing ? tile(`${img(Object.keys(got)[0] || SILVER, 'tile-icon')}${T('Materials so far')}`, gained ? `+${F(gained)}` : '—', gained ? Object.keys(got).length === 1 ? T('{n} kind', { n: 1 }) : T('{n} kinds', { n: Object.keys(got).length }) : T('nothing received yet'), 'teal')
 		: stocking ? tile(`${img(stops.find(s => s.npcId && levelOf(s.item)) ? stops.find(s => s.npcId && levelOf(s.item)).item : SILVER, 'tile-icon')}${T('Goods so far')}`, gained ? `+${F(gained)}` : '—', gained ? T('{n} kinds', { n: Object.keys(got).length }) : T('nothing received yet'), 'teal')
 			: tile(`${img(SILVER, 'tile-icon')}${T('Silver so far')}`, trip.silver ? FC(trip.silver) : '—', wharfTicked ? T('sold at the wharf call') : T('nothing sold until the wharf call is ticked'), 'gold')}
 		${tile(`${drawnSoFar ? img(VOUCHER, 'tile-icon') : '◈ '}${T('Parley spent')}`, F(spent), `${T('{n} left of {bar}', { n: F(Math.max(0, bar - spent)), bar: F(bar) })}${parleyGuessed(prof) ? ` · ${T('assumed full')}` : ''}${drawnSoFar ? ` · ${drawnSoFar === 1 ? T('{n} voucher drawn on', { n: drawnSoFar }) : T('{n} vouchers drawn on', { n: drawnSoFar })}` : ''}`, 'teal')}
@@ -142,7 +143,9 @@ export function resultsHTML() {
 		return logRow(k, { done: d, place: names.place, who: names.who, kind: names.kind, give: s.give, giveText: s.giveText, item: s.item, recvText: s.recvText, times: s.times, said: (on.seen || {})[s.npcId] || 0, sale: s.wharf && s.sale ? s.sale : null, cost, tag: book.rows[k] ? ` ${parleyNotes(book, k, s).tag}` : '', wait: s.wait || 0 });
 	}).join('');
 	const net = trip.silver - trip.spent;
-	const receipt = `<div class="receipt-net"><span>${T('Silver, net')}</span><b class="${net < 0 ? 'warn' : 'gold'}">${net ? `${net > 0 ? '+' : '−'}${FC(Math.abs(net))}` : '—'}</b></div>
+	// A material run sells nothing: its silver is only what the shore
+	// goods cost, said as such, and nothing when none was bought.
+	const receipt = `${materialing && !net ? '' : `<div class="receipt-net"><span>${materialing ? T('Silver spent ashore') : T('Silver, net')}</span><b class="${net < 0 ? 'warn' : 'gold'}">${net ? `${net > 0 ? '+' : '−'}${FC(Math.abs(net))}` : '—'}</b></div>`}
 	<div class="receipt-acts"><span class="panel-sub">${T('The hold already follows every ticked stop. Recording adds the Parley, Total Barters, the quests and the log; its Undo takes the whole run back.')}${owed ? ` <b class="amber">${owed === 1 ? T('{n} island still waits for its count.', { n: owed }) : T('{n} islands still wait for their count.', { n: owed })}</b>` : ''}</span><button class="linky danger" data-act="barter-sail-drop" title="${T('Drop the checklist; nothing is recorded')}">${T('Abandon')}</button><button class="act" data-act="barter-record" ${doneN ? '' : 'disabled'} title="${T('The stops done go into the Inventory as one change')}">${T('Record the trip')}</button></div>`;
 	return `<section class="panel"><div class="panel-head"><h2 class="panel-title">${complete ? T('The run, complete') : T('The run so far')}</h2><span class="panel-sub">${timer ? `${T('under way')} ⏱ ${esc(spanText(timer.ran))}` : ''}</span><span class="panel-spacer"></span><button class="linky" data-act="barter-step" data-id="sail">‹ ${T('Back to the run')}</button></div><div class="panel-body">${tiles}</div></section>
 		<section class="panel"><div class="panel-head"><h2 class="panel-title">${T('The exchange')}</h2><span class="panel-sub">${complete ? T('what recording will change') : T('so far — only ticked stops count')}</span></div><div class="panel-body">${exchangeHTML(gave, got, { spent: trip.spent, silver: trip.silver, coins, parley: spent, vouchers: drawnSoFar, guessedCoins })}${receipt}</div></section>
