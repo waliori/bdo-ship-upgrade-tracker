@@ -143,6 +143,19 @@ export function fitsAt(combo, npcId, give, recv) {
 }
 
 /**
+ * Which list a Crow Coin row read off the window belongs to. Both have
+ * them: a trade layout's [Level 4] cashed at a coin island, and the
+ * material list's own coin days -- two of its layouts pay coins at
+ * nearly every island. `{ trade, material }`, each whether any layout of
+ * that list shows this exchange at this island.
+ */
+export function coinSides(npcId, give) {
+	const trade = !!game && layouts().combos.some(c => !!fitsAt(c, npcId, give, 'Crow Coin'));
+	const material = materialPages().some(p => { const o = p.offers.get(npcId); return !!o && [o, ...(o.options || [])].some(x => x.give === give && x.recv === 'Crow Coin'); });
+	return { trade, material };
+}
+
+/**
  * The material list's forty-one layouts, as pages of the material book
  * (material-book.js): `{ id, row, offers: Map(npc -> offer) }`, an offer
  * `{ give, recv, giveN, recvN, recvMax, perDay, parley, chance }`. A slot

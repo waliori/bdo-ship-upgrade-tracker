@@ -1877,6 +1877,15 @@ test('the material book is the game’s own layouts, every one, with the reading
 	assert.ok(said >= 40, `the game's layouts: ${said}`);
 	assert.match(await text(page, '.dialog-note'), /layouts of its own, taken from the game’s files/);
 	assert.ok(await page.evaluate(() => [...document.querySelectorAll('.mb-card')].some(c => /not read yet/.test(c.textContent) && /from the game’s own files/.test(c.textContent))), 'a layout nobody has read yet is on the shelf');
+	await page.evaluate(() => document.querySelector('[data-close]').click()); await wait(300);
+	// A coin day on the material list: rows paying Crow Coins read off the
+	// window go to the material list, not the trade board, and find their board.
+	await page.evaluate(async () => {
+		const { takeRead } = await import('/js/barter/board.js'); const ui = await import('/js/ui.js');
+		takeRead([[58904, '[Level 4] Green Salt Lump'], [58901, '[Level 2] Urchin Spine'], [58903, '[Level 4] Opulent Thread Spool'], [58902, '[Level 3] Scout Binoculars'], [58964, '[Level 2] Pirate Gold Coin'], [58963, '[Level 2] Monster Tentacle']].map(([npcId, give]) => ({ npcId, give, recv: 'Crow Coin' })));
+		ui.render();
+	}); await wait(800);
+	assert.match(await text(page, '.mat-say'), /board M11/, 'the coin rows found their material board');
 	assert.deepEqual(errors, []);
 	await context.close();
 });

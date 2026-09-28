@@ -16,6 +16,7 @@ import { exchanges } from '../barter-plan.js';
 import { openBarterImport } from '../barter-import.js';
 import { openLayoutBook } from '../layouts-view.js';
 import { driftOf } from '../layout-book.js';
+import { coinSides } from '../barter-layouts.js';
 import { boardsFor, sawItToo, tellFleet, shared as boardsShared } from '../sea-boards.js';
 import { me } from '../sync.js';
 import { cutOf } from '../barter-short.js';
@@ -438,30 +439,45 @@ export function readWindow(then, files) {
 	openBarterImport({
 		files,
 		deals: exchanges(barterData),
-		onAnswers: answers => {
-			// The window is one list and the app keeps two: the forty
-			// layouts, and the material islands, which roll on their own
-			// and belong to no layout. A row is told apart by what it
-			// pays -- a ship material is not a trade good -- and goes to
-			// the list it belongs to, which is the same split boardData
-			// makes of the whole table.
-			const mb = matBoardNow();
-			let mats = 0;
-			for (const a of answers) {
-				const material = levelOf(a.recv) === null && a.recv !== 'Crow Coin';
-				const list = material ? mb.answers : V.board.answers;
-				const i = list.findIndex(x => x.npcId === a.npcId);
-				if (i >= 0) list.splice(i, 1);   // an island shows one exchange
-				list.push({ npcId: a.npcId, give: a.give, recv: a.recv });
-				if (material) mats++;
-			}
-			persist();
-			if (mats) noteMatSeen();
-			const board_ = answers.length - mats;
-			toast(`${answers.length === 1 ? T('{n} island read off the screenshot', { n: answers.length }) : T('{n} islands read off the screenshot', { n: answers.length })}${mats ? ` — ${T('{n} on today\'s board, {mats} ticked on the material list', { n: board_, mats })}` : ''}`, true);
-			then();
-		}
+		onAnswers: answers => { takeRead(answers); then(); }
 	});
+}
+
+/**
+ * Rows read off the window, each to the list it belongs to.
+ *
+ * The window is one list and the app keeps two: the forty layouts, and
+ * the material list's own. A row is told apart by what it pays -- a
+ * ship material is not a trade good -- and goes to the list it belongs
+ * to, which is the same split boardData makes of the whole table.
+ */
+export function takeRead(answers) {
+	boardNow();
+	const mb = matBoardNow();
+	let mats = 0;
+	// Crow Coins are paid on both lists. A coin row goes where the game's
+	// layouts show it; one both show goes with the other coin rows of the
+	// same shot, since a window is one list or the other.
+	const sides = new Map(answers.filter(a => a.recv === 'Crow Coin').map(a => [a.npcId, coinSides(a.npcId, a.give)]));
+	const only = [...sides.values()].filter(x => x.trade !== x.material);
+	const coinsAreMats = only.filter(x => x.material).length > only.filter(x => x.trade).length;
+	const isMat = a => {
+		if (a.recv !== 'Crow Coin') return levelOf(a.recv) === null;
+		const x = sides.get(a.npcId);
+		return x.material && (!x.trade || coinsAreMats);
+	};
+	for (const a of answers) {
+		const material = isMat(a);
+		const list = material ? mb.answers : V.board.answers;
+		const i = list.findIndex(x => x.npcId === a.npcId);
+		if (i >= 0) list.splice(i, 1);   // an island shows one exchange
+		list.push({ npcId: a.npcId, give: a.give, recv: a.recv });
+		if (material) mats++;
+	}
+	persist();
+	if (mats) noteMatSeen();
+	const board_ = answers.length - mats;
+	toast(`${answers.length === 1 ? T('{n} island read off the screenshot', { n: answers.length }) : T('{n} islands read off the screenshot', { n: answers.length })}${mats ? ` — ${T('{n} on today\'s board, {mats} ticked on the material list', { n: board_, mats })}` : ''}`, true);
 }
 
 /** What the fleet has read of today's board, once it has been asked
