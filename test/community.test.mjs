@@ -249,7 +249,7 @@ test('taking part puts the digest of the save on the boards, by name or unnamed'
 	for (const [cookie, profile] of [
 		[admiral, { sailingMastery: 1500, barterCount: 300, level: 'Artisan 3', tally: { runs: 50, silver: 5e9 }, boardLog: [['2026-09-10', '16', 0], ['2026-09-11', '7', 0]], rolls: { '31|58966': { day: '2026-09-27', pick: '[Level 4] Panacea|Crow Coin', seen: { '[Level 4] Panacea|Crow Coin': 2 } } }, ratios: { '58966|[Level 4] Panacea|Crow Coin': { 380: 2 } } }],
 		[deckhand, { sailingMastery: 900, barterCount: 20, tally: { runs: 5, silver: 1e8 }, boardLog: [['2026-09-10', '16', 1]], rolls: { '31|58966': { day: '2026-09-26', pick: "[Level 4] Panacea|[Level 5] Statue's Tear", seen: { '[Level 4] Panacea|Crow Coin': 1, "[Level 4] Panacea|[Level 5] Statue's Tear": 1 } } }, ratios: { '58966|[Level 4] Panacea|Crow Coin': { 400: 1 } } }],
-		[stranger, { sailingMastery: 2900, barterCount: 999 }]
+		[stranger, { sailingMastery: 2900, barterCount: 999, rolls: { '31|58966': { day: '2026-09-25', pick: '[Level 4] Panacea|Crow Coin', seen: { '[Level 4] Panacea|Crow Coin': 1 } } } }]
 	]) {
 		const res = await call('PUT', '/api/state', { cookie, body: { rev: 0, data: save(profile), device: 'test' } });
 		assert.equal(res.status, 200);
@@ -299,8 +299,10 @@ test('taking part puts the digest of the save on the boards, by name or unnamed'
 	// ...and the boards each was dealt: which layouts come up most, fleet-wide.
 	assert.deepEqual(out.stats.layouts, { 16: 2, 7: 1 });
 	assert.equal(out.stats.totals.boards, 3);
-	// ...and what the islands a layout leaves to chance showed them.
-	assert.deepEqual(out.stats.rolls['31|58966'], { '[Level 4] Panacea|Crow Coin': 3, "[Level 4] Panacea|[Level 5] Statue's Tear": 1 });
+	// ...and what the islands a layout leaves to chance showed them --
+	// and the stranger, who left the boards: what the game dealt is
+	// counted from every signed-in save, on the boards or not.
+	assert.deepEqual(out.stats.rolls['31|58966'], { '[Level 4] Panacea|Crow Coin': 4, "[Level 4] Panacea|[Level 5] Statue's Tear": 1 });
 	// ...and what a range paid them, kept apart by barter level and Total Barters.
 	assert.deepEqual(out.stats.paid['58966|[Level 4] Panacea|Crow Coin'], { 'Artisan|0': { 380: 2 }, '-|0': { 400: 1 } });
 });

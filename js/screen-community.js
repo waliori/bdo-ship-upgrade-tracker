@@ -602,6 +602,7 @@ function confirmLeave() {
 	const host = openDialog(`
 		<h2>${T('Leave the boards?')}</h2>
 		<p class="dialog-copy">${T('Your places go, and the digest the server holds is deleted. Your save is untouched, and signing in again will not quietly put you back — you can take part again whenever you choose to.')}</p>
+		<p class="dialog-copy">${T('What the islands paid you and which rolls came up still add to the fleet’s barter numbers, unnamed: they are facts about the game, not about you.')}</p>
 		<div class="dialog-actions">
 			<button class="act quiet" data-close>${T('Stay')}</button>
 			<button class="act bad" data-yes>${T('Leave')}</button>

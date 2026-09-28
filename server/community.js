@@ -8,9 +8,12 @@
 // fitted, the islands most plotted, the monsters most hunted, and the
 // totals of the whole fleet.
 //
-// Nothing here reads a save that has not been offered. A community row
+// The boards read no save that has not been offered. A community row
 // exists only while an account is opted in, it holds the digest and
-// nothing else, and leaving deletes it. The digest itself is worked out
+// nothing else, and leaving deletes it. The barter counts are the one
+// exception: what islands paid and which rolls came up are facts about
+// the game, not about the sailor, so every signed-in save adds to them
+// -- counts only, held in memory, never shown against anyone. The digest itself is worked out
 // by js/digest.js, the same module the page runs to show what it would
 // send before anyone agrees.
 //
@@ -26,7 +29,7 @@ import express from 'express';
 import crypto from 'node:crypto';
 import { digest, BOARDS, DIGEST_V, paidBand } from '../js/digest.js';
 import { config } from './config.js';
-import { listCommunity, putCommunity, putDigest, deleteCommunity, getShareState, setCommunityOff } from './db.js';
+import { listCommunity, listSaveRevs, putCommunity, putDigest, deleteCommunity, getShareState, setCommunityOff } from './db.js';
 import { onSaveChanged, readSave } from './saves.js';
 import { requireUser, sessionUser } from './session.js';
 import { wrap } from './wrap.js';
@@ -155,14 +158,6 @@ function rank(board, rows) {
 function aggregate(rows) {
 	const totals = { boards: 0, silver: 0, runs: 0, trades: 0, barters: 0, quests: 0, hunts: 0, crafts: 0, ships: 0, sailors: 0, hulls: 0, traces: 0, points: 0, tries: 0, wins: 0, units: 0, mastery: 0, withMastery: 0 };
 	const hulls = {}, sailing = {}, parts = {}, crystals = {}, sailorTypes = {}, quests = {}, hunts = {}, builds = {}, shipsMade = {}, islands = {}, levels = {}, layouts = {};
-	// island -> [Level 7] -> times the fleet saw it paid
-	const sevens = {};
-	// 'layout|npc' -> 'give|recv' -> times the fleet saw a roll come up so
-	const rolls = {};
-	// 'npc|give|recv' -> band -> value -> times the fleet saw an exchange
-	// that pays a range pay so; the band is the sender's barter level and
-	// Total Barters, so a sailor is shown what sailors like them were paid
-	const paid = {};
 	const masteryBuckets = [0, 0, 0, 0, 0, 0];   // <500, <1000, <1500, <2000, <2500, 2500+
 	const crewLevels = new Array(10).fill(0);
 	const fleetSizes = [0, 0, 0, 0];   // 0, 1, 2, 3+
@@ -189,20 +184,6 @@ function aggregate(rows) {
 		// digests written before the boards were logged have none
 		for (const [id, c] of Object.entries((d.boards && d.boards.byLayout) || {})) add(layouts, id, c);
 		totals.boards += (d.boards && d.boards.n) || 0;
-		for (const [npc, counts] of Object.entries(d.sevens || {})) {
-			const at = sevens[npc] || (sevens[npc] = {});
-			for (const [item, c] of Object.entries(counts || {})) add(at, item, c);
-		}
-		for (const [key, counts] of Object.entries(d.rolls || {})) {
-			const at = rolls[key] || (rolls[key] = {});
-			for (const [pick, c] of Object.entries(counts || {})) add(at, pick, c);
-		}
-		const band = paidBand(d.level, d.barters);
-		for (const [key, counts] of Object.entries(d.paid || {})) {
-			const at = paid[key] || (paid[key] = {});
-			const b = at[band] || (at[band] = {});
-			for (const [v, c] of Object.entries(counts || {})) add(b, v, c);
-		}
 		fleetSizes[Math.min(3, d.fleet.n)]++;
 		d.runs.days.forEach((c, i) => { runDays[i] += c; });
 	}
@@ -211,8 +192,74 @@ function aggregate(rows) {
 		hulls: top(hulls, 16), sailing: top(sailing, 16), parts: top(parts, 15), crystals: top(crystals, 10),
 		sailorTypes: top(sailorTypes, 15), quests: top(quests, 15), hunts: top(hunts, 12), builds: top(builds, 15),
 		shipsMade: top(shipsMade, 12), islands: top(islands, 15), levels: top(levels, 12), layouts: top(layouts, 45),
-		masteryBuckets, crewLevels, fleetSizes, runDays, sevens, rolls, paid
+		masteryBuckets, crewLevels, fleetSizes, runDays
 	};
+}
+
+/** The barter counts of a digest, the part every signed-in save gives. */
+const barterPart = d => ({ level: d.level, barters: d.barters, sevens: d.sevens || {}, rolls: d.rolls || {}, paid: d.paid || {} });
+
+/**
+ * What the fleet saw at the islands, added up over every signed-in
+ * save -- on the boards or not.
+ */
+function barterTotals(parts) {
+	// island -> [Level 7] -> times the fleet saw it paid
+	const sevens = {};
+	// 'layout|npc' -> 'give|recv' -> times the fleet saw a roll come up so
+	const rolls = {};
+	// 'npc|give|recv' -> band -> value -> times the fleet saw an exchange
+	// that pays a range pay so; the band is the sender's barter level and
+	// Total Barters, so a sailor is shown what sailors like them were paid
+	const paid = {};
+	for (const d of parts) {
+		for (const [npc, counts] of Object.entries(d.sevens)) {
+			const at = sevens[npc] || (sevens[npc] = {});
+			for (const [item, c] of Object.entries(counts || {})) add(at, item, c);
+		}
+		for (const [key, counts] of Object.entries(d.rolls)) {
+			const at = rolls[key] || (rolls[key] = {});
+			for (const [pick, c] of Object.entries(counts || {})) add(at, pick, c);
+		}
+		const band = paidBand(d.level, d.barters);
+		for (const [key, counts] of Object.entries(d.paid)) {
+			const at = paid[key] || (paid[key] = {});
+			const b = at[band] || (at[band] = {});
+			for (const [v, c] of Object.entries(counts || {})) add(b, v, c);
+		}
+	}
+	return { sevens, rolls, paid };
+}
+
+/** Each signed-in save's barter counts, by account, with the revision
+ *  they were read at: a save is read again only once it has moved. */
+const barterHeld = new Map();
+
+/** The barter counts of every signed-in save: the board rows' digests,
+ *  just refreshed, and every other save read if it moved since. */
+async function barterParts(live) {
+	const onBoards = new Map(live.map(r => [r.userId, r]));
+	const revs = await listSaveRevs();
+	const out = [];
+	for (const { userId, rev } of revs) {
+		const r = onBoards.get(userId);
+		if (r) { out.push(barterPart(r.digest)); barterHeld.set(userId, { rev: r.rev, v: DIGEST_V, part: barterPart(r.digest) }); continue; }
+		const was = barterHeld.get(userId);
+		if (was && was.rev === rev && was.v === DIGEST_V) { out.push(was.part); continue; }
+		try {
+			const { stats, rev: at } = await digestOf(userId);
+			const part = barterPart(stats);
+			barterHeld.set(userId, { rev: at, v: DIGEST_V, part });
+			out.push(part);
+		} catch (err) {
+			if (was) out.push(was.part);
+			console.warn(`[community] could not read ${userId}'s barter counts:`, err.message);
+		}
+	}
+	// An account deleted since: its counts go with it.
+	const known = new Set(revs.map(x => x.userId));
+	for (const id of barterHeld.keys()) if (!known.has(id)) barterHeld.delete(id);
+	return out;
 }
 
 /** Build the boards, refreshing any digest whose save has moved on. */
@@ -263,7 +310,7 @@ async function build() {
 		sailors: live.length,
 		named: live.filter(r => r.share === 'named').length,
 		fame,
-		stats: aggregate(live),
+		stats: { ...aggregate(live), ...barterTotals(await barterParts(live)) },
 		byRef: new Map(live.map(r => [r.ref, r])),
 		byId: new Map(live.map(r => [r.userId, r]))
 	};

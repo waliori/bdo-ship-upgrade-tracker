@@ -957,6 +957,14 @@ export async function deleteCommunity(userId) {
 	await exec({ sql: 'DELETE FROM community WHERE user_id = ?', args: [userId] });
 }
 
+/** Every account's save revision: which saves the fleet's barter
+ *  counts have to read again. */
+export async function listSaveRevs() {
+	await migrate();
+	const { rows } = await exec('SELECT user_id, rev FROM saves');
+	return rows.map(r => ({ userId: r.user_id, rev: Number(r.rev) || 0 }));
+}
+
 /**
  * Everyone on the boards, with the name and avatar to show for the
  * named ones, the digest held, and the revision of the save it was

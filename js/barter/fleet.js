@@ -2,7 +2,7 @@
 //
 // The layout record names one [Level 7] an island pays, and the game
 // hands over any of four; which one is only known by sailing there. Each
-// sailor on the community boards counts the ones they were paid, and the
+// signed-in sailor counts the ones they were paid, on the boards or not, and the
 // boards add those up (server/community.js). Asked for once a session
 // and kept, so the chips on a stop can say the fleet's share beside the
 // sailor's own.
