@@ -2227,6 +2227,19 @@ test('the running clock draws the sailor’s own ship crossing the leg', async (
 	assert.ok(next.backing >= box, `the canvas is sized to its box: ${next.backing} for ${box}`);
 	// ...having sailed there: the view travelled on a leg, the pier behind.
 	assert.ok(next.camX > 0, `the view moved on with the ship: ${next.camX}`);
+	// Glance mode and the full view morph one into the other, and leave
+	// the panel as they found it.
+	const glanced = await count(page, '.cockpit.glance');
+	const moving = await page.evaluate(() => { document.querySelector('[data-act="barter-glance"]').click(); return document.getAnimations().length; });
+	assert.ok(moving > 0, `the parts travel: ${moving} animations`);
+	await wait(900);
+	assert.notEqual(await count(page, '.cockpit.glance'), glanced, 'the view changed');
+	assert.equal(await page.$eval('section.panel.cockpit', el => el.getAttribute('style') || ''), '', 'nothing left on the panel');
+	assert.equal(await count(page, 'section.panel.cockpit > div[style*="z-index"]'), 0, 'and its stand-in face is gone');
+	// The Map's panel sails the same ship.
+	await page.evaluate(() => document.querySelector('[data-act="barter-sail-chart"]').click());
+	await page.waitForFunction(() => document.querySelector('.cockpit.compact canvas[data-sail-scene]'), { timeout: 10000 }); await wait(800);
+	assert.equal(await page.evaluate(async () => (await import('/js/sail-scene.js')).sceneNow().drawnOn), true, 'drawn on the chart\'s panel');
 	assert.deepEqual(errors, []);
 	await context.close();
 });

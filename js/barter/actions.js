@@ -2,6 +2,7 @@
 // switch for the clicks, one for the fields, one for typing, each
 // returning whether the tab should be drawn again.
 
+import { morphCockpit } from './morph.js';
 import { esc, F, FC } from '../fmt.js';
 import { T, gameName } from '../i18n.js';
 import * as store from '../state.js';
@@ -66,7 +67,7 @@ export function barterAction(act, el, redraw) {
 			persist();
 			return true;
 		case 'barter-orders-fold': V.advOpen = !V.advOpen; persist(); return true;
-		case 'barter-glance': V.glance = !V.glance; return true;
+		case 'barter-glance': morphCockpit(() => { V.glance = !V.glance; redraw(); }); return false;
 		case 'barter-slots': V.slotsOpen = !V.slotsOpen; return true;
 		// A rung of the ladder: where the day's climbs end. On a coin day
 		// the ceiling is the coin islands' own, so picking another rung is
