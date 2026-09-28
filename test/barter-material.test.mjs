@@ -97,7 +97,7 @@ test('for the wants the run deals what the want takes and no more; for every isl
 	assert.equal(adrift.weightStart, 6000, 'six Figurines aboard, to be got first');
 });
 
-test('a full run loads to the barter ceiling and goes back to the harbour for the gives that did not fit; a fast run sails once and says what stayed ashore', () => {
+test('a full run loads to the barter ceiling and goes back to the harbour for the gives that did not fit; a fast run does the same under the limit, in more trips', () => {
 	// Ten Figurines in Velia's storage, five islands taking two each:
 	// ten thousand weight against a hold that barters under four.
 	const picks = [pick(1), pick(2), pick(3), pick(4), pick(5)];
@@ -110,13 +110,26 @@ test('a full run loads to the barter ceiling and goes back to the harbour for th
 	assert.ok(full.weightPeak <= hold.deal, `never over the ceiling: ${full.weightPeak}`);
 	// Each departure leaves with what it will spend and comes back empty.
 	assert.deepEqual(full.stops.map(s => s.weightAfter), [4000, 2000, 0, 4000, 2000, 0, 2000, 0]);
+	// Fast: each departure under the three thousand the ship sails at full
+	// speed with -- one island's two Figurines at a time -- and all of
+	// them dealt, in five trips rather than three.
 	const fast = materialRun({ ...base, pace: 'fast' });
-	assert.deepEqual(names(fast.stops), ['Velia+2', 'A'], 'one departure under the limit: A takes two, B would make four');
-	assert.equal(fast.returns, 0);
-	assert.equal(fast.noRoom.length, 1);
-	assert.equal(fast.noRoom[0].n, 8, 'the eight Figurines that stayed ashore');
-	assert.equal(fast.noRoom[0].islands.length, 4);
-	assert.equal(fast.waits.get(SCALE), 99 - 6);
+	assert.deepEqual(names(fast.stops), ['Velia+2', 'A', 'Velia+2', 'B', 'Velia+2', 'C', 'Velia+2', 'D', 'Velia+2', 'E']);
+	assert.equal(fast.returns, 4);
+	assert.equal(fast.trades, 10);
+	assert.equal(fast.noRoom.length, 0);
+	assert.ok(fast.stops.every(s => s.weightAfter <= hold.free), 'never over the limit');
+});
+
+test('the run deals no more than the Parley pays for, the best rates first, and says how many it went without', () => {
+	// Five islands, two attempts each; a bar that pays for three trades.
+	// C pays the most a trade, so it is dealt first.
+	const picks = [pick(1), pick(2), pick(3, SCALE, { recv: '6-8' }), pick(4), pick(5)];
+	const plan = materialRun({ picks, wants: { [SCALE]: 99 }, reach: 'all', dock: { [L5]: 10 }, hold, start: velia, startWharf: veliaWharf, npcById, parley: { budget: 3 * 45000 + 10, costOf: () => 45000 } });
+	assert.equal(plan.trades, 3);
+	assert.equal(plan.dry, 7, 'seven trades more than the bar pays for');
+	assert.ok(plan.stops.some(s => s.npc === 'C' && s.times === 2), 'the best rate first');
+	assert.ok(plan.parleyLeft < 45000);
 });
 
 test('a full run leaves what it will not spend in storage when the room is wanted; one island heavier than the hold deals as many times as fit', () => {

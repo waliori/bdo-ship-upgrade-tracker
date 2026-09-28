@@ -7,13 +7,20 @@
 // The hold is the constraint. The gives an island takes weigh a
 // thousand a piece and the materials they pay weigh nothing, so a run
 // leaves heavy and comes back light -- and a hold cannot always carry
-// every give at once. Two paces. 'fast' sails once, loaded to the
-// limit the ship still sails at full speed under, and what does not
-// fit stays ashore and says so. 'full' sails everything ticked: what
-// the run will not spend is left in storage to make room, the hold is
-// loaded to the barter ceiling, and when the gives still do not fit
-// the run goes out in several departures, back to the harbour for the
-// rest between them.
+// every give at once. Two paces, both sailing everything ticked: what
+// the run will not spend is left in storage to make room, and when the
+// gives do not fit the run goes out in several departures, back to the
+// harbour for the rest between them. 'fast' loads each departure to the
+// limit the ship still sails at full speed under -- more trips, never
+// slower; 'full' loads it to the barter ceiling -- fewer trips, slower
+// past the limit. Only an island whose gives would not fit an empty
+// hold stays ashore.
+//
+// And the Parley: a material exchange costs three times a trade good's,
+// so a bar and its vouchers run out long before most wants are met.
+// Given `parley` -- { budget, costOf(exchange) } -- the run deals no
+// more than the bar and the vouchers pay for, the best rates first, and
+// says how many trades it went without.
 //
 // Not every give is a trade good. A few islands take a Gold Bar 100G,
 // which is bought ashore before casting off, and a few take a ship
@@ -72,7 +79,7 @@ export { tour };
  * casting off (`bought`: { item, n, each, how, total }) and their
  * `cost`; how many times the run went back to a harbour (`returns`).
  */
-export function materialRun({ picks = [], wants = new Map(), reach = 'want', pace = 'full', calls = true, buy = true, assume = true, stock = {}, dock = {}, stores = [], bags = {}, prices = {}, hold, start = null, startWharf = null, npcById } = {}) {
+export function materialRun({ picks = [], wants = new Map(), reach = 'want', pace = 'full', calls = true, buy = true, assume = true, stock = {}, dock = {}, stores = [], bags = {}, prices = {}, hold, start = null, startWharf = null, npcById, parley = null } = {}) {
 	const wantOf = wants instanceof Map ? wants : new Map(Object.entries(wants));
 	const limit = pace === 'fast' ? hold.free : (hold.deal ?? hold.free);
 	const place = x => npcById.get(x.npcId);
@@ -123,11 +130,17 @@ export function materialRun({ picks = [], wants = new Map(), reach = 'want', pac
 	mine.sort((a, b) => Number(availOf(b.give) > 0) - Number(availOf(a.give) > 0) || (b.recv / b.giveN) - (a.recv / a.giveN) || dist(start, place(a)) - dist(start, place(b)));
 	const isles = [];
 	const bought = new Map();   // land good -> n
+	let budget = parley ? parley.budget : Infinity;
+	let dry = 0;   // trades the Parley did not pay for
 	for (const x of mine) {
 		const left = need.get(x.item) || 0;
 		const want = reach === 'all' ? x.tries : Math.max(0, Math.ceil(left / x.recvMin - 1e-9));
 		const canPay = Math.floor(availOf(x.give) / x.giveN + 1e-9);
-		const times = Math.min(x.tries, want, canPay);
+		const cost = parley ? parley.costOf(x) : 0;
+		const afford = cost > 0 ? Math.floor(budget / cost + 1e-9) : Infinity;
+		const times = Math.min(x.tries, want, canPay, afford);
+		if (afford < Math.min(x.tries, want, canPay)) dry += Math.min(x.tries, want, canPay) - Math.max(0, times);
+		if (times > 0) budget -= times * cost;
 		if (want > 0 && times < Math.min(x.tries, want)) {
 			const m = missing.get(x.give) || { n: 0, islands: [] };
 			m.n += (Math.min(x.tries, want) - times) * x.giveN;
@@ -236,14 +249,13 @@ export function materialRun({ picks = [], wants = new Map(), reach = 'want', pac
 				loaded++;
 				continue;
 			}
-			// No room for this island's gives on this departure. A fast
-			// run has only the one, so they stay ashore; a full run comes
-			// back for them once the hold is empty -- unless nothing has
-			// been loaded here yet, when the hold is as light as it gets
-			// and they will never fit: then as many attempts as do.
-			if (pace === 'full' && loaded) continue;
+			// No room for this island's gives on this departure: the run
+			// comes back for them once the hold is empty -- unless nothing
+			// has been loaded here yet, when the hold is as light as it
+			// gets and they will never fit: then as many attempts as do.
+			if (loaded) continue;
 			const each = isle.giveN * weightOf(isle.give);
-			const fit = pace === 'full' && each > 0 && nds.length === 1 ? Math.floor((limit - weight) / each + 1e-9) : 0;
+			const fit = each > 0 && nds.length === 1 ? Math.floor((limit - weight) / each + 1e-9) : 0;
 			if (fit >= 1) {
 				const cut = (isle.times - fit) * isle.giveN;
 				isle.times = fit;
@@ -348,6 +360,7 @@ export function materialRun({ picks = [], wants = new Map(), reach = 'want', pac
 		calls: stops.filter(s => s.wharf).length,
 		returns,
 		weightStart, weightPeak: peak,
-		ticked: mine.length
+		ticked: mine.length,
+		dry, parleyLeft: parley ? budget : null
 	};
 }
