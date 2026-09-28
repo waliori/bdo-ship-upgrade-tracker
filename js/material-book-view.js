@@ -16,7 +16,8 @@ import { T, said, gameName } from './i18n.js';
 import { openDialog, closeDialog, toast } from './dialogs.js';
 import { img } from './ui-bits.js';
 import { npcById, isleOf } from './barter_npcs.js';
-import { boardsOf, bookOf, fitOf } from './material-book.js';
+import { boardsOf, bookOf, bookFromGame, fitOf } from './material-book.js';
+import { materialPages } from './barter-layouts.js';
 import { shared, fleetHistory, sawItToo, unsay } from './sea-boards.js';
 import { me } from './sync.js';
 
@@ -27,6 +28,9 @@ const dayOf = key => {
 };
 const islands = n => (n === 1 ? T('{n} island', { n: F(n) }) : T('{n} islands', { n: F(n) }));
 const times = n => (n === 1 ? T('{n} time', { n: F(n) }) : T('{n} times', { n: F(n) }));
+// How often a board has been read -- a layout of the game's may not have
+// been, yet.
+const readTimes = page => (page.times > 1 ? T('read <b>{times}</b>', { times: times(page.times) }) : page.times === 1 ? T('read once') : T('not read yet'));
 const plain = name => String(name).replace(/^\[[^\]]*\]\s*/, '');
 
 /** A board's name: a recorded one keeps its letter, one the fleet found
@@ -64,7 +68,11 @@ export function openMaterialBook({ record = null, answers = [], ticked = [], day
 	let open = null;     // a page's id
 	let sightings = [];
 	let asked = !shared();
-	let pages = bookOf(boardsOf(record, sightings));
+	// The game's own layouts, every one of them, with what sailors read
+	// filed under the one it is; the readings alone before the game's
+	// tables are loaded.
+	const lay = () => { const game = materialPages(), boards = boardsOf(record, sightings); return game.length ? bookFromGame(game, boards) : bookOf(boards); };
+	let pages = lay();
 	let fit = fitOf(answers, pages);
 
 	const host = openDialog('<div data-mb></div>');
@@ -77,7 +85,7 @@ export function openMaterialBook({ record = null, answers = [], ticked = [], day
 		fleetHistory({ days: 400, force, list: 'material' }).then(list => {
 			sightings = list;
 			asked = true;
-			pages = bookOf(boardsOf(record, sightings));
+			pages = lay();
 			fit = fitOf(answers, pages);
 			draw();
 		}).catch(() => { asked = true; draw(); });
@@ -121,16 +129,19 @@ export function openMaterialBook({ record = null, answers = [], ticked = [], day
 		return `<button class="lb-card mb-card${st === 'today' ? ' today' : ''}${st === 'out' ? ' out' : ''}" data-mb-open="${esc(page.id)}">
 			<span class="lb-card-top"><span class="lb-num mb-num">${page.filed ? esc(page.id) : esc(dayOf(page.id))}</span>${badge(st)}</span>
 			<span class="lb-faces">${tallyRow(page.tally)}</span>
-			<span class="lb-card-line">${islands(page.offers.size)} · ${page.times > 1 ? T('read <b>{times}</b>', { times: times(page.times) }) : T('read once')}${page.last ? ` · ${T('last {day}', { day: esc(dayOf(page.last)) })}` : ''}</span>
-			<span class="lb-card-line quiet">${page.readers.length ? T('by {who}', { who: by(page.readers) }) : T('on the app’s own record')}</span>
+			<span class="lb-card-line">${islands(page.offers.size)} · ${readTimes(page)}${page.last ? ` · ${T('last {day}', { day: esc(dayOf(page.last)) })}` : ''}</span>
+			<span class="lb-card-line quiet">${page.readers.length ? T('by {who}', { who: by(page.readers) }) : page.game ? T('from the game’s own files') : T('on the app’s own record')}</span>
 		</button>`;
 	};
 
 	const shelfHTML = () => {
 		const shown = pages.filter(matches);
-		const read = pages.reduce((a, p) => a + p.times, 0);
+		const read = pages.reduce((a, p) => a + p.times, 0), game = pages.filter(p => p.game).length, strays = pages.length - game;
+		const about = game
+			? `${T('The material list has <b>{n}</b> layouts of its own, taken from the game’s files; which one a day shows is read off the window. Each of the <b>{read}</b> readings sailors made is filed under the layout it is.', { n: F(game), read: F(read) })}${strays ? ` ${strays === 1 ? T('{n} reading fits none of them, and is a board of its own.', { n: F(strays) }) : T('{n} readings fit none of them, and are boards of their own.', { n: F(strays) })}` : ''}`
+			: T('The material list belongs to none of the forty layouts: its islands roll on their own, and nobody numbers its boards. These are the whole lists sailors have read — <b>{read}</b> readings, <b>{n}</b> boards — and two readings that agree island for island are one board seen twice.', { read: F(read), n: F(pages.length) });
 		return `<h2>${T('The material book')}</h2>
-		<p class="dialog-note">${T('The material list belongs to none of the forty layouts: its islands roll on their own, and nobody numbers its boards. These are the whole lists sailors have read — <b>{read}</b> readings, <b>{n}</b> boards — and two readings that agree island for island are one board seen twice.', { read: F(read), n: F(pages.length) })} ${statusLine()}</p>
+		<p class="dialog-note">${about} ${statusLine()}</p>
 		<div class="lb-bar">
 			<input class="lb-search" type="search" data-mb-q placeholder="${T('an island or a material…')}" value="${esc(query)}" aria-label="${T('Search the material boards')}">
 			${onTell && shared() && answers.length ? `<button class="ghost-btn sm" data-mb-tell title="${me() ? T('Send the islands you read today, with your name on the reading') : T('Sign in from the Menu first — a reading goes up with a name on it')}">📣 ${T('Tell the fleet what you saw')}</button>` : ''}
@@ -144,8 +155,10 @@ export function openMaterialBook({ record = null, answers = [], ticked = [], day
 	const tile = (npcId, o, mine) => {
 		const a = mine.get(npcId);
 		const same = a && a.give === o.give && a.recv === o.recv;
+		// A slot the game fills at random: the offer shown is one of these.
+		const rolls = o.options && o.options.length > 1;
 		return `<div class="lb-tile${same ? ' same' : a ? ' off' : ''}">
-			<div class="lb-tile-top"><span class="lb-isle">${esc(gameName(isle(npcId)))}</span>${same ? `<span class="lb-tags"><span class="lb-tag ok" title="${T('What you read here today')}">✓ ${T('seen')}</span></span>` : ''}</div>
+			<div class="lb-tile-top"><span class="lb-isle">${esc(gameName(isle(npcId)))}</span>${same || rolls ? `<span class="lb-tags">${same ? `<span class="lb-tag ok" title="${T('What you read here today')}">✓ ${T('seen')}</span>` : ''}${rolls ? `<span class="lb-tag" title="${esc(o.options.map(x => `${plain(gameName(x.give))} → ${plain(gameName(x.recv))}`).join(' · '))}">${T('one of {n}', { n: o.options.length })}</span>` : ''}</span>` : ''}</div>
 			<div class="lb-tile-swap">${good(o.give, o.giveN)}<span class="lb-arrow">→</span>${good(o.recv, o.recvN)}</div>
 			${a && !same ? `<div class="lb-tile-saw"><span class="lb-saw-label">${T('you saw')}</span>${good(a.give)}<span class="lb-arrow">→</span>${good(a.recv)}</div>` : ''}
 		</div>`;
@@ -170,8 +183,8 @@ export function openMaterialBook({ record = null, answers = [], ticked = [], day
 			<h2>${page.filed ? T('Material board {id}', { id: esc(page.id) }) : T('The material board of {day}', { day: esc(dayOf(page.id)) })} ${badge(st)}</h2></div>
 		<div class="lb-facts">
 			<span>${T('<b>{n}</b> islands', { n: F(page.offers.size) })}</span>
-			<span>${page.times > 1 ? T('read <b>{times}</b>', { times: times(page.times) }) : T('read once')}${page.days.length ? ` · ${page.days.map(d => esc(dayOf(d))).join(', ')}` : ''}</span>
-			${page.filed ? `<span>${T('on the app’s own record')}</span>` : ''}
+			<span>${readTimes(page)}${page.days.length ? ` · ${page.days.map(d => esc(dayOf(d))).join(', ')}` : ''}</span>
+			${page.game ? `<span>${T('from the game’s own files')}</span>` : page.filed ? `<span>${T('on the app’s own record')}</span>` : ''}
 			${answers.length ? `<span class="${parted.length ? 'no' : 'ok'}">${T('{n} as you saw', { n: agreed })}${parted.length ? ` · ${T('<b>{n}</b> not', { n: parted.length })}` : ''}</span>` : ''}
 		</div>
 		${who ? `<details class="lb-readers"${readers.some(r => r.today) ? ' open' : ''}><summary>${T('Who read it')}</summary><ul>${who}</ul></details>` : ''}

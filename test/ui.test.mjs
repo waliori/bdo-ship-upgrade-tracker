@@ -1863,6 +1863,24 @@ async function toPlan(page) {
 	await page.waitForSelector('.barter-screen.step-plan', { timeout: 10000 });
 }
 
+test('the material book is the game’s own layouts, every one, with the readings filed under the one each is', async () => {
+	const { page, context, errors } = await open('#barter');
+	await page.waitForSelector('.barter-screen', { timeout: 15000 }); await wait(600);
+	await page.evaluate(async () => { const store = await import('/js/state.js'); store.setView('barter', { goal: 'material' }); store.flush(); });
+	await page.reload({ waitUntil: 'domcontentloaded' });
+	await page.waitForSelector('[data-act="barter-mat-book"]', { timeout: 20000 });
+	const said = Number((await text(page, '[data-act="barter-mat-book"]')).match(/(\d+) boards/)[1]);
+	await page.evaluate(() => document.querySelector('[data-act="barter-mat-book"]').click());
+	await page.waitForSelector('.mb-card', { timeout: 10000 });
+	// As many as the bar says: the dialog used to draw the readings alone.
+	assert.equal(await count(page, '.mb-card'), said, 'every board the bar counts');
+	assert.ok(said >= 40, `the game's layouts: ${said}`);
+	assert.match(await text(page, '.dialog-note'), /layouts of its own, taken from the game’s files/);
+	assert.ok(await page.evaluate(() => [...document.querySelectorAll('.mb-card')].some(c => /not read yet/.test(c.textContent) && /from the game’s own files/.test(c.textContent))), 'a layout nobody has read yet is on the shelf');
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
 test('one run for several materials: each keeps its ticks and its want, and a give kept at another harbour is called for on the way', async () => {
 	const { page, context, errors } = await open('#barter');
 	// The tab's view is the profile's now: seeded there once the tab has
