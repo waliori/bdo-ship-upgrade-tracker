@@ -165,7 +165,7 @@ test('a give kept at another harbour is called for before the island that takes 
 	assert.ok(plan.stops.every(s => s.weightAfter <= hold.deal));
 	// The harbour's goods are a stop's loads, so the trip records the move.
 	assert.deepEqual(plan.stops[call].loads, [{ item: L5, n: 4 }]);
-	const off = materialRun({ picks, wants: { [SCALE]: 99 }, reach: 'all', stock: { [L5]: 4 }, stores, calls: false, hold, start: velia, startWharf: veliaWharf, npcById });
+	const off = materialRun({ picks, wants: { [SCALE]: 99 }, reach: 'all', stock: { [L5]: 4 }, stores, calls: false, assume: false, hold, start: velia, startWharf: veliaWharf, npcById });
 	assert.equal(off.calls, 0);
 	assert.equal(off.trades, 4);
 	assert.equal(off.missing[0].n, 4, 'the four at Iliya are missing to a run that will not call there');
@@ -200,7 +200,9 @@ test('a give that is no trade good comes out of the bags or the shop: gold bars 
 	assert.deepEqual(plan.bought, [{ item: BAR, n: 3, each: 10000000, how: 'fixed', total: 30000000 }], 'one from the bags, three bought');
 	assert.equal(plan.cost, 30000000);
 	assert.deepEqual(plan.missing, []);
-	assert.ok(plan.stops.every(s => s.weightAfter === 0), 'a gold bar weighs nothing the hold counts');
+	// Four gold bars aboard at three quarters of an LT each, handed over
+	// two at each island.
+	assert.deepEqual(plan.stops.map(s => s.weightAfter), [1.5, 0], 'the bars weighed, and gone by the end');
 	// With buying off, the bars are to get first, and said to be a land good.
 	const off = materialRun({ picks: bars, wants: { [REEF]: 99 }, reach: 'all', bags: { [BAR]: 1 }, buy: false, hold, start: velia, startWharf: veliaWharf, npcById });
 	assert.equal(off.trades, 4);

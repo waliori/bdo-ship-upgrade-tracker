@@ -1942,7 +1942,28 @@ test('a material layout read: what the builds need is chosen, today’s islands 
 	await laidOut(page);
 	stops = await route();
 	assert.ok(!stops.includes('wharf'), `no call: ${stops.join(', ')}`);
-	assert.match(await text(page, '.run-list.amber'), /Before casting off.*at Velia \(2\)/i);
+	assert.match(await text(page, '.run-list.amber'), /Bring to the harbour first.*at Velia \(2\)/i);
+	// The route is the sailor's to change: an island skipped comes off it,
+	// and the bar above the stops puts it back.
+	await toPlan(page);
+	await page.evaluate(() => document.querySelector('[data-act="barter-order"][data-k="barter-mat-calls"][data-v="true"]').click()); await wait(400);
+	await laidOut(page);
+	const isles = (await route()).filter(x => x !== 'wharf');
+	if (isles.length >= 2) {
+		await page.evaluate(id => document.querySelector(`[data-act="barter-route-skip"][data-npc="${id}"]`).click(), isles[0]); await wait(500);
+		assert.ok(!(await route()).includes(isles[0]), 'skipped');
+		assert.ok(await page.$(`[data-act="barter-route-unskip"][data-npc="${isles[0]}"]`), 'and can be put back');
+		await page.evaluate(() => document.querySelector('[data-act="barter-route-reset"]').click()); await wait(500);
+		assert.ok((await route()).includes(isles[0]), 'back on the route');
+		// Moved one later within its trip.
+		const before = await route();
+		await page.evaluate(id => document.querySelector(`[data-act="barter-route-nudge"][data-npc="${id}"][data-by="1"]`).click(), isles[0]); await wait(500);
+		const after = await route();
+		assert.ok(after.indexOf(isles[0]) >= before.indexOf(isles[0]), `moved later: ${before.join(',')} → ${after.join(',')}`);
+		await page.evaluate(() => document.querySelector('[data-act="barter-route-reset"]').click()); await wait(400);
+	}
+	// What comes home, one tile a material.
+	assert.ok(await page.$('.run-shelves.after'), 'the storage after');
 	// Taken off the run, and back through the picker.
 	await toPlan(page);
 	await page.evaluate(m => document.querySelector(`.mat-need-head [data-act="barter-mat-drop"][data-item="${window.CSS.escape(m)}"]`).click(), pick.mat); await wait(400);
@@ -1957,6 +1978,12 @@ test('a material layout read: what the builds need is chosen, today’s islands 
 	// And the orders are chips, like the trade goods' run.
 	await page.evaluate(() => document.querySelector('[data-act="barter-order"][data-k="barter-mat-reach"][data-v="all"]').click()); await wait(400);
 	assert.ok(await page.$eval('[data-act="barter-order"][data-k="barter-mat-reach"][data-v="all"]', el => el.classList.contains('active')));
+	// A ship already past the ceiling with no home port to leave things at:
+	// the run says so, and how to fix it.
+	await page.evaluate(async () => { const store = await import('/js/state.js'); store.setStockAt('[Level 7] Crystal Ball of Fortune', store.ABOARD, 40, 'aboard'); });
+	await wait(500);
+	await laidOut(page);
+	assert.match(await text(page, '.barter-screen'), /leaves heavier than this pace allows.*home port/i);
 	assert.deepEqual(errors, []);
 	await context.close();
 });
@@ -2656,47 +2683,61 @@ test('the material run: each island at its own Parley and within the bar, a load
 		for (const m of new Set(offers.map(([, o]) => o.recv))) matOn(m, true);
 	});
 	await wait(800);
+	// The route as planned, before anything is packed: the load step read
+	// without ticking its list, which would load the hold for real.
+	const toLoad = async () => {
+		await page.evaluate(() => [...document.querySelectorAll('[data-act="barter-step"][data-id="load"]')].find(el => el.getBoundingClientRect().width > 0).click());
+		await page.waitForSelector('.barter-screen.step-load', { timeout: 10000 }); await wait(300);
+		await page.evaluate(() => { const d = document.querySelector('details.route-fold'); if (d) d.open = true; }); await wait(200);
+	};
+	const planned = () => page.$$eval('.run-stop', els => els.map(s => s.querySelector('.run-stop-head b').textContent));
+	const holdsNow = () => page.$$eval('.run-stop .run-hold > div:first-child b', els => els.map(el => Number(el.textContent.split('/')[0].replace(/[^\d]/g, ''))));
+	await toLoad();
+	let stops = await planned();
+	assert.equal(stops[0], 'Velia wharf', 'the first stop loads at the harbour');
+	assert.ok(stops.filter(x => x === 'Velia wharf').length >= 2, `back to Velia for the rest: ${stops.join(', ')}`);
+	assert.doesNotMatch(await text(page, '.barter-screen') || '', /Stays ashore/i, 'nothing stays ashore on a loaded run');
+	// The hold never over the barter ceiling, on any stop.
+	const DEAL = Math.round(shipStats['Epheria Caravel'].weight * BARTER_OVER);
+	let holds = await holdsNow();
+	assert.ok(holds.every(w => w <= DEAL), `${holds.join(', ')} against ${DEAL}`);
+	const loadedTrips = stops.filter(x => x === 'Velia wharf').length;
+	// Fast: every departure under the limit the ship still sails fast at,
+	// so as many trips as that takes.
+	await toPlan(page);
+	await page.evaluate(() => document.querySelector('[data-act="barter-mat-pace-set"][data-id="fast"]').click()); await wait(500);
+	await toLoad();
+	stops = await planned();
+	assert.ok(stops.filter(x => x === 'Velia wharf').length >= loadedTrips, `at least as many trips: ${stops.join(', ')}`);
+	holds = await holdsNow();
+	const FREE = shipStats['Epheria Caravel'].weight;
+	assert.ok(holds.every(w => w <= FREE), `${holds.join(', ')} against ${FREE}`);
+	// Packed and laid again from the hold: each island at the game's own
+	// price for it, less the sailor's discounts, the run's Parley their
+	// sum, and never more than the bar and the vouchers pay for.
 	await laidOut(page);
-	// Each island at the game's own price for it, less the sailor's
-	// discounts, and the run's Parley their sum.
 	const priced = await page.evaluate(async () => {
 		const { V } = await import('/js/barter/state.js');
 		const { parleyOf } = await import('/js/barter/plan.js');
 		const { barterProfile } = await import('/js/ui-state.js');
 		const L = await import('/js/barter-layouts.js');
-		return { rate: parleyOf(barterProfile()).rate, isles: V.shownPlan.stops.filter(s => s.npcId && s.times > 0).map(s => ({ times: s.times, parley: s.parley, base: s.parleyBase, game: L.materialDeal(s.npcId, s.give, s.item).parley })), used: V.shownPlan.parleyUsed };
+		return { rate: parleyOf(barterProfile()).rate, bar: parleyOf(barterProfile()).bar, isles: V.shownPlan.stops.filter(x => x.npcId && x.times > 0).map(x => ({ times: x.times, parley: x.parley, base: x.parleyBase, game: L.materialDeal(x.npcId, x.give, x.item).parley })), used: V.shownPlan.parleyUsed };
 	});
 	assert.ok(priced.isles.length > 0);
-	for (const s of priced.isles) {
-		assert.equal(s.base, s.game, 'the game\u2019s own base');
-		assert.equal(s.parley, s.times * Math.floor(s.base * priced.rate));
+	for (const x of priced.isles) {
+		assert.equal(x.base, x.game, 'the game’s own base');
+		assert.equal(x.parley, x.times * Math.floor(x.base * priced.rate));
 	}
-	assert.equal(priced.used, priced.isles.reduce((a, s) => a + s.parley, 0));
-	let stops = await page.$$eval('.run-stop', els => els.map(s => s.querySelector('.run-stop-head b').textContent));
-	assert.ok(stops.filter(n => n === 'Velia wharf').length >= 2, `back to Velia for the rest: ${stops.join(', ')}`);
-	assert.equal(stops[0], 'Velia wharf', 'the first stop loads at the harbour');
-	assert.doesNotMatch(await text(page, '.barter-screen') || '', /Stays ashore/i, 'nothing stays ashore on a full run');
-	// The hold never over the barter ceiling, on any stop.
-	const DEAL = Math.round(shipStats['Epheria Caravel'].weight * BARTER_OVER);
-	const holds = await page.$$eval('.run-stop .run-hold > div:first-child b', els => els.map(el => Number(el.textContent.split('/')[0].replace(/[^\d]/g, ''))));
-	assert.ok(holds.every(w => w <= DEAL), `${holds.join(', ')} against ${DEAL}`);
-	// Never more than the bar and the vouchers pay for.
-	const bar = await page.evaluate(async () => { const { parleyOf } = await import('/js/barter/plan.js'); const { barterProfile } = await import('/js/ui-state.js'); return parleyOf(barterProfile()).bar; });
-	assert.ok(priced.used <= bar, `${priced.used} of ${bar}`);
-	const loadedTrips = stops.filter(n => n === 'Velia wharf').length;
-	// Fast: every departure under the limit the ship still sails fast at,
-	// so as many trips as that takes.
-	await toPlan(page);
-	await page.evaluate(() => document.querySelector('[data-act="barter-mat-pace-set"][data-id="fast"]').click()); await wait(500);
-	await laidOut(page);
-	stops = await page.$$eval('.run-stop', els => els.map(s => s.querySelector('.run-stop-head b').textContent));
-	assert.ok(stops.filter(n => n === 'Velia wharf').length >= loadedTrips, `at least as many trips: ${stops.join(', ')}`);
-	const fastHolds = await page.$$eval('.run-stop .run-hold > div:first-child b', els => els.map(el => Number(el.textContent.split('/')[0].replace(/[^\d]/g, ''))));
-	const FREE = shipStats['Epheria Caravel'].weight;
-	assert.ok(fastHolds.every(w => w <= FREE), `${fastHolds.join(', ')} against ${FREE}`);
+	assert.equal(priced.used, priced.isles.reduce((a, x) => a + x.parley, 0));
+	assert.ok(priced.used <= priced.bar, `${priced.used} of ${priced.bar}`);
+	// The first trip is aboard now; the rest still comes from Velia.
+	stops = await planned();
+	assert.ok(stops.includes('Velia wharf'), `the next trips call at Velia: ${stops.join(', ')}`);
+	holds = await holdsNow();
+	assert.ok(holds.every(w => w <= FREE), `packed, still under the limit: ${holds.join(', ')}`);
 	await toPlan(page);
 	await page.evaluate(() => document.querySelector('[data-act="barter-mat-pace-set"][data-id="full"]').click()); await wait(500);
-	assert.ok(await page.$eval('.preset-card[data-act="barter-mat-pace-set"][data-id="full"]', el => el.classList.contains('on')), 'the full card is chosen');
+	assert.ok(await page.$eval('.preset-card[data-act="barter-mat-pace-set"][data-id="full"]', el => el.classList.contains('on')), 'the loaded card is chosen');
 	assert.deepEqual(errors, []);
 	await context.close();
 });
@@ -2730,26 +2771,27 @@ test('before casting off: a gold bar an island takes is bought ashore and priced
 	await laidOut(page);
 	let stops = await page.$$eval('.run-stop', els => els.map(s => s.querySelector('.run-stop-head b').textContent));
 	assert.equal(stops.length, 1, `one island, no harbour call: ${stops.join(', ')}`);
-	const before = await text(page, '.run-list.amber');
-	assert.match(before, /Before casting off/i);
-	assert.match(before, /Gold Bar 100G.*buy ashore.*storage keeper/i);
+	// The Gold Bar was on the packing list to buy, and its tick bought it:
+	// it is aboard now, and the run starts from it.
+	assert.ok(await page.evaluate(async () => { const store = await import('/js/state.js'); return store.stockAt('Gold Bar 100G', store.ABOARD) > 0; }), 'bought and aboard');
 	assert.equal(await count(page, '.run-list.orange'), 0, 'nothing to climb for');
 	// A second island, whose give sits at Heidel.
 	await page.evaluate(async a => { const { takeRead } = await import('/js/barter/board.js'); const { matOn } = await import('/js/barter/material.js'); const ui = await import('/js/ui.js'); takeRead([a]); matOn(a.recv, true); ui.render(); }, two.ame); await wait(600);
 	await laidOut(page);
 	const bring = await text(page, '.run-list.amber');
-	assert.match(bring, /Amethyst Fragment.*at Heidel \(2\).*bring it to Velia/i);
+	assert.match(bring, /Bring to the harbour first.*Amethyst Fragment.*at Heidel \(2\).*bring it to Velia/i);
 	stops = await page.$$eval('.run-stop', els => els.map(s => s.querySelector('.run-stop-head b').textContent + (s.classList.contains('wharf') ? '|wharf' : '')));
 	assert.equal(stops.length, 1, `the run is laid with what it can reach, the island waiting for its give: ${stops.join(', ')}`);
 	// Moved to Velia, the give is loaded at the first stop.
 	await page.evaluate(async () => { const store = await import('/js/state.js'); store.setStockAt('[Level 4] Amethyst Fragment', 'Heidel', 0, 'moved'); store.setStockAt('[Level 4] Amethyst Fragment', 'Velia', 2, 'moved'); });
 	await wait(500);
 	await laidOut(page);
+	// Taken from Velia's storage by its tick on the packing list: aboard,
+	// and its island on the route.
 	stops = await page.$$eval('.run-stop', els => els.map(s => s.querySelector('.run-stop-head b').textContent + (s.classList.contains('wharf') ? '|wharf' : '')));
-	assert.equal(stops[0], 'Velia wharf|wharf', `loads at Velia first: ${stops.join(', ')}`);
-	assert.equal(stops.length, 3, stops.join(', '));
-	assert.match(await text(page, '.run-stop.wharf'), /Loads from storage.*Amethyst Fragment/i);
-	assert.doesNotMatch(await text(page, '.run-list.amber'), /Amethyst/);
+	assert.equal(stops.length, 2, `both islands: ${stops.join(', ')}`);
+	assert.ok(await page.evaluate(async () => { const store = await import('/js/state.js'); return store.stockAt('[Level 4] Amethyst Fragment', store.ABOARD) + store.stockAt('[Level 4] Amethyst Fragment', '') >= 2; }), 'loaded from Velia');
+	assert.equal(await count(page, '.run-list.amber'), 0, 'nothing left to bring');
 	assert.deepEqual(errors, []);
 	await context.close();
 });

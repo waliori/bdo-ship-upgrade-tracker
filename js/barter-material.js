@@ -181,6 +181,10 @@ export function materialRun({ picks = [], wants = new Map(), reach = 'want', pac
 	// shortest way; then the nearest harbour a give waits at, loaded the
 	// same way; and so on until every island is dealt with or set aside.
 	const heldMax = new Map(aboard);   // aboard, weighed at the most
+	// The gives that are no trade good -- bought ashore, or out of the
+	// bags -- sail from the start too, and weigh something: a few hundred
+	// ingots are a few dozen LT the limit has to have room for.
+	for (const i of isles) for (const nd of i.needs) if (!isGood(nd.give) && nd.loaded) heldMax.set(nd.give, (heldMax.get(nd.give) || 0) + nd.n);
 	let weight = weightHeld(heldMax);
 	const weightStart = weight;
 	let peak = weight;
@@ -214,6 +218,9 @@ export function materialRun({ picks = [], wants = new Map(), reach = 'want', pac
 		return best;
 	};
 	const weighs = nds => nds.reduce((a, nd) => a + nd.n * weightOf(nd.give), 0);
+	// Whether some island still to come is paid for from what is aboard:
+	// the hold gets lighter at it, so a give that does not fit now may.
+	const later = () => pending.some(i => i.needs.every(nd => nd.loaded) && i.needs.some(nd => isGood(nd.give)));
 
 	// A call at harbour `H`: the islands it feeds in the order a run
 	// from here would take them, so a departure that cannot take them
@@ -251,9 +258,10 @@ export function materialRun({ picks = [], wants = new Map(), reach = 'want', pac
 			}
 			// No room for this island's gives on this departure: the run
 			// comes back for them once the hold is empty -- unless nothing
-			// has been loaded here yet, when the hold is as light as it
-			// gets and they will never fit: then as many attempts as do.
-			if (loaded) continue;
+			// has been loaded here yet and nothing aboard is still to be
+			// spent, when the hold is as light as it gets and they will
+			// never fit: then as many attempts as do.
+			if (loaded || later()) continue;
 			const each = isle.giveN * weightOf(isle.give);
 			const fit = each > 0 && nds.length === 1 ? Math.floor((limit - weight) / each + 1e-9) : 0;
 			if (fit >= 1) {
@@ -270,6 +278,9 @@ export function materialRun({ picks = [], wants = new Map(), reach = 'want', pac
 			}
 		}
 		if (!loaded && !stop.dropped.length) {
+			// Nothing fits yet, but the goods aboard are for islands still
+			// to come: they are dealt first, and the run comes back.
+			if (later()) return false;
 			// Nothing could be loaded here and nothing was left: the rest
 			// this harbour feeds cannot sail.
 			for (const isle of seq) if (pending.includes(isle)) {
@@ -320,7 +331,7 @@ export function materialRun({ picks = [], wants = new Map(), reach = 'want', pac
 			for (const k of order) {
 				const isle = ready[k];
 				for (const nd of isle.needs) {
-					if (!isGood(nd.give)) continue;
+					if (!heldMax.has(nd.give)) continue;
 					heldMax.set(nd.give, (heldMax.get(nd.give) || 0) - nd.n);
 					if (heldMax.get(nd.give) <= 1e-9) heldMax.delete(nd.give);
 				}
