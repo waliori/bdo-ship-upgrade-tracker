@@ -1,11 +1,11 @@
-// The material run: the list, the book and the fleet's readings of it,
+// The material run: the list, the book of the game's layouts,
 // the screenshot help, and the run for one material or several.
 
 import { esc, F, FC } from '../fmt.js';
 import { T, said, gameName } from '../i18n.js';
 import * as store from '../state.js';
 import { img, copyName, amountInput } from '../ui-bits.js';
-import { snapshot, barterProfile, matBoards, SILVER } from '../ui-state.js';
+import { snapshot, barterProfile, SILVER } from '../ui-state.js';
 import { barterKey } from '../clock.js';
 import { currentShip, shownHold } from '../ship.js';
 import { npcById, ports, isleOf, whoOf, isleShort } from '../barter_npcs.js';
@@ -15,11 +15,9 @@ import { landPrices } from '../land-cost.js';
 import { GOODS, PARLEY, levelOf, npcGate, npcOpen } from '../barter.js';
 import { exchanges, weightOf, sellOf } from '../barter-plan.js';
 import { shotGuideHTML } from '../barter-import.js';
-import { tellFleet, fleetHistory, shared as boardsShared } from '../sea-boards.js';
-import { boardsOf as matBoardsOf, bookOf as matBookOf, bookFromGame, fitOf as matFitOf, seenOn as matSeenOnBook, MIN_FIT as MAT_MIN_FIT } from '../material-book.js';
+import { bookFromGame, fitOf as matFitOf, seenOn as matSeenOnBook, MIN_FIT as MAT_MIN_FIT } from '../material-book.js';
 import { materialPages, materialDeal } from '../barter-layouts.js';
 import { openMaterialBook, pageName as matPageName } from '../material-book-view.js';
-import { me } from '../sync.js';
 import { materialRun } from '../barter-material.js';
 import { tradeGoodNames } from '../trade_goods.js';
 import { landGoods } from '../land_goods.js';
@@ -33,8 +31,8 @@ import { runDockHTML } from './parts.js';
 import { chartButton, parleyLine, parleyHTML, parleyOf } from './plan.js';
 import { stashes, withWaits, legsOf, questPlan, questsLine, questsPanels, TIER, ledgerOf, runTime, stopRows } from './route.js';
 import { sailing } from './sail.js';
-import { redrawSoon, coinWorth } from './search.js';
-import { persist, redrawTab } from './view.js';
+import { coinWorth } from './search.js';
+import { persist } from './view.js';
 
 /**
  * The run for a material, in the silver run's two panels: the ladder
@@ -44,7 +42,7 @@ import { persist, redrawTab } from './view.js';
  */
 /** Today's material list, as answered; lapses with the barter day. */
 export function matBoardNow() {
-	if (V.matBoard.day !== barterKey()) { V.matBoard = { day: barterKey(), answers: [], on: [], told: 0 }; persist(); }
+	if (V.matBoard.day !== barterKey()) { V.matBoard = { day: barterKey(), answers: [], on: [] }; persist(); }
 	return V.matBoard;
 }
 
@@ -58,49 +56,25 @@ function matSeenOn(npcId, give, recv) {
 }
 
 /* ------------------------------------------------------------------ *
- * the material book: the boards sailors have read of the material list
+ * the material book: the game's own layouts of the material list
  * ------------------------------------------------------------------ */
 
-/** Everything the fleet has read of the material list, asked for once
- *  a barter day and whenever the sailor has just sent a reading. */
-
-export function matFleetNow() {
-	if (!boardsShared()) return [];
-	const day = barterKey();
-	if (V.matFleet.day !== day) V.matFleet = { day, list: V.matFleet.list, asked: false };
-	if (!V.matFleet.asked) {
-		V.matFleet.asked = true;
-		fleetHistory({ days: 400, list: 'material', force: true }).then(list => {
-			V.matFleet = { day, list, asked: true };
-			redrawSoon();
-		}).catch(() => {});
-	}
-	return V.matFleet.list;
-}
-
-/** The book: the recorded boards and the fleet's, with every two that
- *  are one board made one. Worked out again only when either changes. */
+/** The book: every layout the game's files hold, made once. Empty until
+ *  the game's tables are loaded. */
 function matBookNow() {
-	const list = matFleetNow();
-	if (!V.matBookMemo || V.matBookMemo.list !== list || V.matBookMemo.rec !== matBoards) {
-		// The game's own layouts when they are loaded; the readings alone
-		// before that.
-		const game = materialPages();
-		const boards = matBoardsOf(matBoards, list);
-		V.matBookMemo = { list, rec: matBoards, pages: game.length ? bookFromGame(game, boards) : matBookOf(boards) };
-	}
+	const game = materialPages();
+	if (!V.matBookMemo || V.matBookMemo.game !== game.length) V.matBookMemo = { game: game.length, pages: game.length ? bookFromGame(game, []) : [] };
 	return V.matBookMemo;
 }
 
 /** The islands answered by reading the window -- not the ones ticked
- *  off a board on file, which would only ever fit the board they came
- *  from. */
+ *  off a layout, which would only ever fit the layout they came from. */
 const matRead = () => matBoardNow().answers.filter(a => a.took !== 'book');
 
-/** Which board on file today's material list is, as far as can be told. */
+/** Which layout today's material list is, as far as can be told. */
 export function matFitNow() {
 	const fit = matFitOf(matRead(), matBookNow().pages);
-	// what the board would add is what is not on today's list at all,
+	// what the layout would add is what is not on today's list at all,
 	// read or already taken
 	const have = new Set(matBoardNow().answers.map(a => a.npcId));
 	return { ...fit, fill: fit.fill.filter(o => !have.has(o.npcId)) };
@@ -114,9 +88,8 @@ export function noteMatSeen() {
 	store.setProfileQuiet('matSeen', seen);
 }
 
-/** Tick a board's islands onto today's list, the ones not answered
- *  yet: marked as taken, so the list and the fleet can tell them from
- *  islands read. */
+/** Tick a layout's islands onto today's list, the ones not answered
+ *  yet: marked as taken, so the list can tell them from islands read. */
 export function takeMatOffers(offers, took) {
 	const mb = matBoardNow();
 	const have = new Set(mb.answers.map(a => a.npcId));
@@ -133,33 +106,12 @@ export function takeMatOffers(offers, took) {
 	return n;
 }
 
-/** Today's reading of the material list, sent to the fleet: the islands
- *  read, never the ones taken from a board or from somebody else. */
-export function tellMatFleet(then) {
-	const mb = matBoardNow();
-	const read = mb.answers.filter(a => !a.took);
-	if (!read.length) { toast(T('Nothing read off the window yet: islands taken from a board are not news')); return; }
-	if (!me()) { toast(T('Sign in from the Menu to put your name to a reading')); return; }
-	toast(T('Sending today’s material list…'));
-	tellFleet(barterKey(), null, read.map(a => ({ ...a, qty: '1' })), 'material').then(out => {
-		if (out.ok) { mb.told = read.length; persist(); }
-		toast(out.ok
-			? (read.length === 1
-				? T('The fleet has your reading of today’s material list — {n} island, with your name on it', { n: read.length })
-				: T('The fleet has your reading of today’s material list — {n} islands, with your name on it', { n: read.length }))
-			: T('It did not go: {why}', { why: said(out.why) }), out.ok);
-		V.matFleet.asked = false;
-		then();
-	});
-}
-
 /** The book, opened from the material bar. */
 export function openMatBook(then) {
 	openMaterialBook({
-		record: matBoards,
+		pages: matBookNow().pages,
 		answers: matRead(),
 		ticked: matBoardNow().answers.map(a => a.npcId),
-		day: barterKey(),
 		onTake: page => {
 			const n = takeMatOffers([...page.offers].map(([npcId, o]) => ({ npcId, ...o })), 'book');
 			// Whose list today's is, for the bar to say so rather than
@@ -168,80 +120,25 @@ export function openMatBook(then) {
 			persist();
 			toast(n === 1 ? T('{n} island ticked from {board}', { n, board: matPageName(page) }) : T('{n} islands ticked from {board}', { n, board: matPageName(page) }), true);
 			then();
-		},
-		onTell: matTellable() ? done => tellMatFleet(() => { done(); then(); }) : null
+		}
 	});
 }
 
 /**
- * A board the book already has, read again today, is counted without
- * asking: how often a board comes round is what the book learns from,
- * and a button to say "I saw it too" was a chore nobody owed. Signed in
- * only -- a reading goes up with the account it came from, shown by
- * name or not as the sailor chose for the community boards -- and once
- * for what has been read; the server merges a sailor's readings of one
- * day into one. A new board is still offered, never sent by itself.
- */
-function matAutoTell() {
-	const st = matStage();
-	if (st.kind !== 'known' || st.told || !boardsShared() || !me()) return;
-	const mb = matBoardNow();
-	const read = mb.answers.filter(a => !a.took);
-	const key = `${mb.day}|${read.length}`;
-	if (V.matAutoTold === key) return;   // under way, or tried and failed
-	V.matAutoTold = key;
-	tellFleet(barterKey(), null, read.map(a => ({ ...a, qty: '1' })), 'material').then(out => {
-		if (!out.ok) return;
-		mb.told = read.length;
-		persist();
-		V.matFleet.asked = false;
-		redrawTab();
-	}).catch(() => {});
-}
-
-/** Is there anything read and not yet sent? */
-function matTellable() {
-	const mb = matBoardNow();
-	return boardsShared() && mb.answers.filter(a => !a.took).length > (mb.told || 0);
-}
-
-/** Today's readings by others, the fullest and most confirmed first. */
-function matFleetToday() {
-	const day = barterKey();
-	return matFleetNow().filter(b => String(b.day).slice(0, 10) === String(day).slice(0, 10))
-		.sort((a, b) => Number(b.mine === false) - Number(a.mine === false) || b.offers.length - a.offers.length || b.seen - a.seen);
-}
-
-/** How many islands a whole material list has: the boards on file
- *  say, and forty-four if there are none to ask. */
-function matWhole() {
-	const sizes = matBookNow().pages.map(p => p.offers.size).sort((a, b) => a - b);
-	return sizes.length ? sizes[Math.floor(sizes.length / 2)] : 44;
-}
-
-/**
- * Where the sailor is with today's material list, as three steps:
- * one page read; then either the board is known -- take the rest -- or
- * it is new, and the whole list is read; then the fleet is told.
- *
- * `kind` is 'start' (nothing read, or too little to weigh), 'split'
- * (several boards fit), 'known' (one does) or 'new' (none does).
+ * Where the sailor is with today's material list: `kind` is 'start'
+ * (nothing read, or too little to weigh), 'split' (several layouts
+ * fit), 'known' (one does), 'none' (none does -- a row read wrong, or a
+ * patch the app has not caught up with) or 'taken' (a layout ticked
+ * whole from the book, nothing read).
  */
 function matStage() {
 	const mb = matBoardNow();
 	const fit = matFitNow();
 	const read = mb.answers.filter(a => !a.took).length;
 	const fits = fit.standing.filter(w => w.agree >= MAT_MIN_FIT).length;
-	// Nothing read yet, but a whole list taken -- from the book or from
-	// another sailor: that is today's list, not a question.
 	const taken = mb.answers.filter(a => a.took).length;
-	const kind = fit.sure ? 'known' : fits > 1 ? 'split' : fit.answered >= MAT_MIN_FIT ? 'new' : !read && taken ? 'taken' : 'start';
-	const whole = matWhole();
-	const complete = kind === 'new' && (mb.whole || read >= Math.round(whole * 0.9));
-	const told = read > 0 && (mb.told || 0) >= read;
-	// A known board has nothing to share: it is counted by itself.
-	const step = kind === 'start' ? 1 : kind === 'split' || kind === 'taken' ? 2 : kind === 'known' ? (fit.fill.length ? 2 : 4) : complete ? 3 : 2;
-	return { kind, step, fit, read, whole, complete, told, fits, taken };
+	const kind = fit.sure ? 'known' : fits > 1 ? 'split' : fit.answered >= MAT_MIN_FIT ? 'none' : !read && taken ? 'taken' : 'start';
+	return { kind, fit, read, fits, taken };
 }
 
 /** What a screenshot of the barter window should hold, for the board. */
@@ -260,8 +157,8 @@ export function tradeShotHelp() {
 	</details>`;
 }
 
-/** The two pictures of what to screenshot, and the words under them. */
-function matShotHelp(open = false, scroll = false) {
+/** The picture of what to screenshot, and the words under it. */
+function matShotHelp(open = false) {
 	return `<details class="mat-help"${open ? ' open' : ''}>
 		<summary>${T('What should the screenshot look like?')}</summary>
 		${shotGuideHTML('material', { lazy: true })}
@@ -269,101 +166,63 @@ function matShotHelp(open = false, scroll = false) {
 			<figure class="mat-help-fig narrow"><img src="guide/refresh-material.webp" alt="${T('The game’s refresh window, the ship material refreshes outlined')}" loading="lazy" width="487" height="629">
 				<figcaption>${T('The material list is its own list, redrawn by the Ship Material Refresh — apart from the trade goods, so its board changes on its own clock.')}</figcaption></figure>
 		</div>
-		${scroll ? `<figure class="mat-help-fig"><img src="guide/material-scroll.webp" alt="${T('Three screenshots of the whole window, the list scrolled between each')}" loading="lazy" width="1000" height="245">
-			<figcaption>${T('The list is longer than the window: shoot the whole window, scroll the list down, shoot again, to the end. A row on two shots is fine — it is read once. Paste or drop them all at once.')}</figcaption></figure>` : ''}
 		<ul class="mat-help-list">
 			<li>${T('Any of the game’s languages: screenshots are read in the language chosen in the Menu, against the game’s own names in it — set it to your game’s language.')}</li>
-			<li>${T('Nothing is uploaded: the pictures are read in this browser. Only what you choose to tell the fleet leaves it.')}</li>
+			<li>${T('Nothing is uploaded: the pictures are read in this browser.')}</li>
 		</ul>
 	</details>`;
 }
 
 /**
- * The material bar: today's material list, taken as three steps. One
- * page is pasted; the boards sailors have read are weighed against it;
- * a board on file hands over the rest of the window, and a board nobody
- * has is read whole and passed on, so the next sailor needs one page.
+ * The material bar: today's material list. Every layout it can be is
+ * known from the game's files, so one page read off the window says
+ * which it is, and that layout fills in the rest.
  */
 export function matBarHTML() {
 	const mb = matBoardNow();
 	const st = matStage();
 	const { fit, kind } = st;
 	const { pages } = matBookNow();
-	const today = matFleetToday();
-	const theirs = today.find(b => !b.mine);
-	const shared = boardsShared();
-	const book = `<button class="ghost-btn sm" data-act="barter-mat-book" title="${T('Every material board sailors have read, what each pays, how often it has been seen, and by whom')}">📖 ${T('The material book')} · ${pages.length === 1 ? T('{n} board', { n: F(pages.length) }) : T('{n} boards', { n: F(pages.length) })}</button>`;
+	const book = `<button class="ghost-btn sm" data-act="barter-mat-book" title="${T('Every layout of the material list, from the game’s own files, and what each pays')}">📖 ${T('The material book')} · ${pages.length === 1 ? T('{n} board', { n: F(pages.length) }) : T('{n} boards', { n: F(pages.length) })}</button>`;
 	const drop = (big, lead, sub) => `<button class="board-drop${big ? '' : ' slim'}" data-act="barter-shot"><b class="by-key">${lead}</b><b class="by-touch">${lead}</b><span>${sub}</span></button>`;
-	const stepper = [
-		[1, '📷', T('One page'), T('Paste a screenshot of the list')],
-		[2, kind === 'new' ? '📜' : '🔍', kind === 'new' ? T('The whole list') : T('Which board'), kind === 'new' ? T('A new board: read every page') : T('Known to the book?')],
-		[3, '📣', T('Share'), T('So the next sailor needs one page')]
-	].map(([n, icon, k, sub]) => `<li class="mat-step${st.step === n ? ' on' : st.step > n ? ' done' : ''}"><i>${st.step > n ? '✓' : icon}</i><span><b>${k}</b><small>${sub}</small></span></li>`).join('');
-	const fleetLine = theirs && kind !== 'known'
-		? `<div class="board-fleet">${T('{isles} of today’s material list read by {who}', { isles: theirs.offers.length === 1 ? T('<b>{n} island</b>', { n: theirs.offers.length }) : T('<b>{n} islands</b>', { n: theirs.offers.length }), who: theirs.name ? esc(theirs.name) : T('a sailor who is not shown by name') })}${theirs.seen ? ` · ${theirs.seen === 1 ? T('{n} sailor has seen the same', { n: F(theirs.seen) }) : T('{n} sailors have seen the same', { n: F(theirs.seen) })}` : ''}
-			<button class="linky" data-act="barter-mat-fleet-take" data-id="${esc(String(theirs.id))}" title="${T('Tick their islands on today’s list, marked as theirs: the ones you read yourself keep your reading')}">${T('take their reading')}</button></div>`
-		: '';
-	const tellBtn = (primary, label, title) => (shared ? `<button class="${primary ? 'chip primary' : 'ghost-btn sm'}" data-act="barter-mat-tell" title="${me() ? title : T('Sign in from the Menu first — a reading goes up with a name on it')}">📣 ${label}</button>` : '');
-	const progress = (n, of) => `<div class="mat-progress" title="${T('{n} of about {of} islands a whole list has', { n: F(n), of: F(of) })}"><i style="width:${Math.min(100, Math.round((n / Math.max(1, of)) * 100))}%"></i><span>${T('{n} of about {of} islands', { n: F(n), of: F(of) })}</span></div>`;
+	const nameOf = page => `<button class="linky" data-act="barter-mat-book" title="${T('Open it in the material book')}"><b>${matPageName(page)}</b></button>`;
 
 	let body;
 	if (kind === 'start') {
 		body = `${drop(!st.read, st.read ? T('Paste another page') : T('Paste one screenshot of the material list'), st.read
-			? (st.read === 1 ? T('{n} island read so far — a page more and the book is checked against it.', { n: F(st.read) }) : T('{n} islands read so far — a page more and the book is checked against it.', { n: F(st.read) }))
-			: T('Open the Barter Information window in game — the same window as for trade goods — screenshot it whole and paste it here (Ctrl V). The rows paying ship materials are read, with your Parley and barter count; if the book knows the board, the rest of the list is filled in for you.'))}
+			? (st.read === 1 ? T('{n} island read so far — a page more tells which layout it is.', { n: F(st.read) }) : T('{n} islands read so far — a page more tells which layout it is.', { n: F(st.read) }))
+			: T('Open the Barter Information window in game — the same window as for trade goods — screenshot it whole and paste it here (Ctrl V). The rows of the material list are read, and the layout they belong to fills in the rest.'))}
 			${matShotHelp(!st.read)}
-			${fleetLine}
 			<p class="board-ask-sub">${T('Or tick, below, the islands showing what you are after.')}</p>`;
 	} else if (kind === 'taken') {
 		// A list taken whole needs no screenshot; one can still check it.
 		const from = mb.from || {};
 		const page = from.kind === 'book' ? pages.find(p => String(p.id) === from.id) : null;
 		const line = page
-			? T('Today’s list is {board}, from the material book: {n} islands filled in.', { board: `<button class="linky" data-act="barter-mat-book" title="${T('Open it in the material book')}"><b>${matPageName(page)}</b></button>`, n: F(st.taken) })
-			: from.kind === 'fleet'
-				? T('Today’s list is {who}’s reading: {n} islands filled in.', { who: from.name ? `<b>${esc(from.name)}</b>` : T('another sailor'), n: F(st.taken) })
-				: T('{n} filled in', { n: F(st.taken) });
+			? T('Today’s list is {board}, from the material book: {n} islands filled in.', { board: nameOf(page), n: F(st.taken) })
+			: T('{n} filled in', { n: F(st.taken) });
 		body = `<p class="mat-say known">✓ ${line} ${T('They show dashed below. A page read off the window checks them and puts right any that differ.')}</p>
 			<div class="mat-acts"><button class="ghost-btn sm" data-act="barter-shot">📷 ${T('Check it with a screenshot')}</button></div>`;
 	} else if (kind === 'split') {
 		const at = fit.splitter ? npcById.get(fit.splitter) : null;
 		body = `<p class="mat-say">${T('What you read fits <b>{n} boards</b> in the book so far.', { n: F(st.fits) })} ${at ? T('One more page tells them apart — the one with <b>{isle}</b> on it.', { isle: esc(gameName(isleOf(at))) }) : T('One more page tells them apart.')}</p>
-			${drop(false, T('Paste another page'), T('Any page not read yet; the one with that island settles it.'))}
-			${fleetLine}`;
+			${drop(false, T('Paste another page'), T('Any page not read yet; the one with that island settles it.'))}`;
 	} else if (kind === 'known') {
 		const w = fit.best;
-		const last = w.page.last ? new Date(`${w.page.last}T00:00:00Z`).toLocaleDateString(undefined, { day: 'numeric', month: 'short', timeZone: 'UTC' }) : '';
-		const name = `<button class="linky" data-act="barter-mat-book" title="${T('Open it in the material book')}"><b>${matPageName(w.page)}</b></button>`;
-		const seen = w.page.times > 1 ? T('read {n} times, last {day}', { n: F(w.page.times), day: esc(last) }) : T('read once before');
 		body = `<p class="mat-say known">✓ ${w.differ.length
-			? T('This is {board} — in the book, {seen}. It agrees at {n} islands and parts at one: a slip, or a slot moved.', { board: name, seen, n: F(w.agree) })
-			: T('This is {board} — in the book, {seen}. It agrees at every one of the {n} islands you read.', { board: name, seen, n: F(w.agree) })}</p>
+			? T('This is {board}. It agrees at {n} islands and parts at one: a slip, or a slot moved.', { board: nameOf(w.page), n: F(w.agree) })
+			: T('This is {board}. It agrees at every one of the {n} islands you read.', { board: nameOf(w.page), n: F(w.agree) })}</p>
 			<div class="mat-acts">${fit.fill.length
 		? `<button class="chip primary" data-act="barter-mat-fill" title="${T('Tick them as taken from the board, not read: they show dashed below, and a page read later puts any that differ right')}">${fit.fill.length === 1 ? T('Fill in its other {n} island', { n: fit.fill.length }) : T('Fill in its other {n} islands', { n: fit.fill.length })}</button>`
-		: `<span class="mat-done">${T('Every island of it is on today’s list. Open a material below and the run lays itself out.')}</span>`}
-			${st.told ? `<span class="mat-done">✓ ${T('The fleet knows you saw it')}</span>` : ''}</div>`;
-		setTimeout(matAutoTell, 0);
+		: `<span class="mat-done">${T('Every island of it is on today’s list. Open a material below and the run lays itself out.')}</span>`}</div>`;
 	} else {
-		const figures = `${progress(st.read, st.whole)}`;
-		body = st.complete
-			? `<p class="mat-say new">★ ${T('A board nobody has in the book — and you have read it whole.')}</p>
-				${figures}
-				<div class="mat-acts">${st.told
-		? `<span class="mat-done">✓ ${T('Shared with the fleet: the next sailor who reads one page of it gets the rest.')}</span>`
-		: tellBtn(true, T('Share it with the fleet'), T('Everyone can then recognise this board from one page, with your name on the reading'))}
-				<button class="linky" data-act="barter-shot">${T('read more pages')}</button></div>`
-			: `<p class="mat-say new">★ ${T('This board is not in the book yet. Read the whole list and share it: every sailor after you will need only one page.')}</p>
-				${figures}
-				${drop(false, T('Paste the other pages'), T('Scroll the list in game and screenshot the whole window each time, then paste them all at once. A row on two shots is read once.'))}
-				${matShotHelp(false, true)}
-				<div class="mat-acts"><button class="ghost-btn sm" data-act="barter-mat-whole" title="${T('The list in game ends here: nothing more to read')}">${T('That was the whole list')}</button>${st.read && !st.told ? tellBtn(false, T('Share what I have'), T('Send the islands read so far; more can follow, and they are merged')) : ''}</div>
-				${fleetLine}`;
+		body = `<p class="mat-say new">${T('What you read fits none of the game’s layouts: a row read wrong, or a patch the app has not caught up with. Check the rows against the window, or tick the islands below by hand.')}</p>
+			${drop(false, T('Paste another page'), T('Any page not read yet.'))}`;
 	}
 	const taken = mb.answers.length - st.read;
 	return `<section class="panel board-ask mat-bar">
 		<div class="panel-head"><h2 class="panel-title">${T('Today’s material list')}</h2><span class="panel-sub board-ask-lead">${st.read ? (st.read === 1 ? T('{n} island read', { n: F(st.read) }) : T('{n} islands read', { n: F(st.read) })) : ''}${taken ? ` · ${T('{n} filled in', { n: F(taken) })}` : ''}</span><span class="panel-spacer"></span>${book}${mb.answers.length ? `<button class="ghost-btn sm" data-act="barter-mat-clear" title="${T('The list was refreshed in game: start again')}">↻ ${T('Refreshed in game')}</button>` : ''}</div>
 		<div class="panel-body">
-			<ol class="mat-steps">${stepper}</ol>
 			${body}
 		</div>
 	</section>`;

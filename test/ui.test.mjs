@@ -1863,7 +1863,7 @@ async function toPlan(page) {
 	await page.waitForSelector('.barter-screen.step-plan', { timeout: 10000 });
 }
 
-test('the material book is the game’s own layouts, every one, with the readings filed under the one each is', async () => {
+test('the material book is the game’s own layouts, every one, and a page read off the window says which it is', async () => {
 	const { page, context, errors } = await open('#barter');
 	await page.waitForSelector('.barter-screen', { timeout: 15000 }); await wait(600);
 	await page.evaluate(async () => { const store = await import('/js/state.js'); store.setView('barter', { goal: 'material' }); store.flush(); });
@@ -1875,8 +1875,10 @@ test('the material book is the game’s own layouts, every one, with the reading
 	// As many as the bar says: the dialog used to draw the readings alone.
 	assert.equal(await count(page, '.mb-card'), said, 'every board the bar counts');
 	assert.ok(said >= 40, `the game's layouts: ${said}`);
-	assert.match(await text(page, '.dialog-note'), /layouts of its own, taken from the game’s files/);
-	assert.ok(await page.evaluate(() => [...document.querySelectorAll('.mb-card')].some(c => /not read yet/.test(c.textContent) && /from the game’s own files/.test(c.textContent))), 'a layout nobody has read yet is on the shelf');
+	assert.match(await text(page, '.dialog-note'), /layouts, taken from the game’s own files/);
+	assert.equal(await text(page, '.mb-card .mb-num'), 'M1', 'named by their row in the game’s table');
+	// The book is the game's, not the fleet's: nothing to tell, nobody to thank.
+	assert.equal(await count(page, '[data-mb-tell], [data-mb-seen], .lb-readers'), 0);
 	await page.evaluate(() => document.querySelector('[data-close]').click()); await wait(300);
 	// A coin day on the material list: rows paying Crow Coins read off the
 	// window go to the material list, not the trade board, and find their board.
@@ -1886,6 +1888,7 @@ test('the material book is the game’s own layouts, every one, with the reading
 		ui.render();
 	}); await wait(800);
 	assert.match(await text(page, '.mat-say'), /board M11/, 'the coin rows found their material board');
+	assert.equal(await count(page, '.mat-steps, [data-act="barter-mat-tell"], [data-act="barter-mat-fleet-take"]'), 0, 'no steps to share it by');
 	assert.deepEqual(errors, []);
 	await context.close();
 });

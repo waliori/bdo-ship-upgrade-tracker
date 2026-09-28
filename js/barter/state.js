@@ -29,8 +29,8 @@ export const V = {
 	// What the material list was seen to show today: { npcId, give, recv,
 	// took? }; `on` is the materials the run is for, which the sailor
 	// chooses -- a whole window read, or a board taken, shows far more than
-	// anyone sails for; `told` is how many read islands went to the fleet.
-	matBoard: { day: '', answers: [], on: [], told: 0 },
+	// anyone sails for.
+	matBoard: { day: '', answers: [], on: [] },
 	planSec: 'ladder', // the part of the plan that is open: parley | ladder | how | chains | all | none
 	advOpen: false, // every order, unfolded
 	ownWay: false, // "my own way" chosen, whether or not the orders happen to match a card
@@ -87,7 +87,6 @@ export const V = {
 	// changed nothing should not lay them all again.
 	shortMemo: { key: '', res: null },
 	appearMemo: { key: '', rows: [] },
-	matFleet: { day: '', list: [], asked: false },
 	matBookMemo: null,
 	matAutoTold: '',
 	// The material list's filters, for the session.

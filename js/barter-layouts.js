@@ -164,7 +164,6 @@ export function coinSides(npcId, give) {
  */
 export function materialPages() {
 	if (!game || !game.MATERIAL) return [];
-	const names = Object.fromEntries(Object.entries(game.LAYOUTS.material || {}).map(([id, row]) => [row, id]));
 	const rows = Math.max(0, ...Object.values(game.MATERIAL).map(s => s.length));
 	const asOffer = o => ({ give: o.give, recv: o.recv, giveN: Number(String(o.qty).split('-')[0]) || 1, recvN: o.recvMin, recvMax: o.recvMax, perDay: o.perDay, parley: o.parley, chance: o.chance });
 	const pages = [];
@@ -181,7 +180,9 @@ export function materialPages() {
 			const o = asOffer(offerOf(s, game.OFFER));
 			if (o.chance > 0) offers.set(Number(npcKey), o);
 		}
-		if (offers.size) pages.push({ id: names[row] || `M${row + 1}`, row, offers });
+		// Named by their row in the game's table: the letters the recorded
+		// boards had name readings, and the book keeps no readings now.
+		if (offers.size) pages.push({ id: `M${row + 1}`, row, offers });
 	}
 	return pages;
 }

@@ -63,7 +63,7 @@ export function restore() {
 	V.stockGoal = { ...DEFAULT_STOCK, targets: { ...DEFAULT_STOCK.targets } };
 	V.matOrders = { reach: 'want', calls: true, pace: 'full', quests: 'near' };
 	V.port = 0; V.routes = { key: '', ids: [] }; V.shape = 'full'; V.routesOther = { key: '', ids: [] }; V.stash = ''; V.sail = null; V.reach = ''; V.planSec = 'ladder'; V.ownWay = false;
-	V.board = { day: '', answers: [], own: false }; V.matBoard = { day: '', answers: [], on: [], told: 0 };
+	V.board = { day: '', answers: [], own: false }; V.matBoard = { day: '', answers: [], on: [] };
 	V.questSkip = { day: '', ids: [] }; V.questPull = { day: '', ids: [] }; V.routeEdit = { key: '', skip: [], nudge: {}, trips: [] }; V.advOpen = false; V.packed = new Set(); V.packLog = { delta: {}, moves: [] };
 	if (!s) return;
 	try {
@@ -121,8 +121,6 @@ export function restore() {
 				// `took` marks an island ticked from a board on file or from
 				// another sailor's reading rather than read off the window.
 				answers: s.matBoard.answers.filter(a => a && npcById.has(Number(a.npcId)) && typeof a.give === 'string' && typeof a.recv === 'string').map(a => ({ npcId: Number(a.npcId), give: a.give, recv: a.recv, ...(a.took === 'book' || a.took === 'fleet' ? { took: a.took } : {}) })),
-				told: Math.max(0, Number(s.matBoard.told) || 0),
-				whole: s.matBoard.whole === true,
 				// Where a list taken rather than read came from: a board in
 				// the book, or another sailor's reading.
 				...(s.matBoard.from && (s.matBoard.from.kind === 'book' || s.matBoard.from.kind === 'fleet')

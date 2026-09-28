@@ -15,7 +15,6 @@ import { questDone, rewardOf } from '../screen-quests.js';
 import { QUEST_CHOICES, PAUSE_MAX, AIM_CHOICES, STOCK_LEVELS, SAIL_PRESETS, sailPresetOf } from '../barter-orders.js';
 import { PARLEY, COIN_LEVEL, levelOf } from '../barter.js';
 import { pickShots } from '../barter-import.js';
-import { sawItToo } from '../sea-boards.js';
 import { pageName as matPageName } from '../material-book-view.js';
 import { TOWNS } from '../screen-inventory.js';
 import { cutOf } from '../barter-short.js';
@@ -31,7 +30,7 @@ import { openRolls } from './rolls.js';
 import { bringUp } from './cockpit.js';
 import { castOffFx } from './setsail.js';
 import { aboardStock, unloadTo, held, openSheet, shoreAboard } from './hold.js';
-import { matBoardNow, matFleetNow, matFitNow, noteMatSeen, takeMatOffers, tellMatFleet, openMatBook, pickGood, pickMaterial, setMaterial } from './material.js';
+import { matBoardNow, matFitNow, noteMatSeen, takeMatOffers, openMatBook, pickGood, pickMaterial, setMaterial } from './material.js';
 import { packedNow, unloadMoves, packApply, toldOf } from './packing.js';
 import { parleyRefilled, retickIfAuto, ordersNow, setOrders, applySaved, dropSaved, askSaveOrders, sellFrom, keepFrom, readBagShot, chainStepsDialog, chainClaimDialog } from './plan.js';
 import { STASHES, bagSet, legsOf, skippedToday, pulledToday, ledgerOf } from './route.js';
@@ -249,8 +248,6 @@ export function barterAction(act, el, redraw) {
 			return true;
 		}
 		case 'barter-mat-book': openMatBook(redraw); return false;
-		case 'barter-mat-whole': matBoardNow().whole = true; persist(); return true;
-		case 'barter-mat-tell': tellMatFleet(redraw); return false;
 		case 'barter-mat-fill': {
 			const fit = matFitNow();
 			if (!fit.sure) return true;
@@ -258,20 +255,8 @@ export function barterAction(act, el, redraw) {
 			toast(n === 1 ? T('{n} island ticked from {board}', { n, board: matPageName(fit.best.page) }) : T('{n} islands ticked from {board}', { n, board: matPageName(fit.best.page) }), true);
 			return true;
 		}
-		case 'barter-mat-fleet-take': {
-			const seen = matFleetNow().find(b => String(b.id) === String(el.dataset.id));
-			if (!seen) return true;
-			// Their islands stand in for the ones not read here; one read
-			// here keeps its own answer.
-			const n = takeMatOffers(seen.offers.map(o => ({ npcId: o[0], give: String(o[1]), recv: String(o[3]) })), 'fleet');
-			matBoardNow().from = { kind: 'fleet', name: seen.name ? String(seen.name).slice(0, 40) : '' };
-			persist();
-			toast(n === 1 ? T('Today’s material list as {who} read it: {n} island ticked', { who: seen.name ? seen.name : T('another sailor'), n }) : T('Today’s material list as {who} read it: {n} islands ticked', { who: seen.name ? seen.name : T('another sailor'), n }), true);
-			if (!seen.mine && !seen.confirmed) sawItToo(seen.id).then(() => { V.matFleet.asked = false; });
-			return true;
-		}
 		case 'barter-mat-clear':
-			V.matBoard = { day: barterKey(), answers: [], on: matBoardNow().on, told: 0 };
+			V.matBoard = { day: barterKey(), answers: [], on: matBoardNow().on };
 			// A refresh in game fills the Parley bar again; clearing the
 			// day's list by hand says nothing about the bar.
 			if (!el.dataset.keepParley) parleyRefilled();
