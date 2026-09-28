@@ -186,12 +186,18 @@ function paintTabBar(counts) {
 	const seats = four.some(t => t.id === view) || !here ? four : [...four.slice(0, 3), here];
 	const rest = tabs().filter(t => !seats.some(s => s.id === t.id));
 	const waiting = rest.reduce((n, t) => n + (counts[t.id] || 0), 0);
-	bar.innerHTML = seats.map(t => cell(t)).join('')
+	const html = seats.map(t => cell(t)).join('')
 		+ `<button class="tabbar-btn all" data-act="tab-sheet" aria-haspopup="dialog" title="${T('Every section, and everything else')}">
 			<span class="tabbar-icon" aria-hidden="true">☰</span><span class="tabbar-label">${T('Menu')}</span>
 			${waiting ? `<span class="tabbar-count">${waiting}</span>` : ''}</button>`;
+	// The same bar as last time is left alone: measuring it made every
+	// draw lay the page out on the spot, a stall under the sailing clock.
+	if (html === tabBarWas && bar.childElementCount) return;
+	tabBarWas = html;
+	bar.innerHTML = html;
 	measureTabBar();
 }
+let tabBarWas = '';
 
 /**
  * Publish the tab bar's height.

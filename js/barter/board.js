@@ -89,7 +89,16 @@ export function boardNow() {
 	// counted for the fleet, and the rest are planned at their likelier.
 	if (combo && combo.rolls) noteRolls(combo);
 	const rolled = combo && combo.rolls ? assumedRolls(combo) : [];
-	return { standing, combo, shut, gated, told, data: combo ? boardData(combo, barterData, npcById, [...V.board.answers, ...rolled], shut) : barterData };
+	return { standing, combo, shut, gated, told, data: combo ? dataOf(combo, [...V.board.answers, ...rolled], shut) : barterData };
+}
+
+// The board laid out from the table, kept while what it is laid from
+// stands: the page asks for it a score of times a draw.
+let laidData = { key: '', combo: null, table: null, data: null };
+function dataOf(combo, answers, shut) {
+	const key = JSON.stringify([answers, shut]);
+	if (laidData.combo !== combo || laidData.table !== barterData || laidData.key !== key) laidData = { key, combo, table: barterData, data: boardData(combo, barterData, npcById, answers, shut) };
+	return laidData.data;
 }
 
 /**

@@ -11,6 +11,7 @@ import { npcById, ports, isleOf, isleShort } from '../barter_npcs.js';
 import { fmtRange, fmtDistance } from '../sailing.js';
 import { PARLEY_UNIT, NOTHING, SAIL_PRESETS, sailPresetOf, stockOrders, yardsticks } from '../barter-orders.js';
 import { landPrices } from '../land-cost.js';
+import { marketStatus } from '../market.js';
 import { PARLEY, COIN, COIN_LEVEL, levelOf, countBonus, withBonus } from '../barter.js';
 import { exchanges, landHeld } from '../barter-plan.js';
 import { chains, chainRun, tailOf } from '../barter-chains.js';
@@ -28,6 +29,21 @@ import { SEARCH_BUDGET_MS, presetSearch, proposeAsync, searching, redrawSoon, ex
 import { coinsOf, coinRange, bonusNote, coinPurseHTML, shortSummary, shortHTML, canAppearHTML } from './short.js';
 import { takenNote } from './today.js';
 import { editsBy, persist } from './view.js';
+
+// Each card's figure for the chains ticked by hand, by its inputs.
+const mineBy = new Map();
+// The run as laid, by its inputs: a press on the way draws the tab again
+// and nothing the run is laid from has moved. Handed out with stops of
+// its own, since the page writes on them.
+const laidBy = new Map();
+function laidOnce(key, lay) {
+	if (!laidBy.has(key)) {
+		laidBy.set(key, lay());
+		if (laidBy.size > 8) laidBy.delete(laidBy.keys().next().value);
+	}
+	const run = laidBy.get(key);
+	return { ...run, stops: run.stops.map(x => ({ ...x })) };
+}
 
 export function silverParts(me, b) {
 	const from = fromPort();
@@ -418,7 +434,7 @@ export function silverParts(me, b) {
 	const pin = castOffCaps(sailing(), opts.dock);
 	const bought = castOffLand(sailing(), o);
 	const laid = pin ? { ...opts, loadCap: pin, ...(bought ? { landCap: bought, bought } : {}) } : opts;
-	const plan = chainRun({ ...laid, chosen, ...edits });
+	const plan = laidOnce(JSON.stringify([pkey, marketStatus().at, chosen.map(c => c.id), edits, spares, pin && [...pin], bought && [...bought]]), () => chainRun({ ...laid, chosen, ...edits }));
 	plan.spares = spares;
 	const payRange = payRangeHTML(plan, laid, chosen, edits, seen, coining, stocking);
 	// Two chains ticked on one pile: the Golden Fish Scales at Iliya start
@@ -556,9 +572,17 @@ export function silverParts(me, b) {
 		const best = V.presetState.res.has(p.id) ? V.presetState.res.get(p.id) : V.proposed.best;
 		const f = !ready ? { big: '…', sub: T('searching this way…'), wait: true } : best ? figOf(best.run) : { big: '—', sub: T('nothing sails this way today') };
 		if (handPicked) {
-			const oo = { ...o, ...p.orders };
-			const mine = chainRun({ ...opts, pace: oo.pace, orders: oo, chosen });
-			f.mine = coining ? (mine.coins ? `${F(withBonus(mine.coins, countBonus(prof.barterCount).pct))}+` : '—') : stocking ? (() => { const g = stockGains(mine, stock); return g.total ? `+${F(g.total)}` : '—'; })() : mine.silver ? FC(Math.round(mine.net)) : '—';
+			// Laid once for these inputs and kept: a press on the way --
+			// Arrived, Traded -- draws the tab again, and laying the run
+			// for every card each time stalled the page under the ship.
+			const mkey = `${pkey}|${marketStatus().at}|${p.id}|${chosen.map(c => c.id).join(',')}`;
+			if (!mineBy.has(mkey)) {
+				const oo = { ...o, ...p.orders };
+				const mine = chainRun({ ...opts, pace: oo.pace, orders: oo, chosen });
+				mineBy.set(mkey, coining ? (mine.coins ? `${F(withBonus(mine.coins, countBonus(prof.barterCount).pct))}+` : '—') : stocking ? (() => { const g = stockGains(mine, stock); return g.total ? `+${F(g.total)}` : '—'; })() : mine.silver ? FC(Math.round(mine.net)) : '—');
+				if (mineBy.size > 24) mineBy.delete(mineBy.keys().next().value);
+			}
+			f.mine = mineBy.get(mkey);
 		}
 		return [p.id, f];
 	}));
