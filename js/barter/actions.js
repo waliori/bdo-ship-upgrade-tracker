@@ -30,7 +30,7 @@ import { openRolls } from './rolls.js';
 import { bringUp } from './cockpit.js';
 import { castOffFx } from './setsail.js';
 import { aboardStock, unloadTo, held, openSheet, shoreAboard } from './hold.js';
-import { matBoardNow, matFitNow, takeMatOffers, openMatBook, pickGood, pickMaterial, matOn, openMatIsles } from './material.js';
+import { matBoardNow, matFitNow, takeMatOffers, openMatBook, pickGood, pickMaterial, matOn, openMatIsles, pickShipAt } from './material.js';
 import { packedNow, unloadMoves, packApply, toldOf } from './packing.js';
 import { parleyRefilled, retickIfAuto, ordersNow, setOrders, applySaved, dropSaved, askSaveOrders, sellFrom, keepFrom, readBagShot, chainStepsDialog, chainClaimDialog } from './plan.js';
 import { STASHES, bagSet, legsOf, skippedToday, pulledToday, ledgerOf } from './route.js';
@@ -202,6 +202,8 @@ export function barterAction(act, el, redraw) {
 		case 'barter-mat-go': matOn(el.dataset.item, true); return true;
 		case 'barter-mat-drop': matOn(el.dataset.item, false); return true;
 		case 'barter-mat-add': pickMaterial(redraw); return false;
+		case 'barter-mat-at-pick': pickShipAt(redraw); return false;
+		case 'barter-mat-at-home': V.matAt = 0; persist(); return true;
 		case 'barter-mat-want-reset': delete V.wants[el.dataset.item]; persist(); return true;
 		case 'barter-mat-isles': openMatIsles(el.dataset.item); return false;
 		case 'barter-trip': openTripLog(); return false;

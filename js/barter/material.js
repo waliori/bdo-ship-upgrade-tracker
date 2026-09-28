@@ -452,7 +452,7 @@ export function materialParts(me, data) {
 		${orderRow('barter-vouchers', T('trade vouchers'), ordersNow().vouchers, VOUCHER_CHOICES, T('Whether the run draws on the Crow’s Trade Vouchers you carry; each is a quarter of a bar, on its own two-hour cooldown'))}
 		${orderRow('barter-mat-quests', T('quests on the way'), V.matOrders.quests, QUEST_CHOICES, T('The dailies and weeklies already taken, handed in where the run passes their taker or at a stop put in a short way off the route; the hunts only when their grounds lie on the way'))}
 		${orderRow('barter-mat-calls', T('a give kept at another harbour'), V.matOrders.calls ? 'true' : 'false', [['true', T('call there for it')], ['false', T('bring it first')]], T('Put in at another harbour on the way for a give kept in its storage, or bring it to the harbour the run sails from before casting off'))}
-		${orderRow('barter-mat-at', T('the ship is now'), V.matAt || 0, [[0, T('at the home port')], ...[...npcById.values()].filter(n => showing.some(a => a.npcId === n.id)).sort((a, b) => isleShort(a).localeCompare(isleShort(b))).map(n => [n.id, T('at {isle}', { isle: gameName(isleShort(n)) })])], T('Where the ship is: taken up again at sea, the run starts at that island with what is aboard, and the home port stays home -- its storage is still what the run comes back to'))}
+		<div class="order-row" title="${T('Where the ship is: taken up again at sea, the run starts at that island with what is aboard, and the home port stays home -- its storage is still what the run comes back to')}"><span class="order-k">${T('the ship is now')}</span><div class="order-v"><span class="chips"><button class="chip tiny active" data-act="barter-mat-at-pick">${atSea ? `📍 ${esc(T('at {isle}', { isle: gameName(isleShort(npcById.get(V.matAt))) }))}` : esc(T('at the home port'))} ▾</button>${atSea ? `<button class="chip tiny" data-act="barter-mat-at-home">${T('back at the home port')}</button>` : ''}</span></div></div>
 		${orderRow('barter-port', T('home port'), V.port, [[0, T('the first stop')], ...ports.map(p => [p.id, gameName(p.name)])])}
 	</div>`;
 	// What the run comes to: each material against its want, as a bar;
@@ -593,6 +593,52 @@ export function pickMaterial(then) {
 			meta: m.short ? T('{n} short', { n: F(Math.ceil(m.short)) }) : ''
 		})),
 		onPick: name => { matOn(name, true); then(); }
+	});
+}
+
+/**
+ * Where the ship is now, chosen among every barterer: found by typing, the
+ * island the last run recorded today stopped at first, then region by
+ * region, each saying what it deals today; narrowed to today's list or to
+ * the islands traded today.
+ */
+export function pickShipAt(then) {
+	const mb = matBoardNow();
+	const today = new Map(mb.answers.map(a => [a.npcId, a]));
+	for (const a of V.board.answers || []) if (!today.has(a.npcId)) today.set(a.npcId, a);
+	const used = { ...(V.board.used || {}), ...(mb.used || {}) };
+	// The last island a run recorded today stopped at: where a sailor
+	// taking it up again most likely is.
+	const runs = (store.getProfile('runs', []) || []).filter(r => r.day === mb.day);
+	const lastRun = runs[runs.length - 1];
+	const lastIsle = lastRun ? [...(lastRun.stops_ || [])].reverse().find(x => x && x.k === 'n') : null;
+	const lastId = lastIsle ? lastIsle.id : 0;
+	const item = n => {
+		const a = today.get(n.id);
+		return {
+			id: String(n.id), label: gameName(isleShort(n)), icon: a ? img(a.recv, '') : '⚓',
+			sub: [gameName(whoOf(n)), gameName(n.region || ''), a ? `${gameName(a.give)} → ${gameName(a.recv)}` : ''].filter(Boolean).join(' · '),
+			meta: used[n.id] ? `✓ ${T('traded today')}` : '',
+			group: n.id === lastId ? T('Where your last run stopped') : gameName(n.region || T('Elsewhere'))
+		};
+	};
+	const all = [...npcById.values()].sort((a, b) => Number(b.id === lastId) - Number(a.id === lastId) || String(a.region).localeCompare(String(b.region)) || isleShort(a).localeCompare(isleShort(b)));
+	const home = { id: '0', label: T('at the home port'), icon: '🏠', sub: fromPort() ? gameName(fromPort().name) : T('the first stop'), group: T('Home') };
+	const lists = {
+		all: () => [home, ...all.map(item)],
+		today: () => [home, ...all.filter(n => today.has(n.id)).map(item)],
+		done: () => [home, ...all.filter(n => used[n.id]).map(item)]
+	};
+	let on = 'all';
+	const chips = () => [['all', T('every barterer')], ['today', T('on today’s list')], ['done', T('traded today')]].map(([id, label]) => ({ id, label, on: on === id }));
+	openPicker({
+		title: T('Where is the ship now?'),
+		hint: T('The run starts there with what is aboard; the home port stays home.'),
+		items: lists.all(),
+		selected: String(V.matAt || 0),
+		chips: chips(),
+		onChips: id => { on = id; return { items: lists[id](), chips: chips() }; },
+		onPick: id => { V.matAt = npcById.has(Number(id)) ? Number(id) : 0; persist(); then(); }
 	});
 }
 

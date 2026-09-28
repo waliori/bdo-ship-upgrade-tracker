@@ -2022,6 +2022,15 @@ test('a material layout read: what the builds need is chosen, today’s islands 
 	// And back to what the builds need.
 	await page.evaluate(m => document.querySelector(`[data-act="barter-mat-want-reset"][data-item="${window.CSS.escape(m)}"]`).click(), pick.mat); await wait(400);
 	assert.equal(await page.evaluate(async m => (await import('/js/barter/state.js')).V.wants[m], pick.mat), undefined);
+	// Where the ship is now: any barterer, found by typing -- the run then
+	// starts there -- and back to the home port with one press.
+	await page.evaluate(() => document.querySelector('[data-act="barter-mat-at-pick"]').click()); await wait(400);
+	await page.type('.picker-in', 'Shipwrecked Marine'); await wait(200);
+	await page.keyboard.press('Enter'); await wait(500);
+	assert.ok(await page.evaluate(async () => (await import('/js/barter/state.js')).V.matAt > 0), 'the ship is at the island picked');
+	assert.match(await text(page, '[data-act="barter-mat-at-pick"]'), /Shipwrecked Marine/);
+	await page.evaluate(() => document.querySelector('[data-act="barter-mat-at-home"]').click()); await wait(400);
+	assert.equal(await page.evaluate(async () => (await import('/js/barter/state.js')).V.matAt), 0);
 	// The island order is the sailor's to choose.
 	await page.evaluate(() => document.querySelector('[data-act="barter-order"][data-k="barter-mat-order"][data-v="rich"]').click()); await wait(400);
 	assert.equal(await page.evaluate(async () => (await import('/js/barter/state.js')).V.matOrders.order), 'rich');
