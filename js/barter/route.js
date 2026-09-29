@@ -786,6 +786,8 @@ export function cutsHTML(plan, pace, name) {
 								: T('the Central Market has no {icon}<b>{good}</b> listed right now, and {where} takes {want} a trade', { icon: img(c.good, 'row-icon xs'), good: esc(gameName(c.good)), where, want: F(c.want) }))
 							: c.why === 'dealt'
 							? T('another chain reaches {where} first, and an island deals once a run', { where })
+							: c.why === 'full'
+								? T('the {icon}<b>{good}</b> it would make at {where} is up to its target already — made by what came before', { icon: img(c.good, 'row-icon xs'), good: esc(gameName(c.good)), where })
 							: c.why === 'floor'
 								? T('{where} takes the {icon}<b>{good}</b> it made, and your floor keeps <b>{floor}</b> of every [Level {lv}] back — you hold only {owned}', { where, icon: img(c.good, 'row-icon xs'), good: esc(gameName(c.good)), floor: F(c.floor), lv: c.level, owned: F(c.owned) })
 								: c.why === 'skipped'

@@ -809,7 +809,7 @@ export function chainRow(c, on, solo, dockName, from, ladder = null, shut = null
 			<span class="chain-mark">🔒</span>
 			<span class="chain-main">
 				<span class="chain-start">${start}</span>
-				<span class="chain-pips">${pips}<em>${T('Level {lv}', { lv: c.top })}</em></span>
+				<span class="chain-pips">${pips}<em>${T('Level {lv}', { lv: c.top })}</em></span>${stockLine(c)}
 				<span class="chain-route">${c.rungs.map(r => `<span class="${r.npcId === shut.npcId ? 'chain-shut-isle' : ''}">${esc(isleShort(npcById.get(r.npcId)) || r.npc)}</span>`).join(' › ')}</span>
 				<span class="chain-goods">${c.rungs.map(r => img(r.item, 'row-icon sm')).join('')}</span>
 			</span>
@@ -845,7 +845,7 @@ export function chainRow(c, on, solo, dockName, from, ladder = null, shut = null
 		<span class="chain-mark">${on ? '✓' : dry ? '∅' : ''}</span>
 		<span class="chain-main">
 			<span class="chain-start">${start}</span>${dryLine}${claimLine}
-			<span class="chain-pips">${pips}<em>${T('Level {lv}', { lv: c.top })}</em></span>
+			<span class="chain-pips">${pips}<em>${T('Level {lv}', { lv: c.top })}</em></span>${stockLine(c)}
 			<span class="chain-route">${c.rungs.map(r => esc(isleShort(npcById.get(r.npcId)) || r.npc)).join(' › ')}</span>
 			<span class="chain-goods">${c.rungs.map(r => img(r.item, 'row-icon sm')).join('')}</span>
 		</span>
@@ -865,6 +865,25 @@ export function chainRow(c, on, solo, dockName, from, ladder = null, shut = null
 	</button>`;
 	shownChains.set(c.id, { c, solo, dockName });
 	return ladder ? `<div class="chain-ladder${on ? ' on' : ''}">${card}${starts}</div>` : card;
+}
+
+/**
+ * What a stock run made of a chain, under its pips: where the climb
+ * stops because the good above is full, and -- when it starts lower
+ * than it need -- the goods held over their target in a storage the
+ * run does not load from.
+ */
+function stockLine(c) {
+	const lines = [];
+	const good = x => `${img(x, 'row-icon xs')}<b>${esc(gameName(x))}</b>`;
+	if (c.stops) lines.push(`<span class="chain-stock">${c.stops.why === 'filling'
+		? T('stops at Level {lv}: {good} is still short of its target, so it stays as stock', { lv: c.top, good: good(c.stops.good) })
+		: T('stops at Level {lv}: {good} is up to its target', { lv: c.top, good: good(c.stops.good) })}</span>`);
+	if (c.away && c.away.at.length) {
+		const where = c.away.at.map(([town, n]) => T('{n} at {town}', { n: F(n), town: esc(gameName(town)) })).join(', ');
+		lines.push(`<span class="chain-stock away">${T('climbs from lower: your spare {good} are in another storage ({where}) — sail from there, or bring them here first, to start from them', { good: good(c.away.good), where })}</span>`);
+	}
+	return lines.join('');
 }
 
 /**
@@ -983,6 +1002,7 @@ export function chainStepsDialog(id) {
 function soloWhy(c, solo) {
 	const cut = (solo.cut || [])[0];
 	if (cut && cut.why === 'floor') return T('stops at Level {lv}: your floor keeps them', { lv: cut.level });
+	if (cut && cut.why === 'full') return T('stops: {good} is up to its target', { good: esc(gameName(cut.good)) });
 	if (cut && cut.why === 'parley') return T('stops: the Parley runs out');
 	if (cut && (cut.why === 'hold' || cut.why === 'over' || cut.why === 'share')) return T('stops: the hold is full');
 	if (cut && cut.why === 'market') return T('stops: the Market has too few');

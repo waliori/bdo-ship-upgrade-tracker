@@ -104,7 +104,19 @@ export function silverParts(me, b) {
 	// orders take the shore goods from the pile rather than buying.
 	const land = landHeld(store.getAllStock());
 	const covered = c => c.from !== 'land' || o.landFrom !== 'stock' || (land.get(c.item) || 0) >= c.rungs[0].giveN;
-	const everything = spendUsed(chains(b.data, stock, dock, prof.barterCount, ceilingNow, coining), b);
+	// A run for the stock shapes every chain good by good: where it
+	// starts from what is held, where it stops below what is full, and
+	// what of it waits in a storage the run does not load from.
+	const fill = stocking && V.stockGoal.aim !== 'trades' ? (() => {
+		const heldAll = everythingHeld();
+		const away = [];
+		for (const name of heldAll.keys()) {
+			const at = ports.filter(p => !from || p.name !== from.name).map(p => [p.name, store.stockAt(name, p.name)]).filter(([, n]) => n > 0);
+			if (at.length) away.push([name, at]);
+		}
+		return { targets: V.stockGoal.targets, held: [...heldAll], away };
+	})() : null;
+	const everything = spendUsed(chains(b.data, stock, dock, prof.barterCount, ceilingNow, coining, fill), b);
 	// Goods on this board's ladders held in a harbour's storage the run
 	// does not sail from: a chain can only start from what it can load,
 	// so they are offered nowhere. Said, with the harbour to sail from.

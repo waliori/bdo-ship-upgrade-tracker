@@ -148,10 +148,14 @@ export const STOCK_KINDS = [
 
 /**
  * How a stock run scores a set, from the plain `aim` the tab hands in.
- * Both scores carry the other as the tie-break, a thousand to one, so
- * that between two runs that bank the same the sailor gets the one
- * with more barters behind it -- and between two that trade the same,
- * the one that banks more.
+ * A run for the barter count is its trades, a thousand to one over
+ * what it banks. A run for the stock is what it banks, a thousand to
+ * one over what it costs: between two runs that bank the same, the
+ * one that buys less ashore and spends less Parley. It used to be the
+ * one with more trades -- and a trade at the shore for a [Level 1]
+ * the stock was already full of is a trade, so a full stock of them
+ * sent GriefLZ to the Market for a thousand of something to barter
+ * into what he already had, at 29 million silver the score never saw.
  */
 export function scoreFor(aim, stock) {
 	// A run for coins is judged on the coins it brings back, with the
@@ -164,8 +168,15 @@ export function scoreFor(aim, stock) {
 	const held = new Map(aim.held || []);
 	return run => {
 		const fill = fillOf(run, { targetOf, held, stock });
-		return aim.kind === 'trades' ? run.trades * 1000 + fill : fill * 1000 + run.trades;
+		return aim.kind === 'trades' ? run.trades * 1000 + fill : fill * 1000 - costOfFill(run);
 	};
+}
+
+/** What a stock run spends, as the tie-break under what it banks:
+ *  silver ashore by the hundred thousand and Parley by the trade,
+ *  held under a thousand so a single good banked always outweighs it. */
+export function costOfFill(run) {
+	return Math.min(999, (run.cost || 0) / 1e5 + (run.parleyUsed || 0) / PARLEY_UNIT);
 }
 
 export function propose({ chains = [], opts, ship, seed = [], timeCap = 0, width = 5, depth = 8, budgetMs = Infinity, aim = null } = {}) {

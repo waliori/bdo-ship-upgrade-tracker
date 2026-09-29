@@ -51,8 +51,14 @@ import { scoreFor } from './barter-optimizer.js';
  * where the ceiling is, two that differed only above it become one,
  * and a good already held at the ceiling or above starts nothing --
  * it is the stock, not the fuel.
+ *
+ * `fill` is a stock run's targets, when the run is for the stock:
+ * { targets: { level: n }, held: [[name, n]], away: [[name, [[town, n]]]] },
+ * `held` everything the sailor owns wherever it is, `away` what of it
+ * sits in a storage the run does not load from. Then every chain is
+ * shaped good by good -- see `shapeForStock`.
  */
-export function chains(barterData, stock = {}, dock = {}, barterCount = null, ceiling = 0, coins = false) {
+export function chains(barterData, stock = {}, dock = {}, barterCount = null, ceiling = 0, coins = false, fill = null) {
 	// The Crow Coin islands are on every board, taking a [Level 4] and
 	// paying in coins, and nothing takes a coin further -- so a coin
 	// exchange is a top like a [Level 7] is, and it is only offered when
@@ -97,7 +103,8 @@ export function chains(barterData, stock = {}, dock = {}, barterCount = null, ce
 		}
 	}
 	const seen = new Set();
-	return out
+	const shaped = fill ? shapeForStock(out, fill, aboard, ashore) : out;
+	return shaped
 		.map(c => {
 			const last = c.rungs[c.rungs.length - 1];
 			// A chain that ends in coins is named by the level it cashes,
@@ -114,6 +121,80 @@ export function chains(barterData, stock = {}, dock = {}, barterCount = null, ce
 		})
 		.filter(c => !seen.has(c.id) && seen.add(c.id))
 		.sort((a, b) => b.top - a.top || a.rungs.length - b.rungs.length || a.rungs[0].npc.localeCompare(b.rungs[0].npc));
+}
+
+/**
+ * A stock run's chains, shaped good by good against the targets. The
+ * targets are per good: a level can be short on average with half its
+ * kinds over their target, and those are free to climb while the rest
+ * fill. So each chain is asked two things of its own goods.
+ *
+ * Where it stops: at the last rung whose good is still short of its
+ * target. A rung that makes a good already full adds nothing to the
+ * stock, so the climb ends below it -- `stops` says what was full.
+ * A chain with no rung making anything short is no chain for today.
+ *
+ * Where it starts: counted down from the top, the attempts each rung
+ * is for (`need`) -- the top what its good still lacks, each rung under
+ * it what the rung above takes plus what its own good lacks, less what
+ * is held of it over the target. A rung that comes to nothing is one
+ * the goods already held cover, so the climb starts above it, from
+ * them: the chain starting there is on the list already when those
+ * goods are aboard or at the start harbour, and this one is dropped.
+ * When they sit in a storage the run does not load from, it is kept,
+ * climbing from below as before, with `away` saying where they are.
+ */
+export function shapeForStock(list, fill, aboard = new Map(), ashore = new Map()) {
+	const targets = fill.targets || {};
+	const held = new Map(fill.held || []);
+	const away = new Map(fill.away || []);
+	const tgt = name => targets[levelOf(name)] || 0;
+	const lack = name => tgt(name) - (held.get(name) || 0);
+	const out = [];
+	for (const c of list) {
+		// A chain from a good held is only a chain when some of it is
+		// over its target: the rest is the stock, not the fuel.
+		if (c.from !== 'land' && c.rungs[0] && lack(c.item) > -c.rungs[0].giveN) continue;
+		let top = -1;
+		c.rungs.forEach((r, k) => { if (levelOf(r.item) !== null && lack(r.item) > 0) top = k; });
+		if (top < 0) continue;
+		// Nor does a climb go past a good that one island's attempts
+		// cannot bring over its target today: what it makes stays, as
+		// stock, and the rung above would have nothing to take.
+		let why = 'full';
+		for (let k = 0; k < top; k++) {
+			const r = c.rungs[k];
+			if (levelOf(r.item) !== null && r.tries * r.recvMin - lack(r.item) < c.rungs[k + 1].giveN) { top = k; why = 'filling'; break; }
+		}
+		const rungs = c.rungs.slice(0, top + 1);
+		const needOf = short => {
+			const a = new Array(rungs.length);
+			for (let k = top; k >= 0; k--) {
+				const r = rungs[k];
+				const goods = (k === top ? 0 : a[k + 1] * rungs[k + 1].giveN) + short(r.item);
+				a[k] = Math.min(r.tries, Math.max(0, Math.ceil(goods / r.recvMin - 1e-9)));
+			}
+			return a;
+		};
+		const need = needOf(lack);
+		// The highest rung the goods held already cover: the climb begins
+		// above it, from the good it makes.
+		let from = -1;
+		for (let k = 0; k < top; k++) if (need[k] < 1) from = k;
+		const stops = top < c.rungs.length - 1 ? (why === 'full' ? { why, good: c.rungs[top + 1].item } : { why, good: c.rungs[top].item }) : null;
+		if (from >= 0) {
+			const good = rungs[from].item;
+			if ((aboard.get(good) || 0) + (ashore.get(good) || 0) > 0) continue;
+			// Climbing from below, the rungs make what the goods away
+			// would have covered.
+			const where = away.get(good) || [];
+			const gone = name => where.length && name === good ? where.reduce((a, [, n]) => a + n, 0) : 0;
+			out.push({ ...c, rungs, need: needOf(name => lack(name) + gone(name)), stops, away: { good, n: Math.floor(held.get(good) || 0) - tgt(good), at: where } });
+			continue;
+		}
+		out.push({ ...c, rungs, need, stops });
+	}
+	return out;
 }
 
 /** The rung of a climb that is shut, and what opens it: the dearest,
@@ -339,7 +420,11 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 	const weighs = list => list.reduce((a, [name, n]) => a + n * weightOf(name), 0);
 	const take = (goods, name, n) => { const left = (goods.get(name) || 0) - n; if (left < 1e-9) goods.delete(name); else goods.set(name, left); };
 	const cap = new Map();     // the attempts a rung is for: all the island allows, or the hold's share
-	for (const c of climbs) for (const r of c.rungs) cap.set(r, r.tries);
+	// A stock run's chain is for what its goods still lack (`need`, see
+	// shapeForStock), not every attempt an island allows.
+	const needCap = new Map();
+	for (const c of climbs) c.rungs.forEach((r, k) => { if (c.need && Number.isFinite(c.need[k])) needCap.set(r, Math.max(1, c.need[k])); });
+	for (const c of climbs) for (const r of c.rungs) cap.set(r, Math.min(r.tries, needCap.get(r) ?? Infinity));
 
 	// The share of the hold a rung is for, when the hold is shared out:
 	// the thin ladder each top needs, then extras while the whole fits.
@@ -837,7 +922,7 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 				}
 			}
 		}
-		for (const p of plans) p.rs.forEach((r, k) => cap.set(r, p.a[k]));
+		for (const p of plans) p.rs.forEach((r, k) => cap.set(r, Math.min(p.a[k], needCap.get(r) ?? Infinity)));
 	};
 	const spare = (goods, need) => [...goods].map(([name, n]) => [name, n - (need.get(name) || 0)]).filter(([, n]) => n > 1e-9);
 	// What a wharf call at rung `i` sells: the goods the orders let a
@@ -1060,7 +1145,19 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 			const fromBag = i > 0 ? (bagFor.get(lot) || []).map(l => [l.item, l.n]).filter(([name]) => (baggedMax.get(name) || 0) > 1e-9) : [];
 			const outOfBag = fromBag.length ? { fetch: fromBag, lim: hold.free } : null;
 			const sale = stashes.length ? saleAt(i) : [];
-			if (i > 0 && waiting.length) call(homeWharf, [], chain, sale, waiting, lot, outOfBag);
+			// Back at the harbour for the next lot's goods: when they would
+			// not fit beside what is aboard, what no rung ahead takes is left
+			// in its storage first. A stock run sells nothing, so without
+			// this the goods the last lot made filled the hold and the next
+			// lot's were never loaded.
+			if (i > 0 && waiting.length) {
+				const after = new Map(heldMax);
+				for (const [name, n] of sale) take(after, name, n);
+				const over = weightHeld(after) + weighs(waiting.map(l => [l.item, l.n])) > hold.free + 1e-6;
+				const left = new Map(held);
+				for (const [name, n] of sale) take(left, name, n);
+				call(homeWharf, over ? spare(left, needFrom(i)) : [], chain, sale, waiting, lot, outOfBag);
+			}
 			else if (outOfBag) {
 				const w = sale.length ? wharfFor(npc) : dockFor(npc);
 				call(w, [], chain, isStash(w) ? sale : [], [], lot, outOfBag);
@@ -1092,7 +1189,14 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 		// what the run has to say when a chain stops here.
 		const byGoods = Math.floor(spendable / r.giveN + 1e-9);
 		const byParley = costOf(r) > 0 ? Math.floor((parley.bar - spent) / costOf(r)) : Infinity;
-		const want = Math.min(cap.get(r), byGoods, byParley);
+		// The top of a stock run's chain makes only what its good still
+		// lacks, counted as the run goes: another chain may have filled
+		// it already.
+		const mine = order[chain];
+		const byNeed = mine && mine.need && rungs[i].j === mine.rungs.length - 1 && levelOf(r.item) !== null
+			? Math.ceil(Math.max(0, floorOf(r.item, orders) - (ownedNow.get(r.item) || 0)) / r.recvMin - 1e-9)
+			: Infinity;
+		const want = Math.min(cap.get(r), byGoods, byParley, byNeed);
 		let times;
 
 		if (pace === 'fast') {
@@ -1182,6 +1286,11 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 			// number that explains nothing. A rung that had a share and
 			// could not spend it is the exact case worth being exact
 			// about: what the next trade puts on, against what is left.
+			// A good already made up to its target by what came before.
+			if (byNeed < 1) {
+				cutAt(chain, r, 'full', { good: r.item, level: levelOf(r.item) });
+				continue;
+			}
 			const starved = !(cap.get(r) >= 1);
 			// Goods in the hold that a floor keeps back are not "nothing to
 			// hand over": the sailor asked for them kept, and the chain
