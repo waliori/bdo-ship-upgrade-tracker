@@ -16,7 +16,7 @@ import { exchanges } from '../barter-plan.js';
 import { openBarterImport } from '../barter-import.js';
 import { openLayoutBook } from '../layouts-view.js';
 import { driftOf } from '../layout-book.js';
-import { coinSides } from '../barter-layouts.js';
+import { coinSides, listSides } from '../barter-layouts.js';
 import { boardsFor, sawItToo, tellFleet, shared as boardsShared } from '../sea-boards.js';
 import { me } from '../sync.js';
 import { cutOf } from '../barter-short.js';
@@ -462,7 +462,16 @@ export function takeRead(answers) {
 	const sides = new Map(answers.filter(a => a.recv === 'Crow Coin').map(a => [a.npcId, coinSides(a.npcId, a.give)]));
 	const only = [...sides.values()].filter(x => x.trade !== x.material);
 	const coinsAreMats = only.filter(x => x.material).length > only.filter(x => x.trade).length;
+	// A shot is one list. A row paying a trade good is the trade list's,
+	// and so is every other row of the shot -- a Brilliant or a pool's
+	// Tidal Black Stone included. With none, the rows paying something
+	// else go to the list whose layouts show them, most rows deciding:
+	// the trade board's "Normal Barter" view is all side trades.
+	const tradeShot = answers.some(a => a.recv !== 'Crow Coin' && levelOf(a.recv) !== null);
+	const others = answers.filter(a => a.recv !== 'Crow Coin' && levelOf(a.recv) === null).map(a => listSides(a.npcId, a.give, a.recv));
+	const sideShot = !tradeShot && others.filter(x => x.trade && !x.material).length > others.filter(x => x.material && !x.trade).length;
 	const isMat = a => {
+		if (tradeShot || sideShot) return false;
 		if (a.recv !== 'Crow Coin') return levelOf(a.recv) === null;
 		const x = sides.get(a.npcId);
 		return x.material && (!x.trade || coinsAreMats);

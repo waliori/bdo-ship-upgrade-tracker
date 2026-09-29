@@ -178,6 +178,24 @@ export function coinSides(npcId, give) {
 }
 
 /**
+ * Which list an exchange belongs to: `{ trade, material }`, each whether
+ * a layout of that list can show it -- a trade layout's fixed slots and
+ * pools, or a material page. The same sixteen islands have slots on
+ * both, so the island alone does not say.
+ */
+export function listSides(npcId, give, recv) {
+	const hit = o => o.give === give && o.recv === recv;
+	const trade = !!game && layouts().combos.some(c => {
+		const o = c.offers.find(x => x[0] === npcId);
+		if (o && o[1] === give && o[3] === recv) return true;
+		const pool = c.pools && c.pools[npcId];
+		return !!pool && pool.options.some(hit);
+	});
+	const material = materialPages().some(p => { const o = p.offers.get(npcId); return !!o && [o, ...(o.options || [])].some(hit); });
+	return { trade, material };
+}
+
+/**
  * The material list's forty-one layouts, as pages of the material book
  * (material-book.js): `{ id, row, offers: Map(npc -> offer) }`, an offer
  * `{ give, recv, giveN, recvN, recvMax, perDay, parley, chance }`. A slot

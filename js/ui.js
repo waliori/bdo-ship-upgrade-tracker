@@ -1028,7 +1028,7 @@ function wire() {
 		if (NAV_ACTS.has(act) && el.closest('.dialog')) closeDialog();
 
 		switch (act) {
-			case 'view': if (el.dataset.quest) setQuestFocus(el.dataset.quest); showView(el.dataset.id); return;
+			case 'view': if (el.dataset.quest) setQuestFocus(el.dataset.quest); if (el.dataset.sail) getAction('get-today-sail', el); showView(el.dataset.id); return;
 			case 'tab-sheet': return openTabSheet();
 			case 'undo': {
 				const label = store.undo();

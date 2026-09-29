@@ -30,7 +30,8 @@ import { shoppingList, waysToGet, yieldOf } from './planner.js';
 import { coinBuyButton } from './coin-shop.js';
 import { PRESETS, DAY_CHOICES, DOING, wayText, groupLegs } from './get-plan.js';
 import { theWay, getOrders, questDoneNow } from './get-way.js';
-import { todayFor } from './barter/get-today.js';
+import { todayFor, sailToday } from './barter/get-today.js';
+import { openDialog } from './dialogs.js';
 
 // Which of its two readings the screen gives: the way to get each
 // thing -- one route an item, chosen against the others -- or every
@@ -537,39 +538,63 @@ function todayHTML(q) {
 	if (!t.layout) {
 		return `<div class="panel way-step get-today">
 			${stepHead('◎', 'blue', T('Today’s board'), T('Read today’s board on the Barter tab and what it deals toward this list shows here.'), '', id)}
-			${folded.has(id) ? '' : `<div class="way-step-body"><p class="get-today-empty">${T('No board read today — the material list or the trade board, whichever you refreshed. One screenshot of the barter window is enough.')} <button class="chip tiny primary" data-act="view" data-id="barter">${T('Read it on the Barter tab')} ›</button></p></div>`}
+			${folded.has(id) ? '' : `<div class="way-step-body"><p class="get-today-empty">${T('No board read today — the material list or the trade board, whichever you refreshed. One screenshot of the barter window is enough. Until then the barter figures below are estimates.')} <button class="chip tiny primary" data-act="view" data-id="barter">${T('Read it on the Barter tab')} ›</button></p></div>`}
 		</div>`;
 	}
 	const rows = q ? t.rows.filter(r => nameHas(r.item, q)) : t.rows;
 	const ticks = ticksNow(t.layout.day);
+	const pay = d => (d.recvMin === d.recvMax ? F(d.recvMin) : `${F(d.recvMin)}–${F(d.recvMax)}`);
 	const deal = (r, d) => {
 		const key = `${d.npcId}|${r.item}`;
-		const done = ticks.has(key) || (d.perDay > 0 && d.left <= 0);
+		const done = ticks.has(key);
 		const range = d.todayMin === d.todayMax ? F(d.todayMax) : `${F(d.todayMin)}–${F(d.todayMax)}`;
-		const give = `${F(d.giveN)}× ${esc(gameName(d.give))}`;
-		const hold = d.shore ? T('bought ashore') : d.held >= d.giveN ? T('{n} held', { n: F(d.held) }) : `<b class="warn">${T('you hold none')}</b>`;
-		return `<div class="get-today-deal${done ? ' done' : ''}">
+		const how = d.state === 'draw' ? `<em class="get-today-roll" title="${esc(d.gives.map(gameName).join(', '))}">${T('drawn: {k} of its {n} offers pay this — read the window to know', { k: F(d.hits), n: F(d.draw) })}</em>`
+			: d.held >= d.giveN ? T('{n} held', { n: F(d.held) })
+			: d.shore ? T('bought ashore')
+			: d.climb ? (d.climb.from === 'land' ? T('climbed to on this board from the shore, {n} islands', { n: F(d.climb.rungs) }) : T('climbed to on this board from your {item}', { item: esc(gameName(d.climb.item)) }))
+			: '';
+		return `<div class="get-today-deal${done ? ' done' : ''}${d.state === 'draw' ? ' draw' : ''}">
 			<button class="get-today-tick" data-act="get-today-tick" data-k="${esc(key)}" aria-pressed="${done}" title="${T('Tick it off when you have traded there today')}">${done ? '✓' : ''}</button>
 			<span class="get-today-isle"><b>${esc(gameName(d.isle))}</b> ${esc(d.who)}</span>
-			<span class="get-today-trade">${img(d.give, 'reward-icon')}${give} → ${d.recvMin === d.recvMax ? F(d.recvMin) : `${F(d.recvMin)}–${F(d.recvMax)}`}${d.rolled ? ` <em class="get-today-roll" title="${T('The game rolls this island between {n} offers: it may show another one', { n: F(d.rolled) })}">${T('one of {n}', { n: F(d.rolled) })}</em>` : ''}</span>
-			<span class="get-today-left">${d.perDay ? (d.left < d.perDay ? T('{n} of {of} trades left', { n: F(d.left), of: F(d.perDay) }) : T('{n} trades today', { n: F(d.perDay) })) : ''} · ${T('up to {n}', { n: range })} · ${hold}</span>
+			<span class="get-today-trade">${d.state === 'draw' && d.gives.length > 1 ? `${d.gives.slice(0, 3).map(g => img(g, 'reward-icon')).join('')} ${T('one of {n} goods', { n: F(d.gives.length) })}` : `${img(d.give, 'reward-icon')}${F(d.giveN)}× ${esc(gameName(d.give))}`} → ${pay(d)}</span>
+			<span class="get-today-left">${d.perDay ? (d.left < d.perDay ? T('{n} of {of} trades left', { n: F(d.left), of: F(d.perDay) }) : d.perDay === 1 ? T('{n} trade today', { n: F(d.perDay) }) : T('{n} trades today', { n: F(d.perDay) })) : ''}${d.state === 'draw' ? '' : ` · ${T('up to {n}', { n: range })}`}${how ? ` · ${how}` : ''}</span>
 		</div>`;
 	};
 	const body = rows.map(r => {
-		const covers = r.todayMax >= r.need;
+		const covers = r.todayMin >= r.need;
 		return `<div class="get-today-item">
 			<div class="get-today-head">${img(r.item, 'row-icon sm')}<span class="get-today-name">${codexName(r.item)}</span>
-				<span class="get-today-need">${T('{n} short', { n: F(Math.ceil(r.need)) })} · <b class="${covers ? 'good' : ''}">${covers ? T('today can cover it') : T('today brings up to {n}', { n: F(r.todayMax) })}</b></span></div>
+				<span class="get-today-need">${T('{n} short', { n: F(Math.ceil(r.need)) })} · <b class="${covers ? 'good' : ''}">${covers ? T('today can cover it') : r.todayMax ? T('today brings up to {n}', { n: F(r.todayMax) }) : T('only if a draw shows it')}</b></span></div>
 			${r.deals.map(d => deal(r, d)).join('')}
 		</div>`;
 	}).join('');
 	const off = t.off.length ? `<p class="get-today-off">${T('Not on today’s layout: {list} — their other ways are in the steps below.', { list: t.off.slice(0, 8).map(x => esc(gameName(x))).join(', ') + (t.off.length > 8 ? ` ${T('and {n} more', { n: t.off.length - 8 })}` : '') })}</p>` : '';
+	const blocked = t.blocked.length ? `<button class="chip tiny warn" data-act="get-today-blocked">${t.blocked.length === 1 ? T('{n} island can’t be done today', { n: F(t.blocked.length) }) : T('{n} islands can’t be done today', { n: F(t.blocked.length) })} ›</button>` : '';
+	const sail = rows.some(r => r.deals.some(d => d.state === 'ok')) ? `<button class="chip tiny primary" data-act="view" data-id="barter" data-sail="${t.layout.list}">${T('Sail it on the Barter tab')} ›</button>` : '';
+	const done = t.done ? `<p class="get-today-done">${T('Today’s board is traded out for your list. The barter figures below are estimates from every layout on record until the next refresh is read.')}</p>` : '';
 	const right = rows.length === 1 ? T('{n} thing today', { n: F(rows.length) }) : T('{n} things today', { n: F(rows.length) });
 	return `<div class="panel way-step get-today">
-		${stepHead('◎', 'blue', T('Today’s board'), T('On {layout}: what it deals toward this list, island by island. The days above come from every layout on record; this is today’s.', { layout: layoutName(t.layout) }), rows.length ? right : T('nothing on your list'), id)}
-		${folded.has(id) ? '' : `<div class="way-step-body">${choose}${body || `<p class="get-today-empty">${T('Today’s layout deals none of what is still short.')}</p>`}${off}
-			<div class="get-today-foot"><button class="chip tiny primary" data-act="view" data-id="barter">${T('Plan the run on the Barter tab')} ›</button></div></div>`}
+		${stepHead('◎', 'blue', T('Today’s board'), T('On {layout}: what it deals toward this list, island by island. A suggestion for this one board; the days below come from every layout on record.', { layout: layoutName(t.layout) }), rows.length ? right : T('nothing on your list'), id)}
+		${folded.has(id) ? '' : `<div class="way-step-body">${choose}${done}${body || (done ? '' : `<p class="get-today-empty">${T('Today’s layout deals none of what is still short.')}</p>`)}${off}
+			<div class="get-today-foot">${blocked}<span class="panel-spacer"></span>${sail}</div></div>`}
 	</div>`;
+}
+
+/** The islands of today's board that deal something short and cannot be
+ *  done today, each with why, over the page. */
+function blockedDialog() {
+	const t = today();
+	const why = d => (d.state === 'gate' ? `🔒 ${T('opens at {n} Total Barters', { n: F(d.gate) })}`
+		: d.state === 'done' ? `✓ ${T('traded out today')}`
+		: `${T('takes {n}× {give} — you hold {held}', { n: F(d.giveN), give: esc(gameName(d.give)), held: F(d.held) })}${t.layout.list === 'trade' ? `, ${T('and no chain of today’s board climbs to it')}` : `, ${T('and the material list makes none')}`}`);
+	openDialog(`<h2>${T('Can’t be done today')}</h2>
+		<p class="dialog-note">${T('Islands on {layout} that pay something your builds are short of, and why they are out of today’s run.', { layout: layoutName(t.layout) })}</p>
+		<div class="get-blocked">${t.blocked.map(d => `<div class="get-blocked-row ${d.state}">
+			<span class="get-blocked-isle"><b>${esc(gameName(d.isle))}</b><small>${esc(d.who)}</small></span>
+			<span class="get-blocked-swap">${img(d.give, 'row-icon sm')}<span>${F(d.giveN)}× ${esc(gameName(d.give))}</span><span class="run-arrow">→</span>${img(d.item, 'row-icon sm')}<b>${d.recvMin === d.recvMax ? F(d.recvMin) : `${F(d.recvMin)}–${F(d.recvMax)}`}× ${esc(gameName(d.item))}</b></span>
+			<span class="get-blocked-why">${why(d)}</span>
+		</div>`).join('')}</div>
+		<div class="dialog-actions"><button class="act quiet" data-close>${T('Close')}</button></div>`).querySelector('.dialog-box').classList.add('wide');
 }
 
 /** A barter row's word on today: on the board and how much, or not. */
@@ -695,6 +720,9 @@ function coinFoot(way) {
 
 export function getAction(act, el) {
 	switch (act) {
+		// Pressed as a way to the Barter tab: the tab is shown by the view.
+		case 'get-today-sail': sailToday(el.dataset.sail); return false;
+		case 'get-today-blocked': blockedDialog(); return false;
 		case 'get-today-side': store.setSetting('getTodaySide', el.dataset.id === 'trade' ? 'trade' : 'material', true); return true;
 		case 'get-today-tick': {
 			const day = today().layout ? today().layout.day : '';

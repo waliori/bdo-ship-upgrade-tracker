@@ -260,6 +260,21 @@ export function silverParts(me, b) {
 		V.routes = { key, ids: short || V.proposed.working ? [] : V.proposed.best ? V.proposed.best.ids : all.length ? [all[0].id] : [] };
 		V.routesAuto = !short && V.proposed.working ? key : '';
 	}
+	// Sent here from To Get: the chains that end at a material the builds
+	// need, one an island -- the best start of each, a good held before
+	// the shore, the shortest climb -- ticked as the run.
+	if (V.tickSide && !short) {
+		V.tickSide = false;
+		const best = new Map();
+		const rank = c => (c.from === 'land' ? 100 : 0) + c.rungs.length;
+		for (const c of all.filter(x => x.pays === 'material')) {
+			const at = c.rungs[c.rungs.length - 1].npcId;
+			if (!best.has(at) || rank(c) < rank(best.get(at))) best.set(at, c);
+		}
+		V.routes = { key, ids: [...best.values()].map(c => c.id) };
+		V.routesAuto = '';
+		persist();
+	}
 	const chosen = short ? shortSet.picked : all.filter(c => V.routes.ids.includes(c.id));
 	const sameSet = (x, y) => x.length === y.length && x.slice().sort().join('|') === y.slice().sort().join('|');
 	const cards = V.proposed.proposals.map(p => {
