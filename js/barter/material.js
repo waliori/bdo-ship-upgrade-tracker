@@ -349,7 +349,7 @@ export function matBarHTML() {
 		body = `${drop(!st.read, st.read ? T('Paste another page') : T('Paste one screenshot of the material list'), st.read
 			? (st.read === 1 ? T('{n} island read so far — a page more tells which layout it is.', { n: F(st.read) }) : T('{n} islands read so far — a page more tells which layout it is.', { n: F(st.read) }))
 			: T('Open the Barter Information window in game — the same window as for trade goods — screenshot it whole and paste it here (Ctrl V). The rows of the material list are read, and the layout they belong to fills in the rest.'))}
-			${matShotHelp(!st.read)}
+			${matShotHelp()}
 			<p class="board-ask-sub">${T('Or tick, below, the islands showing what you are after.')}</p>`;
 	} else if (kind === 'taken') {
 		// A list taken whole needs no screenshot; one can still check it.
@@ -613,7 +613,7 @@ export function materialParts(me, data) {
 		${orderRow('barter-vouchers', T('trade vouchers'), ordersNow().vouchers, VOUCHER_CHOICES, T('Whether the run draws on the Crow’s Trade Vouchers you carry; each is a quarter of a bar, on its own two-hour cooldown'))}
 		${orderRow('barter-mat-quests', T('quests on the way'), V.matOrders.quests, QUEST_CHOICES, T('The dailies and weeklies already taken, handed in where the run passes their taker or at a stop put in a short way off the route; the hunts only when their grounds lie on the way'))}
 		${breezyRow()}
-		${orderRow('barter-mat-calls', T('a give kept at another harbour'), V.matOrders.calls ? 'true' : 'false', [['true', T('call there for it')], ['false', T('bring it first')]], T('Put in at another harbour on the way for a give kept in its storage, or bring it to the harbour the run sails from before casting off'))}
+		${orderRow('barter-mat-calls', T('goods to give, stored at another harbour'), V.matOrders.calls ? 'true' : 'false', [['true', T('stop there on the way'), T('The run puts in at that harbour and loads them from its storage before the island that takes them')], ['false', T('I move them home first'), T('You carry them to the home port’s storage before casting off: the run does not stop for them')]], T('A good an island wants in exchange, kept in the storage of a harbour other than the one the run sails from'))}
 		<div class="order-row" title="${T('Where the ship is: taken up again at sea, the run starts at that island with what is aboard, and the home port stays home -- its storage is still what the run comes back to')}"><span class="order-k">${T('the ship is now')}</span><div class="order-v"><span class="chips"><button class="chip tiny active" data-act="barter-mat-at-pick">${atSea ? `📍 ${esc(T('at {isle}', { isle: gameName(isleShort(npcById.get(V.matAt))) }))}` : esc(T('at the home port'))} ▾</button>${atSea ? `<button class="chip tiny" data-act="barter-mat-at-home">${T('back at the home port')}</button>` : ''}</span></div></div>
 		${orderRow('barter-port', T('home port'), V.port, [[0, T('the first stop')], ...ports.map(p => [p.id, gameName(p.name)])])}
 	</div>`;
@@ -659,7 +659,7 @@ export function materialParts(me, data) {
 	const packing = plan.stops.length ? `${leaveHomeHTML(packPlan, from, fromAboard)}${packingHTML(packPlan, from, fromAboard)}` : '';
 	// A give held where the run cannot load it: to be brought first.
 	const before = toBring.length ? `<section class="panel run-list amber mat-goods"><div class="panel-head"><h2 class="panel-title">${T('Bring to the harbour first')}</h2><span class="panel-sub">${T('held where the run cannot load it')}</span></div>
-		${toBring.map(m => good(m.give, m.bring, `${T('at {where}', { where: esc(m.heldAt.map(h => `${gameName(h.town)} (${F(h.n)})`).join(', ')) })} · ${T('bring it to {where} first', { where: from ? esc(T('{port}’s storage', { port: gameName(from.name) })) : T('the harbour the run sails from') })}${V.matOrders.calls ? '' : `, ${T('or let the run call there')}`} · ${T('for {isles}', { isles: esc(m.islands.map(n => isleShort(n)).join(', ')) })}`)).join('')}
+		${toBring.map(m => good(m.give, m.bring, `${T('at {where}', { where: esc(m.heldAt.map(h => `${gameName(h.town)} (${F(h.n)})`).join(', ')) })} · ${T('bring it to {where} first', { where: from ? esc(T('{port}’s storage', { port: gameName(from.name) })) : T('the harbour the run sails from') })}${V.matOrders.calls ? '' : `, ${T('or choose “stop there on the way”')}`} · ${T('for {isles}', { isles: esc(m.islands.map(n => isleShort(n)).join(', ')) })}`)).join('')}
 	</section>` : '';
 	// A ship already heavier than the pace allows, and no harbour to leave
 	// the rest at: the run cannot lighten it, so it says how to.

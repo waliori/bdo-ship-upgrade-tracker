@@ -74,8 +74,14 @@ export function parleySpentOf(plan, on) {
  *  first not done and not passed over, else the first not done. */
 export function stopAt(plan, on) {
 	const keys = plan.stops.map((s, k) => stopKey(s, k, plan.stops));
-	const done = k => ticked(on.done, plan.stops[k], k, plan.stops);
 	if (V.cursor !== null && keys.includes(V.cursor)) return keys.indexOf(V.cursor);
+	return stopDue(plan, on);
+}
+
+/** Where the run is, whatever stop the cockpit was sent to. */
+export function stopDue(plan, on) {
+	const keys = plan.stops.map((s, k) => stopKey(s, k, plan.stops));
+	const done = k => ticked(on.done, plan.stops[k], k, plan.stops);
 	let at = keys.findIndex((key, k) => !done(k) && !V.skipped.has(key));
 	if (at < 0) at = keys.findIndex((key, k) => !done(k));
 	return at;
@@ -522,6 +528,7 @@ function holdSlotsHTML(around = null) {
  *  its tick, what changes hands, and the two bars after it. */
 function restHTML(plan, on, book, legOf, at, along) {
 	const stops = plan.stops;
+	const due = stopDue(plan, on);
 	const doneN = stops.filter((s, k) => ticked(on.done, s, k, stops)).length;
 	const pools = rationMarks(stops, plan.weightStart || 0);
 	const rows = stops.map((s, k) => {
@@ -531,11 +538,60 @@ function restHTML(plan, on, book, legOf, at, along) {
 			? `${img(s.give, 'row-icon xs')}<span>${esc(s.giveText)}× ${esc(gameName(s.give))}</span><span class="faint">→</span>${img(sevenOf(s), 'row-icon xs')}<span class="tiered" style="--tier:${TIER(levelOf(s.item))}">${esc(s.recvText)}× ${esc(gameName(sevenOf(s)))}</span><b>×${F(s.times)}</b>`
 			: `<span>${s.wharf ? [s.toBag && s.toBag.length ? T('Into your bag') : '', s.fromBag && s.fromBag.length ? T('Out of your bag, aboard') : '', s.loads && s.loads.length ? T('Loads from storage') : '', s.dropped && s.dropped.length ? T('Leaves in storage') : '', s.sale ? T('sells {n} {what} here for {silver}', { n: n1(s.sale.n), what: T('goods'), silver: FC(Math.round(s.sale.total)) }) : ''].filter(Boolean).join(' · ') || names.kind : names.kind}</span>`;
 		const pn = parleyNotes(book, k, s);
-		return `<div class="rest-row${k === at ? ' here' : ''}${done ? ' done' : ''}${V.skipped.has(key) && !done ? ' skipped' : ''}${pn.cls ? ` ${pn.cls}` : ''}" data-act="barter-sail-jump" data-k="${esc(key)}" role="button" tabindex="0">
+		return `<div class="rest-row${k === at ? ' here' : ''}${k === due ? ' due' : ''}${done ? ' done' : ''}${V.skipped.has(key) && !done ? ' skipped' : ''}${pn.cls ? ` ${pn.cls}` : ''}" data-act="barter-sail-jump" data-k="${esc(key)}" role="button" tabindex="0">
 			<button class="rest-dot${done ? ' on' : ''}" data-act="barter-stop-done" data-k="${esc(key)}" aria-pressed="${done}" title="${T('tick this stop')}">${done ? '✓' : k + 1}</button>
-			<div class="rest-main"><div class="rest-head"><b>${esc(names.place)}</b><span>${esc(names.who)}</span>${pn.tag}</div><div class="rest-what">${what}</div>${bars.bad || bars.over ? `<div class="rest-note">${bars.w.note || T('over the limit')}</div>` : ''}${pn.note}</div>
+			<div class="rest-main"><div class="rest-head"><b>${esc(names.place)}</b><span>${esc(names.who)}</span>${k === due ? `<i class="rest-tag due">${T('you are here')}</i>` : ''}${pn.tag}</div><div class="rest-what">${what}</div>${bars.bad || bars.over ? `<div class="rest-note">${bars.w.note || T('over the limit')}</div>` : ''}${pn.note}</div>
 			<div class="rest-bars">${bars.hold}${bars.parley}${rationsMini(pools[k])}<span class="rest-leg">${esc(legOf(k))}</span></div>
 		</div>`;
 	}).join('');
-	return `<section class="panel rest-panel"><div class="panel-head"><h2 class="panel-title">${T('The rest of the run')}</h2><span class="panel-sub">${T('{n} of {of} done', { n: doneN, of: stops.length })} · ${T('tap a stop to jump to it')}</span>${(on.told || []).length ? `<span class="panel-spacer"></span><button class="linky" data-act="barter-step" data-id="load">${T('what the wharf step said')} ›</button>` : ''}</div>${rows}</section>`;
+	// Down a long run the list scrolls in a box of its own, kept on the
+	// stop in view; a button finds the stop the run is at again when it
+	// is scrolled away, or another stop is open.
+	const back = due >= 0 ? `<button class="rest-back" data-act="barter-sail-due"${at === due ? ' hidden' : ''}>${T('Back to stop {n}, where the run is', { n: due + 1 })}</button>` : '';
+	setTimeout(settleRest, 0);
+	return `<section class="panel rest-panel"><div class="panel-head"><h2 class="panel-title">${T('The rest of the run')}</h2><span class="panel-sub">${T('{n} of {of} done', { n: doneN, of: stops.length })} · ${T('tap a stop to jump to it')}</span>${(on.told || []).length ? `<span class="panel-spacer"></span><button class="linky" data-act="barter-step" data-id="load">${T('what the wharf step said')} ›</button>` : ''}</div><div class="rest-rows">${rows}</div>${back}</section>`;
+}
+
+// The list's own scroll, kept across redraws: a redraw lays a new box,
+// which would start at the top again.
+const restMem = { at: null, top: 0, force: false };
+
+/** Ask the next redraw to bring the stop in view into the list's view. */
+export function restFind() { restMem.force = true; }
+
+/** The stop in view brought into the list when it changed, else the
+ *  list left where the sailor scrolled it; and the button to the stop
+ *  the run is at shown whenever that stop is out of sight. */
+function settleRest() {
+	if (typeof document === 'undefined') return;
+	for (const box of document.querySelectorAll('.rest-panel .rest-rows')) {
+		const here = box.querySelector('.rest-row.here');
+		const scrolls = box.scrollHeight > box.clientHeight + 2;
+		const key = here ? here.dataset.k : null;
+		if (scrolls && here && (restMem.force || key !== restMem.at)) {
+			box.scrollTop = Math.max(0, here.offsetTop - box.offsetTop - (box.clientHeight - here.offsetHeight) / 2);
+		} else if (scrolls) box.scrollTop = restMem.top;
+		restMem.at = key;
+		restMem.force = false;
+		restMem.top = box.scrollTop;
+		backShown(box);
+		if (!box.dataset.watched) {
+			box.dataset.watched = '1';
+			box.addEventListener('scroll', () => { restMem.top = box.scrollTop; backShown(box); }, { passive: true });
+		}
+	}
+}
+
+/** The button back shown while the stop the run is at is scrolled out
+ *  of the list, or another stop is open; its arrow points to it. */
+function backShown(box) {
+	const btn = box.parentElement && box.parentElement.querySelector('.rest-back');
+	const due = box.querySelector('.rest-row.due');
+	if (!btn || !due) return;
+	const b = box.getBoundingClientRect(), r = due.getBoundingClientRect();
+	const way = r.bottom < b.top + 8 ? 'up' : r.top > b.bottom - 8 ? 'down' : '';
+	btn.hidden = !way && due.classList.contains('here');
+	btn.dataset.way = way;
+	// Pointing up it sits at the list's top, under a head that may wrap.
+	btn.style.top = way === 'up' ? `${box.offsetTop + 10}px` : '';
 }

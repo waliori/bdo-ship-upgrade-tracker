@@ -1116,7 +1116,22 @@ button.rung-fate { cursor: pointer; }
 .cockpit.glance .cockpit-go { font-size: 26px; padding: 22px; }
 
 /* The rest of the run, down the side. */
-.rest-panel { overflow: hidden; }
+.rest-panel { overflow: hidden; position: relative; }
+/* Beside the cockpit the list is as tall as the cockpit's column and
+   scrolls inside itself: the height:0 + min-height:100% pair lets the
+   column set the row and the list only fill it. */
+.cockpit-grid > .rest-panel { align-self: stretch; display: flex; flex-direction: column; height: 0; min-height: 100%; }
+.cockpit-grid > .rest-panel > .rest-rows { flex: 1 1 0; min-height: 240px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+.rest-row.due .rest-dot { border-color: var(--teal); color: var(--teal); box-shadow: 0 0 0 3px var(--teal-glow); }
+.rest-row.due { box-shadow: inset 3px 0 0 var(--teal); }
+.rest-tag.due { color: var(--teal); border: 1px solid var(--teal-edge); background: var(--teal-glow); }
+.rest-back { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); z-index: 2; padding: 7px 14px; border-radius: 999px; border: 1px solid var(--teal-edge); background: rgba(var(--deep-rgb), 0.94); color: var(--teal); font-family: var(--font-display); font-size: 12.5px; font-weight: 600; white-space: nowrap; cursor: pointer; box-shadow: 0 8px 22px -10px rgba(0, 0, 0, 0.6); backdrop-filter: blur(6px); }
+.rest-back:hover { background: var(--teal); color: var(--on-tint); }
+.rest-back[hidden] { display: none; }
+.rest-back::before { content: '⤺ '; }
+.rest-back[data-way="up"] { bottom: auto; }
+.rest-back[data-way="up"]::before { content: '↑ '; }
+.rest-back[data-way="down"]::before { content: '↓ '; }
 .rest-row { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; gap: 12px; align-items: start; padding: 10px 14px; border-top: 1px solid var(--line-soft); cursor: pointer; }
 .rest-row.here { background: var(--blue-glow); }
 .rest-row.done { opacity: 0.55; }
@@ -1155,6 +1170,7 @@ button.rung-fate { cursor: pointer; }
 .mini-bar .run-bar { margin-top: 2px; }
 @media (max-width: 900px) {
   .cockpit-grid { grid-template-columns: 1fr; }
+  .cockpit-grid > .rest-panel { height: auto; min-height: 0; max-height: 72vh; }
   .rest-bars { width: 100px; }
 }
 @media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {

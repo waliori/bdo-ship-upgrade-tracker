@@ -27,7 +27,10 @@
 // which quests are handed in at each of its stops -- the sailor is
 // taken to have accepted them already, at Velia, Iliya or Oquilla's
 // Eye, so only the last step counts; `barters` is how many barters a
-// barter quest asks for, counted off the run's trades. The
+// barter quest asks for, counted off the run's trades; `hands` is a
+// trade good of a level the quest takes, asked for at the claim and
+// taken out of the stock -- the two Barter Goods Support dailies pay
+// only experience, but they cost a [Level 1] good each. The
 // Quests screen groups them by how often they can be done, and records
 // a reward with one press, so a claimed letter lands in stock like a
 // craft does.
@@ -381,6 +384,28 @@ export const quests = [
 		where: TT("Dario, Iliya Island — deliver his supplies to Ravikel at Oquilla's Eye"),
 		repeat: 'daily',
 		rewards: { 'Crow Coin': 100, "Cox Pirates' Artifact (Parley Beginner)": 2 }
+	},
+	{
+		id: 'goods-support-1',
+		at: [['port', 'Iliya Island', 'Baori', 'take and hand in']],
+		codex: '3736/6',
+		name: '[Barter] [Daily] Barter Goods Support I',
+		where: TT('Baori, Iliya Island — hand over a Level 1 trade good'),
+		repeat: 'daily',
+		hands: { level: 1, n: 1 },
+		note: TT('Pays only experience; Claimed asks which Level 1 good you handed over.'),
+		rewards: {}
+	},
+	{
+		id: 'goods-support-2',
+		at: [['port', 'Iliya Island', 'Maonil', 'take and hand in']],
+		codex: '3736/7',
+		name: '[Barter] [Daily] Barter Goods Support II',
+		where: TT('Maonil, Iliya Island — hand over a Level 1 trade good'),
+		repeat: 'daily',
+		hands: { level: 1, n: 1 },
+		note: TT('Pays only experience; Claimed asks which Level 1 good you handed over.'),
+		rewards: {}
 	},
 	{
 		id: 'lively',

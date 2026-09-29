@@ -109,7 +109,9 @@ function questRow(q, short, wanted, isDone) {
 			? `<button class="pill-btn" data-act="quest-claim" data-quest="${esc(q.id)}" title="${T('Record it with {item} again, as last time', { item: esc(gameName(last.item[0])) })}">${T('Claimed')}</button>
 				<button class="link-btn" data-act="quest-claim-pick" data-quest="${esc(q.id)}" title="${T('Took a different reward this time')}">${T('other reward…')}</button>`
 			: `<button class="pill-btn" data-act="quest-claim-pick" data-quest="${esc(q.id)}" title="${T('Which of the pick-one rewards you took')}">${T('Claimed')} ▾</button>`)
-		: `<button class="pill-btn" data-act="quest-claim" data-quest="${esc(q.id)}">${T('Claimed')}</button>`;
+		: q.hands
+			? `<button class="pill-btn" data-act="quest-claim" data-quest="${esc(q.id)}" title="${T('Asks which good you handed over, and takes it out of your inventory')}">${T('Claimed')} ▾</button>`
+			: `<button class="pill-btn" data-act="quest-claim" data-quest="${esc(q.id)}">${T('Claimed')}</button>`;
 	const buttons = isDone
 		? `<span class="quest-done-tag">✓ ${doneWord(q)}</span>
 			<button class="link-btn" data-act="quest-undone" data-quest="${esc(q.id)}" title="${T('Take the tick off without touching your stock')}">${T('not done')}</button>`
@@ -133,7 +135,7 @@ function questRow(q, short, wanted, isDone) {
 			<div class="quest-name">${name}${wanted ? `<span class="quest-tag">${esc(wanted)}</span>` : ''}</div>
 			<div class="quest-where">${esc(said(q.where))}${q.note ? ` · ${esc(said(q.note))}` : ''}${q.monster
 				? ` · <button class="link-btn" data-act="quest-map" data-monster="${esc(q.monster)}" title="${T('Show where they are on the Map')}">${T('on the map')} ↗</button>` : ''}</div>
-			<div class="quest-rewards">${rewardChips(q.rewards, short)}${q.choice
+			<div class="quest-rewards">${q.hands ? `<span class="reward cost" title="${T('Handed over at the claim: you pick which, and it comes out of your inventory')}"><b>−${F(q.hands.n)}×</b> ${T('any Level {lv} trade good', { lv: q.hands.level })}</span>` : ''}${rewardChips(q.rewards, short)}${q.choice
 				? `<span class="quest-or">${T('and one of')}</span>${q.choice.map(c => rewardChips(c, short)).join(`<span class="quest-or">${T('or')}</span>`)}` : ''}</div>
 			${q.choice ? (last
 				? `<div class="quest-recall">${T('You take {n}× {item} — Claimed records that again.', { n: F(last.item[1]), item: esc(gameName(last.item[0])) })} <button class="link-btn" data-act="quest-pick-set" data-quest="${esc(q.id)}" title="${T('Keep a different reward as the favourite')}">${T('change')}</button>${planSays(q, last.i)}</div>`
@@ -308,18 +310,52 @@ export function renderQuests() {
 
 /** The change one claim makes to stock: the fixed rewards, plus the
  *  pick-one at `choice`. */
-function claimDelta(q, choice) {
+function claimDelta(q, choice, good = '') {
 	const delta = { ...q.rewards };
 	const pick = choice !== null && q.choice && q.choice[choice];
 	if (pick) for (const [item, n] of Object.entries(pick)) delta[item] = (delta[item] || 0) + n;
+	if (good && q.hands) delta[good] = (delta[good] || 0) - q.hands.n;
 	return delta;
+}
+
+const LEVEL = /^\[Level (\d)\]/;
+/** The trade goods of the level a quest takes, held now, most first. */
+function goodsFor(q) {
+	return Object.entries(store.getAllStock())
+		.filter(([item, n]) => n > 0 && LEVEL.test(item) && Number(LEVEL.exec(item)[1]) === q.hands.level)
+		.sort((a, b) => b[1] - a[1] || gameName(a[0]).localeCompare(gameName(b[0])));
+}
+
+/** Which good a quest that takes one was handed; resolves to the item,
+ *  '' when none is to come out of the stock, or null when the question
+ *  is closed without an answer. */
+function askGood(q) {
+	const held = goodsFor(q);
+	const last = (store.getProfile('questGave', {}) || {})[q.id];
+	return new Promise(resolve => {
+		let answered = false;
+		openPicker({
+			title: T('Which good did you hand over?'),
+			hint: held.length
+				? T('{name} takes {n} Level {lv} trade good. The one picked comes out of your inventory.', { name: esc(gameName(q.name)), n: F(q.hands.n), lv: q.hands.level })
+				: T('No Level {lv} trade good is in your inventory. The quest can still be recorded, nothing taken out.', { lv: q.hands.level }),
+			items: [
+				...held.map(([item, n]) => ({ id: item, label: gameName(item), icon: img(item, ''), meta: `${T('{n} held', { n: F(n) })}${item === last ? ` · ${T('last time')}` : ''}` })),
+				{ id: '-', label: T('None from the inventory'), meta: T('recorded, nothing taken out') }
+			],
+			selected: held.some(([item]) => item === last) ? last : '',
+			onPick: id => { answered = true; resolve(id === '-' ? '' : id); },
+			onClose: () => { if (!answered) resolve(null); }
+		});
+	});
 }
 
 /** Record a claim: the fixed rewards, plus the pick-one at `choice`,
  *  which is remembered for next time. */
-function claim(q, choice) {
+function claim(q, choice, good = '') {
 	if (q.choice && Number.isInteger(choice)) store.setProfileQuiet('questPicks', { ...picks(), [q.id]: choice });
-	store.claimQuest(q.id, claimDelta(q, choice), periodKey(cadenceOf(q)), T('Claimed {name}', { name: gameName(q.name) }));
+	if (good) store.setProfileQuiet('questGave', { ...(store.getProfile('questGave', {}) || {}), [q.id]: good });
+	store.claimQuest(q.id, claimDelta(q, choice, good), periodKey(cadenceOf(q)), T('Claimed {name}', { name: gameName(q.name) }));
 	selected.delete(q.id);
 	toast(T('Recorded the reward for {name} — {when}', { name: gameName(q.name), when: doneWord(q) }), true);
 	document.dispatchEvent(new CustomEvent('quests-refilter'));
@@ -330,6 +366,8 @@ function claim(q, choice) {
  *  wanted and none is remembered. */
 export function rewardOf(q) {
 	const last = recalled(q);
+	// A good handed over is asked every time: the stock has to say which.
+	if (q.hands) return null;
 	if (q.choice && !last) return null;
 	return claimDelta(q, last ? last.i : null);
 }
@@ -395,7 +433,13 @@ async function finishSelected() {
 			if (choice === null) continue;   // closed the question: this one stays open
 			remembered[q.id] = choice;
 		}
-		entries.push({ id: q.id, key: periodKey(cadenceOf(q)), delta: claimDelta(q, choice) });
+		let good = '';
+		if (q.hands) {
+			good = await askGood(q);
+			if (good === null) continue;
+			if (good) store.setProfileQuiet('questGave', { ...(store.getProfile('questGave', {}) || {}), [q.id]: good });
+		}
+		entries.push({ id: q.id, key: periodKey(cadenceOf(q)), delta: claimDelta(q, choice, good) });
 	}
 	if (!entries.length) return;
 	store.setProfileQuiet('questPicks', remembered);
@@ -513,7 +557,8 @@ export function questAction(act, el) {
 		const q = questById[el.dataset.quest];
 		if (!q) return true;
 		const last = recalled(q);
-		if (q.choice && !last) askChoice(q, needMap()).then(i => { if (i !== null) claim(q, i); });
+		if (q.hands) askGood(q).then(good => { if (good !== null) claim(q, null, good); });
+		else if (q.choice && !last) askChoice(q, needMap()).then(i => { if (i !== null) claim(q, i); });
 		else claim(q, last ? last.i : null);
 		return true;
 	}

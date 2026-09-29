@@ -27,7 +27,7 @@ import { V, STEPS } from './state.js';
 import { timerAction, timerState, timerNow, startTimer, stopTimer, passedStop, arrivedAt, spanText } from '../sail-timer.js';
 import { fromPort, sailCal, itemNow, readWindow, takeFleetBoard, openBook, tellTheFleet, pickOffer, pickIsland, showGated, pickAnyIsland, boardNow } from './board.js';
 import { openRolls } from './rolls.js';
-import { bringUp, patchPaid } from './cockpit.js';
+import { bringUp, patchPaid, restFind } from './cockpit.js';
 import { castOffFx } from './setsail.js';
 import { aboardStock, unloadTo, held, openSheet, shoreAboard } from './hold.js';
 import { matBoardNow, matFitNow, takeMatOffers, openMatBook, openMatRolls, pickGood, pickMaterial, matOn, openMatIsles, pickShipAt } from './material.js';
@@ -433,6 +433,7 @@ export function barterAction(act, el, redraw) {
 		// The cockpit sent to one stop, or past one. A stop passed over is
 		// not ticked and not recorded: it is only out of the way.
 		case 'barter-sail-jump': V.cursor = String(el.dataset.k); return true;
+		case 'barter-sail-due': V.cursor = null; restFind(); return true;
 		case 'barter-sail-skip': { V.skipped.add(String(el.dataset.k)); V.cursor = null; return true; }
 		// What the last Record came to, put away or taken back.
 		case 'barter-recorded-ok': V.lastTrip = null; return true;

@@ -158,6 +158,8 @@
 .reward { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px 3px 4px; border-radius: 999px; background: rgba(var(--deep-rgb), 0.7); border: 1px solid var(--line-btn); font-size: 12px; color: var(--ink-dim); }
 .reward.wanted { border-color: rgba(88, 196, 196, 0.5); color: var(--ink-hi); }
 .reward b { color: var(--ink-hi); font-weight: 600; }
+.reward.cost { padding-left: 8px; border-style: dashed; border-color: color-mix(in srgb, var(--amber) 45%, transparent); }
+.reward.cost b { color: var(--amber); }
 .reward-icon { width: 20px; height: 20px; border-radius: 4px; }
 .quest-or { font-size: 11px; color: var(--ink-faint); font-style: italic; }
 .quest-actions { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; flex: none; }
