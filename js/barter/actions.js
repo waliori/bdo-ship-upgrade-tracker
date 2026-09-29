@@ -200,8 +200,6 @@ export function barterAction(act, el, redraw) {
 		// on by itself, so taking it off is remembered; any other is on
 		// only once added.
 		case 'barter-mat-go': matOn(el.dataset.item, true); return true;
-		case 'barter-mat-drop': matOn(el.dataset.item, false); return true;
-		case 'barter-mat-add': pickMaterial(redraw); return false;
 		case 'barter-mat-at-pick': pickShipAt(redraw); return false;
 		case 'barter-mat-at-home': V.matAt = 0; persist(); return true;
 		case 'barter-mat-want-reset': delete V.wants[el.dataset.item]; persist(); return true;

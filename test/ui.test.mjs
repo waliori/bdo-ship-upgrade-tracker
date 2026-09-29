@@ -1948,8 +1948,8 @@ test('the material book is the game’s own layouts, every one, and a page read 
 	await page.evaluate(() => document.querySelector('.dialog [data-close]').click()); await wait(500);
 	assert.equal(await count(page, '.dialog .rolls'), 0, 'asked once, not again at the redraw');
 	assert.match(await text(page, '.mat-bar .rolls-chip'), new RegExp(`${asked - 1} island`), 'the chip counts what is left to say');
-	// The window is one list: with today's trade board known, its own coin
-	// islands -- cheaper in Parley -- are sailed for too.
+	// A refresh deals the material list or the trade board, never both: a
+	// trade board still standing from before adds none of its coin islands.
 	const both = await page.evaluate(async () => {
 		const { V } = await import('/js/barter/state.js'); const { barterKey } = await import('/js/clock.js'); const ui = await import('/js/ui.js'); const store = await import('/js/state.js');
 		store.setProfile('barterCount', 20000);
@@ -1960,10 +1960,9 @@ test('the material book is the game’s own layouts, every one, and a page read 
 		await new Promise(r => setTimeout(r, 500));
 		return [...new Set((V.shownPlan ? V.shownPlan.stops : []).filter(x => x.npcId).map(x => x.parleyBase))];
 	});
-	assert.ok(both.includes(21650), `a trade-list coin island on the route: ${both.join(', ')}`);
-	assert.ok(both.includes(29430), 'beside the material list\'s');
-	// Read off the window, a trade list coin island is certain even when the
-	// board has not settled on a layout: it is sailed for all the same.
+	assert.ok(!both.includes(21650), `no trade-list coin island on the route: ${both.join(', ')}`);
+	assert.ok(both.includes(29430), 'the material list\'s own');
+	// Nor a trade-list coin island read off the window.
 	const read = await page.evaluate(async () => {
 		const { V } = await import('/js/barter/state.js'); const { barterKey } = await import('/js/clock.js'); const ui = await import('/js/ui.js'); const L = await import('/js/barter-layouts.js');
 		const onMat = new Set(V.matBoard.answers.map(a => a.npcId));
@@ -1975,7 +1974,7 @@ test('the material book is the game’s own layouts, every one, and a page read 
 		await new Promise(r => setTimeout(r, 500));
 		return (V.shownPlan ? V.shownPlan.stops : []).some(x => x.npcId === row.npcId) ? 'on the route' : `off: ${row.npcId}`;
 	});
-	assert.equal(read, 'on the route');
+	assert.match(read, /^off/);
 	// Each exchange opens at its own count, as the game's table has it --
 	// not at a route-unlock list's figure for the island: Shipwrecked Cox
 	// Pirate Ship was held back to 10,000 barters from a sailor at 4,489
@@ -2080,14 +2079,10 @@ test('a material layout read: what the builds need is chosen, today’s islands 
 	await toPlan(page);
 	assert.match((await need('.mat-need-text small')).join(' '), /traded out today/);
 	await page.evaluate(async () => { const { V } = await import('/js/barter/state.js'); V.matBoard.used = {}; (await import('/js/ui.js')).render(); }); await wait(400);
-	// Taken off the run, and back through the picker.
+	// Nothing to pick: every material the builds are short of that the
+	// list pays is on the run, with no way to take one off or add one.
 	await toPlan(page);
-	await page.evaluate(m => document.querySelector(`.mat-need-head [data-act="barter-mat-drop"][data-item="${window.CSS.escape(m)}"]`).click(), pick.mat); await wait(400);
-	assert.equal(await need('.mat-need-text'), null, 'off the run');
-	await page.evaluate(() => document.querySelector('[data-act="barter-mat-add"]').click()); await wait(300);
-	await page.type('.picker-in', pick.mat); await wait(150);
-	await page.keyboard.press('Enter'); await wait(500);
-	assert.ok(await need('.mat-need-text'), 'back on the run');
+	assert.equal(await count(page, '[data-act="barter-mat-drop"], [data-act="barter-mat-add"]'), 0, 'no picking');
 	// Its want is its own.
 	await page.evaluate(m => { const el = [...document.querySelectorAll('.mat-need')].find(x => x.querySelector('.mat-need-text b').textContent === m).querySelector('[data-act="barter-mat-want"]'); el.value = '7'; el.dispatchEvent(new Event('change', { bubbles: true })); }, pick.mat); await wait(400);
 	assert.equal(await page.evaluate(async m => (await import('/js/barter/state.js')).V.wants[m], pick.mat), 7);

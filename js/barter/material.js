@@ -13,7 +13,7 @@ import { fmtDistance } from '../sailing.js';
 import { QUEST_CHOICES, VOUCHER_CHOICES } from '../barter-orders.js';
 import { landPrices } from '../land-cost.js';
 import { GOODS, PARLEY, levelOf } from '../barter.js';
-import { weightOf, sellOf, exchanges } from '../barter-plan.js';
+import { weightOf, sellOf } from '../barter-plan.js';
 import { shotGuideHTML } from '../barter-import.js';
 import { bookFromGame, fitOf as matFitOf, MIN_FIT as MAT_MIN_FIT } from '../material-book.js';
 import { materialPages, materialDeal } from '../barter-layouts.js';
@@ -24,7 +24,7 @@ import { landGoods } from '../land_goods.js';
 import { openPicker } from '../picker.js';
 import { toast, openDialog } from '../dialogs.js';
 import { V } from './state.js';
-import { fromPort, materials, keepRoute, boardNow } from './board.js';
+import { fromPort, materials, keepRoute } from './board.js';
 import { narrow, lvTag } from './cockpit.js';
 import { aboardStock, dockStock, storesElsewhere, bagsNow } from './hold.js';
 import { runDockHTML } from './parts.js';
@@ -445,10 +445,7 @@ function heldSaid(give) {
 function matNeedHTML(mats) {
 	const mb = matBoardNow();
 	if (!mb.answers.length) return `<div class="mat-pick-hint">${T('Read today’s material list above: the islands dealing what your builds need show here, and the run is laid for them.')}</div>`;
-	const dealt = new Set(mb.answers.map(a => a.recv));
-	const more = materials().filter(m => dealt.has(m.name) && !mats.some(x => x.it === m.name)).length;
-	const add = more ? `<button class="mat-tile add" data-act="barter-mat-add" title="${T('Another material today’s layout deals: one run sails for all of them')}">+ ${T('another material')}</button>` : '';
-	if (!mats.length) return `<div class="mat-pick-hint">${T('Today’s layout deals nothing your builds are short of.')}</div><div class="mat-strip">${add}</div>`;
+	if (!mats.length) return `<div class="mat-pick-hint">${T('Today’s layout deals nothing your builds are short of.')}</div>`;
 	const cost = x => Math.floor((x.parley || PARLEY.perMaterialTrade) * parleyOf(barterProfile()).rate);
 	const groups = [...mats].sort((x, y) => Number(matRows(y.it).can.length > 0) - Number(matRows(x.it).can.length > 0)).map(m => {
 		const { can, cant, shut, done } = matRows(m.it);
@@ -470,12 +467,11 @@ function matNeedHTML(mats) {
 				<div class="mat-need-text"><b>${esc(gameName(m.it))}</b><small>${figs}</small>${need || m.saved ? `<small>${[need, m.saved ? T('less {n} for what this run brings of the rest', { n: F(Math.round(m.saved)) }) : '', m.it === CROW_COIN && coinWorth() && Number.isFinite(m.qty) ? T('worth ≈ {silver} at the coin shop’s best rate', { silver: FC(Math.round(coinWorth().each * m.qty)) }) : ''].filter(Boolean).join(' · ')}</small>` : ''}</div>
 				<label class="mat-want"><span class="run-pick-k">${T('wanted')}</span>${input}${m.typed ? `<button class="chip tiny" data-act="barter-mat-want-reset" data-item="${esc(m.it)}" title="${T('Back to what your builds need')}">↺</button>` : ''}</label>
 				${rowsN(m.it) ? `<button class="ghost-btn sm" data-act="barter-mat-isles" data-item="${esc(m.it)}" title="${T('Every island of today’s list that deals it, and whether you can trade there')}">${T('the islands')} ›</button>` : ''}
-				<button class="mat-tile-x" data-act="barter-mat-drop" data-item="${esc(m.it)}" title="${T('The run no longer sails for {name}', { name: esc(gameName(m.it)) })}" aria-label="${T('Take {name} off the run', { name: esc(gameName(m.it)) })}">×</button>
 			</div>
 			${can.length ? '' : `<p class="mat-none">${T('No island today deals it for a give you hold.')}</p>`}
 		</section>`;
 	}).join('');
-	return `${groups}<div class="mat-strip">${add}</div>`;
+	return groups;
 }
 
 /** Today's islands dealing a material, as three lists: the ones the
@@ -483,15 +479,12 @@ function matNeedHTML(mats) {
  *  ones their barter count has not opened. */
 function matRows(it) {
 	const barters = barterProfile().barterCount;
-	const tb = boardNow();
-	const tradeUsed = tb.combo && V.board.usedFor === tb.combo.id ? V.board.used || {} : {};
 	const matUsed = matBoardNow().used || {};
-	const trade = it === CROW_COIN ? tradeCoins().map(x => ({ a: { npcId: x.npcId, give: x.give, recv: x.item }, deal: { qty: x.giveText, recvMin: x.recvMin, recvMax: x.recvMax, perDay: x.tries, parley: x.parleyBase }, trade: true, open: openTo(x.npcId, x.give, x.item, barters), can: canGive(x.give), left: leftOf(x.npcId, x.tries, tradeUsed) })) : [];
-	const rows = [...matBoardNow().answers.filter(a => a.recv === it).map(a => { const deal = materialDeal(a.npcId, a.give, a.recv); return { a, deal, open: openTo(a.npcId, a.give, a.recv, barters), can: canGive(a.give), left: deal ? leftOf(a.npcId, deal.perDay, matUsed) : 0 }; }), ...trade]
+	const rows = matBoardNow().answers.filter(a => a.recv === it).map(a => { const deal = materialDeal(a.npcId, a.give, a.recv); return { a, deal, open: openTo(a.npcId, a.give, a.recv, barters), can: canGive(a.give), left: deal ? leftOf(a.npcId, deal.perDay, matUsed) : 0 }; })
 		.sort((x, y) => ((y.deal ? y.deal.recvMax : 0) - (x.deal ? x.deal.recvMax : 0)) || isleShort(npcById.get(x.a.npcId)).localeCompare(isleShort(npcById.get(y.a.npcId))));
 	return { can: rows.filter(r => r.open && r.can && r.left > 0), cant: rows.filter(r => r.open && !r.can && r.left > 0), shut: rows.filter(r => !r.open), done: rows.filter(r => r.open && !(r.left > 0)) };
 }
-const rowsN = it => matBoardNow().answers.filter(a => a.recv === it).length + (it === CROW_COIN ? tradeCoins().length : 0);
+const rowsN = it => matBoardNow().answers.filter(a => a.recv === it).length;
 
 /** One island of the list, as the dialog draws it. */
 function matRowHTML(r) {
@@ -558,12 +551,10 @@ export function materialParts(me, data) {
 	// Less what the runs recorded today have used: an island that has
 	// dealt every attempt is not sailed to again.
 	const matUsed = matBoardNow().used || {};
-	const tb = boardNow();
-	const tradeUsed = tb.combo && V.board.usedFor === tb.combo.id ? V.board.used || {} : {};
-	const picks = [
-		...showing.filter(a => forRun.has(a.recv) && openTo(a.npcId, a.give, a.recv, barters) && canGive(a.give) && !skipped.has(a.npcId)).map(pickOf).filter(Boolean).map(x => ({ ...x, tries: leftOf(x.npcId, x.tries, matUsed) })),
-		...(forRun.has(CROW_COIN) ? tradeCoins().filter(x => openTo(x.npcId, x.give, x.item, barters) && canGive(x.give) && !skipped.has(x.npcId)).map(x => ({ ...x, tries: leftOf(x.npcId, x.tries, tradeUsed) })) : [])
-	].filter(x => x.tries > 0);
+	// Only the material list's own islands: a refresh deals the material
+	// list or the trade board, never both, so nothing of the trade board
+	// is here to sail for.
+	const picks = showing.filter(a => forRun.has(a.recv) && openTo(a.npcId, a.give, a.recv, barters) && canGive(a.give) && !skipped.has(a.npcId)).map(pickOf).filter(Boolean).map(x => ({ ...x, tries: leftOf(x.npcId, x.tries, matUsed) })).filter(x => x.tries > 0);
 	// Aboard and given by no island of the run: put in the home harbour's
 	// storage before casting off, and the run laid without it.
 	const gives = new Set(picks.map(x => x.give));
@@ -682,7 +673,7 @@ export function materialParts(me, data) {
 	// none is held anywhere. The route is laid out with it all the same,
 	// so the sailor sees what the day would bring and what it takes.
 	const missing = toClimb.length ? `<section class="panel run-list orange mat-goods"><div class="panel-head"><h2 class="panel-title">${T('To get first')}</h2><span class="panel-sub">${T('not held, or not enough of it · the run goes without')}</span></div>
-		${toClimb.map(m => good(m.give, m.climb, `${T('for {isles}', { isles: esc(m.islands.map(n => isleShort(n)).join(', ')) })} · ${m.kind === 'good' ? T('the item board climbs for it') : m.kind === 'land' ? T('a land good, bought ashore') : T('a ship material the table deals: tick islands for it too')}`, m.kind === 'good' ? `<button class="chip primary" data-act="barter-reach" data-item="${esc(m.give)}" title="${T('Switch to the item board and show the chains that reach it today')}">${T('item board')} →</button>` : m.kind === 'material' && materials().some(x => x.name === m.give) ? `<button class="chip" data-act="barter-mat-go" data-item="${esc(m.give)}" title="${T('Tick the islands showing it today')}">${T('tick it')} →</button>` : '')).join('')}
+		${toClimb.map(m => good(m.give, m.climb, `${T('for {isles}', { isles: esc(m.islands.map(n => isleShort(n)).join(', ')) })} · ${m.kind === 'good' ? T('a trade good: climbed for on an item refresh, another day') : m.kind === 'land' ? T('a land good, bought ashore') : T('a ship material the table deals: tick islands for it too')}`, m.kind === 'material' && materials().some(x => x.name === m.give) ? `<button class="chip" data-act="barter-mat-go" data-item="${esc(m.give)}" title="${T('Tick the islands showing it today')}">${T('tick it')} →</button>` : '')).join('')}
 	</section>` : '';
 	// Gives held that the run could not take aboard: on a fast run, the
 	// full pace would go back for them; on a full run, one island asks
@@ -856,9 +847,11 @@ const shortOf = m => (m.name === CROW_COIN ? coinsShort() : m.short);
 function matsToday() {
 	const mb = matBoardNow();
 	const dealt = new Set(mb.answers.map(a => a.recv));
-	if (mb.answers.length && tradeCoins().length) dealt.add(CROW_COIN);
-	const off = new Set(mb.off || []), on = new Set(mb.on || []);
-	return materials().map(m => ({ ...m, short: shortOf(m) })).filter(m => dealt.has(m.name) && (m.short > 0 ? !off.has(m.name) : on.has(m.name)))
+	// Every material the builds are short of that today's list pays: no
+	// picking, the run is for all of them; a stop is skipped on the route.
+	// A material another island takes as its give ("tick it") rides too.
+	const on = new Set(mb.on || []);
+	return materials().map(m => ({ ...m, short: shortOf(m) })).filter(m => dealt.has(m.name) && (m.short > 0 || on.has(m.name)))
 		.map(m => ({ it: m.name, qty: wantOf(m.name, m.short), short: m.short, typed: V.wants[m.name] > 0 }));
 }
 
@@ -903,26 +896,6 @@ function pickOf(a) {
 	};
 }
 
-/**
- * The Crow Coin islands of today's trade board. The barter window is one
- * list: a coin day on the material list sits beside the trade board's own
- * coin exchanges -- cheaper in Parley, often paying as much -- and a run
- * for coins sails for both. Only when the trade board's layout is known:
- * the whole table is every island that could ever pay, and a fiction.
- * Each as the run takes it, the exchange row with its own figures.
- */
-function tradeCoins() {
-	const b = boardNow();
-	const onMaterial = new Set(matBoardNow().answers.map(a => a.npcId));
-	const known = b.combo ? exchanges(b.data).filter(x => x.item === CROW_COIN && npcById.has(x.npcId) && !onMaterial.has(x.npcId)) : [];
-	// And the coin rows read off the window itself, which are certain
-	// whether or not a layout has been settled: a screenshot of a coin day
-	// carries the trade list's coin islands beside the material list's,
-	// and a board still split between layouts has no combo to give them.
-	const have = new Set(known.map(x => x.npcId));
-	const read = (V.board.answers || []).filter(a => a.recv === CROW_COIN && !have.has(a.npcId) && !onMaterial.has(a.npcId)).map(pickOf).filter(Boolean);
-	return [...known, ...read];
-}
 
 /**
  * What the runs recorded on today's material list have used of it: an
