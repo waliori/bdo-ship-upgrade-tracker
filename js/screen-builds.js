@@ -8,7 +8,7 @@ import { esc, F } from './fmt.js';
 import { T, said, gameName, nameHas } from './i18n.js';
 import * as store from './state.js';
 import { openDialog, closeDialog, toast } from './dialogs.js';
-import { img, codexName, amountInput, costCtx, costText, buildableItems } from './ui-bits.js';
+import { img, codexName, amountInput, costCtx, costText, buildableItems, heldBox } from './ui-bits.js';
 import { snapshot } from './ui-state.js';
 import { planOne, bottlenecks, routeOf, remainingCost } from './planner.js';
 import { paceText } from './pace.js';
@@ -86,6 +86,7 @@ export function renderBuilds() {
 				<div class="row-name">${codexName(b.item)}</div>
 				<div class="row-sub">${T('blocks {targets}', { targets: esc(b.targets.map(gameName).join(', ')) })}</div>
 			</div>
+			${heldBox(b.item)}
 			<span class="qty-out">${T('{n} short', { n: F(b.qty) })}</span>
 		</div>`).join('')}
 	</div>` : '';

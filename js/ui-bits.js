@@ -44,6 +44,13 @@ const sourceLabels = () => ({
 export const amountInput = (cls, value, attrs) =>
 	`<input class="amt ${cls}" type="text" inputmode="numeric" autocomplete="off" value="${F(value)}" ${attrs}>`;
 
+/** How many of an item are held, typed in place: the Tree's box, for
+ *  any list that names what is short. A number typed moves the stock
+ *  and every figure beside it. */
+export const heldBox = item => `<span class="held-box">${amountInput('own-input', store.getStock(item),
+	`data-act="own-set" data-item="${esc(item)}" aria-label="${T('How many {name} you hold', { name: esc(gameName(item)) })}"`)} ${T('held')}</span>`;
+
+
 
 export function iconSrc(name) {
 	let info;

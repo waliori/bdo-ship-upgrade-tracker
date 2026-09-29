@@ -526,6 +526,9 @@
 
 .group-total { font-family: var(--font-display); font-size: 12.5px; }
 
+.held-box { display: inline-flex; align-items: center; gap: 6px; flex: none; font-size: 11.5px; color: var(--ink-faint); }
+.held-box .own-input { width: 64px; }
+.held-box + .qty-out, .held-box + .way-qty { min-width: 84px; text-align: right; }
 .qty-out { font-family: var(--font-display); font-size: 13.5px; font-weight: 600; color: var(--red); }
 
 
@@ -539,3 +542,33 @@
 .buy-sum.over { background: rgba(232, 122, 109, 0.1); border-color: var(--red-edge); }
 .buy-sum.over b { color: var(--red); }
 .coin-block .coin-buy { width: 100%; justify-content: center; margin-top: 6px; }
+
+/* To Get: today's board. */
+.get-today .way-step-body { padding: 6px 18px 14px; }
+.get-today-pick { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; font-size: 12.5px; color: var(--ink-mid); }
+.get-today-empty, .get-today-off { margin: 4px 0; font-size: 12.5px; color: var(--ink-mute); }
+.get-today-item { padding: 10px 0; border-top: 1px solid var(--line-soft); }
+.get-today-item:first-child { border-top: 0; }
+.get-today-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.get-today-name { font-weight: 600; color: var(--ink-hi); }
+.get-today-need { margin-left: auto; font-size: 12px; color: var(--ink-mute); }
+.get-today-need b { color: var(--amber); font-weight: 600; }
+.get-today-need b.good { color: var(--teal); }
+.get-today-deal { display: grid; grid-template-columns: 24px minmax(120px, 1fr) minmax(160px, 1.3fr) minmax(170px, 1.4fr); gap: 4px 12px; align-items: center; padding: 6px 0 6px 34px; font-size: 12.5px; color: var(--ink-mid); }
+.get-today-deal.done { opacity: 0.5; }
+.get-today-tick { width: 22px; height: 22px; border-radius: 6px; border: 1px solid var(--line-btn); background: none; color: var(--teal); font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.get-today-deal.done .get-today-tick { border-color: var(--teal); background: var(--teal-glow); }
+.get-today-isle b { color: var(--ink-hi); font-weight: 600; }
+.get-today-trade { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.get-today-roll { font-style: normal; font-size: 11px; color: var(--amber); }
+.get-today-left { font-size: 11.5px; color: var(--ink-faint); }
+.get-today-left .warn { color: var(--red); font-weight: 600; }
+.get-today-foot { display: flex; justify-content: flex-end; padding-top: 8px; }
+.way-today { color: var(--blue); }
+.way-today.off { color: var(--ink-faint); }
+@media (max-width: 720px) {
+  .get-today-deal { grid-template-columns: 24px 1fr; padding-left: 0; }
+  .get-today-deal > :nth-child(n+3) { grid-column: 2; }
+  .get-today-need { margin-left: 0; width: 100%; }
+  .row .held-box { order: 5; }
+}
