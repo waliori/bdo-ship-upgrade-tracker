@@ -173,9 +173,47 @@ export function restore() {
  * session's own things -- the filters, the all-done ask -- stay here.
  */
 export function persist() {
+	oneLayout();
 	if (V.writeTimer) clearTimeout(V.writeTimer);
 	V.writeTimer = setTimeout(flushView, 250);
 	logBoard();
+}
+
+/**
+ * One layout at a time. A board read on the trade list puts down the
+ * material list read before it, and the other way round: a refresh in
+ * game deals a new board, so the list read last is the one in front of
+ * the sailor and the other is yesterday's news. Said by what was read
+ * -- the answers -- so a board the page picks up by itself from the
+ * last run's history changes nothing. Not while a run is under way:
+ * the run was laid on the board it sails.
+ */
+const sigOf = answers => answers.map(a => `${a.npcId}|${a.give}|${a.recv}`).sort().join('\n');
+let seen = null;
+function oneLayout() {
+	const now = { trade: sigOf(V.board.answers || []), material: sigOf(V.matBoard.answers || []) };
+	if (!seen) { seen = now; return; }
+	const traded = now.trade && now.trade !== seen.trade;
+	const listed = now.material && now.material !== seen.material;
+	if (!V.sail) {
+		if (traded && !listed && now.material) {
+			V.matBoard = { day: barterKey(), answers: [], on: V.matBoard.on || [], off: V.matBoard.off || [], used: {} };
+			now.material = '';
+		} else if (listed && !traded && (now.trade || V.board.pinned)) {
+			V.board = { day: barterKey(), answers: [], own: false, fresh: true, freshAt: Date.now() };
+			now.trade = '';
+		}
+	}
+	seen = now;
+}
+
+/** Which list today's layout was read from last: 'trade', 'material', or
+ *  '' when neither has one -- and 'both' only for a view kept from
+ *  before the two were made to exclude each other. */
+export function layoutSide() {
+	const trade = (V.board.answers || []).length > 0 || !!V.board.pinned;
+	const material = (V.matBoard.answers || []).length > 0 && V.matBoard.day === barterKey();
+	return trade && material ? 'both' : trade ? 'trade' : material ? 'material' : '';
 }
 
 /**

@@ -237,6 +237,8 @@ export function barterAction(act, el, redraw) {
 		}
 		case 'barter-mat-clear':
 			V.matBoard = { day: barterKey(), answers: [], on: matBoardNow().on, used: {} };
+			// A refresh deals both lists anew: the trade board goes too.
+			if (!el.dataset.keepParley && !V.sail) V.board = { day: barterKey(), answers: [], own: false, fresh: true, freshAt: Date.now() };
 			// A refresh in game fills the Parley bar again; clearing the
 			// day's list by hand says nothing about the bar.
 			if (!el.dataset.keepParley) parleyRefilled();
@@ -246,7 +248,11 @@ export function barterAction(act, el, redraw) {
 		// the give not held, and no others, until cleared.
 		case 'barter-reach': V.reach = el.dataset.item || ''; V.goal = 'silver'; persist(); return true;
 		case 'barter-reach-clear': V.reach = ''; persist(); return true;
-		case 'barter-board-clear': V.board = { day: barterKey(), answers: [], own: false, fresh: true, freshAt: Date.now() }; parleyRefilled(); persist(); return true;
+		case 'barter-board-clear':
+			V.board = { day: barterKey(), answers: [], own: false, fresh: true, freshAt: Date.now() };
+			// And the material list with it: one refresh, one new layout.
+			if (!V.sail) V.matBoard = { day: barterKey(), answers: [], on: V.matBoard.on || [], off: V.matBoard.off || [], used: {} };
+			parleyRefilled(); persist(); return true;
 		case 'barter-board-same': V.board = { ...V.board, rolled: false }; persist(); return true;
 		case 'barter-port-set': V.port = ports.some(p => p.id === Number(el.dataset.id)) ? Number(el.dataset.id) : 0; persistNamed(T('Changed where the run sails from')); return true;
 		case 'barter-continue': {
