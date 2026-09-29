@@ -189,3 +189,27 @@ test('Arrived stops the count at the stop, and a pace learned re-spaces the stop
 	assert.equal(timerNow().done, 2);
 	stopTimer();
 });
+
+test('a clock laid on the route before a call was put in takes the run’s marks, and counts to the right stop', () => {
+	// Started on A, B, C; the run then gained a call for supplies (k 1),
+	// so B and C are stops 2 and 3. Arrived at the call at 150 s.
+	const old = [{ at: 100, label: 'A', hold: 30, k: 0 }, { at: 230, label: 'B', hold: 30, k: 1 }, { at: 360, label: 'C', hold: 30, k: 2 }];
+	const fresh = [{ at: 100, label: 'A', hold: 30, k: 0 }, { at: 160, label: 'call', hold: 60, k: 1 }, { at: 290, label: 'B', hold: 30, k: 2 }, { at: 420, label: 'C', hold: 30, k: 3 }];
+	startTimer(0, 'A and 3 more', old);
+	store.setView('timer', { ...timerNow(), startedAt: timerNow().startedAt - 150_000 });
+	arrivedAt(1, fresh);
+	let t = timerNow();
+	assert.equal(t.marks.length, 4, 'the run’s four marks');
+	assert.equal(t.marks[1].label, 'call');
+	assert.equal(t.marks[1].at, 150, 'in at the call now');
+	assert.equal(t.reached, 2);
+	assert.ok(timerState().wait, 'waiting at the call, not counting on to B');
+	// Supplied at 200 s: B is its own leg from the press, not what the old
+	// marks had left of it.
+	store.setView('timer', { ...timerNow(), startedAt: timerNow().startedAt - 50_000 });
+	passedStop(1, fresh);
+	t = timerNow();
+	assert.equal(t.done, 2);
+	assert.equal(t.marks[2].at, 200 + (290 - 160 - 60), 'B one leg from the press');
+	stopTimer();
+});

@@ -193,7 +193,7 @@ function stopBars(s, row, weight = s.weightAfter) {
 function rationsMini(p) {
 	if (!p || !(p.full > 0)) return '';
 	const low = p.short || p.left < p.full * RATION_RESERVE;
-	return `<div class="mini-bar rations${low ? ' low' : ''}"><div><span>${T('rations')}</span><b class="${low ? 'warn' : ''}">${esc(fmtRations(p.left))}</b>${p.take > 0 ? `<small>+${esc(fmtRations(p.take))}</small>` : ''}</div><div class="run-bar rations"><i style="width:${Math.max(0, Math.min(100, p.left / p.full * 100)).toFixed(1)}%"></i></div></div>`;
+	return `<div class="mini-bar rations${low ? ' low' : ''}" title="${T('An estimate from the ship’s ticks and BreezySail: the game’s own count can differ')}"><div><span>${T('rations')}</span><b class="${low ? 'warn' : ''}">≈ ${esc(fmtRations(p.left))}</b>${p.take > 0 ? `<small>+${esc(fmtRations(p.take))}</small>` : ''}</div><div class="run-bar rations"><i style="width:${Math.max(0, Math.min(100, p.left / p.full * 100)).toFixed(1)}%"></i></div></div>`;
 }
 
 /**
@@ -376,7 +376,7 @@ export function cockpitHTML({ map = false } = {}) {
 	const pools = rationMarks(stops, plan.weightStart || 0);
 	const pool = pools[at], poolBefore = at > 0 && pools[at - 1] ? (stops[at - 1].wharf ? pools[at - 1].full : pools[at - 1].left) : pool ? pool.full : 0;
 	const poolLow = pool && (pool.short || pool.left < pool.full * RATION_RESERVE);
-	const rationsFig = pool && pool.full > 0 ? `<div class="cockpit-fig rations"><div class="cockpit-fig-k"><span>${T('rations')}</span><span>${poolBefore > pool.left ? `−${esc(fmtRations(poolBefore - pool.left))}` : ''}${pool.take > 0 ? ` <b class="teal">+${esc(fmtRations(pool.take))}</b>` : ''}</span></div><div class="cockpit-fig-v">${Math.round(poolBefore) !== Math.round(pool.left) ? `<span>${esc(fmtRations(poolBefore))}</span><i>→</i>` : ''}<b class="${poolLow ? 'warn' : ''}" title="${T('of {full}', { full: esc(fmtRations(pool.full)) })}">${esc(fmtRations(pool.left))}</b></div><div class="run-bar rations${poolLow ? ' low' : ''}"><i style="width:${Math.max(0, Math.min(100, pool.left / pool.full * 100)).toFixed(1)}%"></i></div>${pool.short ? `<span class="run-note warn">${T('The rations run out before here and no wharf on the way can be reached in time')}</span>` : ''}</div>` : '';
+	const rationsFig = pool && pool.full > 0 ? `<div class="cockpit-fig rations" title="${T('An estimate from the ship’s ticks and BreezySail: the game’s own count can differ')}"><div class="cockpit-fig-k"><span>${T('rations')} <em class="est">≈ ${T('estimate')}</em></span><span>${poolBefore > pool.left ? `−${esc(fmtRations(poolBefore - pool.left))}` : ''}${pool.take > 0 ? ` <b class="teal">+${esc(fmtRations(pool.take))}</b>` : ''}</span></div><div class="cockpit-fig-v">${Math.round(poolBefore) !== Math.round(pool.left) ? `<span>${esc(fmtRations(poolBefore))}</span><i>→</i>` : ''}<b class="${poolLow ? 'warn' : ''}" title="${T('of {full}', { full: esc(fmtRations(pool.full)) })}">${esc(fmtRations(pool.left))}</b></div><div class="run-bar rations${poolLow ? ' low' : ''}"><i style="width:${Math.max(0, Math.min(100, pool.left / pool.full * 100)).toFixed(1)}%"></i></div>${pool.short ? `<span class="run-note warn">${T('The rations run out before here and no wharf on the way can be reached in time')}</span>` : ''}</div>` : '';
 	const holdBefore = shownHold(s.hold || currentShip().hold, ltOf(hereHold.before)).total;
 	// The one thing to press. An island that pays two or three is asked
 	// which as it is ticked, since the press is the same press; one that

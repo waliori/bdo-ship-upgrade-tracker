@@ -408,8 +408,12 @@ export function barterAction(act, el, redraw) {
 			// run that is over: it used to be kept, so the second run of
 			// a day sailed under the first one's clock, long past its end.
 			const ticking = timerState();
-			const mine = ticking && !ticking.over && ticking.label === runLabel(V.shownPlan).slice(0, 60);
-			const set = legs.mid > 0 && !mine ? startTimer(legs.mid, runLabel(V.shownPlan), runMarks(V.shownPlan, legs)) : 0;
+			// Its own, and laid on this route's stops: a clock started on the
+			// route before a call was put in counts to the wrong stop.
+			const marks = runMarks(V.shownPlan, legs);
+			const mine = ticking && !ticking.over && ticking.label === runLabel(V.shownPlan).slice(0, 60)
+				&& ticking.marks.length === marks.length && ticking.marks.every((m, j) => m.k === marks[j].k);
+			const set = legs.mid > 0 && !mine ? startTimer(legs.mid, runLabel(V.shownPlan), marks) : 0;
 			if (set) toast(T('Cast off — the clock is running, ≈ {span}. It has “again” and “stop” on it.', { span: spanText(set) }));
 			persist();
 			return true;

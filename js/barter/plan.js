@@ -8,6 +8,7 @@ import { img, amountInput } from '../ui-bits.js';
 import { barterData, SILVER } from '../ui-state.js';
 import { barterKey, currentPlan } from '../clock.js';
 import { currentShip } from '../ship.js';
+import { BREEZY_EVERY } from '../rations.js';
 import { npcById, ports, isleOf, isleShort } from '../barter_npcs.js';
 import { sailSeconds, METRES_PER_PX } from '../sailing.js';
 import { WAY_CHOICES, QUEST_CHOICES, SELL_CHOICES, LAND_CHOICES, VOUCHER_CHOICES, HOUR_CHOICES, AIM_CHOICES, NOTHING, STOCK_LEVELS, SAIL_PRESETS, sailPresetOf, readOrders, readStock, yardsticks } from '../barter-orders.js';
@@ -622,7 +623,7 @@ export function readBagShot(files) {
 /** BreezySail kept going or not: what the route's rations count. A
  *  setting of the sailor's, the same whatever the run is for. */
 export function breezyRow() {
-	return orderRow('barter-breezy', T('BreezySail'), store.getProfile('breezy', false) === true ? 'on' : 'off', [['off', T('not used'), T('The rations count the ticks alone')], ['on', T('kept going'), T('Continuously use BreezySail: 8,150 rations a use, about every 20 s, while the hold is under its limit — the leg times already have its speed in them')]], T('Whether you sail with Continuously use BreezySail on; the calls for supplies follow from it'));
+	return orderRow('barter-breezy', T('BreezySail'), store.getProfile('breezy', false) === true ? 'on' : 'off', [['off', T('not used'), T('The rations count the ticks alone')], ['on', T('kept going'), T('Continuously use BreezySail: 8,150 rations a use, about every {s} s, while the hold is under its limit — the leg times already have its speed in them', { s: BREEZY_EVERY })]], T('Whether you sail with Continuously use BreezySail on; the calls for supplies follow from it'));
 }
 
 export function orderRow(act, label, value, options, title = '') {

@@ -105,6 +105,29 @@ export function startTimer(seconds, label = '', marks = []) {
 }
 
 /**
+ * A clock whose marks are not the run's -- started on the route before
+ * a call was put in or a stop moved, or kept from a start pressed
+ * earlier -- counts to the wrong stop: one ahead for every call it has
+ * not got. When the run's own marks are to hand and do not line up
+ * with the clock's, they are taken, laid from now: the mark for stop
+ * `index` at `ran` (arrived) or its pause over at `ran` (passed).
+ */
+function adopt(t, fresh, index, passed) {
+	if (!Array.isArray(fresh) || !fresh.length || !fresh.every(m => Number.isFinite(m.k))) return null;
+	const lines = fresh.length === t.marks.length && fresh.every((m, j) => m.k === t.marks[j].k);
+	if (lines) return null;
+	const ran = Math.max(1, Math.round((Date.now() - t.startedAt) / 1000));
+	const behind = fresh.filter(m => m.k < index).length;
+	const i = fresh.findIndex(m => m.k === index);
+	const done = passed ? fresh.filter(m => m.k <= index).length : behind;
+	const anchor = passed ? fresh[done - 1] : fresh[i];
+	if (!anchor) return null;
+	const shift = ran - (anchor.at + (passed ? anchor.hold : 0));
+	const marks = fresh.map((m, j) => (j < done || (!passed && j === i) ? { ...m, at: Math.max(1, Math.min(m.at + shift, ran)) } : { ...m, at: Math.max(ran + 1, m.at + shift) }));
+	return { ...t, marks, done, reached: passed ? done : i >= 0 ? i + 1 : done, legAt: passed ? ran : t.legAt, seconds: Math.max(30, marks[marks.length - 1].at), chimed: false };
+}
+
+/**
  * The clock told where the ship really is: the stops up to `index` are
  * behind it, and the rest are put off so that the next one is as far
  * ahead as its own leg is long. A sailor who ticks the stops off as
@@ -114,6 +137,8 @@ export function startTimer(seconds, label = '', marks = []) {
 export function passedStop(index, fresh = null) {
 	const t = timerNow();
 	if (!t || !t.marks.length) return;
+	const re = adopt(t, fresh, index, true);
+	if (re) { write(re); arm(); sendSchedule(); return; }
 	// `index` is the stop in the run; a mark carries the stop it is for.
 	// A stop with no leg of its own (a second exchange at the same
 	// island) has no mark and is passed with the one before it.
@@ -154,6 +179,8 @@ export function passedStop(index, fresh = null) {
 export function arrivedAt(index, fresh = null) {
 	const t = timerNow();
 	if (!t || !t.marks.length) return;
+	const re = adopt(t, fresh, index, false);
+	if (re) { write(re); arm(); sendSchedule(); return; }
 	const byK = t.marks.some(m => Number.isFinite(m.k));
 	const i = byK ? t.marks.findIndex(m => m.k === index) : Math.floor(index);
 	if (i < t.done || i < 0 || i >= t.marks.length) return;

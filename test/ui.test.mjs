@@ -1891,7 +1891,7 @@ test('a run long enough to eat the rations puts in at a sea wharf for supplies, 
 	assert.ok(got.chart, 'a call for supplies goes on the chart as a rations call');
 	assert.ok(got.at.every(at => !['Calpheon City', 'Altinova', "O'dyllita"].includes(at)), 'only sea wharves');
 	assert.match(got.line, /calls? for supplies put in/);
-	assert.match(got.line, /BreezySail every 20 s/);
+	assert.match(got.line, /BreezySail every 50 s/);
 	assert.deepEqual(errors, []);
 	await context.close();
 });

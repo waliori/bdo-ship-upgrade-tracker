@@ -205,8 +205,8 @@ export function rationsBar(s, p = s.pool) {
 	if (!p || !(p.full > 0)) return '';
 	const pct = Math.max(0, Math.min(100, p.left / p.full * 100));
 	const low = p.short || p.left < p.full * RATION_RESERVE;
-	return `<div class="run-rations${low ? ' low' : ''}">
-		<div><span>${T('rations')}</span><b class="${low ? 'warn' : ''}">${esc(fmtRations(p.left))}</b>${p.take > 0 ? `<small>+${esc(fmtRations(p.take))}</small>` : ''}</div>
+	return `<div class="run-rations${low ? ' low' : ''}" title="${T('An estimate from the ship’s ticks and BreezySail: the game’s own count can differ')}">
+		<div><span>${T('rations')}</span><b class="${low ? 'warn' : ''}">≈ ${esc(fmtRations(p.left))}</b>${p.take > 0 ? `<small>+${esc(fmtRations(p.take))}</small>` : ''}</div>
 		<div class="run-bar rations"><i style="width:${pct.toFixed(1)}%"></i></div>
 		${p.short ? `<div class="run-note warn">${T('The rations run out before here and no wharf on the way can be reached in time')}</div>` : ''}
 	</div>`;
@@ -537,7 +537,7 @@ export function rationsLine(stops) {
 	const calls = stops.filter(s => s.refill).length;
 	const short = stops.some(s => s.pool && s.pool.short);
 	const tick = T('a tick every 7 s: {hull} the hull{guess} + {crew} the crew', { hull: F(d.hull), guess: d.measured ? '' : T(' (a guess — not read for this ship yet)'), crew: F(d.crew) });
-	return `<p class="run-rations-line${short ? ' warn' : ''}">🍞 ${T('The run eats about {n} rations of {full}', { n: esc(fmtRations(eaten)), full: esc(fmtRations(me.rations)) })} · ${calls ? (calls === 1 ? T('{n} call for supplies put in', { n: calls }) : T('{n} calls for supplies put in', { n: calls })) : T('no call for supplies needed')} · <span class="faint">${tick}${d.breezy ? ` · ${T('BreezySail every {s} s', { s: d.breezy })}` : ''}</span></p>`;
+	return `<p class="run-rations-line${short ? ' warn' : ''}">🍞 ${T('The run eats about {n} rations of {full} — an estimate', { n: esc(fmtRations(eaten)), full: esc(fmtRations(me.rations)) })} · ${calls ? (calls === 1 ? T('{n} call for supplies put in', { n: calls }) : T('{n} calls for supplies put in', { n: calls })) : T('no call for supplies needed')} · <span class="faint">${tick}${d.breezy ? ` · ${T('BreezySail every {s} s', { s: d.breezy })}` : ''}</span></p>`;
 }
 
 export function routeEditBar(plan) {

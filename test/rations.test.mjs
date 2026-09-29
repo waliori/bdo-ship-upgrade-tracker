@@ -17,7 +17,11 @@ test('a tick takes the hull and every appetite aboard, as the pool was watched f
 	assert.equal(Math.round(rationsOver(70, { tick: 3050 })), 30_500);
 	assert.equal(Math.round(perMinute({ tick: 3050 })), Math.round(3050 * 60 / 7));
 	// BreezySail kept going: 8,150 a use, one every twenty seconds.
-	assert.equal(rationsOver(70, { tick: 3050, breezy: BREEZY_EVERY }) - rationsOver(70, { tick: 3050 }), 3 * BREEZY_RATIONS);
+	assert.equal(rationsOver(BREEZY_EVERY * 3 + 1, { tick: 3050, breezy: BREEZY_EVERY }) - rationsOver(BREEZY_EVERY * 3 + 1, { tick: 3050 }), 3 * BREEZY_RATIONS);
+	// A leg watched in game: 6 m 58 s from Theonil to Iliya with that
+	// crew and BreezySail kept going, the pool 535,400 -> 286,300.
+	const leg = rationsOver(418, { tick: 3050, breezy: BREEZY_EVERY });
+	assert.ok(Math.abs(leg - 249_100) / 249_100 < 0.05, `${Math.round(leg)} against 249,100`);
 	assert.equal(rationsOver(0, { tick: 3050, breezy: 20 }), 0);
 });
 

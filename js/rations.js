@@ -36,12 +36,16 @@ export function hullTick(name) {
 
 // BreezySail, used over and over ("Continuously use BreezySail", from
 // Sailing Skilled 1): the game's own skill text asks 8,150 rations a
-// use, and a use comes about every twenty seconds -- the user's timing.
-// The speed it gives is already in the leg times, which were timed
-// with it on; only what it eats is added here. The game will not use
-// it with the hold past its limit, so a leg sailed that heavy has none.
+// use. How often a use comes is read off the pool rather than timed by
+// eye: a 6 m 58 s leg with a full crew (3,050 a tick) fell 249,100,
+// which is 596 a second -- 436 of it the ticks, the rest one BreezySail
+// every fifty seconds or so (the 20 s first guessed ate a third too
+// much over three legs). The speed it gives is already in the leg
+// times, which were timed with it on; only what it eats is added here.
+// The game will not use it with the hold past its limit, so a leg
+// sailed that heavy has none.
 export const BREEZY_RATIONS = 8150;
-export const BREEZY_EVERY = 20;
+export const BREEZY_EVERY = 50;
 
 /** What `seconds` under sail eat: the ticks, at `tick` each, and the
  *  BreezySails, one each `breezy` seconds (0: none). */
