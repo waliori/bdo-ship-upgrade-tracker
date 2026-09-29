@@ -1880,13 +1880,15 @@ test('a run long enough to eat the rations puts in at a sea wharf for supplies, 
 		const L = R.legsOf(breezy); const dbg = breezy.map((s, k) => [s.refill ? 'R' : s.wharf ? 'W' : 'i', s.pool && Math.round(s.pool.left / 1000), L.legs[k] != null ? Math.round(L.secondsOf(L.legs[k])) : null]);
 		// A run kept before its stops carried their rations reads them again.
 		const marks = R.rationMarks(stops.map(({ pool, ...s }) => s), 0);
-		return { marks: marks.every(m => m && m.full > 0 && m.left <= m.full), dbg, from: !!L.from, plain: calls(plain).length, breezy: calls(breezy).length, at: [...new Set(calls(breezy).map(s => s.wharf.at))], low: low(plain) + low(breezy), short: breezy.some(s => s.pool && s.pool.short), line: R.rationsLine(breezy) };
+		const chart = R.chartData(breezy, '').calls.some(c => c[9] === 'rations');
+		return { chart, marks: marks.every(m => m && m.full > 0 && m.left <= m.full), dbg, from: !!L.from, plain: calls(plain).length, breezy: calls(breezy).length, at: [...new Set(calls(breezy).map(s => s.wharf.at))], low: low(plain) + low(breezy), short: breezy.some(s => s.pool && s.pool.short), line: R.rationsLine(breezy) };
 	});
 	assert.ok(got.plain >= 1, `a call for supplies: ${JSON.stringify(got)}`);
 	assert.ok(got.breezy >= got.plain, `BreezySail kept going needs as many calls or more: ${JSON.stringify(got)}`);
 	assert.equal(got.low, 0, `never under the reserve at an island: ${JSON.stringify(got.dbg)}`);
 	assert.equal(got.short, false);
 	assert.ok(got.marks, 'the rations worked out again for a run kept without them');
+	assert.ok(got.chart, 'a call for supplies goes on the chart as a rations call');
 	assert.ok(got.at.every(at => !['Calpheon City', 'Altinova', "O'dyllita"].includes(at)), 'only sea wharves');
 	assert.match(got.line, /calls? for supplies put in/);
 	assert.match(got.line, /BreezySail every 20 s/);

@@ -806,12 +806,14 @@ export function chartData(stops, pick) {
 	for (const s of stops) {
 		if (s.npcId) { n++; continue; }
 		if (s.quest) { calls.push(s.hunt ? [n, s.place.name, 'hunting grounds', s.place.x, s.place.y, [], 0, 0, questsAt(s)] : [n, s.place.who, s.place.name, s.place.x, s.place.y, [], 0, 0, questsAt(s)]); continue; }
-		if (!s.wharf || (!s.dropped.length && !s.sale && !(s.loads && s.loads.length) && !(s.toBag && s.toBag.length) && !(s.fromBag && s.fromBag.length) && !questsAt(s).length)) continue;
+		// A call put in for supplies goes on the chart though it moves no
+		// goods: the Map marks it as its own rations call.
+		if (!s.wharf || (!s.refill && !s.dropped.length && !s.sale && !(s.loads && s.loads.length) && !(s.toBag && s.toBag.length) && !(s.fromBag && s.fromBag.length) && !questsAt(s).length)) continue;
 		calls.push([n, s.wharf.name, s.wharf.at, s.wharf.x, s.wharf.y,
-			s.dropped.map(d => [d.item, Math.round(d.n * 10) / 10]),
+			(s.dropped || []).map(d => [d.item, Math.round(d.n * 10) / 10]),
 			s.sale ? Math.round(s.sale.n * 10) / 10 : 0,
 			s.sale ? Math.round(s.sale.total) : 0,
-			questsAt(s)]);
+			questsAt(s), ...(s.refill ? ['rations'] : [])]);
 	}
 	return { ids, pick: pick || '', trades, calls };
 }
