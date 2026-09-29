@@ -67,7 +67,8 @@ export function planSheetHTML(chartIds) {
 	const from = fromPort();
 	const aboard = plan.order ? packingCount(plan, from, plan.order) : { all: 0, done: 0 };
 	const figs = [plan.stops.length === 1 ? T('{n} stop', { n: plan.stops.length }) : T('{n} stops', { n: plan.stops.length }),
-		plan.net ? FC(Math.round(plan.net)) : '', legs.total ? `≈ ${esc(runTime(legs, book))}` : ''].filter(Boolean).join(' · ');
+		plan.net ? FC(Math.round(plan.net)) : '', legs.total ? `≈ ${esc(runTime(legs, book))}` : '',
+		(n => (n ? `🍞 ${n === 1 ? T('{n} call for supplies', { n }) : T('{n} calls for supplies', { n })}` : ''))(plan.stops.filter(x => x.refill).length)].filter(Boolean).join(' · ');
 	const ready = !!(V.shownPlan && V.shownPlan.stops && V.shownPlan.stops.length);
 	return `<div class="map-run-head">
 		<div class="map-run-title"><b>${T('The run · planned')}</b><span>${figs}</span></div>

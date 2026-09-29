@@ -176,9 +176,32 @@ export function withRations(stops, weightStart = 0) {
 	}
 }
 
+/**
+ * The rations at each stop of a list as it stands, calls or none: what
+ * withRations leaves on each stop, worked out again for a run whose
+ * stops were kept without it.
+ */
+export function rationMarks(stops, weightStart = 0) {
+	if (stops.every(s => s.pool)) return stops.map(s => s.pool);
+	const me = currentShip();
+	const full = me.rations;
+	if (!(full > 0) || !stops.length) return stops.map(() => null);
+	const drain = rationDrain(me);
+	const legs = legsOf(stops);
+	let pool = full;
+	return stops.map((s, k) => {
+		const m = legInto(legs, k);
+		const weight = k > 0 ? Number(stops[k - 1].weightAfter) || 0 : weightStart;
+		const use = m != null && legs.secondsOf ? rationsOver(legs.secondsOf(m), { tick: drain.tick, breezy: weight <= me.hold.free ? drain.breezy : 0 }) : 0;
+		pool = Math.max(0, pool - use);
+		const mark = { left: Math.round(pool), full, take: s.wharf ? Math.round(full - pool) : 0, short: pool <= 0 };
+		if (s.wharf) pool = full;
+		return mark;
+	});
+}
+
 /** The rations after a stop, drawn under the Parley bar. */
-function rationsBar(s) {
-	const p = s.pool;
+export function rationsBar(s, p = s.pool) {
 	if (!p || !(p.full > 0)) return '';
 	const pct = Math.max(0, Math.min(100, p.left / p.full * 100));
 	const low = p.short || p.left < p.full * RATION_RESERVE;

@@ -677,6 +677,8 @@ body.map-turned .toast { left: 40px; top: 50%; bottom: auto; transform: translat
 .run-rations.low .run-bar.rations i { background: var(--red); }
 .run-supply { margin-top: 7px; display: inline-flex; align-items: center; gap: 7px; background: var(--panel-inset); border: 1px solid var(--line); border-radius: 7px; padding: 4px 11px; font-size: 12px; font-weight: 600; }
 .run-rations-line { margin: 4px 0 8px; font-size: 12.5px; }
+.mini-bar.rations small { font-size: 10px; color: var(--teal); margin-left: 4px; }
+.run-bar.rations.low i, .mini-bar.rations.low .run-bar.rations i { background: var(--red); }
 .run-rations-line.warn { color: var(--red); }
 @media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
   .run-hold { flex-wrap: wrap; }

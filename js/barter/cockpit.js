@@ -20,7 +20,8 @@ import { V } from './state.js';
 import { timerHTML, timerState, spanText } from '../sail-timer.js';
 import { weightOf } from '../barter-plan.js';
 import { parleyOf, ordersNow } from './plan.js';
-import { placeOf, legsOf, questWanted, tradesDone, questChip, n1, TIER, ledgerOf, doneLabel, sevenOf, fourNote, stopDid, stopAsks } from './route.js';
+import { placeOf, legsOf, questWanted, tradesDone, questChip, n1, TIER, ledgerOf, doneLabel, sevenOf, fourNote, stopDid, stopAsks, rationMarks } from './route.js';
+import { fmtRations, RATION_RESERVE } from '../rations.js';
 import { sailing, stopKey, ticked, runLabel, runMarks, PAID_CHIPS, owesCount, rangeOf, paidAsk, unsaid, sailedPlan, aboardNow, stopEffects } from './sail.js';
 import { VOUCHER } from './view.js';
 
@@ -188,6 +189,13 @@ function stopBars(s, row, weight = s.weightAfter) {
 		parley: row ? `<div class="mini-bar"><div><span>${T('parley')}</span><b class="${row.short ? 'warn' : ''}">${F(row.after)}</b></div><div class="run-bar parley"><i style="width:${Math.min(100, row.pct).toFixed(1)}%"></i></div></div>` : '' };
 }
 
+/** The rations on arrival at a stop, as the rest of the run lists it. */
+function rationsMini(p) {
+	if (!p || !(p.full > 0)) return '';
+	const low = p.short || p.left < p.full * RATION_RESERVE;
+	return `<div class="mini-bar rations${low ? ' low' : ''}"><div><span>${T('rations')}</span><b class="${low ? 'warn' : ''}">${esc(fmtRations(p.left))}</b>${p.take > 0 ? `<small>+${esc(fmtRations(p.take))}</small>` : ''}</div><div class="run-bar rations"><i style="width:${Math.max(0, Math.min(100, p.left / p.full * 100)).toFixed(1)}%"></i></div></div>`;
+}
+
 /**
  * The hold along the run, read from the Inventory rather than from the
  * plan. The plan weighs the hold as it laid the run -- at the least an
@@ -337,6 +345,12 @@ export function cockpitHTML({ map = false } = {}) {
 	// crew and parts aboard included, as the game's window counts them.
 	const hereHold = along.around(at);
 	const bars = stopBars(s, row, ltOf(hereHold.after));
+	// The rations: what was aboard leaving the stop before, what is on
+	// arrival here, and what a wharf takes on.
+	const pools = rationMarks(stops, plan.weightStart || 0);
+	const pool = pools[at], poolBefore = at > 0 && pools[at - 1] ? (stops[at - 1].wharf ? pools[at - 1].full : pools[at - 1].left) : pool ? pool.full : 0;
+	const poolLow = pool && (pool.short || pool.left < pool.full * RATION_RESERVE);
+	const rationsFig = pool && pool.full > 0 ? `<div class="cockpit-fig rations"><div class="cockpit-fig-k"><span>${T('rations')}</span><span>${poolBefore > pool.left ? `−${esc(fmtRations(poolBefore - pool.left))}` : ''}${pool.take > 0 ? ` <b class="teal">+${esc(fmtRations(pool.take))}</b>` : ''}</span></div><div class="cockpit-fig-v">${Math.round(poolBefore) !== Math.round(pool.left) ? `<span>${esc(fmtRations(poolBefore))}</span><i>→</i>` : ''}<b class="${poolLow ? 'warn' : ''}" title="${T('of {full}', { full: esc(fmtRations(pool.full)) })}">${esc(fmtRations(pool.left))}</b></div><div class="run-bar rations${poolLow ? ' low' : ''}"><i style="width:${Math.max(0, Math.min(100, pool.left / pool.full * 100)).toFixed(1)}%"></i></div>${pool.short ? `<span class="run-note warn">${T('The rations run out before here and no wharf on the way can be reached in time')}</span>` : ''}</div>` : '';
 	const holdBefore = shownHold(s.hold || currentShip().hold, ltOf(hereHold.before)).total;
 	// The one thing to press. An island that pays two or three is asked
 	// which as it is ticked, since the press is the same press; one that
@@ -388,6 +402,7 @@ export function cockpitHTML({ map = false } = {}) {
 	const figures = `<div class="cockpit-figs">
 		<div class="cockpit-fig"><div class="cockpit-fig-k"><span>${T('hold')}</span><span>${bars.w.note || ''}</span></div><div class="cockpit-fig-v">${holdBefore !== bars.w.total ? `<span>${F(holdBefore)}</span><i>→</i>` : ''}<b class="${bars.bad ? 'warn' : bars.over ? 'amber' : ''}">${esc(bars.w.text)}</b></div><div class="run-bar"><i style="width:${bars.w.fill.toFixed(1)}%"></i><i class="over" style="width:${bars.w.extra.toFixed(1)}%"></i><i class="heavy" style="width:${bars.w.worse.toFixed(1)}%"></i></div></div>
 		${row ? `<div class="cockpit-fig"><div class="cockpit-fig-k"><span>${T('parley')}</span><span>${s.npcId && row.spent ? `−${F(row.spent)}` : ''}</span></div><div class="cockpit-fig-v">${row.before != null && Math.round(row.before) !== Math.round(row.after) ? `<span>${F(row.before)}</span><i>→</i>` : ''}<b class="${row.short ? 'warn' : ''}">${F(row.after)}</b></div><div class="run-bar parley"><i style="width:${Math.min(100, row.pct).toFixed(1)}%"></i></div>${row.voucher && !s.wait ? '' : parleyNotes(book, at, s).note}</div>` : ''}
+		${rationsFig}
 	</div>`;
 	// A voucher drawn at this stop is a thing the sailor does in game,
 	// so it stands as its own block above the press, icon and all,
@@ -480,6 +495,7 @@ function holdSlotsHTML(around = null) {
 function restHTML(plan, on, book, legOf, at, along) {
 	const stops = plan.stops;
 	const doneN = stops.filter((s, k) => ticked(on.done, s, k, stops)).length;
+	const pools = rationMarks(stops, plan.weightStart || 0);
 	const rows = stops.map((s, k) => {
 		const key = stopKey(s, k, stops), names = stopNames(s), done = ticked(on.done, s, k, stops);
 		const bars = stopBars(s, book.rows[k], along.after[k]);
@@ -490,7 +506,7 @@ function restHTML(plan, on, book, legOf, at, along) {
 		return `<div class="rest-row${k === at ? ' here' : ''}${done ? ' done' : ''}${V.skipped.has(key) && !done ? ' skipped' : ''}${pn.cls ? ` ${pn.cls}` : ''}" data-act="barter-sail-jump" data-k="${esc(key)}" role="button" tabindex="0">
 			<button class="rest-dot${done ? ' on' : ''}" data-act="barter-stop-done" data-k="${esc(key)}" aria-pressed="${done}" title="${T('tick this stop')}">${done ? '✓' : k + 1}</button>
 			<div class="rest-main"><div class="rest-head"><b>${esc(names.place)}</b><span>${esc(names.who)}</span>${pn.tag}</div><div class="rest-what">${what}</div>${bars.bad || bars.over ? `<div class="rest-note">${bars.w.note || T('over the limit')}</div>` : ''}${pn.note}</div>
-			<div class="rest-bars">${bars.hold}${bars.parley}<span class="rest-leg">${esc(legOf(k))}</span></div>
+			<div class="rest-bars">${bars.hold}${bars.parley}${rationsMini(pools[k])}<span class="rest-leg">${esc(legOf(k))}</span></div>
 		</div>`;
 	}).join('');
 	return `<section class="panel rest-panel"><div class="panel-head"><h2 class="panel-title">${T('The rest of the run')}</h2><span class="panel-sub">${T('{n} of {of} done', { n: doneN, of: stops.length })} · ${T('tap a stop to jump to it')}</span>${(on.told || []).length ? `<span class="panel-spacer"></span><button class="linky" data-act="barter-step" data-id="load">${T('what the wharf step said')} ›</button>` : ''}</div>${rows}</section>`;
