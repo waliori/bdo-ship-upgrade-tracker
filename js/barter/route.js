@@ -144,9 +144,17 @@ export function withRations(stops, weightStart = 0) {
 		});
 		if (bad < 0) return out;
 		// Of the legs since the pool was last full, the one to break with
-		// a call: the least bend, at a wharf the pool still makes.
+		// a call, at a wharf the pool still makes. A wharf fills the pool
+		// to the top whatever is left -- Buy Supplies is one press -- so
+		// what is still aboard on arrival is thrown away: counted as the
+		// sea it would have sailed, beside the bend. The cheapest call is
+		// then the latest the pool allows, unless an earlier wharf lies
+		// that much more on the way.
+		const perPx = eat(legs.secondsOf(1000), 0) / (1000 / METRES_PER_PX);
 		let best = null;
 		for (let j = lastFull; j <= bad; j++) {
+			// Never a call beside a call, before or after: that is one pool.
+			if ((j > 0 && out[j - 1].refill) || out[j].refill) continue;
 			const a = j > 0 ? placeOf(out[j - 1]) : legs.from;
 			const b = placeOf(out[j]);
 			if (!a || !b) continue;
@@ -159,9 +167,12 @@ export function withRations(stops, weightStart = 0) {
 				if (toW < HARBOUR_PX || (out[j].wharf && Math.hypot(w.x - b.x, w.y - b.y) < HARBOUR_PX)) continue;
 				// the sea's way is longer than the line: a quarter more, to be safe
 				const reach = at[j] - eat(legs.secondsOf(toW * METRES_PER_PX * 1.25), w0);
-				if (reach < 0) continue;
+				// The way there is guessed from the line, so the call is made
+				// with half the reserve still in hand, not on the last ration.
+				if (reach < floor / 2) continue;
 				const bend = toW + Math.hypot(b.x - w.x, b.y - w.y) - straight;
-				if (!best || bend < best.bend) best = { j, w, bend };
+				const cost = bend + (perPx > 0 ? Math.max(0, reach) / perPx : 0);
+				if (!best || cost < best.cost) best = { j, w, cost };
 			}
 		}
 		if (!best || round >= 30) {

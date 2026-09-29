@@ -1881,7 +1881,16 @@ test('a run long enough to eat the rations puts in at a sea wharf for supplies, 
 		// A run kept before its stops carried their rations reads them again.
 		const marks = R.rationMarks(stops.map(({ pool, ...s }) => s), 0);
 		const chart = R.chartData(breezy, '').calls.some(c => c[9] === 'rations');
-		return { chart, marks: marks.every(m => m && m.full > 0 && m.left <= m.full), dbg, from: !!L.from, plain: calls(plain).length, breezy: calls(breezy).length, at: [...new Set(calls(breezy).map(s => s.wharf.at))], low: low(plain) + low(breezy), short: breezy.some(s => s.pool && s.pool.short), line: R.rationsLine(breezy) };
+		// A call fills the pool whatever is left, so one made nearly full is
+		// wasted: every call comes when the pool is low.
+		// On short hops round one sea, where any wharf is near: calls come
+		// late, the pool low, not the moment one happens to be on the way.
+		const round = [...npcById.values()].filter(n => n.x > 70000 && n.x < 80000 && n.y > 55000 && n.y < 66000).slice(0, 8);
+		const hops = []; for (let i = 0; i < 90; i++) hops.push({ npcId: round[i % round.length].id, weightAfter: 0, times: 1 });
+		store.setProfile('breezy', true);
+		const busy = R.withRations(hops, 0).filter(s => s.refill);
+		const lateCalls = busy.length > 0 && busy.every(s => s.pool.left < s.pool.full / 3) ? true : busy.map(s => Math.round(s.pool.left / 1000));
+		return { lateCalls, chart, marks: marks.every(m => m && m.full > 0 && m.left <= m.full), dbg, from: !!L.from, plain: calls(plain).length, breezy: calls(breezy).length, at: [...new Set(calls(breezy).map(s => s.wharf.at))], low: low(plain) + low(breezy), short: breezy.some(s => s.pool && s.pool.short), line: R.rationsLine(breezy) };
 	});
 	assert.ok(got.plain >= 1, `a call for supplies: ${JSON.stringify(got)}`);
 	assert.ok(got.breezy >= got.plain, `BreezySail kept going needs as many calls or more: ${JSON.stringify(got)}`);
@@ -1889,6 +1898,7 @@ test('a run long enough to eat the rations puts in at a sea wharf for supplies, 
 	assert.equal(got.short, false);
 	assert.ok(got.marks, 'the rations worked out again for a run kept without them');
 	assert.ok(got.chart, 'a call for supplies goes on the chart as a rations call');
+	assert.equal(got.lateCalls, true, 'every call made with the pool low');
 	assert.ok(got.at.every(at => !['Calpheon City', 'Altinova', "O'dyllita"].includes(at)), 'only sea wharves');
 	assert.match(got.line, /calls? for supplies put in/);
 	assert.match(got.line, /BreezySail every 50 s/);
@@ -2658,9 +2668,9 @@ test('the cockpit weighs the hold from the Inventory, shows each stop before and
 	const n = s.times + 1;
 	await page.evaluate(v => { const el = document.querySelector('[data-act="barter-did-n"]'); el.value = String(v); el.dispatchEvent(new Event('change', { bubbles: true })); }, n); await wait(1200);
 	// An island that pays a range still asks what it paid, and the tick comes with that.
-	await page.evaluate(npc => { const b = document.querySelector(`.cockpit-press [data-act="barter-paid"][data-npc="${npc}"]`); if (b) b.click(); }, s.npc); await wait(1200);
+	const pressed = await page.evaluate(npc => { const b = document.querySelector(`.cockpit-press [data-act="barter-paid"][data-npc="${npc}"]`); if (b) b.click(); return { b: !!b, press: (document.querySelector('.cockpit-press') || {}).textContent, did: (document.querySelector('.cockpit') || {}).textContent.slice(0, 300) }; }, s.npc); await wait(1200);
 	const left = await page.evaluate(async give => (await import('/js/state.js')).getStock(give), s.give);
-	assert.equal(s.had - left, Math.round(n * s.giveN), 'the hold gave what was really handed over, and the stop is ticked');
+	assert.equal(s.had - left, Math.round(n * s.giveN), `the hold gave what was really handed over, and the stop is ticked: ${JSON.stringify({ s, n, pressed })}`);
 	// Back at that stop, the count said and the run's own beside it; the run's again takes the correction back.
 	await page.evaluate(k => { const el = [...document.querySelectorAll('[data-act="barter-sail-jump"]')].find(e => e.dataset.k === k); if (el) el.click(); else { const g = document.querySelector('[data-act="barter-glance"]'); if (g) g.click(); } }, `n${s.npc}`); await wait(600);
 	await page.evaluate(k => { const el = [...document.querySelectorAll('[data-act="barter-sail-jump"]')].find(e => e.dataset.k === k); if (el) el.click(); }, `n${s.npc}`); await wait(600);
