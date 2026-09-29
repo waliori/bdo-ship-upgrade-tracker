@@ -120,7 +120,7 @@ export function silverParts(me, b) {
 	// materials the builds are short of, the Lost Trade Boxes, and whether
 	// the Great Ocean goods stay in.
 	const sideOn = o.side || {};
-	const side = { mats: sideOn.mats ? Object.keys((snapshot && snapshot.missing) || {}).filter(n => snapshot.missing[n] > 0) : [], boxes: !!sideOn.boxes, ocean: sideOn.ocean !== false };
+	const side = { mats: !!sideOn.mats, boxes: !!sideOn.boxes, ocean: sideOn.ocean !== false };
 	const everything = spendUsed(chains(b.data, stock, dock, prof.barterCount, ceilingNow, coining, fill, side), b);
 	// Goods on this board's ladders held in a harbour's storage the run
 	// does not sail from: a chain can only start from what it can load,
@@ -186,7 +186,10 @@ export function silverParts(me, b) {
 	// decides which chains exist at all, and a search kept across a
 	// change of it would answer for chains this board no longer lists.
 	const ceiling = ceilingNow;
-	const pkey = JSON.stringify([V.board.day, b.combo.id, stock, dock, owned, [...land], o, V.port, V.stash, opts.bag, Object.values(prices).map(x => x.each), me.hold, ship, opts.parley, opts.seen, V.reach, prof.barterCount, aim, ceiling, b.shut]);
+	// The answers are part of it too: a pool or a roll said changes which
+	// chains the board has, and a search kept across that answers for
+	// chains that are gone and has no run for the new ones.
+	const pkey = JSON.stringify([V.board.day, b.combo.id, V.board.answers, stock, dock, owned, [...land], o, V.port, V.stash, opts.bag, Object.values(prices).map(x => x.each), me.hold, ship, opts.parley, opts.seen, V.reach, prof.barterCount, aim, ceiling, b.shut]);
 	const search = { chains: all, opts, ship, timeCap: o.hours, aim };
 	// The search goes to the worker and the page draws meanwhile; asked
 	// again when the inputs change, or when an answer is owed and no
@@ -231,7 +234,7 @@ export function silverParts(me, b) {
 	const presetSeen = {};
 	Object.assign(presetSeen, planSeen(sailing()));
 	const baseOrders = Object.fromEntries(Object.entries(o).filter(([k]) => !sailingKeys.has(k)));
-	const presetKey = JSON.stringify([V.board.day, b.combo.id, stock, dock, owned, [...land], baseOrders, V.port, V.stash, Object.values(presetPrices).map(x => x.each), me.hold, ship, opts.parley, presetSeen, V.reach, prof.barterCount, aim, ceiling, b.shut]);
+	const presetKey = JSON.stringify([V.board.day, b.combo.id, V.board.answers, stock, dock, owned, [...land], baseOrders, V.port, V.stash, Object.values(presetPrices).map(x => x.each), me.hold, ship, opts.parley, presetSeen, V.reach, prof.barterCount, aim, ceiling, b.shut]);
 	// Asked once the main search has answered, so the two never share
 	// the machine. The way already chosen is the main search itself: its
 	// answer is that card's figure, not a second search that might land
@@ -267,7 +270,8 @@ export function silverParts(me, b) {
 		V.tickSide = false;
 		const best = new Map();
 		const rank = c => (c.from === 'land' ? 100 : 0) + c.rungs.length;
-		for (const c of all.filter(x => x.pays === 'material')) {
+		const short = (snapshot && snapshot.missing) || {};
+		for (const c of all.filter(x => x.pays === 'material' && short[x.rungs[x.rungs.length - 1].item] > 0)) {
 			const at = c.rungs[c.rungs.length - 1].npcId;
 			if (!best.has(at) || rank(c) < rank(best.get(at))) best.set(at, c);
 		}
@@ -348,7 +352,7 @@ export function silverParts(me, b) {
 	const reachOf = c => (c.pays === 'coin' || c.pays === 'material' || c.pays === 'box' ? c.pays : c.top);
 	const rank = t => (t === 'coin' ? -1 : t === 'material' ? 100 : t === 'box' ? 101 : 10 - t);
 	const tops = [...new Set([...all, ...shutChains].map(reachOf))].sort((a, b2) => rank(a) - rank(b2));
-	const sideHead = t => (t === 'material' ? `⚓ ${T('Side trade: materials your builds need')}` : `📦 ${T('Side trade: Lost Trade Boxes')}`);
+	const sideHead = t => (t === 'material' ? `⚓ ${T('Side trade: ship materials')}` : `📦 ${T('Side trade: Lost Trade Boxes')}`);
 	const chainFilters = `<div class="chain-filters">
 		<input class="field hold-q" type="search" placeholder="${T('Find an island, a place or a good…')}" value="${esc(V.chainQ)}" data-act="barter-chain-q" aria-label="${T('Find a chain')}">
 		<span class="chips">
@@ -363,7 +367,11 @@ export function silverParts(me, b) {
 		const sideGroup = top === 'material' || top === 'box';
 		// The ladders at this reach, each with the starts the filters
 		// leave in; the card shows the start ticked, else the best.
-		const rows = [...ladders.values()].filter(list => reachOf(list[0]) === top).map(list => {
+		// The materials the builds are short of first.
+		const needOf = list => ((snapshot && snapshot.missing) || {})[list[0].rungs[list[0].rungs.length - 1].item] || 0;
+		const lists = [...ladders.values()].filter(list => reachOf(list[0]) === top);
+		if (top === 'material') lists.sort((x, y) => Number(needOf(y) > 0) - Number(needOf(x) > 0));
+		const rows = lists.map(list => {
 			const starts = list.filter(c => listed.includes(c));
 			if (!starts.length) return '';
 			// The card shows the start ticked, else the best one that can
@@ -384,7 +392,7 @@ export function silverParts(me, b) {
 			.map(c => chainRow(c, false, null, from && from.name, from, null, c.gate));
 		if (!rows.length && !locked.length) return '';
 		const of = [...ladders.values()].filter(list => reachOf(list[0]) === top).length;
-		return `<div class="chain-group${coinGroup ? ' coin' : ''}${sideGroup ? ' side' : ''}"><div class="chain-group-head" style="--tier:${TIER(coinGroup ? COIN_LEVEL : sideGroup ? 6 : top)}"><i></i><span>${coinGroup ? `${img(COIN, 'group-icon')}${T('Cashed in for Crow Coins')}` : sideGroup ? sideHead(top) : T('Reaches Level {lv}', { lv: top })}</span>${sideGroup ? `<em class="group-fate kept">${top === 'material' ? T('kept for your builds') : T('kept: the box holds trade goods of its own')}</em>` : coinGroup || stocking || coining ? '' : top >= o.sell && o.sell !== NOTHING ? `<em class="group-fate sold">${T('sold at the wharf')}</em>` : `<em class="group-fate kept">${T('kept, not sold — the wharf sells Level {lv} and up', { lv: o.sell })}</em>`}<span>${rows.length !== of ? T('{n} of {of}', { n: rows.length, of }) : rows.length}${locked.length ? ` · ${T('{n} locked', { n: locked.length })}` : ''}</span></div>${rows.join('')}${locked.join('')}</div>`;
+		return `<div class="chain-group${coinGroup ? ' coin' : ''}${sideGroup ? ' side' : ''}"><div class="chain-group-head" style="--tier:${TIER(coinGroup ? COIN_LEVEL : sideGroup ? 6 : top)}"><i></i><span>${coinGroup ? `${img(COIN, 'group-icon')}${T('Cashed in for Crow Coins')}` : sideGroup ? sideHead(top) : T('Reaches Level {lv}', { lv: top })}</span>${sideGroup ? `<em class="group-fate kept">${top === 'material' ? T('kept · what your builds need first') : T('kept: the box holds trade goods of its own')}</em>` : coinGroup || stocking || coining ? '' : top >= o.sell && o.sell !== NOTHING ? `<em class="group-fate sold">${T('sold at the wharf')}</em>` : `<em class="group-fate kept">${T('kept, not sold — the wharf sells Level {lv} and up', { lv: o.sell })}</em>`}<span>${rows.length !== of ? T('{n} of {of}', { n: rows.length, of }) : rows.length}${locked.length ? ` · ${T('{n} locked', { n: locked.length })}` : ''}</span></div>${rows.join('')}${locked.join('')}</div>`;
 	}).join('');
 	// What pays the good today, and whether its give is held: the answer
 	// even when no chain from the shore reaches it.

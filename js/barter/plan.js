@@ -5,7 +5,7 @@ import { esc, F, FC } from '../fmt.js';
 import { T, said, gameName } from '../i18n.js';
 import * as store from '../state.js';
 import { img, amountInput } from '../ui-bits.js';
-import { barterData, SILVER } from '../ui-state.js';
+import { barterData, SILVER, snapshot } from '../ui-state.js';
 import { barterKey, currentPlan } from '../clock.js';
 import { currentShip } from '../ship.js';
 import { BREEZY_EVERY } from '../rations.js';
@@ -687,10 +687,10 @@ export function howHTML(o, figs = null) {
 	const side = o.side || {};
 	const sw = (k, on, label, title) => `<button class="chip tiny${on ? ' active' : ''}" data-act="barter-side" data-k="${k}" aria-pressed="${on}" title="${esc(title)}">${on ? '✓ ' : ''}${label}</button>`;
 	const sideRow = `<div class="order-rows side-rows"><div class="order-row"><span class="order-k">${T('also trade for')}</span><div class="order-v"><span class="chips">
-		${sw('mats', !!side.mats, `⚓ ${T('materials my builds need')}`, T('Chains ending at an island of this board that pays a ship material your builds are short of: Luminous Cobalt, a Brilliant, Tidal Black Stone… Kept, not sold.'))}
+		${sw('mats', !!side.mats, `⚓ ${T('ship materials')}`, T('Chains ending at an island of this board that pays a ship material -- Tidal Black Stone, Luminous Cobalt, a Brilliant… -- the ones your builds need first. Kept, not sold. A pool pays one only once you say what it shows today.'))}
 		${sw('ocean', side.ocean !== false, T('Great Ocean goods'), T('The Great Ocean goods and the few rare goods only a wharf buys: climbed to and sold like a [Level 7]'))}
 		${sw('boxes', !!side.boxes, `📦 ${T('Lost Trade Boxes')}`, T('Chains ending at an island paying a Lost Trade Box: listed to tick by hand, since what a box holds is a draw the search cannot price'))}
-	</span><span class="run-pick-sub">${esc([side.mats ? T('materials: the chains that end at them are listed apart') : '', side.ocean === false ? T('no Great Ocean goods') : '', side.boxes ? T('boxes: listed apart, ticked by hand') : ''].filter(Boolean).join(' · ') || T('the climbs only'))}</span></div></div></div>`;
+	</span><span class="run-pick-sub">${esc([side.mats ? T('materials: listed apart, the ones your builds need first — a pool counts once said under 🎲') : '', side.ocean === false ? T('no Great Ocean goods') : '', side.boxes ? T('boxes: listed apart, ticked by hand') : ''].filter(Boolean).join(' · ') || T('the climbs only'))}</span></div></div></div>`;
 	const fromLadder = `<div class="from-ladder"><span>${T('From the step above')}</span><b>${esc(goalLine(o))}</b><button class="linky" data-act="barter-sec" data-id="ladder">${T('change it there')} ›</button></div>`;
 	// Where the ship leaves from is not a way of sailing, it is a fact
 	// about the sailor -- where their storage is -- and no card can know
@@ -819,7 +819,7 @@ export function chainRow(c, on, solo, dockName, from, ladder = null, shut = null
 			<span class="chain-mark">🔒</span>
 			<span class="chain-main">
 				<span class="chain-start">${start}</span>
-				<span class="chain-pips">${pips}<em>${c.pays === 'material' || c.pays === 'box' ? `→ ${img(c.rungs[c.rungs.length - 1].item, 'row-icon xs')} ${esc(gameName(c.rungs[c.rungs.length - 1].item))}` : T('Level {lv}', { lv: c.top })}</em></span>${stockLine(c)}
+				<span class="chain-pips">${pips}<em>${reachLabel(c)}</em></span>${stockLine(c)}
 				<span class="chain-route">${c.rungs.map(r => `<span class="${r.npcId === shut.npcId ? 'chain-shut-isle' : ''}">${esc(isleShort(npcById.get(r.npcId)) || r.npc)}</span>`).join(' › ')}</span>
 				<span class="chain-goods">${c.rungs.map(r => img(r.item, 'row-icon sm')).join('')}</span>
 			</span>
@@ -855,7 +855,7 @@ export function chainRow(c, on, solo, dockName, from, ladder = null, shut = null
 		<span class="chain-mark">${on ? '✓' : dry ? '∅' : ''}</span>
 		<span class="chain-main">
 			<span class="chain-start">${start}</span>${dryLine}${claimLine}
-			<span class="chain-pips">${pips}<em>${T('Level {lv}', { lv: c.top })}</em></span>${stockLine(c)}
+			<span class="chain-pips">${pips}<em>${reachLabel(c)}</em></span>${stockLine(c)}
 			<span class="chain-route">${c.rungs.map(r => esc(isleShort(npcById.get(r.npcId)) || r.npc)).join(' › ')}</span>
 			<span class="chain-goods">${c.rungs.map(r => img(r.item, 'row-icon sm')).join('')}</span>
 		</span>
@@ -875,6 +875,15 @@ export function chainRow(c, on, solo, dockName, from, ladder = null, shut = null
 	</button>`;
 	shownChains.set(c.id, { c, solo, dockName });
 	return ladder ? `<div class="chain-ladder${on ? ' on' : ''}">${card}${starts}</div>` : card;
+}
+
+/** Where a chain ends, beside its pips: the level, or what a side trade
+ *  pays -- with what the builds need of it. */
+function reachLabel(c) {
+	if (c.pays !== 'material' && c.pays !== 'box') return T('Level {lv}', { lv: c.top });
+	const item = c.rungs[c.rungs.length - 1].item;
+	const need = (snapshot.missing || {})[item] || 0;
+	return `→ ${img(item, 'row-icon xs')} ${esc(gameName(item))}${c.pays === 'material' && need > 0 ? ` <b class="chain-need">${T('your builds need {n}', { n: F(Math.ceil(need)) })}</b>` : ''}`;
 }
 
 /**

@@ -466,7 +466,7 @@ export function readProfile(raw) {
 		const pick = k => typeof k === 'string' && k.length <= 170 && k.includes('|');
 		for (const [key, v] of Object.entries(raw.rolls).slice(-400)) {
 			if (!/^[0-9A-Za-z]{1,4}\|\d+$/.test(key) || !isProfile(v)) continue;
-			const seen = isProfile(v.seen) ? Object.fromEntries(Object.entries(v.seen).filter(([k, n]) => pick(k) && Number(n) > 0).slice(0, 6).map(([k, n]) => [k, Math.min(9999, Math.floor(Number(n)))])) : {};
+			const seen = isProfile(v.seen) ? Object.fromEntries(Object.entries(v.seen).filter(([k, n]) => pick(k) && Number(n) > 0).slice(0, 64).map(([k, n]) => [k, Math.min(9999, Math.floor(Number(n)))])) : {};
 			if (!Object.keys(seen).length) continue;
 			rolls[key] = { day: /^\d{4}-\d{2}-\d{2}$/.test(String(v.day)) ? String(v.day) : '', pick: pick(v.pick) ? v.pick : '', seen };
 		}

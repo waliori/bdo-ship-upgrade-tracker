@@ -1556,3 +1556,15 @@ body.sail-scene-hold .sail-scene canvas { visibility: hidden; }
 .chip.paid-pick.fleet { border-style: dashed; }
 .chip.paid-pick.active { background: rgba(78, 201, 174, 0.16); border-color: rgba(78, 201, 174, 0.6); }
 .chip.paid-pick.active b { color: var(--teal-hi); }
+
+/* Today's rolls: a pool, what it pays then for what. */
+.roll-pays { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; }
+.roll-pays-k { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-faint); margin-right: 2px; }
+.roll-pay { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px 4px 5px; border-radius: 999px; border: 1px solid var(--line-btn); background: var(--panel-inset); color: var(--ink-mid); font-size: 12px; cursor: pointer; }
+.roll-pay em { font-style: normal; font-size: 11px; color: var(--ink-faint); }
+.roll-pay.on { border-color: var(--blue); color: var(--ink-hi); }
+.roll-pay.said { border-color: var(--teal); background: var(--teal-glow); }
+.pool-options { margin-top: 8px; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 6px; align-items: stretch; }
+.pool-options > .roll-pays-k { grid-column: 1 / -1; }
+.roll-said { margin-left: auto; font-size: 12px; color: var(--teal); }
+.chain-need { margin-left: 6px; font-weight: 600; color: var(--amber); }

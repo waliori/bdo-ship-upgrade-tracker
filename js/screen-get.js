@@ -550,7 +550,7 @@ function todayHTML(q) {
 		const key = `${d.npcId}|${r.item}`;
 		const done = ticks.has(key);
 		const range = d.todayMin === d.todayMax ? F(d.todayMax) : `${F(d.todayMin)}–${F(d.todayMax)}`;
-		const how = d.state === 'draw' ? `<em class="get-today-roll" title="${esc(d.gives.map(gameName).join(', '))}">${T('drawn: {k} of its {n} offers pay this — read the window to know', { k: F(d.hits), n: F(d.draw) })}</em>`
+		const how = d.state === 'draw' ? `<em class="get-today-roll" title="${esc(d.gives.map(gameName).join(', '))}">${d.fleet ? T('drawn: the fleet saw it pay this {pct}% of {n} times — say what it shows under 🎲 on the Barter tab', { pct: F(d.fleet.pct), n: F(d.fleet.total) }) : T('drawn: {k} of its {n} offers pay this — say what it shows under 🎲 on the Barter tab', { k: F(d.hits), n: F(d.draw) })}</em>`
 			: d.held >= d.giveN ? T('{n} held', { n: F(d.held) })
 			: d.shore ? T('bought ashore')
 			: d.climb ? (d.climb.from === 'land' ? T('climbed to on this board from the shore, {n} islands', { n: F(d.climb.rungs) }) : T('climbed to on this board from your {item}', { item: esc(gameName(d.climb.item)) }))

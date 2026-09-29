@@ -425,7 +425,7 @@ function rollsOf(profile) {
 	const out = {};
 	for (const [key, e] of Object.entries(obj(profile.rolls)).slice(-300)) {
 		if (!/^[0-9A-Za-z]{1,4}\|\d+$/.test(key)) continue;
-		const counts = Object.fromEntries(Object.entries(obj(e && e.seen)).filter(([k, v]) => typeof k === 'string' && k.length <= 170 && Number(v) > 0).slice(0, 6).map(([k, v]) => [k, Math.min(9999, Math.floor(Number(v)))]));
+		const counts = Object.fromEntries(Object.entries(obj(e && e.seen)).filter(([k, v]) => typeof k === 'string' && k.length <= 170 && Number(v) > 0).slice(0, 64).map(([k, v]) => [k, Math.min(9999, Math.floor(Number(v)))]));
 		if (Object.keys(counts).length) out[key] = counts;
 	}
 	return out;

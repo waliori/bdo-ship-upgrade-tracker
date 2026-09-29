@@ -2193,15 +2193,41 @@ test('a layout that rolls a good or coins asks which, with the likelier picked, 
 	});
 	await page.reload({ waitUntil: 'domcontentloaded' });
 	await page.waitForSelector('.rolls-chip', { timeout: 20000 });
-	assert.match(await text(page, '.rolls-chip'), /3 islands roll a good or coins/);
+	// Three coin rolls, and the pools the layout only names.
+	const asked = Number((await text(page, '.rolls-chip')).match(/(\d+) islands draw/)[1]);
 	await tap(page, '.rolls-chip'); await wait(400);
-	assert.equal(await count(page, '#dialog .roll-row'), 3);
+	assert.equal(await count(page, '#dialog .roll-row:not(.pool)'), 3);
+	const pools = await count(page, '#dialog .roll-row.pool');
+	assert.ok(pools >= 3, `the pools asked too: ${pools}`);
+	assert.equal(asked, 3 + pools);
 	assert.equal(await count(page, '#dialog .roll-option.likely'), 3, 'each has the likelier picked, until said');
 	// Ajir showed coins.
 	await page.evaluate(() => [...document.querySelectorAll('#dialog [data-act="barter-roll-pick"]')].find(b => b.dataset.npc === '58966' && b.dataset.recv === 'Crow Coin').click()); await wait(300);
 	assert.equal(await count(page, '#dialog .roll-row.said'), 1);
+	// A pool: what it pays, then for what -- nothing planned until said.
+	const pool = await page.evaluate(() => {
+		const row = document.querySelector('#dialog .roll-row.pool');
+		row.querySelector('[data-act="barter-roll-pays"]').click();
+		return row.querySelector('.roll-head b').textContent;
+	}); await wait(300);
+	const pick = await page.evaluate(name => {
+		const row = [...document.querySelectorAll('#dialog .roll-row.pool')].find(r => r.querySelector('.roll-head b').textContent === name);
+		const b = row.querySelector('[data-act="barter-roll-pick"]');
+		const out = { npcId: Number(b.dataset.npc), give: b.dataset.give, recv: b.dataset.recv };
+		b.click();
+		return out;
+	}, pool); await wait(300);
+	assert.equal(await count(page, '#dialog .roll-row.said'), 2);
 	await page.keyboard.press('Escape'); await wait(800);
-	assert.match(await text(page, '.rolls-chip'), /2 islands roll/);
+	assert.match(await text(page, '.rolls-chip'), new RegExp(`${asked - 2} islands draw`));
+	const drawn = await page.evaluate(async p => {
+		const { V } = await import('/js/barter/state.js'); const { boardNow } = await import('/js/barter/board.js'); const store = await import('/js/state.js');
+		const b = boardNow();
+		return { said: V.board.answers.some(a => a.npcId === p.npcId && a.give === p.give && a.recv === p.recv), on: b.data.some(e => e.name === p.recv && e.sources.some(s => s.npc_id === p.npcId)), rolls: store.getProfile('rolls', {})[`31|${p.npcId}`] };
+	}, pick);
+	assert.equal(drawn.said, true, 'the pool said is an answer of the trade board');
+	assert.equal(drawn.on, true, 'and on the board, as said');
+	assert.deepEqual(drawn.rolls.seen, { [`${pick.give}|${pick.recv}`]: 1 }, 'counted for the fleet');
 	const r = await page.evaluate(async () => {
 		const { boardNow } = await import('/js/barter/board.js');
 		const store = await import('/js/state.js');

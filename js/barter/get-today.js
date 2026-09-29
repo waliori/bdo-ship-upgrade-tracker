@@ -19,6 +19,7 @@ import * as store from '../state.js';
 import { barterProfile, barterData } from '../ui-state.js';
 import { V } from './state.js';
 import { boardNow } from './board.js';
+import { fleetRolls } from './fleet.js';
 import { matBoardNow, matPageNow } from './material.js';
 import { aboardStock, dockStock } from './hold.js';
 import { layoutSide, restore, persist } from './view.js';
@@ -63,16 +64,20 @@ function dealRow(npcId, o, used, { draw = 0, hits = 0, gives = [], climb = null 
 
 /** A slot the game draws from, as one row a thing it may pay: how many of
  *  its offers pay it, and for what. */
-function drawRows(npcId, options, used, add) {
-	const by = new Map();
+function drawRows(npcId, options, used, add, layout = '') {
+	// What the fleet was shown here on this layout, when it has said.
+	const f = layout ? fleetRolls(layout, npcId) : null;
+	const by = new Map(), once = new Set();
 	for (const o of options) {
-		if (o.recv === 'Crow Coin') continue;
+		if (o.recv === 'Crow Coin' || once.has(`${o.give}|${o.recv}`)) continue;
+		once.add(`${o.give}|${o.recv}`);
 		if (!by.has(o.recv)) by.set(o.recv, []);
 		by.get(o.recv).push(o);
 	}
 	for (const [recv, list] of by) {
 		const best = list.reduce((a, o) => ((Number(o.recvMax) || 0) > (Number(a.recvMax) || 0) ? o : a));
-		add(recv, dealRow(npcId, best, used, { draw: options.length, hits: list.length, gives: [...new Set(list.map(o => o.give))] }));
+		const seen = f ? list.reduce((a, o) => a + (f.seen[`${o.give}|${o.recv}`] || 0), 0) : 0;
+		add(recv, { ...dealRow(npcId, best, used, { draw: new Set(options.map(o => `${o.give}|${o.recv}`)).size, hits: list.length, gives: [...new Set(list.map(o => o.give))] }), fleet: f ? { pct: Math.round(seen / f.total * 100), total: f.total } : null });
 	}
 }
 
@@ -92,7 +97,7 @@ function materialOffers() {
 				if (deal) add(a.recv, dealRow(npcId, { ...deal, give: a.give }, used));
 				continue;
 			}
-			if (slot.options) drawRows(npcId, slot.options, used, add);
+			if (slot.options) drawRows(npcId, slot.options, used, add, page.id);
 			else add(slot.recv, dealRow(npcId, slot, used));
 		}
 	} else {
@@ -139,7 +144,7 @@ function tradeOffers(missing) {
 		const a = said.get(npcId);
 		const drawn = a && pool.options.find(o => o.give === a.give && o.recv === a.recv);
 		if (drawn) { add(drawn.recv, dealRow(npcId, drawn, used, { climb: climbOf(npcId) })); continue; }
-		drawRows(npcId, pool.options, used, add);
+		drawRows(npcId, pool.options, used, add, String(b.combo.id));
 	}
 	return { id: String(b.combo.id), known: true, offers: out };
 }

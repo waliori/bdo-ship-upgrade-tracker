@@ -8,8 +8,13 @@
 // known the sailor is asked, island by island, with the fleet's share of
 // each beside it and the likelier one picked already; a barter
 // screenshot answers it just as well. The four [Level 7]s a mainland
-// island pays and the material islands are not asked here: the one is
-// settled at the stop, the other is the material list's.
+// island pays are not asked here: that is settled at the stop.
+//
+// And the pools: the islands a trade layout only names, which draw one
+// of a score of offers each refresh -- mostly ship materials, Tidal
+// Black Stone, a Lost Trade Box -- every option as likely as the next
+// by the game's own tables. Nothing is planned on one until it is said,
+// so they are asked here too: what it pays, then for what.
 //
 // What the sailor says is an answer like any other island's, kept in
 // V.board.answers; and it is counted once a board day in the profile's
@@ -64,12 +69,22 @@ function openOptions(roll, count = barterProfile().barterCount) {
 
 /**
  * The item-or-coins rolls on this board worth asking about: those with
- * two options the sailor can see. `said` is what they answered.
+ * two options the sailor can see -- and the pools, `pool: true`. `said`
+ * is what they answered.
  */
 export function rollAsks(combo, answers = V.board.answers) {
-	if (!combo || !combo.rolls) return [];
+	if (!combo) return [];
 	const out = [];
-	for (const [key, roll] of Object.entries(combo.rolls)) {
+	for (const [key, pool] of Object.entries(combo.pools || {})) {
+		const npcId = Number(key);
+		if (!npcById.has(npcId)) continue;
+		const options = openOptions(pool);
+		if (!options.length) continue;
+		const a = answers.find(x => x.npcId === npcId);
+		const said = a ? options.find(o => o.give === a.give && o.recv === a.recv) || null : null;
+		out.push({ npcId, options, said, likely: null, pool: true });
+	}
+	for (const [key, roll] of Object.entries(combo.rolls || {})) {
 		const npcId = Number(key);
 		if (!itemOrCoins(roll) || !npcById.has(npcId)) continue;
 		const options = openOptions(roll);
@@ -102,12 +117,12 @@ export function assumedRolls(combo, answers = V.board.answers) {
  * in the profile: what the fleet's share is added up from.
  */
 export function noteRolls(combo, answers = V.board.answers) {
-	if (!combo || !combo.rolls || combo.own) return;
+	if (!combo || (!combo.rolls && !combo.pools) || combo.own) return;
 	const day = barterKey();
 	const all = { ...(store.getProfile('rolls', {}) || {}) };
 	let changed = false;
 	for (const a of answers) {
-		const roll = combo.rolls[a.npcId];
+		const roll = combo.rolls[a.npcId] || (combo.pools && combo.pools[a.npcId]);
 		const o = roll && roll.options.find(x => x.give === a.give && x.recv === a.recv);
 		if (!o) continue;
 		const key = `${combo.id}|${a.npcId}`;
@@ -129,7 +144,7 @@ export function rollsChipHTML(combo) {
 	if (!asks.length) return '';
 	const left = asks.filter(x => !x.said).length;
 	return left
-		? `<button class="chip tiny rolls-chip warn" data-act="barter-rolls" title="${T('These islands pay a good or Crow Coins, a different one each day; which one changes the route')}">🎲 ${left === 1 ? T('{n} island rolls a good or coins — which?', { n: left }) : T('{n} islands roll a good or coins — which?', { n: left })}</button>`
+		? `<button class="chip tiny rolls-chip warn" data-act="barter-rolls" title="${T('These islands show one of several exchanges, a different one each refresh; which one changes the route')}">🎲 ${left === 1 ? T('{n} island draws its offer — which?', { n: left }) : T('{n} islands draw their offer — which?', { n: left })}</button>`
 		: `<button class="chip tiny rolls-chip ok" data-act="barter-rolls" title="${T('What the islands that roll a good or coins showed today')}">🎲 ${T('rolls said')}</button>`;
 }
 
@@ -150,18 +165,57 @@ export function openRolls(combo, redraw) {
 					<span class="roll-meta">${T('{n} a day', { n: F(o.perDay) })}${pct !== null ? ` · <i class="pay-fleet">⚓${pct}%</i>` : ''}${!x.said && on ? ` · ${T('likely')}` : ''}</span>
 				</button>`;
 			};
+			if (x.pool) return poolRow(x, npc, f);
 			return `<div class="roll-row${x.said ? ' said' : ''}">
 				<div class="roll-head"><b>${esc(gameName(isleOf(npc)))}</b><span class="faint">${esc(gameName(npc.name))} · ${T('takes {n}× {give}', { n: esc(x.options[0].qty), give: esc(gameName(x.options[0].give)) })}</span>${f ? `<span class="faint">${T('the fleet saw it {n} times', { n: F(f.total) })}</span>` : ''}</div>
 				<div class="roll-options">${x.options.map(option).join('')}</div>
 			</div>`;
 		};
+		// A pool: what it pays first, as icons with the fleet's share, then
+		// the exchanges paying that one -- there are a score of them.
+		const poolRow = (x, npc, f) => {
+			// The same exchange stands once a barter-count step in the game's
+			// table: one tile each, all the same to the sailor.
+			const pays = new Map(), once = new Set();
+			for (const o of x.options) { if (once.has(keyOf(o))) continue; once.add(keyOf(o)); if (!pays.has(o.recv)) pays.set(o.recv, []); pays.get(o.recv).push(o); }
+			const pctOf = list => (f ? Math.round((list.reduce((a, o) => a + (f.seen[keyOf(o)] || 0), 0) / f.total) * 100) : null);
+			const open = expand.get(x.npcId) || (x.said ? x.said.recv : '');
+			const payChip = ([recv, list]) => { const pct = pctOf(list); return `<button class="roll-pay${open === recv ? ' on' : ''}${x.said && x.said.recv === recv ? ' said' : ''}" data-act="barter-roll-pays" data-npc="${x.npcId}" data-recv="${esc(recv)}" aria-pressed="${open === recv}" title="${esc(gameName(recv))}">${img(recv, 'row-icon sm')}<span>${esc(gameName(recv))}</span><em>${F(list.length)}${pct !== null ? ` · ⚓${pct}%` : ''}</em></button>`; };
+			const list = open ? pays.get(open) || [] : [];
+			const option = o => {
+				const on = x.said === o;
+				const pct = f ? Math.round(((f.seen[keyOf(o)] || 0) / f.total) * 100) : null;
+				const pay = o.recvMin === o.recvMax ? F(o.recvMin) : `${F(o.recvMin)}–${F(o.recvMax)}`;
+				return `<button class="roll-option mini${on ? ' on' : ''}" data-act="barter-roll-pick" data-npc="${x.npcId}" data-give="${esc(o.give)}" data-recv="${esc(o.recv)}" aria-pressed="${on}">
+					<span class="roll-trade">${img(o.give, 'row-icon sm')}<span class="faint">→</span>${img(o.recv, 'row-icon sm')}</span>
+					<span class="roll-name"><b>${esc(o.qty)}× ${esc(gameName(o.give))}</b> → ${esc(pay)}</span>
+					<span class="roll-meta">${T('{n} a day', { n: F(o.perDay) })}${pct !== null ? ` · <i class="pay-fleet">⚓${pct}%</i>` : ''}</span>
+				</button>`;
+			};
+			return `<div class="roll-row pool${x.said ? ' said' : ''}">
+				<div class="roll-head"><b>${esc(gameName(isleOf(npc)))}</b><span class="faint">${esc(gameName(npc.name))} · ${T('draws one of {n} offers', { n: F(new Set(x.options.map(keyOf)).size) })}</span>${f ? `<span class="faint">${T('the fleet saw it {n} times', { n: F(f.total) })}</span>` : ''}${x.said ? `<span class="roll-said">✓ ${esc(gameName(x.said.give))} → ${esc(gameName(x.said.recv))}</span>` : ''}</div>
+				<div class="roll-pays"><span class="roll-pays-k">${T('it pays')}</span>${[...pays].sort((a, b) => b[1].length - a[1].length).map(payChip).join('')}</div>
+				${list.length ? `<div class="roll-options pool-options"><span class="roll-pays-k">${T('for')}</span>${list.map(option).join('')}</div>` : ''}
+			</div>`;
+		};
+		const pools = asks.filter(x => x.pool), coinRolls = asks.filter(x => !x.pool);
 		return `<h2>${T('Today’s rolls')}</h2>
-			<p class="dialog-copy">${T('Layout {id} is known, but these islands pay a good or Crow Coins, a different one each day. Look at each in the game and tap what it shows; until then the likelier one is planned on.', { id: esc(combo.id) })}</p>
-			<div class="rolls">${asks.map(row).join('')}</div>
+			${coinRolls.length ? `<p class="dialog-copy">${T('Layout {id} is known, but these islands pay a good or Crow Coins, a different one each day. Look at each in the game and tap what it shows; until then the likelier one is planned on.', { id: esc(combo.id) })}</p>
+			<div class="rolls">${coinRolls.map(row).join('')}</div>` : ''}
+			${pools.length ? `<p class="dialog-copy">${T('These islands draw one of their offers each refresh — materials, Tidal Black Stone, a Lost Trade Box. Tap what each pays in the game, then for what; nothing is planned on one until it is said. Your answers count toward the fleet’s share of each layout.')}</p>
+			<div class="rolls">${pools.map(row).join('')}</div>` : ''}
 			<div class="dialog-actions"><button class="act" data-close>${T('Done')}</button></div>`;
 	};
+	const expand = new Map();
 	const host = openDialog(draw(), { onDismiss: redraw });
 	host.addEventListener('click', e => {
+		const p = e.target.closest('[data-act="barter-roll-pays"]');
+		if (p) {
+			e.stopPropagation();
+			expand.set(Number(p.dataset.npc), p.dataset.recv);
+			host.querySelector('.dialog-box').innerHTML = draw();
+			return;
+		}
 		const b = e.target.closest('[data-act="barter-roll-pick"]');
 		if (!b) return;
 		e.stopPropagation();

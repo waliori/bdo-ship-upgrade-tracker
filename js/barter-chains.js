@@ -69,8 +69,10 @@ export function chains(barterData, stock = {}, dock = {}, barterCount = null, ce
 	// { mats: [names], boxes, ocean } -- the ship materials wanted, the Lost
 	// Trade Boxes, and whether the Great Ocean goods stay in. A side pay is
 	// a top like a coin is: nothing takes it further.
-	const mats = new Set(side && side.mats ? side.mats : []);
-	const sidePay = name => { const k = sideKind(name); return (k === 'material' && mats.has(name)) || (k === 'box' && !!(side && side.boxes)); };
+	// `mats` is the materials wanted by name, or `true` for every one.
+	const allMats = !!(side && side.mats === true);
+	const mats = new Set(side && Array.isArray(side.mats) ? side.mats : []);
+	const sidePay = name => { const k = sideKind(name); return (k === 'material' && (allMats || mats.has(name))) || (k === 'box' && !!(side && side.boxes)); };
 	const oceanOff = !!(side && side.ocean === false);
 	const rows = exchanges(barterData).filter(r => (levelOf(r.item) !== null && !(oceanOff && isOcean(r.item))) || (coins && r.item === COIN && r.recvMax > 1) || sidePay(r.item));
 	const takes = name => rows.filter(r => r.give === name);
