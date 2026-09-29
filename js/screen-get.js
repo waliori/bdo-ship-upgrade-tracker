@@ -305,7 +305,7 @@ const dayWord = n => n === 1 ? T('a day') : T('{n} days', { n: F(n) });
 const STEPS = {
 	quest: { tone: 'teal', title: TT('Take these as quest rewards'), sub: TT('Materials the quests above hand you. Nothing to buy.') },
 	coin: { tone: 'amber', title: TT('Buy at the Crow Coin Shop'), sub: TT("The shop is at Oquilla's Eye. Pay with what you hold and what the quests bring in.") },
-	barter: { tone: 'blue', title: TT('Barter for these at sea'), sub: TT('Paced by how often the boards recorded each offer on the list.') },
+	barter: { tone: 'blue', title: TT('Barter for these at sea'), sub: TT('An estimate: which layout a refresh deals is chance, so the days come from how often every layout on record shows each offer — the material list’s and the trade board’s.') },
 	falasi: { tone: 'blue', title: TT('Buy from Falasi'), sub: TT('Philaberto Falasi, at the port of Epheria.') },
 	market: { tone: 'blue', title: TT('Buy on the Central Market'), sub: TT('Priced as the market last sold them, in the region set on the sailor chip in the bar.') },
 	find: { tone: 'red', title: TT('Go and get these'), sub: TT('Nothing publishes a rate for any of these, so none of them is counted in the days.') },
@@ -346,6 +346,8 @@ function planHead(way, steps, things) {
 	const pace = way.longPole ? way.longPole.text
 		: way.days === 1 ? T('Everything on the list fits inside today.')
 		: T('Nothing on the list is waiting on a clock.');
+	// The barter is the one part nobody can promise a day for.
+	const guess = way.legs.some(l => l.kind === 'barter') ? ` ${T('The barter days are an estimate: which board each refresh deals is chance.')}` : '';
 
 	const c = way.coins;
 	const budget = (c.purse - c.reserve) + c.income;
@@ -383,7 +385,7 @@ function planHead(way, steps, things) {
 			<div class="way-head-say">
 				<div class="way-eyebrow">${T('Your plan')}</div>
 				<div class="way-headline">${esc(headline)}</div>
-				<p class="way-pace">${esc(pace)}</p>
+				<p class="way-pace">${esc(pace + guess)}</p>
 			</div>
 			<div class="way-tiles">
 				<div class="way-tile amber">
@@ -632,7 +634,7 @@ function wayRow(l) {
 	return `<div class="row way-row" data-peek="${esc(l.item)}">
 		${img(l.item, 'row-icon sm')}
 		<div class="row-main">
-			<div class="row-name">${codexName(l.item)}</div>
+			<div class="row-name">${codexName(l.item)}${l.kind === 'barter' ? ` <span class="est-badge" title="${T('Which board a refresh deals is chance: this is an average over every layout on record, not a promise')}">≈ ${T('estimate')}</span>` : ''}</div>
 			${lines.map((line, i) => `<div class="row-sub way-why">${esc([i === 0 ? l.unit : '', line].filter(Boolean).join(' · '))}${i === lines.length - 1 && door ? ` · ${door}` : ''}</div>`).join('')}
 			${l.kind === 'barter' ? todayLine(l.item) : ''}
 			${l.also ? `<div class="row-alt way-also">${T('also: {text}', { text: esc(l.also) })}</div>` : ''}

@@ -861,7 +861,11 @@ export function bottleneck(top, qty, lists = null, odds = null) {
 		const bestRefreshes = needed / perRefresh;
 		// A draw the exchange is absent from buys nothing, so the draws
 		// needed are the best case over the share of draws it is on.
-		const refreshes = bestRefreshes / (chance.per > 0 ? chance.per : 1);
+		// A material the trade board also deals: a day's trade refreshes
+		// count for it too, at their own odds -- said as the material
+		// list's refreshes it would take, both lists together.
+		const trade = list === 'material' && chance.alsoTrade && pace.material > 0 ? chance.alsoTrade.per * (pace.trade || 0) / pace.material : 0;
+		const refreshes = bestRefreshes / ((chance.per > 0 ? chance.per : trade > 0 ? 0 : 1) + trade);
 		const days = refreshes / pace[list];
 		// The scarcest rung is the one that paces the climb, and scarcity
 		// is now part of what makes a rung slow -- a common rung wanted in

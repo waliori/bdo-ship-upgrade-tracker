@@ -586,3 +586,5 @@
 .get-blocked-swap { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
 .get-blocked-why { color: var(--ink-mute); }
 @media (max-width: 720px) { .get-blocked-row { grid-template-columns: 1fr; } }
+
+.est-badge { display: inline-flex; align-items: center; margin-left: 6px; padding: 0 7px; border-radius: 999px; border: 1px dashed color-mix(in srgb, var(--amber) 55%, transparent); color: var(--amber); font-size: 10.5px; font-weight: 600; letter-spacing: 0.02em; vertical-align: 2px; }

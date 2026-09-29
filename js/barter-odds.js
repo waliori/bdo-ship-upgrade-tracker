@@ -112,7 +112,36 @@ export function readOdds({ boards = null, combos = null, pages = null } = {}) {
 		}
 	}
 
-	return { material, trade, boards: pages && pages.length ? pages.length : bs.length, refreshes };
+	return { material, trade, side: sideOdds(cs), boards: pages && pages.length ? pages.length : bs.length, refreshes };
+}
+
+/**
+ * The trade board's share of the materials: its fixed slots paying one
+ * and its pools, each layout weighed by how often it is dealt. A trade
+ * refresh can show a material at one of those islands too, so a
+ * material's days count both lists -- the material list's draws and the
+ * trade board's. `per` is the chance a trade refresh shows the item at
+ * all, `islands` how many islands it shows it at when it does.
+ */
+function sideOdds(cs) {
+	const out = new Map();
+	const all = cs.reduce((a, c) => a + (Number(c.seen) || 1), 0);
+	if (!all) return out;
+	for (const c of cs) {
+		const w = (Number(c.seen) || 1) / all;
+		const here = new Map();
+		const add = (item, p) => { const h = here.get(item) || { none: 1, n: 0 }; h.none *= 1 - p; h.n += p; here.set(item, h); };
+		for (const o of c.offers || []) if (typeof o[3] === 'string' && !/^\[Level \d\]/.test(o[3]) && o[3] !== 'Crow Coin') add(o[3], o[4] && Number.isFinite(o[4].chance) ? o[4].chance : 1);
+		for (const pool of Object.values(c.pools || {})) for (const x of pool.options) if (x.recv !== 'Crow Coin') add(x.recv, (x.chance ?? 1) / pool.options.length);
+		for (const [item, h] of here) {
+			const rec = out.get(item) || { per: 0, islands: 0 };
+			rec.per += (1 - h.none) * w;
+			rec.islands += h.n * w;
+			out.set(item, rec);
+		}
+	}
+	for (const rec of out.values()) rec.islands = rec.per ? rec.islands / rec.per : 0;
+	return out;
 }
 
 /**
@@ -168,8 +197,12 @@ export function oddsFor(item, index) {
 	const table = kind === 'material' ? index.material : index.trade;
 	const of = kind === 'material' ? index.boards : index.refreshes;
 	const rec = table && table.get(item);
+	// A material the trade board may deal too: its share there rides along.
+	const alsoTrade = kind === 'material' && index.side && index.side.get(item) ? { per: Math.min(1, index.side.get(item).per), islands: index.side.get(item).islands } : null;
+	// One only the trade board deals is known by that alone.
+	if (!rec && alsoTrade) return { per: 0, seen: 0, of, kind, recorded: true, exact: true, islands: 0, alsoTrade };
 	if (!rec || !of) return unknown;
-	if (rec.exact) return { per: Math.min(1, rec.per), seen: rec.on, of, kind, recorded: true, exact: true, islands: rec.islands };
+	if (rec.exact) return { per: Math.min(1, rec.per), seen: rec.on, of, kind, recorded: true, exact: true, islands: rec.islands, ...(alsoTrade ? { alsoTrade } : {}) };
 
 	// Presence, shrunk toward the old assumption. Never above one: this
 	// file exists to take optimism out of a forecast, not to add it.
@@ -187,6 +220,9 @@ export function oddsText(odds) {
 	if (!odds || !odds.recorded) return T('no board has recorded this one yet');
 	if (odds.kind === 'material') {
 		const where = odds.islands >= 2 ? T(', at {n} islands when it is', { n: Math.round(odds.islands) }) : '';
+		const trade = odds.alsoTrade ? Math.max(1, Math.round(odds.alsoTrade.per * 100)) : 0;
+		if (odds.exact && !odds.per && trade) return T('only on the trade board, on about {pct}% of its refreshes, by the game’s own tables', { pct: trade });
+		if (odds.exact && trade) return T('on about {pct}% of material lists and {trade}% of trade boards, by the game’s own tables{where}', { pct: Math.max(1, Math.round(odds.per * 100)), trade, where });
 		if (odds.exact) return T('on about {pct}% of material lists, by the game’s own tables{where}', { pct: Math.max(1, Math.round(odds.per * 100)), where });
 		return odds.seen >= odds.of
 			? T('on every one of the {of} boards recorded{where}', { of: odds.of, where })
