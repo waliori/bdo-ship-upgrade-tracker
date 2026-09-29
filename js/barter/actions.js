@@ -27,7 +27,7 @@ import { V, STEPS } from './state.js';
 import { timerAction, timerState, timerNow, startTimer, stopTimer, passedStop, arrivedAt, spanText } from '../sail-timer.js';
 import { fromPort, sailCal, itemNow, readWindow, takeFleetBoard, openBook, tellTheFleet, pickOffer, pickIsland, showGated, pickAnyIsland, boardNow } from './board.js';
 import { openRolls } from './rolls.js';
-import { bringUp } from './cockpit.js';
+import { bringUp, patchPaid } from './cockpit.js';
 import { castOffFx } from './setsail.js';
 import { aboardStock, unloadTo, held, openSheet, shoreAboard } from './hold.js';
 import { matBoardNow, matFitNow, takeMatOffers, openMatBook, openMatRolls, pickGood, pickMaterial, matOn, openMatIsles, pickShipAt } from './material.js';
@@ -581,7 +581,8 @@ export function barterAction(act, el, redraw) {
 			if (on.seen[el.dataset.npc] === n) delete on.seen[el.dataset.npc];
 			else if (n > 0) on.seen[el.dataset.npc] = n;
 			persist();
-			return true;
+			// Only the press and the chips change: drawn in place.
+			return !patchPaid(!!el.dataset.map);
 		}
 		case 'barter-paid': {
 			const on = sailing() || (el.dataset.map ? V.sail : null);
@@ -659,7 +660,9 @@ export function barterChange(el, parseAmount) {
 			// Traded is pressed under it, which is the sailor's own word.
 			if (n > 0) on.seen[el.dataset.npc] = Math.floor(n); else delete on.seen[el.dataset.npc];
 			persist();
-			return true;
+			// In the cockpit only the press and the chips change: drawn in
+			// place. A box on a checklist row redraws the list it is on.
+			return !(el.closest && el.closest('.cockpit') && patchPaid(!!el.dataset.map));
 		}
 		// How many times an island was really traded: ten where the run said
 		// seven. The hold, the Parley and the record follow the count given;

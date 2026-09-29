@@ -2568,12 +2568,16 @@ test('the run laid out is the wharf step: a strip along the foot appears as chai
 			// chips under the box -- and the stop waits for Traded to be
 			// pressed, rather than moving on the moment a number is in.
 			const place = await text(page, '.cockpit-place');
+			// Saying the count redraws the press and the chips, not the stop:
+			// the pictures on it are the same elements after as before.
+			await page.evaluate(() => { const im = document.querySelector('.cockpit .cockpit-trade img'); if (im) im.__kept = true; });
 			if (!i) {
 				assert.ok(await count(page, '.cockpit .paid-pick') >= 3, 'the least, the middle, the most');
 				await page.evaluate(() => [...document.querySelectorAll('.cockpit .paid-pick')][1].click());
 			} else await page.evaluate(() => { const el = document.querySelector('.cockpit [data-act="barter-paid-n"]'); el.value = String(Math.round((Number(el.min) || 0) || 400)); el.dispatchEvent(new Event('change', { bubbles: true })); });
 			await wait(700);
 			assert.equal(await text(page, '.cockpit-place'), place, 'still at the same stop');
+			assert.ok(await page.evaluate(() => { const im = document.querySelector('.cockpit .cockpit-trade img'); return !im || im.__kept === true; }), 'the stop was not drawn again');
 			assert.match(await text(page, '.cockpit-press'), /Traded ×\d+ · paid [\d,]+/, 'the press says what was paid');
 			await page.evaluate(() => document.querySelector('.cockpit-press [data-act="barter-stop-done"]').click());
 			await wait(900);

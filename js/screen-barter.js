@@ -34,6 +34,7 @@ export { barterAction, barterChange, barterType, chartFragment } from './barter/
 
 export { runSheetHTML, sailChart, sailCurrent, sailJump, sailIds, sailFor } from './barter/sail.js';
 export { plannedChart } from './barter/plan.js';
+export { barterWritingView } from './barter/view.js';
 
 export function renderBarter() {
 	restore();

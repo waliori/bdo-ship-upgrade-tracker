@@ -33,7 +33,7 @@ import { openGuide, wireGuide } from './guide.js';
 import { renderPlan } from './screen-plan.js';
 import { renderBuilds, openBuildPicker, askRoute, toggleBlockers } from './screen-builds.js';
 import { renderInventory } from './screen-inventory.js';
-import { renderBarter, barterAction, barterChange, barterType, chartFragment, runSheetHTML, sailChart, sailCurrent, sailJump, plannedChart, sailIds } from './screen-barter.js';
+import { renderBarter, barterAction, barterChange, barterType, chartFragment, runSheetHTML, sailChart, sailCurrent, sailJump, plannedChart, sailIds, barterWritingView } from './screen-barter.js';
 import { tickTimer, watchTimer } from './sail-timer.js';
 import { renderTree, pickTreeTarget, folded, setTreeTarget, collapseAll } from './screen-tree.js';
 import { renderWorkshop, pendingEnhancements, toggleBlocked } from './screen-workshop.js';
@@ -2576,7 +2576,8 @@ export async function init() {
 	// redraw follows once the press is done with, unless the press drew
 	// the page itself after its writes.
 	store.subscribe((_, reason) => {
-		if (reason === 'profile-quiet' && mapWritingView()) return;
+		// A screen writing down how it was left draws nothing new.
+		if (reason === 'profile-quiet' && (mapWritingView() || barterWritingView())) return;
 		if (stale) return;
 		stale = true;
 		Promise.resolve().then(() => { if (stale) render(); });

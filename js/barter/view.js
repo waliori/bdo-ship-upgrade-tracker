@@ -218,6 +218,10 @@ export function persistNamed(label) {
 	V.readSig = JSON.stringify(store.getView(VIEW_NS));
 }
 
+/** Whether the tab is writing its own view down now: what it writes is
+ *  what is on screen already, and the page is not drawn again for it. */
+export const barterWritingView = () => V.writing === true;
+
 function flushView() {
 	if (!V.writeTimer) return;
 	clearTimeout(V.writeTimer);

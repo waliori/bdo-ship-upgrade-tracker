@@ -295,6 +295,32 @@ function paidPicks(s, on, map) {
 	return `<div class="paid-picks">${picks.map(([v, k, sub]) => `<button class="chip paid-pick${said === v ? ' active' : ''}${sub ? ' fleet' : ''}" data-act="barter-paid-set"${map ? ' data-map="1"' : ''} data-npc="${s.npcId}" data-n="${v}" aria-pressed="${said === v}"${sub ? ` title="${esc(sub)}"` : ''}><b>${F(v)}</b><small>${k}</small></button>`).join('')}</div>`;
 }
 
+/**
+ * A paid count said -- typed, or taken off a chip -- put into the
+ * cockpit already drawn: the press under it, the chips, the box and
+ * the count still owed at the foot. Only those change, and drawing the
+ * whole tab again for them made its pictures and the clock flash.
+ * False when the cockpit on screen is not the one these fit, for the
+ * caller to draw it all after all.
+ */
+export function patchPaid(map = false) {
+	const host = document.querySelector(map ? '.map-run' : '.barter-screen');
+	if (!host || !host.querySelector('.cockpit')) return false;
+	const fresh = document.createElement('div');
+	fresh.innerHTML = cockpitHTML({ map });
+	for (const sel of ['.cockpit .cockpit-press', '.cockpit .paid-picks', '.sail-guess']) {
+		const was = host.querySelectorAll(sel), now = fresh.querySelectorAll(sel);
+		if (was.length !== now.length) return false;
+		was.forEach((el, i) => { if (el.outerHTML !== now[i].outerHTML) el.replaceWith(now[i].cloneNode(true)); });
+	}
+	// The box keeps its own caret: only its value moves, and only when
+	// it is not the one being typed in.
+	const boxes = host.querySelectorAll('.cockpit input[data-act="barter-paid-n"]'), fboxes = fresh.querySelectorAll('.cockpit input[data-act="barter-paid-n"]');
+	if (boxes.length !== fboxes.length) return false;
+	boxes.forEach((el, i) => { if (el !== document.activeElement) el.value = fboxes[i].value; });
+	return true;
+}
+
 export function cockpitHTML({ map = false } = {}) {
 	const on = sailing();
 	const plan = on ? sailedPlan() : null;
