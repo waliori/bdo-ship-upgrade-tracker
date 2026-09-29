@@ -17,7 +17,6 @@
 // standing layouts, the island worth asking about next, and the board
 // as a barter table go out.
 
-import { levelOf } from './barter.js';
 import { dealsAt, fitsAt } from './barter-layouts.js';
 
 const offerMaps = new WeakMap();
@@ -168,8 +167,11 @@ export function askable(combos, npcById, near = null) {
  * them; a board of the sailor's own falls back on the codex, and an
  * exchange the codex never listed on one for one, capped by its rung.
  *
- * The ship-material exchanges ride along unchanged: the layouts carry
- * trade goods and coins only, so for them the whole table stands.
+ * What else the board pays -- a ship material, a Brilliant, a Lost Trade
+ * Box -- is the layout's too: its fixed slots, and its pools as far as
+ * they were read today. The whole table is no stand-in for them: a
+ * refresh deals the trade board or the material list, and the material
+ * list's islands are not on this one.
  *
  * `answers` are what islands were seen to show today. At a slot the
  * game fills at random, what was seen is the offer; one at an island
@@ -186,7 +188,6 @@ export function boardData(combo, barterData, npcById, answers = [], shut = []) {
 	const codex = new Map();
 	const entries = new Map();
 	for (const e of barterData || []) {
-		if (levelOf(e.name) === null && e.name !== 'Crow Coin') entries.set(e.name, { ...e, sources: [...e.sources] });
 		for (const s of e.sources) codex.set(`${s.npc_id}|${s.give.name}|${e.name}`, { entry: e, source: s });
 	}
 	const listed = offersOf(combo);
@@ -200,6 +201,10 @@ export function boardData(combo, barterData, npcById, answers = [], shut = []) {
 	}
 	for (const a of answers) {
 		if (listed.has(a.npcId) || !npcById.has(a.npcId)) continue;
+		// A pool read today: the option it showed, with the game's figures.
+		const pool = combo.pools && combo.pools[a.npcId];
+		const drawn = pool && pool.options.find(o => o.give === a.give && o.recv === a.recv);
+		if (drawn) { offers.push([a.npcId, a.give, drawn.qty, a.recv, drawn]); continue; }
 		const o = fitsAt(combo, a.npcId, a.give, a.recv);
 		const known = codex.get(`${a.npcId}|${a.give}|${a.recv}`);
 		offers.push([a.npcId, a.give, o ? o.qty : known ? String(known.source.give.quantity) : '1', a.recv, o]);

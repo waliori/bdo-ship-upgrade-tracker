@@ -62,13 +62,13 @@ test('the island worth asking about leaves the fewest layouts standing, and one 
 	assert.equal(offers.reduce((a, o) => a + o.ids.length, 0), combos.filter(c => offersOf(c).has(ask[0].npcId)).length);
 });
 
-test('a layout reads as a barter table: one offer an island, the game\u2019s own attempts, pay and Parley, the materials from the whole table', () => {
+test('a layout reads as a barter table: one offer an island, the game\u2019s own attempts, pay and Parley, and the materials its own islands pay', () => {
 	const combo = combos[0];
 	const data = boardData(combo, barterData, npcById);
 	const goods = data.filter(e => levelOf(e.name) !== null || e.name === 'Crow Coin');
 	const dealt = goods.flatMap(e => e.sources.map(s => s.npc_id));
 	assert.equal(new Set(dealt).size, dealt.length, 'an island deals one trade exchange today');
-	assert.equal(dealt.length, combo.offers.length);
+	assert.equal(dealt.length, combo.offers.filter(o => levelOf(o[3]) !== null || o[3] === 'Crow Coin').length);
 	const info = new Map(combo.offers.map(o => [o[0], o[4]]));
 	for (const e of goods) for (const s of e.sources) {
 		const o = info.get(s.npc_id);
@@ -76,9 +76,22 @@ test('a layout reads as a barter table: one offer an island, the game\u2019s own
 		assert.equal(s.quantity_received, o.recvMin === o.recvMax ? String(o.recvMin) : `${o.recvMin}-${o.recvMax}`);
 		assert.equal(s.parley, o.parley);
 	}
-	const brilliant = data.find(e => e.name === 'Brilliant Pearl Shard');
-	assert.ok(brilliant && brilliant.sources.length === barterData.find(e => e.name === 'Brilliant Pearl Shard').sources.length, 'material islands roll on their own');
-	assert.ok(ladder('Brilliant Pearl Shard', data), 'the ladder climbs the board to the material');
+	// What else the board pays is the layout's own: its fixed slots -- a
+	// Brilliant, a Lost Trade Box -- and nothing from the whole table.
+	const other = data.filter(e => levelOf(e.name) === null && e.name !== 'Crow Coin');
+	const fixedOther = combo.offers.filter(o => levelOf(o[3]) === null && o[3] !== 'Crow Coin');
+	assert.equal(other.reduce((a, e) => a + e.sources.length, 0), fixedOther.length, 'no material from the whole table');
+	// The pools are named, each with what it may show, and nothing is on
+	// the board from them until one is read.
+	assert.ok(Object.keys(combo.pools).length >= 3, 'every layout has its pool islands');
+	for (const pool of Object.values(combo.pools)) assert.ok(pool.options.length > 1 && pool.options.some(o => levelOf(o.recv) === null));
+	const [npcId, pool] = Object.entries(combo.pools)[0];
+	const o = pool.options.find(x => levelOf(x.recv) === null);
+	const read = boardData(combo, barterData, npcById, [{ npcId: Number(npcId), give: o.give, recv: o.recv }]);
+	const got = read.find(e => e.name === o.recv);
+	assert.ok(got && got.sources.some(s => s.npc_id === Number(npcId) && s.attempts_available === o.perDay), 'a pool read today is on the board, at the game\u2019s figures');
+	const withBrilliant = combos.find(c => c.offers.some(x => x[3] === 'Brilliant Pearl Shard'));
+	assert.ok(ladder('Brilliant Pearl Shard', boardData(withBrilliant, barterData, npcById)), 'the ladder climbs a board to a material it pays');
 });
 
 test('a run planned on the board only calls at islands the board deals, and the caps by rung stand in for the codex’s zeros', () => {

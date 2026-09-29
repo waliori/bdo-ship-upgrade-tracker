@@ -719,6 +719,8 @@ img.lb-face { width: 20px; height: 20px; border-radius: 4px; vertical-align: mid
 .lb-lvh.no { --lv: var(--red-soft); }
 .lb-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 6px; }
 .lb-tile { display: flex; flex-direction: column; gap: 5px; padding: 8px 10px; background: var(--panel-inset); border: 1px solid var(--line-soft); border-left: 3px solid var(--line); border-radius: 8px; }
+.lb-tile.pool { border-left-color: var(--amber); }
+.lb-pool-pays { display: flex; flex-wrap: wrap; align-items: center; gap: 3px; font-size: 11px; }
 .lb-tile.hit { border-color: rgba(232, 182, 97, 0.55); background: rgba(232, 182, 97, 0.08); }
 .lb-tile.same { border-left-color: var(--teal); }
 .lb-tile.off { border-left-color: var(--red); background: rgba(232, 122, 109, 0.06); }

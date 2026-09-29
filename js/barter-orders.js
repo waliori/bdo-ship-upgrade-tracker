@@ -132,7 +132,15 @@ export const VOUCHER_CHOICES = [
 export const DEFAULT_PAUSE = { isle: 45, call: 120 };
 export const PAUSE_MAX = 30 * 60;
 
-export const DEFAULT_ORDERS = { preset: 'cash', ...PRESETS[0].orders, landFrom: 'buy', vouchers: 'use', pause: { ...DEFAULT_PAUSE }, hours: 0, way: 'sea', quests: 'near' };
+/**
+ * What else a run on the trade board may aim at, beside the climbs: the
+ * materials the builds are short of that its islands pay, the Great
+ * Ocean goods (a [Level 5] nothing takes further, sold like a [Level
+ * 7]), and the Lost Trade Boxes, whose goods are a draw of their own.
+ */
+export const DEFAULT_SIDE = { mats: false, ocean: true, boxes: false };
+
+export const DEFAULT_ORDERS = { preset: 'cash', ...PRESETS[0].orders, landFrom: 'buy', vouchers: 'use', pause: { ...DEFAULT_PAUSE }, hours: 0, way: 'sea', quests: 'near', side: { ...DEFAULT_SIDE } };
 
 /** The way round the chains ticked: one route through every rung, each
  *  after the rung beneath it in its chain, or chain after chain. */
@@ -223,13 +231,15 @@ export function readOrders(raw) {
 	if (HOUR_CHOICES.some(([h]) => h === Number(raw.hours))) o.hours = Number(raw.hours);
 	if (WAY_CHOICES.some(([w]) => w === raw.way)) o.way = raw.way;
 	if (QUEST_CHOICES.some(([q]) => q === raw.quests)) o.quests = raw.quests;
+	o.side = { ...DEFAULT_SIDE };
+	if (raw.side && typeof raw.side === 'object') for (const k of Object.keys(DEFAULT_SIDE)) if (typeof raw.side[k] === 'boolean') o.side[k] = raw.side[k];
 	return o;
 }
 
 /** The orders a preset sets, keeping nothing of the old ones. */
 export function presetOrders(id) {
 	const p = PRESETS.find(x => x.id === id) || PRESETS[0];
-	return { preset: p.id, ...p.orders, floors: { ...p.orders.floors }, landFrom: 'buy', vouchers: 'use', pause: { ...DEFAULT_PAUSE }, hours: 0, way: 'sea', quests: 'near' };
+	return { preset: p.id, ...p.orders, floors: { ...p.orders.floors }, landFrom: 'buy', vouchers: 'use', pause: { ...DEFAULT_PAUSE }, hours: 0, way: 'sea', quests: 'near', side: { ...DEFAULT_SIDE } };
 }
 
 /** Whether the saved orders still match their preset to the letter. */

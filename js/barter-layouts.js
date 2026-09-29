@@ -34,6 +34,17 @@ import { tradeGoodNames } from './trade_goods.js';
 const byBare = new Map(tradeGoodNames.map(n => [n.replace(/^\[[^\]]+\]\s*/, ''), n]));
 export const appName = n => (/^\[Level \d\]/.test(n) || n === 'Crow Coin' ? n : byBare.get(n.replace(/^\[[^\]]+\]\s*/, '')) || n);
 
+/** The goods the game files by their sea: five [Level 5]s nothing takes
+ *  further, sold at a wharf like a [Level 7] -- and the few other rare
+ *  pays of the trade board that only sell. A run may leave them out. */
+const OCEAN = new Set(['Cox Pirates\' Journal', 'Observatory Report', 'Opulent Coral Trinket', 'Rust Repair Tool', 'Otters Fish Hook'].map(n => `[Level 5] ${n}`));
+const RARE = new Set(['Obsidian Crystal Bracelet', 'Golden Galley Figurine', 'Elaborate Pearl Necklace']);
+export const isOcean = name => OCEAN.has(name) || RARE.has(name);
+/** What a side trade of the trade board pays, by kind: 'box' for a Lost
+ *  Trade Box, 'ocean' for the Great Ocean and rare sell goods, 'material'
+ *  for a ship material, '' for a trade good or coins. */
+export const sideKind = name => (name === 'Lost Trade Box' ? 'box' : isOcean(name) ? 'ocean' : /^\[Level \d\]/.test(name) || name === 'Crow Coin' ? '' : 'material');
+
 const FULL = 1e6;
 const dealt = name => /^\[Level \d\]/.test(name) || name === 'Crow Coin';
 /** A Total Barters figure nobody has: what the game writes against an
@@ -77,15 +88,23 @@ export function layouts() {
 	if (!game) return null;
 	if (record) return record;
 	const combos = Object.entries(game.LAYOUTS.trade).map(([id, row]) => {
-		const offers = [], rolls = {}, picks = {}, rare = {};
+		const offers = [], rolls = {}, picks = {}, rare = {}, pools = {};
 		for (const [npcKey, slots] of Object.entries(game.TRADE)) {
 			const npc = Number(npcKey), s = slots[row];
 			if (s == null) continue;
 			if (typeof s === 'number') {
-				// A material island's pool can hold a coin or two among its
-				// materials: the slot is the material list's all the same.
+				// A pool paying materials -- Tidal Black Stone, Bright Reef
+				// Piece, Luminous Cobalt... (and a coin or two among them): the
+				// game draws one of its options each refresh, so the layout
+				// only says the island is on the board and what it may show.
+				// Kept apart from the rolls, which are planned at their
+				// likelier: nothing is planned on a pool until it is read.
 				const all = game.GROUPS[s].map(o => offerOf(o, game.OPTION));
-				if (!all.every(o => dealt(o.recv))) continue;
+				if (!all.every(o => dealt(o.recv))) {
+					const options = all.filter(o => o.gate < NEVER && o.chance > 0);
+					if (options.length) pools[npc] = { group: s, options };
+					continue;
+				}
 				const options = all.filter(o => o.gate < NEVER);
 				if (!options.length) continue;
 				const was = (ROLLED[id] || {})[npc];
@@ -96,13 +115,16 @@ export function layouts() {
 				continue;
 			}
 			const o = offerOf(s, game.OFFER);
-			if (!dealt(o.recv) || o.gate >= NEVER) continue;
+			// A fixed slot paying something else -- a Brilliant, a Great
+			// Ocean good, a Lost Trade Box -- is as certain as any: on the
+			// board, planned on, told apart from the trade goods by its pay.
+			if (o.gate >= NEVER) continue;
 			// Shown at least every other day, it is planned on; less, only
 			// once it has been seen. Either way it names no layout.
 			if (o.chance < 1) { rare[npc] = o; if (o.chance < 0.5) continue; }
 			offers.push([npc, o.give, o.qty, o.recv, o]);
 		}
-		return { id, row, seen: SEEN[id] || 0, offers, rolls, picks, rare };
+		return { id, row, seen: SEEN[id] || 0, offers, rolls, picks, rare, pools };
 	});
 	record = { read: game.BAKED.at, client: game.BAKED.client, source: 'client', sample: SAMPLE, combos };
 	return record;

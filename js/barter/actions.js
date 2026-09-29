@@ -89,6 +89,7 @@ export function barterAction(act, el, redraw) {
 		}
 		// An order chosen from a row of chips rather than a box: the same
 		// answer the box would have given.
+		case 'barter-side': { const k = el.dataset.k; const side = { ...(ordersNow().side || {}) }; if (!['mats', 'ocean', 'boxes'].includes(k)) return false; side[k] = el.getAttribute('aria-pressed') !== 'true'; V.routesAuto = V.routes.key; setOrders({ side }); return true; }
 		case 'barter-order': return barterChange({ dataset: { act: el.dataset.k }, value: el.dataset.v, checked: el.dataset.v === 'true' }, n => Number(n));
 		// The bar really is full: said once, so the figures stop hedging.
 		case 'barter-parley-full': {
@@ -354,7 +355,7 @@ export function barterAction(act, el, redraw) {
 		case 'barter-hold-at': V.holdAt = V.holdAt === el.dataset.town ? '' : el.dataset.town; return true;
 		case 'barter-hold-clear': V.holdQ = ''; V.holdLv = new Set(); V.holdAt = ''; return true;
 		case 'barter-chain-from': V.chainFrom = V.chainFrom === el.dataset.id ? '' : el.dataset.id; return true;
-		case 'barter-chain-top': { const lv = el.dataset.lv === 'coin' ? 'coin' : Number(el.dataset.lv); V.chainTop = V.chainTop === lv ? 0 : lv; return true; }
+		case 'barter-chain-top': { const lv = ['coin', 'material', 'box'].includes(el.dataset.lv) ? el.dataset.lv : Number(el.dataset.lv); V.chainTop = V.chainTop === lv ? 0 : lv; return true; }
 		case 'barter-chain-clear': V.chainQ = ''; V.chainFrom = ''; V.chainTop = 0; return true;
 		// Casting off from the wharf: the same checklist the Map's own
 		// "Sail this run" makes, and the cockpit opened over it.

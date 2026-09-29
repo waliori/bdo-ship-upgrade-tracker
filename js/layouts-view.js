@@ -253,7 +253,26 @@ export function openLayoutBook({ combos, answers = [], day = '', count = null, l
 		${parted.length ? `<h4 class="lb-lvh no">${T('Where it parts from what you saw today')} <span class="quiet">· ${plural(parted.length, 'island')}</span></h4>
 			<div class="lb-tiles">${parted.sort((x, y) => isle(x[0]).localeCompare(isle(y[0]))).map(o => tile(o, dress(o))).join('')}</div>` : ''}
 		${tilesByLevel(page.combo.offers, dress)}
+		${poolsHTML(page.combo)}
 		<div class="dialog-actions"><button class="act quiet" data-lb-back>${T('Back to the book')}</button></div>`;
+	};
+
+	// The islands the layout leaves to a draw of their own: named, with
+	// what each may show -- materials mostly -- since which one it shows
+	// today is only on the window.
+	const poolsHTML = combo => {
+		const pools = Object.entries(combo.pools || {});
+		if (!pools.length) return '';
+		const mine = new Map(answers.map(a => [a.npcId, a]));
+		return `<h4 class="lb-lvh" style="--lv: var(--tier-6)">${T('Drawn each refresh')} <span class="quiet">· ${plural(pools.length, 'island')} · ${T('each shows one of its offers, read off the window')}</span></h4>
+			<div class="lb-tiles">${pools.sort((x, y) => isle(Number(x[0])).localeCompare(isle(Number(y[0])))).map(([id, pool]) => {
+				const a = mine.get(Number(id));
+				const pays = [...new Set(pool.options.map(o => o.recv))];
+				return `<div class="lb-tile pool${a ? ' same' : ''}">
+					<div class="lb-tile-top"><span class="lb-isle">${esc(gameName(isle(Number(id))))}</span><span class="lb-tags"><span class="lb-tag" title="${T('The game draws one of {n} offers here each refresh', { n: F(pool.options.length) })}">🎲 ${T('one of {n}', { n: F(pool.options.length) })}</span></span></div>
+					${a ? `<div class="lb-tile-swap">${good(a.give)}<span class="lb-arrow">→</span>${good(a.recv)}</div>` : `<div class="lb-pool-pays">${pays.slice(0, 8).map(r => `<span title="${esc(gameName(r))}">${img(r, 'row-icon xs')}</span>`).join('')}${pays.length > 8 ? `<span class="quiet">+${F(pays.length - 8)}</span>` : ''}</div>`}
+				</div>`;
+			}).join('')}</div>`;
 	};
 
 	const strayHTML = g => {

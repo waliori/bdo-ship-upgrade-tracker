@@ -682,12 +682,22 @@ export function howHTML(o, figs = null) {
 		${breezyRow()}
 		${orderRow('barter-quests', T('quests on the way'), o.quests, QUEST_CHOICES, T('The dailies and weeklies already taken, handed in where the run passes their taker or at a stop put in a short way off the route; the barter quests counted off the run\'s trades; the hunts only when their grounds lie on the way'))}
 `;
+	// What else the run may aim at: one row, three switches, in sight
+	// whichever card is chosen.
+	const side = o.side || {};
+	const sw = (k, on, label, title) => `<button class="chip tiny${on ? ' active' : ''}" data-act="barter-side" data-k="${k}" aria-pressed="${on}" title="${esc(title)}">${on ? '✓ ' : ''}${label}</button>`;
+	const sideRow = `<div class="order-rows side-rows"><div class="order-row"><span class="order-k">${T('also trade for')}</span><div class="order-v"><span class="chips">
+		${sw('mats', !!side.mats, `⚓ ${T('materials my builds need')}`, T('Chains ending at an island of this board that pays a ship material your builds are short of: Luminous Cobalt, a Brilliant, Tidal Black Stone… Kept, not sold.'))}
+		${sw('ocean', side.ocean !== false, T('Great Ocean goods'), T('The Great Ocean goods and the few rare goods only a wharf buys: climbed to and sold like a [Level 7]'))}
+		${sw('boxes', !!side.boxes, `📦 ${T('Lost Trade Boxes')}`, T('Chains ending at an island paying a Lost Trade Box: listed to tick by hand, since what a box holds is a draw the search cannot price'))}
+	</span><span class="run-pick-sub">${esc([side.mats ? T('materials: the chains that end at them are listed apart') : '', side.ocean === false ? T('no Great Ocean goods') : '', side.boxes ? T('boxes: listed apart, ticked by hand') : ''].filter(Boolean).join(' · ') || T('the climbs only'))}</span></div></div></div>`;
 	const fromLadder = `<div class="from-ladder"><span>${T('From the step above')}</span><b>${esc(goalLine(o))}</b><button class="linky" data-act="barter-sec" data-id="ladder">${T('change it there')} ›</button></div>`;
 	// Where the ship leaves from is not a way of sailing, it is a fact
 	// about the sailor -- where their storage is -- and no card can know
 	// it, so it is the one thing asked beside the cards.
 	return `${cards}
 		${named ? `<div class="orders-fold"><button class="linky" data-act="barter-orders-fold" aria-expanded="${V.advOpen}">${V.advOpen ? `${T('hide the orders')} ▴` : `${T('show what this way sets')} ▾`}</button><span class="panel-sub">${T('change any of them and the card that matches is chosen — or “My own way” when none does')}</span></div>` : ''}
+		${sideRow}
 		${V.advOpen ? `<div class="order-rows">${rows}</div>${savedHTML()}` : ''}
 		${stocking || coining ? '' : fromLadder}
 		<div class="plan-next"><span class="panel-sub">${esc(howLine(o))}</span><span class="panel-spacer"></span><button class="act" data-act="barter-sec" data-id="chains">${T('OK, pick the chains')} ›</button></div>`;
@@ -809,7 +819,7 @@ export function chainRow(c, on, solo, dockName, from, ladder = null, shut = null
 			<span class="chain-mark">🔒</span>
 			<span class="chain-main">
 				<span class="chain-start">${start}</span>
-				<span class="chain-pips">${pips}<em>${T('Level {lv}', { lv: c.top })}</em></span>${stockLine(c)}
+				<span class="chain-pips">${pips}<em>${c.pays === 'material' || c.pays === 'box' ? `→ ${img(c.rungs[c.rungs.length - 1].item, 'row-icon xs')} ${esc(gameName(c.rungs[c.rungs.length - 1].item))}` : T('Level {lv}', { lv: c.top })}</em></span>${stockLine(c)}
 				<span class="chain-route">${c.rungs.map(r => `<span class="${r.npcId === shut.npcId ? 'chain-shut-isle' : ''}">${esc(isleShort(npcById.get(r.npcId)) || r.npc)}</span>`).join(' › ')}</span>
 				<span class="chain-goods">${c.rungs.map(r => img(r.item, 'row-icon sm')).join('')}</span>
 			</span>
@@ -1008,6 +1018,11 @@ function soloWhy(c, solo) {
 	if (cut && cut.why === 'market') return T('stops: the Market has too few');
 	const o = ordersNow();
 	if (c.item === COIN || V.goal === 'coin') return '';
+	// A side trade is for what it pays, not for silver.
+	if (c.pays === 'material' || c.pays === 'box') {
+		const last = c.rungs[c.rungs.length - 1];
+		return T('pays {n}× {item} a trade — kept', { n: last.recvMin === last.recvMax ? F(last.recvMin) : `${F(last.recvMin)}–${F(last.recvMax)}`, item: esc(gameName(last.item)) });
+	}
 	if (c.top < o.sell) return o.sell === NOTHING ? T('kept — the wharf sells nothing') : T('reaches Level {top}; the wharf sells Level {sell} up — kept', { top: c.top, sell: o.sell });
 	return '';
 }

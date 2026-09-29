@@ -5,7 +5,7 @@ import { esc, F, FC } from '../fmt.js';
 import { T, said, gameName } from '../i18n.js';
 import * as store from '../state.js';
 import { img } from '../ui-bits.js';
-import { barterProfile } from '../ui-state.js';
+import { barterProfile, snapshot } from '../ui-state.js';
 import { shownHold, aboardWhat } from '../ship.js';
 import { npcById, ports, isleOf, isleShort } from '../barter_npcs.js';
 import { fmtRange, fmtDistance } from '../sailing.js';
@@ -116,7 +116,12 @@ export function silverParts(me, b) {
 		}
 		return { targets: V.stockGoal.targets, held: [...heldAll], away };
 	})() : null;
-	const everything = spendUsed(chains(b.data, stock, dock, prof.barterCount, ceilingNow, coining, fill), b);
+	// What else the run may aim at on this board, as its orders say: the
+	// materials the builds are short of, the Lost Trade Boxes, and whether
+	// the Great Ocean goods stay in.
+	const sideOn = o.side || {};
+	const side = { mats: sideOn.mats ? Object.keys((snapshot && snapshot.missing) || {}).filter(n => snapshot.missing[n] > 0) : [], boxes: !!sideOn.boxes, ocean: sideOn.ocean !== false };
+	const everything = spendUsed(chains(b.data, stock, dock, prof.barterCount, ceilingNow, coining, fill, side), b);
 	// Goods on this board's ladders held in a harbour's storage the run
 	// does not sail from: a chain can only start from what it can load,
 	// so they are offered nowhere. Said, with the harbour to sail from.
@@ -303,7 +308,7 @@ export function silverParts(me, b) {
 	const cq = V.chainQ.trim().toLowerCase();
 	const passes = c => chosen.includes(c) || ((!cq || c.item.toLowerCase().includes(cq) || c.rungs.some(r => r.npc.toLowerCase().includes(cq) || r.item.toLowerCase().includes(cq) || (npcById.get(r.npcId) || {}).at.toLowerCase().includes(cq)))
 		&& (!V.chainFrom || (V.chainFrom === 'held' ? c.from !== 'land' : c.from === 'land'))
-		&& (!V.chainTop || (V.chainTop === 'coin' ? c.pays === 'coin' : c.top === V.chainTop && c.pays !== 'coin')));
+		&& (!V.chainTop || (typeof V.chainTop === 'string' ? c.pays === V.chainTop : c.top === V.chainTop && c.pays === 'goods')));
 	const listed = all.filter(passes);
 	// One card a ladder. A good held part-way up a chain from the shore
 	// climbs the same islands to the same top, and the islands deal
@@ -324,19 +329,23 @@ export function silverParts(me, b) {
 	// A chain that ends in coins is not "a reach" like the others: it
 	// cashes a [Level 4] rather than climbing past one, so it gets its
 	// own group rather than sitting among the chains that stop at four.
-	const reachOf = c => (c.pays === 'coin' ? 'coin' : c.top);
-	const tops = [...new Set([...all, ...shutChains].map(reachOf))].sort((a, b2) => (a === 'coin' ? -1 : b2 === 'coin' ? 1 : b2 - a));
+	// A side trade is grouped by what it pays, after the climbs.
+	const reachOf = c => (c.pays === 'coin' || c.pays === 'material' || c.pays === 'box' ? c.pays : c.top);
+	const rank = t => (t === 'coin' ? -1 : t === 'material' ? 100 : t === 'box' ? 101 : 10 - t);
+	const tops = [...new Set([...all, ...shutChains].map(reachOf))].sort((a, b2) => rank(a) - rank(b2));
+	const sideHead = t => (t === 'material' ? `⚓ ${T('Side trade: materials your builds need')}` : `📦 ${T('Side trade: Lost Trade Boxes')}`);
 	const chainFilters = `<div class="chain-filters">
 		<input class="field hold-q" type="search" placeholder="${T('Find an island, a place or a good…')}" value="${esc(V.chainQ)}" data-act="barter-chain-q" aria-label="${T('Find a chain')}">
 		<span class="chips">
 			<button class="chip tiny${V.chainFrom === 'held' ? ' active' : ''}" aria-pressed="${V.chainFrom === 'held' ? 'true' : 'false'}" data-act="barter-chain-from" data-id="held" title="${T('Chains that start from a good held, aboard or at the harbour')}">${T('from what is held')}</button>
 			<button class="chip tiny${V.chainFrom === 'land' ? ' active' : ''}" aria-pressed="${V.chainFrom === 'land' ? 'true' : 'false'}" data-act="barter-chain-from" data-id="land" title="${T('Chains that start with a land good bought ashore')}">${T('bought ashore')}</button>
-			${tops.map(t => `<button class="chip tiny lvl${V.chainTop === t ? ' active' : ''}" aria-pressed="${V.chainTop === t ? 'true' : 'false'}" data-act="barter-chain-top" data-lv="${t}" style="--tier:${TIER(t === 'coin' ? COIN_LEVEL : t)}" title="${t === 'coin' ? T('Chains that end at an island paying in Crow Coins') : T('Chains that reach Level {lv}', { lv: t })}">${t === 'coin' ? img(COIN, 'chip-icon') : t}</button>`).join('')}
+			${tops.map(t => `<button class="chip tiny lvl${V.chainTop === t ? ' active' : ''}" aria-pressed="${V.chainTop === t ? 'true' : 'false'}" data-act="barter-chain-top" data-lv="${t}" style="--tier:${TIER(t === 'coin' ? COIN_LEVEL : typeof t === 'string' ? 6 : t)}" title="${t === 'coin' ? T('Chains that end at an island paying in Crow Coins') : t === 'material' ? T('Chains that end at an island paying a material your builds need') : t === 'box' ? T('Chains that end at an island paying a Lost Trade Box') : T('Chains that reach Level {lv}', { lv: t })}">${t === 'coin' ? img(COIN, 'chip-icon') : t === 'material' ? `⚓ ${T('materials')}` : t === 'box' ? `📦 ${T('boxes')}` : t}</button>`).join('')}
 			${cq || V.chainFrom || V.chainTop ? `<button class="chip tiny" data-act="barter-chain-clear">${T('clear')}</button>` : ''}
 		</span>
 	</div>`;
 	const groupsOf = claimOf => tops.map(top => {
 		const coinGroup = top === 'coin';
+		const sideGroup = top === 'material' || top === 'box';
 		// The ladders at this reach, each with the starts the filters
 		// leave in; the card shows the start ticked, else the best.
 		const rows = [...ladders.values()].filter(list => reachOf(list[0]) === top).map(list => {
@@ -360,7 +369,7 @@ export function silverParts(me, b) {
 			.map(c => chainRow(c, false, null, from && from.name, from, null, c.gate));
 		if (!rows.length && !locked.length) return '';
 		const of = [...ladders.values()].filter(list => reachOf(list[0]) === top).length;
-		return `<div class="chain-group${coinGroup ? ' coin' : ''}"><div class="chain-group-head" style="--tier:${TIER(coinGroup ? COIN_LEVEL : top)}"><i></i><span>${coinGroup ? `${img(COIN, 'group-icon')}${T('Cashed in for Crow Coins')}` : T('Reaches Level {lv}', { lv: top })}</span>${coinGroup || stocking || coining ? '' : top >= o.sell && o.sell !== NOTHING ? `<em class="group-fate sold">${T('sold at the wharf')}</em>` : `<em class="group-fate kept">${T('kept, not sold — the wharf sells Level {lv} and up', { lv: o.sell })}</em>`}<span>${rows.length !== of ? T('{n} of {of}', { n: rows.length, of }) : rows.length}${locked.length ? ` · ${T('{n} locked', { n: locked.length })}` : ''}</span></div>${rows.join('')}${locked.join('')}</div>`;
+		return `<div class="chain-group${coinGroup ? ' coin' : ''}${sideGroup ? ' side' : ''}"><div class="chain-group-head" style="--tier:${TIER(coinGroup ? COIN_LEVEL : sideGroup ? 6 : top)}"><i></i><span>${coinGroup ? `${img(COIN, 'group-icon')}${T('Cashed in for Crow Coins')}` : sideGroup ? sideHead(top) : T('Reaches Level {lv}', { lv: top })}</span>${sideGroup ? `<em class="group-fate kept">${top === 'material' ? T('kept for your builds') : T('kept: the box holds trade goods of its own')}</em>` : coinGroup || stocking || coining ? '' : top >= o.sell && o.sell !== NOTHING ? `<em class="group-fate sold">${T('sold at the wharf')}</em>` : `<em class="group-fate kept">${T('kept, not sold — the wharf sells Level {lv} and up', { lv: o.sell })}</em>`}<span>${rows.length !== of ? T('{n} of {of}', { n: rows.length, of }) : rows.length}${locked.length ? ` · ${T('{n} locked', { n: locked.length })}` : ''}</span></div>${rows.join('')}${locked.join('')}</div>`;
 	}).join('');
 	// What pays the good today, and whether its give is held: the answer
 	// even when no chain from the shore reaches it.

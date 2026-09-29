@@ -23,6 +23,7 @@ import { sellable, floorOf, PLAIN_ORDERS } from './barter-orders.js';
 import { seaDist, routeLength, orderLadders, orderBlocks, improveLots, growLots } from './barter-route.js';
 import { speedMs, METRES_PER_PX } from './sailing.js';
 import { scoreFor } from './barter-optimizer.js';
+import { isOcean, sideKind } from './barter-layouts.js';
 
 /**
  * Every chain the table allows, highest top first. A chain is
@@ -58,13 +59,20 @@ import { scoreFor } from './barter-optimizer.js';
  * sits in a storage the run does not load from. Then every chain is
  * shaped good by good -- see `shapeForStock`.
  */
-export function chains(barterData, stock = {}, dock = {}, barterCount = null, ceiling = 0, coins = false, fill = null) {
+export function chains(barterData, stock = {}, dock = {}, barterCount = null, ceiling = 0, coins = false, fill = null, side = null) {
 	// The Crow Coin islands are on every board, taking a [Level 4] and
 	// paying in coins, and nothing takes a coin further -- so a coin
 	// exchange is a top like a [Level 7] is, and it is only offered when
 	// the run is for coins. A row paying a single coin is the codex's
 	// own noise rather than an exchange anybody would make.
-	const rows = exchanges(barterData).filter(r => levelOf(r.item) !== null || (coins && r.item === COIN && r.recvMax > 1));
+	// `side` is what else the run may aim at on the trade board:
+	// { mats: [names], boxes, ocean } -- the ship materials wanted, the Lost
+	// Trade Boxes, and whether the Great Ocean goods stay in. A side pay is
+	// a top like a coin is: nothing takes it further.
+	const mats = new Set(side && side.mats ? side.mats : []);
+	const sidePay = name => { const k = sideKind(name); return (k === 'material' && mats.has(name)) || (k === 'box' && !!(side && side.boxes)); };
+	const oceanOff = !!(side && side.ocean === false);
+	const rows = exchanges(barterData).filter(r => (levelOf(r.item) !== null && !(oceanOff && isOcean(r.item))) || (coins && r.item === COIN && r.recvMax > 1) || sidePay(r.item));
 	const takes = name => rows.filter(r => r.give === name);
 	const top = ceiling > 0 ? ceiling : Infinity;
 	// The ceiling is about climbing, and cashing a good in for coins is
@@ -73,7 +81,7 @@ export function chains(barterData, stock = {}, dock = {}, barterCount = null, ce
 	// make, not on what this one made, and a coin rung is never cut.
 	const walk = (r, path) => {
 		const here = [...path, r];
-		const up = r.item === COIN ? [] : takes(r.item).filter(n => n.item === COIN || levelOf(n.item) <= top);
+		const up = r.item === COIN || sidePay(r.item) ? [] : takes(r.item).filter(n => n.item === COIN || sidePay(n.item) || levelOf(n.item) <= top);
 		return up.length ? up.flatMap(n => walk(n, here)) : [here];
 	};
 	const out = [];
@@ -93,7 +101,7 @@ export function chains(barterData, stock = {}, dock = {}, barterCount = null, ce
 		// the ceiling a good keeps its coin rungs and loses the rest.
 		const atTop = levelOf(item) >= top;
 		const have = aboard.get(item) || 0, waiting = ashore.get(item) || 0;
-		for (const r of takes(item)) for (const rungs of (atTop && r.item !== COIN ? [] : walk(r, []))) {
+		for (const r of takes(item)) for (const rungs of (atTop && r.item !== COIN && !sidePay(r.item) ? [] : walk(r, []))) {
 			// Only what the first island will deal with is worth loading,
 			// and so only that is what the row promises: a storage with
 			// thirty of a good and an island that takes eight is a run
@@ -109,11 +117,13 @@ export function chains(barterData, stock = {}, dock = {}, barterCount = null, ce
 			const last = c.rungs[c.rungs.length - 1];
 			// A chain that ends in coins is named by the level it cashes,
 			// since that is the climb it asks for; `pays` is what it pays.
-			const pays = last.item === COIN ? 'coin' : 'goods';
+			// A side trade is named by what it pays, and climbs to the level
+			// of what it hands over.
+			const pays = last.item === COIN ? 'coin' : sidePay(last.item) ? sideKind(last.item) : 'goods';
 			return {
 				...c,
 				id: `${c.from === 'land' ? 'land' : 'hold'}:${c.item}:${c.rungs.map(r => r.npcId).join('.')}`,
-				top: pays === 'coin' ? levelOf(last.give) : levelOf(last.item),
+				top: pays === 'coin' || pays === 'material' || pays === 'box' ? levelOf(last.give) || 0 : levelOf(last.item),
 				coins: pays === 'coin' ? last.recvMin * last.tries : 0,
 				pays,
 				gate: gateOn(c.rungs, barterCount)
@@ -1437,7 +1447,9 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 	// sell that level, or because no wharf was called at.
 	const carried = new Map(held);
 	for (const [name, n] of bagged) carried.set(name, (carried.get(name) || 0) + n);
-	const kept = [...carried].filter(([name, n]) => n > 1e-9 && levelOf(name) !== null)
+	// A side trade's pay -- a material, a Lost Trade Box -- comes home too.
+	const sidePaid = new Set(stops.filter(x => x.npcId && x.item && x.item !== COIN && levelOf(x.item) === null).map(x => x.item));
+	const kept = [...carried].filter(([name, n]) => n > 1e-9 && (levelOf(name) !== null || sidePaid.has(name)))
 		.map(([item, n]) => ({ item, n, each: sellOf(item), total: n * sellOf(item), stock: Math.min(n, floorOf(item, orders)) }))
 		.sort((a, b) => b.total - a.total || a.item.localeCompare(b.item));
 	// What was bought ashore, priced: `prices` is name -> { each, how }
