@@ -385,7 +385,7 @@ function planHead(way, steps, things) {
 			<div class="way-head-say">
 				<div class="way-eyebrow">${T('Your plan')}</div>
 				<div class="way-headline">${esc(headline)}</div>
-				<p class="way-pace">${esc(pace + guess)}</p>
+				<p class="way-pace">${esc(guess && !/[.!?]$/.test(pace) ? `${pace}.${guess}` : pace + guess)}</p>
 			</div>
 			<div class="way-tiles">
 				<div class="way-tile amber">
