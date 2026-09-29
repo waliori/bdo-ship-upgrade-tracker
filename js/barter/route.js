@@ -425,7 +425,29 @@ export function ledgerOf(stops, legs) {
 		at[k] = t;
 		t += (s.wait ? 0 : (s.npcId ? pause.isle : pause.call) || 0) / 60;
 	});
-	return parleyLedger(stops, { held: prof.parleyHeld, vouchers: prof.vouchers, use: ordersNow().vouchers !== 'keep', minutesAt: k => at[k] || 0 });
+	return parleyLedger(stops, { held: prof.parleyHeld, vouchers: prof.vouchers, use: ordersNow().vouchers !== 'keep', minutesAt: k => at[k] || 0, ...underWay(stops) });
+}
+
+/**
+ * For the run being sailed, what was done rather than planned: a
+ * voucher counts at a stop once the sailor says it was drawn there, a
+ * stop passed without saying so drew none -- the ledger then plans it
+ * at a later one -- and a bar read off the game's window overrides the
+ * count from that stop on. Nothing for any other list of stops.
+ */
+function underWay(stops) {
+	const on = sailing();
+	if (!on || !Array.isArray(on.stops) || on.stops.length !== stops.length || !stops.every((s, k) => (s.npcId || 0) === (on.stops[k].npcId || 0))) return {};
+	const vouch = on.vouch || {};
+	const said = k => {
+		const s = stops[k], key = stopKey(s, k, stops);
+		if (key in vouch) return Math.max(0, Math.floor(Number(vouch[key]) || 0));
+		// A wait is there to draw one: done, it did.
+		if (s.wait) return undefined;
+		return ticked(on.done, s, k, stops) ? 0 : undefined;
+	};
+	const fixAt = on.parleyFix ? stops.findIndex((s, k) => stopKey(s, k, stops) === on.parleyFix.k) : -1;
+	return { said, fix: fixAt >= 0 ? { k: fixAt, bar: Number(on.parleyFix.bar) } : null };
 }
 
 /** How long the run takes, the waits for a voucher's cooldown included. */

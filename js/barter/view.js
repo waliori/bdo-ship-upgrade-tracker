@@ -105,6 +105,10 @@ export function restore() {
 			V.sail = { key: s.sail.key, done: s.sail.done.map(String), seen: {}, got: {}, kept: Array.isArray(s.sail.kept) ? s.sail.kept.map(String) : [], stops: Array.isArray(s.sail.stops) ? s.sail.stops : [], ...keep };
 			for (const [k, v] of Object.entries(s.sail.seen || {})) if (Number(v) > 0) V.sail.seen[k] = Number(v);
 			for (const [k, v] of Object.entries(s.sail.got || {})) if (typeof v === 'string') V.sail.got[k] = v;
+			// The vouchers said drawn, by stop, and the bar read off the window.
+			const vouch = Object.entries(s.sail.vouch || {}).filter(([k, v]) => typeof k === 'string' && Number(v) >= 0);
+			if (vouch.length) V.sail.vouch = Object.fromEntries(vouch.map(([k, v]) => [k, Math.min(4, Math.floor(Number(v)))]));
+			if (s.sail.parleyFix && typeof s.sail.parleyFix.k === 'string' && Number(s.sail.parleyFix.bar) >= 0) V.sail.parleyFix = { k: s.sail.parleyFix.k, bar: Math.min(1_000_000, Math.round(Number(s.sail.parleyFix.bar))) };
 			// The stops traded another number of times than the run said.
 			const did = Object.entries(s.sail.did || {}).filter(([, v]) => Number(v) > 0);
 			if (did.length) V.sail.did = Object.fromEntries(did.map(([k, v]) => [k, Math.min(9999, Math.floor(Number(v)))]));

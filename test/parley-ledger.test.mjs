@@ -118,3 +118,22 @@ test('a wait put in as a stop stands for its minutes, and the stop after it pays
 	assert.equal(waited, 90);
 	assert.equal(short, 0);
 });
+
+test('a run under way counts the vouchers said drawn, not the ones planned, and a bar read off the window', () => {
+	// Your 2026-09-28 run: 571,884 held, 31 islands at 21,613, a voucher
+	// planned on the first. Passed without drawing it, the bar is the
+	// game's 9,946 before the 27th trade, and the voucher comes there.
+	const stops = Array.from({ length: 31 }, () => ({ parley: 21613 }));
+	const plan = parleyLedger(stops, { held: 571884, vouchers: 22 });
+	assert.equal(plan.rows[0].drawn, 1, 'planned on the first stop');
+	const passed = k => (k < 26 ? 0 : undefined);
+	const real = parleyLedger(stops, { held: 571884, vouchers: 22, said: passed });
+	assert.equal(real.rows[26].before, 9946);
+	assert.equal(real.rows[26].drawn, 1, 'drawn at the stop the bar cannot pay');
+	// Said drawn at the first: as planned.
+	assert.equal(parleyLedger(stops, { held: 571884, vouchers: 22, said: k => (k === 0 ? 1 : k < 26 ? 0 : undefined) }).rows[26].before, 259946);
+	// The bar read off the window before stop 26 overrides the count.
+	const fixed = parleyLedger(stops, { held: 571884, vouchers: 22, said: passed, fix: { k: 26, bar: 12000 } });
+	assert.equal(fixed.rows[26].before, 12000);
+	assert.equal(fixed.rows[25].after, 9946, 'the stops before it are as they were');
+});

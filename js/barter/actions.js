@@ -588,6 +588,16 @@ export function barterAction(act, el, redraw) {
 			// Only the press and the chips change: drawn in place.
 			return !patchPaid(!!el.dataset.map);
 		}
+		// A voucher planned here, said drawn in game -- or taken back.
+		case 'barter-voucher-drawn': {
+			const on = sailing() || (el.dataset.map ? V.sail : null);
+			if (!on) return false;
+			const vouch = { ...(on.vouch || {}) };
+			if (vouch[el.dataset.k] > 0) { delete vouch[el.dataset.k]; delete on.drawnAt; } else { vouch[el.dataset.k] = Math.max(1, Number(el.dataset.n) || 1); on.drawnAt = Date.now(); }
+			on.vouch = vouch;
+			persist();
+			return true;
+		}
 		case 'barter-paid': {
 			const on = sailing() || (el.dataset.map ? V.sail : null);
 			if (!on) return false;
@@ -667,6 +677,17 @@ export function barterChange(el, parseAmount) {
 			// In the cockpit only the press and the chips change: drawn in
 			// place. A box on a checklist row redraws the list it is on.
 			return !(el.closest && el.closest('.cockpit') && patchPaid(!!el.dataset.map));
+		}
+		// The bar as the game's window shows it before this stop's barter:
+		// counted from it for the rest of the run. Emptied, the plan's again.
+		case 'barter-parley-fix': {
+			const on = sailing() || (el.dataset.map ? V.sail : null);
+			if (!on) return false;
+			const n = el.value.trim() === '' ? null : parseAmount(el.value);
+			if (n === null || !(n >= 0)) delete on.parleyFix;
+			else on.parleyFix = { k: el.dataset.k, bar: Math.min(1_000_000, Math.round(n)) };
+			persist();
+			return true;
 		}
 		// How many times an island was really traded: ten where the run said
 		// seven. The hold, the Parley and the record follow the count given;

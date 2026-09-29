@@ -523,7 +523,8 @@ export function markDone(on, k) {
 	// The voucher's cooldown runs from the press that drew it, and a
 	// wait with no such press counts from the stop before it.
 	on.lastTick = Date.now();
-	if (at >= 0 && ledgerOf(plan.stops, legsOf(plan.stops)).rows[at].voucher) on.drawnAt = Date.now();
+	// A voucher counts only once the sailor says it was drawn (the
+	// cockpit's Drawn press), which starts its cooldown there.
 	persist();
 	// The clock is told where the ship really is: the legs still ahead
 	// are counted from now rather than from an estimate made before the
@@ -948,7 +949,11 @@ export function recordTrip(plan, from, on = sailing()) {
 	// than are carried.
 	const drawn = ordersNow().vouchers !== 'keep' ? Math.min(prof.vouchers, drawnOn) : 0;
 	// Never nought: nought is how "nobody has said" is written.
-	const parleyLeft = Math.max(1, Math.min(PARLEY.max, bar + drawn * PARLEY.voucher - parleySpent));
+	// A bar read off the game's window mid-run is the truer start: the
+	// ledger counted from it, after the last stop ticked, is what is left.
+	const lastTicked = plan.stops.reduce((m, st, k) => (ticked(on.done, st, k, plan.stops) ? k : m), -1);
+	const fromWindow = on.parleyFix && lastTicked >= 0 && bookOf.rows[lastTicked] ? bookOf.rows[lastTicked].after : null;
+	const parleyLeft = Math.max(1, Math.min(PARLEY.max, fromWindow !== null ? fromWindow : bar + drawn * PARLEY.voucher - parleySpent));
 	const spentOf = parleySpent > 0 ? { parleyHeld: parleyLeft, parleyDay: barterKey(), ...(drawn ? { vouchers: prof.vouchers - drawn } : {}) } : {};
 	// The hold has had the ticked stops written into it as they were
 	// ticked: what is left to write is the rest.

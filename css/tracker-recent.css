@@ -1014,3 +1014,9 @@ img.comm-silver { width: 1.25em; height: 1.25em; vertical-align: -0.25em; object
 .mat-card-got { display: inline-flex; align-items: center; gap: 3px; margin-right: 8px; white-space: nowrap; }
 .mat-nothing { padding: 4px 2px 8px; }
 .mat-nothing b { color: var(--ink-dim); font-weight: 600; }
+
+/* A planned voucher said drawn, and the bar as the game's window shows it. */
+.cockpit-voucher .voucher-drawn { margin-left: auto; flex: none; }
+.cockpit-voucher .voucher-drawn.active { border-color: var(--teal); color: var(--teal); }
+.parley-fix { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 11px; color: var(--ink-faint); }
+.parley-fix input { width: 9em; }

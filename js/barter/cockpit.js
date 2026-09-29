@@ -427,15 +427,17 @@ export function cockpitHTML({ map = false } = {}) {
 		: `<div class="cockpit-call">${stopDid(s, true) || `<span class="faint">${names.kind}</span>`}</div>`;
 	const figures = `<div class="cockpit-figs">
 		<div class="cockpit-fig"><div class="cockpit-fig-k"><span>${T('hold')}</span><span>${bars.w.note || ''}</span></div><div class="cockpit-fig-v">${holdBefore !== bars.w.total ? `<span>${F(holdBefore)}</span><i>→</i>` : ''}<b class="${bars.bad ? 'warn' : bars.over ? 'amber' : ''}">${esc(bars.w.text)}</b></div><div class="run-bar"><i style="width:${bars.w.fill.toFixed(1)}%"></i><i class="over" style="width:${bars.w.extra.toFixed(1)}%"></i><i class="heavy" style="width:${bars.w.worse.toFixed(1)}%"></i></div></div>
-		${row ? `<div class="cockpit-fig"><div class="cockpit-fig-k"><span>${T('parley')}</span><span>${s.npcId && row.spent ? `−${F(row.spent)}` : ''}</span></div><div class="cockpit-fig-v">${row.before != null && Math.round(row.before) !== Math.round(row.after) ? `<span>${F(row.before)}</span><i>→</i>` : ''}<b class="${row.short ? 'warn' : ''}">${F(row.after)}</b></div><div class="run-bar parley"><i style="width:${Math.min(100, row.pct).toFixed(1)}%"></i></div>${row.voucher && !s.wait ? '' : parleyNotes(book, at, s).note}</div>` : ''}
+		${row ? `<div class="cockpit-fig"><div class="cockpit-fig-k"><span>${T('parley')}</span><span>${s.npcId && row.spent ? `−${F(row.spent)}` : ''}</span></div><div class="cockpit-fig-v">${row.before != null && Math.round(row.before) !== Math.round(row.after) ? `<span>${F(row.before)}</span><i>→</i>` : ''}<b class="${row.short ? 'warn' : ''}">${F(row.after)}</b></div><div class="run-bar parley"><i style="width:${Math.min(100, row.pct).toFixed(1)}%"></i></div>${row.voucher && !s.wait ? '' : parleyNotes(book, at, s).note}<label class="parley-fix" title="${T('What the game’s Barter window shows now, before this barter: the bar is counted from it for the rest of the run')}"><span>${T('game shows')}</span><input class="purse-inline narrow" inputmode="numeric" data-act="barter-parley-fix" data-k="${esc(key)}"${map ? ' data-map="1"' : ''} value="${on.parleyFix && on.parleyFix.k === key ? esc(String(on.parleyFix.bar)) : ''}" placeholder="${F(row.before)}" aria-label="${T('What the game’s Barter window shows now, before this barter: the bar is counted from it for the rest of the run')}"></label></div>` : ''}
 		${rationsFig}
 	</div>`;
 	// A voucher drawn at this stop is a thing the sailor does in game,
 	// so it stands as its own block above the press, icon and all,
 	// rather than a line of small print under the Parley bar.
+	const vouchSaid = !!(on.vouch && on.vouch[key] > 0);
 	const voucherBox = row && row.voucher && !s.wait ? `<div class="cockpit-voucher">
 		<span class="cockpit-voucher-icon">${img(VOUCHER, 'cockpit-voucher-img')}</span>
 		<div class="cockpit-voucher-text"><b>${T('Draw a voucher here')}</b><em>${T('+{n} Parley — a quarter of the bar back, and its two-hour cooldown starts', { n: F(PARLEY.voucher) })}</em></div>
+		<button class="chip voucher-drawn${vouchSaid ? ' active' : ''}" data-act="barter-voucher-drawn" data-k="${esc(key)}" data-n="${row.drawn || 1}" aria-pressed="${vouchSaid}" title="${T('Only a voucher said drawn is counted in the bar: a stop passed without it plans one at a later stop')}">${vouchSaid ? `✓ ${T('Drawn')}` : T('I drew it')}</button>
 	</div>` : '';
 	const endNote = s.wait && !done ? `<p class="cockpit-ask">${T('Ending here records what is ticked so far; the barters after this wait stay on the board for later.')}</p>` : '';
 	// A voucher here has its own block in the stop's body, so the head

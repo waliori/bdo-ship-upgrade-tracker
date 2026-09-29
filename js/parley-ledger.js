@@ -48,8 +48,15 @@ export const VOUCHER_COOLDOWN_MIN = 120;
  * screen where the first pass said the ship would wait -- stands still
  * for its minutes and then draws, so the stop after it pays in full.
  * Its row says `hold`, the minutes it stood.
+ *
+ * **A run under way.** What was planned is not what was done: a voucher
+ * the ledger drew at a stop the sailor has passed without drawing it is
+ * not in the bar. `said(k)` answers for such a stop -- the vouchers
+ * really drawn there, or undefined for a stop still to come, which is
+ * planned as before. `fix` is the bar as the game's window showed it
+ * before stop `k`: from there on, the ledger counts from that.
  */
-export function parleyLedger(stops, { held = 0, max = PARLEY.max, vouchers = 0, voucher = PARLEY.voucher, cooldownMin = VOUCHER_COOLDOWN_MIN, minutesAt = () => 0, use = true } = {}) {
+export function parleyLedger(stops, { held = 0, max = PARLEY.max, vouchers = 0, voucher = PARLEY.voucher, cooldownMin = VOUCHER_COOLDOWN_MIN, minutesAt = () => 0, use = true, said = () => undefined, fix = null } = {}) {
 	let bar = held > 0 ? Math.min(max, held) : max;
 	let left = use ? Math.max(0, Math.floor(vouchers)) : 0;
 	let lastVoucherAt = -Infinity;
@@ -61,6 +68,8 @@ export function parleyLedger(stops, { held = 0, max = PARLEY.max, vouchers = 0, 
 	for (let i = spends.length - 1; i >= 0; i--) ahead[i] = ahead[i + 1] + spends[i];
 	const rows = stops.map((s, k) => {
 		const spent = spends[k];
+		// The window read here: the bar is what it said, whatever went before.
+		if (fix && fix.k === k && Number.isFinite(fix.bar)) bar = Math.max(0, Math.min(max, Math.round(fix.bar)));
 		const before = bar;
 		const hold = s.wait > 0 ? Math.ceil(s.wait) : 0;
 		delay += hold;
@@ -69,12 +78,19 @@ export function parleyLedger(stops, { held = 0, max = PARLEY.max, vouchers = 0, 
 		let wait = 0;
 		const room = () => max - bar >= voucher;
 		const draw = () => { bar = Math.min(max, bar + voucher); left--; used++; lastVoucherAt = now; drawn++; };
-		// Wanted: the rest of the run costs more than the bar holds.
-		if (left > 0 && ahead[k] > bar && room() && now - lastVoucherAt >= cooldownMin) draw();
+		const told = said(k);
+		if (told !== undefined) {
+			// Passed, or said: the vouchers drawn here are the ones that were.
+			for (let n = 0; n < told && left > 0; n++) draw();
+		} else {
+			// Wanted: the rest of the run costs more than the bar holds.
+			if (left > 0 && ahead[k] > bar && room() && now - lastVoucherAt >= cooldownMin) draw();
+		}
 		// Short, with a voucher still to come: the ship waits out the
 		// cooldown here, draws it, and only then trades. A stop dearer
-		// than a quarter waits out the next one too.
-		while (spent > bar && left > 0 && room()) {
+		// than a quarter waits out the next one too. A stop already
+		// passed is not waited at: it was traded, or it was not.
+		while (told === undefined && spent > bar && left > 0 && room()) {
 			const w = Math.max(0, Math.ceil(cooldownMin - (now - lastVoucherAt)));
 			wait += w; delay += w; now += w;
 			draw();
