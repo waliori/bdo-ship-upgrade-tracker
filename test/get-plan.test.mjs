@@ -65,17 +65,21 @@ test('an activity switched off is not planned with, and is named as the reason',
 	assert.equal(off.days, 1);
 });
 
-test('hunting turned on takes a dropped material off the shopping list, and claims no rate for it', () => {
-	const sources = { coins: { D: 400 }, acquisition: { D: { 'Monster Drop': ['Khan'] } } };
-	const buy = wayToGet({ missing: { D: 50 }, sources, state: { purse: { coins: 99999 }, capacity } });
-	const kill = wayToGet({ missing: { D: 50 }, sources, state: { purse: { coins: 99999 }, capacity }, orders: { hunt: true } });
+test('hunting turned on is a way for what only drops, and never changes the days', () => {
+	// D is sold at the shop and dropped by Khan; K is only dropped.
+	const sources = { coins: { D: 400 }, acquisition: { D: { 'Monster Drop': ['Khan'] }, K: { 'Monster Drop': ['Khan'] } } };
+	const buy = wayToGet({ missing: { D: 50, K: 5 }, sources, state: { purse: { coins: 99999 }, capacity } });
+	const kill = wayToGet({ missing: { D: 50, K: 5 }, sources, state: { purse: { coins: 99999 }, capacity }, orders: { hunt: true } });
+	// What the shop sells is still bought: a hunt is no promise of a date,
+	// so it takes nothing a counted way reaches.
 	assert.equal(got(buy, 'D', 'coin'), 50);
-	assert.equal(buy.coins.spend, 20000);
-	assert.equal(got(kill, 'D', 'hunt'), 50);
-	assert.equal(kill.coins.spend, 0);
-	assert.match(legsOf(kill, 'D')[0].why, /yours to hunt · drops from Khan/);
-	// A hunt has no published rate, so it can never lengthen the horizon.
-	assert.equal(kill.days, 1);
+	assert.equal(got(kill, 'D', 'coin'), 50);
+	assert.equal(kill.coins.spend, 20000);
+	// What only drops is the hunt's, named, and outside the days.
+	assert.equal(legsOf(buy, 'K')[0].kind, 'find');
+	assert.equal(got(kill, 'K', 'hunt'), 5);
+	assert.match(legsOf(kill, 'K')[0].why, /yours to hunt · drops from Khan · never counted in the days/);
+	assert.equal(kill.days, buy.days);
 	assert.equal(kill.reachable, true);
 });
 

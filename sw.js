@@ -101,6 +101,7 @@ const SHELL = [
 	'/js/barter/short.js',
 	'/js/barter/state.js',
 	'/js/barter/today.js',
+	'/js/barter/get-today.js',
 	'/js/barter/view.js',
 	'/js/barter_game.js',
 	'/js/barter_npcs.js',

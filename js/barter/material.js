@@ -90,6 +90,16 @@ export function matFitNow() {
 	return { ...fit, fill: fit.fill.filter(o => !have.has(o.npcId)) };
 }
 
+/** The layout today's material list is, when it is known: the one the
+ *  islands read settle on, or the one taken whole from the book. */
+export function matPageNow() {
+	const mb = matBoardNow();
+	const fit = matFitNow();
+	if (fit.sure && fit.best) return fit.best.page;
+	if (mb.from && mb.from.kind === 'book') return matBookNow().pages.find(p => String(p.id) === String(mb.from.id)) || null;
+	return null;
+}
+
 /** Today's answers, into the sailor's own diary of the list. */
 export function noteMatSeen() {
 	const mb = matBoardNow();

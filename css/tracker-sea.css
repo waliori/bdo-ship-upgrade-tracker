@@ -242,10 +242,10 @@
 
 .way-step-head { width: 100%; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--line-head); display: flex; align-items: center; gap: 13px; padding: 14px 20px; cursor: pointer; font: inherit; }
 .way-step-head:hover { background: rgba(var(--blue-rgb), 0.04); }
-.way-step-n { width: 26px; height: 26px; flex: none; border-radius: 50%; font-family: var(--font-display); font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; }
+.way-step-n, .way-step-n-mark { width: 26px; height: 26px; flex: none; border-radius: 50%; font-family: var(--font-display); font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; }
 .way-step-n.teal { background: var(--teal-glow); border: 1px solid var(--teal-edge); color: var(--teal); }
 .way-step-n.amber { background: rgba(232, 182, 97, 0.12); border: 1px solid rgba(232, 182, 97, 0.35); color: var(--amber); }
-.way-step-n.blue { background: rgba(var(--blue-rgb), 0.1); border: 1px solid var(--blue-edge); color: var(--blue-hi); }
+.way-step-n.blue, .way-step-n-mark.blue { background: rgba(var(--blue-rgb), 0.1); border: 1px solid var(--blue-edge); color: var(--blue-hi); }
 .way-step-n.red { background: rgba(232, 122, 109, 0.12); border: 1px solid var(--red-edge); color: var(--red); }
 .way-step-say { flex: 1 1 200px; min-width: 0; }
 .way-step-title { display: block; font-family: var(--font-display); font-size: 14.5px; font-weight: 600; color: var(--ink-hi); }

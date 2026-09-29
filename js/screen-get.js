@@ -22,7 +22,7 @@ import {
 import { esc, F, FC } from './fmt.js';
 import { T, TT, said, gameName, nameHas } from './i18n.js';
 import * as store from './state.js';
-import { img, codexName, copyName, costCtx, costText, groundsFor } from './ui-bits.js';
+import { img, codexName, copyName, costCtx, costText, groundsFor, heldBox } from './ui-bits.js';
 import {
 	snapshot, barterData, barterOpts, totalsToGo, query, setQuery, rows, recipes, CROW_COIN, SILVER
 } from './ui-state.js';
@@ -30,6 +30,7 @@ import { shoppingList, waysToGet, yieldOf } from './planner.js';
 import { coinBuyButton } from './coin-shop.js';
 import { PRESETS, DAY_CHOICES, DOING, wayText, groupLegs } from './get-plan.js';
 import { theWay, getOrders, questDoneNow } from './get-way.js';
+import { todayFor } from './barter/get-today.js';
 
 // Which of its two readings the screen gives: the way to get each
 // thing -- one route an item, chosen against the others -- or every
@@ -267,6 +268,7 @@ export function renderGet() {
 					</div>
 					${copyName(entry.item)}
 					${shop}
+					${heldBox(entry.item)}
 					<span class="qty-out">${F(entry.qty)}</span>
 				</div>`;
 			}).join('')}
@@ -315,7 +317,7 @@ const STEPS = {
 const folded = new Set();
 
 const stepHead = (n, tone, title, sub, right, id) => `<button class="way-step-head" data-act="get-fold" data-id="${esc(id)}" aria-expanded="${!folded.has(id)}">
-	<span class="way-step-n ${tone}">${n}</span>
+	<span class="${typeof n === 'number' ? 'way-step-n' : 'way-step-n-mark'} ${tone}">${n}</span>
 	<span class="way-step-say">
 		<span class="way-step-title">${esc(title)}</span>
 		<span class="way-step-sub">${esc(sub)}</span>
@@ -496,6 +498,89 @@ function questStep(way, n, q) {
 	</div>`;
 }
 
+/* ------------------------------------------------------------------ *
+ * today's board
+ * ------------------------------------------------------------------ */
+
+// Today's board against the list, worked out once a draw: the rows of
+// the plan ask it too.
+let todayMemo = { key: '', t: null };
+function today() {
+	const missing = snapshot.missing || {};
+	const key = JSON.stringify([missing, store.getSetting('getTodaySide', '')]);
+	if (todayMemo.key !== key || !todayMemo.t) todayMemo = { key, t: todayFor(missing) };
+	return todayMemo.t;
+}
+
+/** The ticks the sailor put on today's islands, for this barter day. */
+function ticksNow(day) {
+	const t = store.getSetting('getTodayDone', null);
+	return new Set(t && t.day === day && Array.isArray(t.keys) ? t.keys : []);
+}
+
+const layoutName = lay => (lay.list === 'trade'
+	? T('the trade board, layout {id}', { id: esc(lay.id) })
+	: lay.known ? T('the material list, layout {id}', { id: esc(lay.id) }) : T('the material list, as read so far'));
+
+/**
+ * What to do today: the board in front of the sailor, read on the
+ * Barter tab, against what is still short. Each thing it deals, with
+ * the islands, what each takes, how many times it deals today and what
+ * that brings home -- a tick on each, for the sailor to keep count by.
+ * The days above are the long view, from the boards on record; this is
+ * today's.
+ */
+function todayHTML(q) {
+	const t = today();
+	const id = 'today';
+	const choose = t.side === 'both' ? `<div class="get-today-pick"><span>${T('Both lists have a layout read. Which is in front of you?')}</span>${[['material', T('the material list')], ['trade', T('the trade board')]].map(([k, label]) => `<button class="chip tiny${t.shown === k ? ' active' : ''}" data-act="get-today-side" data-id="${k}">${esc(label)}</button>`).join('')}</div>` : '';
+	if (!t.layout) {
+		return `<div class="panel way-step get-today">
+			${stepHead('◎', 'blue', T('Today’s board'), T('Read today’s board on the Barter tab and what it deals toward this list shows here.'), '', id)}
+			${folded.has(id) ? '' : `<div class="way-step-body"><p class="get-today-empty">${T('No board read today — the material list or the trade board, whichever you refreshed. One screenshot of the barter window is enough.')} <button class="chip tiny primary" data-act="view" data-id="barter">${T('Read it on the Barter tab')} ›</button></p></div>`}
+		</div>`;
+	}
+	const rows = q ? t.rows.filter(r => nameHas(r.item, q)) : t.rows;
+	const ticks = ticksNow(t.layout.day);
+	const deal = (r, d) => {
+		const key = `${d.npcId}|${r.item}`;
+		const done = ticks.has(key) || (d.perDay > 0 && d.left <= 0);
+		const range = d.todayMin === d.todayMax ? F(d.todayMax) : `${F(d.todayMin)}–${F(d.todayMax)}`;
+		const give = `${F(d.giveN)}× ${esc(gameName(d.give))}`;
+		const hold = d.shore ? T('bought ashore') : d.held >= d.giveN ? T('{n} held', { n: F(d.held) }) : `<b class="warn">${T('you hold none')}</b>`;
+		return `<div class="get-today-deal${done ? ' done' : ''}">
+			<button class="get-today-tick" data-act="get-today-tick" data-k="${esc(key)}" aria-pressed="${done}" title="${T('Tick it off when you have traded there today')}">${done ? '✓' : ''}</button>
+			<span class="get-today-isle"><b>${esc(gameName(d.isle))}</b> ${esc(d.who)}</span>
+			<span class="get-today-trade">${img(d.give, 'reward-icon')}${give} → ${d.recvMin === d.recvMax ? F(d.recvMin) : `${F(d.recvMin)}–${F(d.recvMax)}`}${d.rolled ? ` <em class="get-today-roll" title="${T('The game rolls this island between {n} offers: it may show another one', { n: F(d.rolled) })}">${T('one of {n}', { n: F(d.rolled) })}</em>` : ''}</span>
+			<span class="get-today-left">${d.perDay ? (d.left < d.perDay ? T('{n} of {of} trades left', { n: F(d.left), of: F(d.perDay) }) : T('{n} trades today', { n: F(d.perDay) })) : ''} · ${T('up to {n}', { n: range })} · ${hold}</span>
+		</div>`;
+	};
+	const body = rows.map(r => {
+		const covers = r.todayMax >= r.need;
+		return `<div class="get-today-item">
+			<div class="get-today-head">${img(r.item, 'row-icon sm')}<span class="get-today-name">${codexName(r.item)}</span>
+				<span class="get-today-need">${T('{n} short', { n: F(Math.ceil(r.need)) })} · <b class="${covers ? 'good' : ''}">${covers ? T('today can cover it') : T('today brings up to {n}', { n: F(r.todayMax) })}</b></span></div>
+			${r.deals.map(d => deal(r, d)).join('')}
+		</div>`;
+	}).join('');
+	const off = t.off.length ? `<p class="get-today-off">${T('Not on today’s layout: {list} — their other ways are in the steps below.', { list: t.off.slice(0, 8).map(x => esc(gameName(x))).join(', ') + (t.off.length > 8 ? ` ${T('and {n} more', { n: t.off.length - 8 })}` : '') })}</p>` : '';
+	const right = rows.length === 1 ? T('{n} thing today', { n: F(rows.length) }) : T('{n} things today', { n: F(rows.length) });
+	return `<div class="panel way-step get-today">
+		${stepHead('◎', 'blue', T('Today’s board'), T('On {layout}: what it deals toward this list, island by island. The days above come from every layout on record; this is today’s.', { layout: layoutName(t.layout) }), rows.length ? right : T('nothing on your list'), id)}
+		${folded.has(id) ? '' : `<div class="way-step-body">${choose}${body || `<p class="get-today-empty">${T('Today’s layout deals none of what is still short.')}</p>`}${off}
+			<div class="get-today-foot"><button class="chip tiny primary" data-act="view" data-id="barter">${T('Plan the run on the Barter tab')} ›</button></div></div>`}
+	</div>`;
+}
+
+/** A barter row's word on today: on the board and how much, or not. */
+function todayLine(item) {
+	const t = today();
+	if (!t.layout) return '';
+	const r = t.rows.find(x => x.item === item);
+	if (!r) return `<div class="row-sub way-today off">${T('not on today’s layout ({layout})', { layout: layoutName(t.layout) })}</div>`;
+	return `<div class="row-sub way-today">${T('today: up to {n} at {isles}', { n: F(r.todayMax), isles: esc(r.deals.map(d => gameName(d.isle)).filter((x, i, a) => a.indexOf(x) === i).join(', ')) })}</div>`;
+}
+
 /** One material's row inside a step: what it is, why this way, and the
  *  ways the plan could not count. */
 function wayRow(l) {
@@ -524,11 +609,13 @@ function wayRow(l) {
 		<div class="row-main">
 			<div class="row-name">${codexName(l.item)}</div>
 			${lines.map((line, i) => `<div class="row-sub way-why">${esc([i === 0 ? l.unit : '', line].filter(Boolean).join(' · '))}${i === lines.length - 1 && door ? ` · ${door}` : ''}</div>`).join('')}
+			${l.kind === 'barter' ? todayLine(l.item) : ''}
 			${l.also ? `<div class="row-alt way-also">${T('also: {text}', { text: esc(l.also) })}</div>` : ''}
 			${strip}
 		</div>
 		${copyName(l.item)}
 		${shop}
+		${heldBox(l.item)}
 		<div class="way-qty">
 			<div class="qty-out">${F(Math.ceil(l.qty))}</div>
 			${cost}
@@ -541,6 +628,9 @@ function wayRow(l) {
  * the order they are done.
  */
 function renderWay(q) {
+	// The boards are read afresh every draw: a board read on the Barter
+	// tab changes nothing this list keys on.
+	todayMemo = { key: '', t: null };
 	const way = theWay();
 	if (!way || !way.legs.length) {
 		return `<div class="panel"><p class="empty">${!way ? T('Nothing to plan yet.') : T('Nothing outstanding — every build has what it needs.')}</p></div>`;
@@ -590,7 +680,7 @@ function renderWay(q) {
 		<span class="way-order-n">${steps === 1 ? T('{n} step', { n: F(steps) }) : T('{n} steps', { n: F(steps) })} · ${things === 1 ? T('{n} thing to obtain', { n: F(things) }) : T('{n} things to obtain', { n: F(things) })}</span>
 	</div>`;
 
-	return head + questsHTML + rule + body;
+	return head + (way.orders.barter ? todayHTML(q) : '') + questsHTML + rule + body;
 }
 
 /** What the purse has to work with, said once under the shop. */
@@ -605,6 +695,14 @@ function coinFoot(way) {
 
 export function getAction(act, el) {
 	switch (act) {
+		case 'get-today-side': store.setSetting('getTodaySide', el.dataset.id === 'trade' ? 'trade' : 'material', true); return true;
+		case 'get-today-tick': {
+			const day = today().layout ? today().layout.day : '';
+			const ticks = ticksNow(day);
+			if (ticks.has(el.dataset.k)) ticks.delete(el.dataset.k); else ticks.add(el.dataset.k);
+			store.setSetting('getTodayDone', { day, keys: [...ticks] }, true);
+			return true;
+		}
 		case 'get-mode': setGetMode(el.dataset.id); return true;
 		// A press on one of the icons in Still to get: the coarse filter
 		// this screen never had. The same press again gives the whole

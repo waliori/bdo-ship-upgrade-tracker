@@ -53,14 +53,14 @@ export const DAY_CHOICES = [[7, TT('every day')], [5, TT('five days a week')], [
  * somebody else. Bartering is hours at sea; the dailies are a circuit
  * of errands; hunting a sea monster for what it drops is a fight and a
  * guild. Turning one off does not make the plan worse, it makes it
- * theirs -- and hunting turned ON is the one that changes the answer
- * most, because it takes every dropped material off the shopping list
- * without the app ever pretending to know a drop rate.
+ * theirs. Hunting turned ON gives what only a sea monster drops a way
+ * of its own -- never a date: it takes nothing the barter or the shop
+ * can count, and it is never in the days.
  */
 export const DOING = [
 	['quests', TT('Dailies & weeklies'), TT('The sailing quests, on the days you are at sea')],
 	['barter', TT('Bartering'), TT('The trade-good and ship-material lists')],
-	['hunt', TT('Hunt what drops'), TT('Anything a sea monster drops is yours to go and kill for, not to buy')]
+	['hunt', TT('Hunt what drops'), TT('What only a sea monster drops is yours to go and kill for; a hunt is never counted in the days')]
 ];
 
 export const DEFAULT_ORDERS = { preset: 'soon', days: 7, reserve: 0, quests: true, barter: true, hunt: false };
@@ -298,19 +298,6 @@ function allocate(H, facts, sources, state, orders) {
 		}
 	}
 
-	/* ---- what the player said they would go and kill for ---- */
-	if (orders.hunt) {
-		for (const f of facts) {
-			const left = short.get(f.item);
-			if (left <= 0 || !f.drops.length) continue;
-			leg(f.item, {
-				kind: 'hunt', qty: left,
-				why: `${T('yours to hunt')} · ${T('drops from {names}', { names: f.drops.slice(0, 3).map(gameName).join(', ') })}`
-			});
-			short.set(f.item, 0);
-		}
-	}
-
 	/* ---- coins and the lists ---- */
 	const purseCoins = Math.max(0, (purse.coins || 0) - orders.reserve);
 	const scheduledCoins = () => [...sched.values()].reduce((a, s) => a + s.coins, 0);
@@ -428,6 +415,18 @@ function allocate(H, facts, sources, state, orders) {
 			leg(f.item, { kind: 'short', qty: left, why: T('more days than this horizon holds') });
 			residual.push({ item: f.item, qty: left, reason: 'days' });
 			growable = true;
+			continue;
+		}
+		// What the player said they would go and kill for -- but only what
+		// no counted way reaches. A hunt is never timed: one sailor spends
+		// an evening at sea and comes home with a stack, another cannot
+		// go at all, so taking a thing off the barter or the shop because
+		// it drops would shorten the days on a promise nobody can make.
+		if (orders.hunt && f.drops.length) {
+			leg(f.item, {
+				kind: 'hunt', qty: left,
+				why: `${T('yours to hunt')} · ${T('drops from {names}', { names: f.drops.slice(0, 3).map(gameName).join(', ') })} · ${T('never counted in the days')}`
+			});
 			continue;
 		}
 		if (f.unpriced === 'market' && orders.preset !== 'silver') {
