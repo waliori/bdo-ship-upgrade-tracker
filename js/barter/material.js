@@ -713,7 +713,7 @@ export function materialParts(me, data) {
 			['how', T('How to sail it'), esc([V.matOrders.reach === 'all' ? T('every island I can trade with') : T('the wants, then home'), atSea ? T('from {port}', { port: gameName(isleShort(npcById.get(V.matAt))) }) : from ? T('from {port}', { port: gameName(from.name) }) : ''].filter(Boolean).join(' · ')), `${ordersRow}<div class="plan-next"><span class="panel-spacer"></span><button class="act" data-act="barter-sec" data-id="chains">${T('OK, see what comes of it')} ›</button></div>`],
 			['chains', T('What comes of it'), esc(comes), summary || `<p class="empty">${T('Nothing ticked. Open a material and tap each island showing it today — the run lays itself out here.')}</p>`]
 		],
-		load: `${heavyStart}${empty}${packing}${before}${missing}${ashore}${after}${questsPanels(qp, from)}${routeFold}`,
+		load: `${heavyStart}${empty}${packing}${before}${missing}${ashore}${after}${questsPanels(qp, from, { atSea })}${routeFold}`,
 		dock: foot, things: plan.stops.length ? packingCount(packPlan, from, fromAboard) : { all: 0, done: 0 }, stops: plan.stops.length, time: runTime(legs, book) || ''
 	};
 }

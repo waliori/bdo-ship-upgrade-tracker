@@ -382,9 +382,11 @@ export function questsLine(qp, mode) {
 
 /** The quests handed in at the harbour before casting off, and the
  *  ones the run cannot take in. */
-export function questsPanels(qp, from) {
+export function questsPanels(qp, from, { atSea = false } = {}) {
 	const wanted = questWanted();
-	const home = qp.home.length && from ? `<section class="panel run-list run-quests-home"><div class="panel-head"><h2 class="panel-title">${T('Quests at {port}', { port: esc(gameName(from.name)) })}</h2><span class="panel-sub">${T('handed in before casting off')}</span></div><div class="run-quests">${qp.home.map(x => questChip(x, wanted)).join('')}</div></section>` : '';
+	// A run taken up at sea has cast off already: the home port's quests
+	// wait for the ship to come back there.
+	const home = qp.home.length && from ? `<section class="panel run-list run-quests-home"><div class="panel-head"><h2 class="panel-title">${T('Quests at {port}', { port: esc(gameName(from.name)) })}</h2><span class="panel-sub">${atSea ? T('handed in when the ship is back there') : T('handed in before casting off')}</span></div><div class="run-quests">${qp.home.map(x => questChip(x, wanted)).join('')}</div></section>` : '';
 	const offN = qp.off.length + qp.skipped.length;
 	const off = offN ? `<details class="panel run-list run-quests-off"><summary class="panel-head"><h2 class="panel-title">${T('Quests off the way')}</h2><span class="panel-sub">${T('{n} not taken in by this run · open to take one in', { n: offN })}</span></summary><div class="run-quests">${qp.off.map(questOff).join('')}${qp.skipped.map(questSkipped).join('')}</div></details>` : '';
 	return home + off;
