@@ -85,7 +85,11 @@ export function boardNow() {
 	// way; only the second is theirs to take back.
 	const gated = gatedOffers(combo, barterProfile().barterCount);
 	const told = shutNow();
-	const shut = [...gated, ...told];
+	// And the islands said to show nothing today: whatever the layout has
+	// there is off the board.
+	const blank = new Set(V.board.blank || []);
+	const blanked = combo ? combo.offers.filter(o => blank.has(o[0])).map(o => ({ npcId: o[0], give: o[1], recv: o[3] })) : [];
+	const shut = [...gated, ...told, ...blanked];
 	// The islands the layout leaves to chance: what the sailor said is
 	// counted for the fleet, and the rest are planned at their likelier.
 	if (combo && combo.rolls) noteRolls(combo);

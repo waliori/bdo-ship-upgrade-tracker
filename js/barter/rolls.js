@@ -82,7 +82,7 @@ export function rollAsks(combo, answers = V.board.answers) {
 		if (!options.length) continue;
 		const a = answers.find(x => x.npcId === npcId);
 		const said = a ? options.find(o => o.give === a.give && o.recv === a.recv) || null : null;
-		out.push({ npcId, options, said, likely: null, pool: true });
+		out.push({ npcId, options, said, likely: null, pool: true, blank: (V.board.blank || []).includes(npcId), of: pool.options.length });
 	}
 	for (const [key, roll] of Object.entries(combo.rolls || {})) {
 		const npcId = Number(key);
@@ -91,7 +91,7 @@ export function rollAsks(combo, answers = V.board.answers) {
 		if (options.length < 2) continue;
 		const a = answers.find(x => x.npcId === npcId);
 		const said = a ? options.find(o => o.give === a.give && o.recv === a.recv) || null : null;
-		out.push({ npcId, options, said, likely: likelyAt(combo, npcId) });
+		out.push({ npcId, options, said, likely: likelyAt(combo, npcId), blank: (V.board.blank || []).includes(npcId) });
 	}
 	return out.sort((a, b) => isleOf(npcById.get(a.npcId)).localeCompare(isleOf(npcById.get(b.npcId))));
 }
@@ -105,7 +105,7 @@ export function assumedRolls(combo, answers = V.board.answers) {
 	const out = [];
 	for (const key of Object.keys(combo.rolls)) {
 		const npcId = Number(key);
-		if (answers.some(x => x.npcId === npcId)) continue;
+		if (answers.some(x => x.npcId === npcId) || (V.board.blank || []).includes(npcId)) continue;
 		const o = likelyAt(combo, npcId);
 		if (o && keyOf(o) !== combo.picks[npcId]) out.push({ npcId, give: o.give, recv: o.recv });
 	}
@@ -142,7 +142,7 @@ export function noteRolls(combo, answers = V.board.answers) {
 export function rollsChipHTML(combo) {
 	const asks = rollAsks(combo);
 	if (!asks.length) return '';
-	const left = asks.filter(x => !x.said).length;
+	const left = asks.filter(x => !x.said && !x.blank).length;
 	return left
 		? `<button class="chip tiny rolls-chip warn" data-act="barter-rolls" title="${T('These islands show one of several exchanges, a different one each refresh; which one changes the route')}">🎲 ${left === 1 ? T('{n} island draws its offer — which?', { n: left }) : T('{n} islands draw their offer — which?', { n: left })}</button>`
 		: `<button class="chip tiny rolls-chip ok" data-act="barter-rolls" title="${T('What the islands that roll a good or coins showed today')}">🎲 ${T('rolls said')}</button>`;
@@ -166,11 +166,14 @@ export function openRolls(combo, redraw) {
 				</button>`;
 			};
 			if (x.pool) return poolRow(x, npc, f);
-			return `<div class="roll-row${x.said ? ' said' : ''}">
-				<div class="roll-head"><b>${esc(gameName(isleOf(npc)))}</b><span class="faint">${esc(gameName(npc.name))} · ${T('takes {n}× {give}', { n: esc(x.options[0].qty), give: esc(gameName(x.options[0].give)) })}</span>${f ? `<span class="faint">${T('the fleet saw it {n} times', { n: F(f.total) })}</span>` : ''}</div>
+			return `<div class="roll-row${x.said || x.blank ? ' said' : ''}${x.blank ? ' blank' : ''}">
+				<div class="roll-head"><b>${esc(gameName(isleOf(npc)))}</b><span class="faint">${esc(gameName(npc.name))} · ${T('takes {n}× {give}', { n: esc(x.options[0].qty), give: esc(gameName(x.options[0].give)) })}</span>${f ? `<span class="faint">${T('the fleet saw it {n} times', { n: F(f.total) })}</span>` : ''}${blankBtn(x)}</div>
 				<div class="roll-options">${x.options.map(option).join('')}</div>
 			</div>`;
 		};
+		// Nothing on its window today -- a draw above the sailor's count, or
+		// a blank: said, the island is left out of the day's plans.
+		const blankBtn = x => `<button class="chip tiny roll-blank${x.blank ? ' active' : ''}" data-act="barter-roll-blank" data-npc="${x.npcId}" aria-pressed="${!!x.blank}" title="${T('The island shows you nothing today — what it drew is above your barter count, or its window is blank. It is left out of today’s plans.')}">${x.blank ? '✓ ' : ''}${T('not on my window')}</button>`;
 		// A pool: what it pays first, as icons with the fleet's share, then
 		// the exchanges paying that one -- there are a score of them.
 		const poolRow = (x, npc, f) => {
@@ -192,8 +195,9 @@ export function openRolls(combo, redraw) {
 					<span class="roll-meta">${T('{n} a day', { n: F(o.perDay) })}${pct !== null ? ` · <i class="pay-fleet">⚓${pct}%</i>` : ''}</span>
 				</button>`;
 			};
-			return `<div class="roll-row pool${x.said ? ' said' : ''}">
-				<div class="roll-head"><b>${esc(gameName(isleOf(npc)))}</b><span class="faint">${esc(gameName(npc.name))} · ${T('draws one of {n} offers', { n: F(new Set(x.options.map(keyOf)).size) })}</span>${f ? `<span class="faint">${T('the fleet saw it {n} times', { n: F(f.total) })}</span>` : ''}${x.said ? `<span class="roll-said">✓ ${esc(gameName(x.said.give))} → ${esc(gameName(x.said.recv))}</span>` : ''}</div>
+			const openN = new Set(x.options.map(keyOf)).size;
+			return `<div class="roll-row pool${x.said || x.blank ? ' said' : ''}${x.blank ? ' blank' : ''}">
+				<div class="roll-head"><b>${esc(gameName(isleOf(npc)))}</b><span class="faint">${esc(gameName(npc.name))} · ${T('draws one of {n} offers open to you', { n: F(openN) })}</span>${blankBtn(x)}${f ? `<span class="faint">${T('the fleet saw it {n} times', { n: F(f.total) })}</span>` : ''}${x.said ? `<span class="roll-said">✓ ${esc(gameName(x.said.give))} → ${esc(gameName(x.said.recv))}</span>` : ''}</div>
 				<div class="roll-pays"><span class="roll-pays-k">${T('it pays')}</span>${[...pays].sort((a, b) => b[1].length - a[1].length).map(payChip).join('')}</div>
 				${list.length ? `<div class="roll-options pool-options"><span class="roll-pays-k">${T('for')}</span>${list.map(option).join('')}</div>` : ''}
 			</div>`;
@@ -216,11 +220,24 @@ export function openRolls(combo, redraw) {
 			host.querySelector('.dialog-box').innerHTML = draw();
 			return;
 		}
+		const nb = e.target.closest('[data-act="barter-roll-blank"]');
+		if (nb) {
+			e.stopPropagation();
+			const npcId = Number(nb.dataset.npc);
+			const blank = new Set(V.board.blank || []);
+			if (blank.has(npcId)) blank.delete(npcId);
+			else { blank.add(npcId); V.board.answers = V.board.answers.filter(x => x.npcId !== npcId); }
+			V.board.blank = [...blank];
+			persist();
+			host.querySelector('.dialog-box').innerHTML = draw();
+			return;
+		}
 		const b = e.target.closest('[data-act="barter-roll-pick"]');
 		if (!b) return;
 		e.stopPropagation();
 		const npcId = Number(b.dataset.npc);
 		V.board.answers = [...V.board.answers.filter(x => x.npcId !== npcId), { npcId, give: b.dataset.give, recv: b.dataset.recv }];
+		V.board.blank = (V.board.blank || []).filter(n => n !== npcId);
 		persist();
 		noteRolls(combo);
 		host.querySelector('.dialog-box').innerHTML = draw();

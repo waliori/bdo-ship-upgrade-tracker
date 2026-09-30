@@ -1568,3 +1568,6 @@ body.sail-scene-hold .sail-scene canvas { visibility: hidden; }
 .pool-options > .roll-pays-k { grid-column: 1 / -1; }
 .roll-said { margin-left: auto; font-size: 12px; color: var(--teal); }
 .chain-need { margin-left: 6px; font-weight: 600; color: var(--amber); }
+.roll-blank { margin-left: auto; }
+.roll-row.blank .roll-options, .roll-row.blank .roll-pays { opacity: 0.4; }
+.barter-goods > .ashore-k { display: block; margin: 12px 0 4px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--teal); }

@@ -865,6 +865,7 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 	const budgetOf = name => Math.max(0, (ownedNow.get(name) || 0) - floorOf(name, orders));
 	const cap = new Map(cap0);
 	const used = new Set();
+	const dealtX = new Set();   // the exchanges dealt: 'npc|give|item'
 	const stops = [], sold = [], stashed = [];
 	const bought = new Map(), taken = new Map();
 	// The bag, counted at the least and weighed at the most like the hold.
@@ -1135,7 +1136,13 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 		const { r, chain, lot } = rungs[i];
 		// An island that has already dealt this run deals no more, so a
 		// later chain crossing it stops there.
-		if (used.has(r.npcId)) { cutAt(chain, r, 'dealt'); continue; }
+		// Two chains ticked through the same exchange -- a box chain and a
+		// [Level 7] climb both starting at Havio's Cherry Tree Seed Pouch --
+		// are one trade there: the first visit deals for both, and the
+		// later chain goes on from the goods it made. A different exchange
+		// at an island that has dealt is another matter: it deals once.
+		const xkey = `${r.npcId}|${r.give}|${r.item}`;
+		if (used.has(r.npcId)) { if (!dealtX.has(xkey)) cutAt(chain, r, 'dealt'); continue; }
 		const npc = npcById.get(r.npcId);
 		const ashore = levelOf(r.give) === null;
 		if (lot !== lotNow && !begun.has(lot)) {
@@ -1208,7 +1215,8 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 		const byNeed = mine && mine.need && rungs[i].j === mine.rungs.length - 1 && levelOf(r.item) !== null
 			? Math.ceil(Math.max(0, floorOf(r.item, orders) - (ownedNow.get(r.item) || 0)) / r.recvMin - 1e-9)
 			: Infinity;
-		const want = Math.min(cap.get(r), byGoods, byParley, byNeed);
+		const shared = rungs.slice(i + 1).filter(x => `${x.r.npcId}|${x.r.give}|${x.r.item}` === xkey && x.chain !== chain).reduce((a, x) => a + (cap.get(x.r) || 0), 0);
+		const want = Math.min(Math.min(r.tries, cap.get(r) + shared), byGoods, byParley, byNeed);
 		let times;
 
 		if (pace === 'fast') {
@@ -1342,6 +1350,7 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 		peak = Math.max(peak, weight);
 		spent += times * costOf(r);
 		used.add(r.npcId);
+		dealtX.add(xkey);
 		stops.push({ ...r, times, parley: times * costOf(r), level: levelOf(r.give) || 0, weightAfter: weight, chain });
 		at = npc;
 		// A sale on the way. The [Level 7] made at Priko on Iliya Island

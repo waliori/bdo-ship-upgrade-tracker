@@ -135,12 +135,15 @@ function tradeOffers(missing) {
 	}
 	const climbOf = npcId => { const c = reach.get(npcId); return c ? { from: c.from, item: c.item, rungs: c.rungs.length } : null; };
 	const said = new Map((V.board.answers || []).map(a => [a.npcId, a]));
+	// An island said to show nothing today is off the board.
+	const blank = new Set(V.board.blank || []);
 	for (const [npcId, give, , recv, o] of b.combo.offers) {
-		if (levelOf(recv) !== null || recv === 'Crow Coin') continue;
+		if (levelOf(recv) !== null || recv === 'Crow Coin' || blank.has(npcId)) continue;
 		add(recv, dealRow(npcId, { ...(o || {}), give }, used, { climb: climbOf(npcId) }));
 	}
 	for (const [key, pool] of Object.entries(b.combo.pools || {})) {
 		const npcId = Number(key);
+		if (blank.has(npcId)) continue;
 		const a = said.get(npcId);
 		const drawn = a && pool.options.find(o => o.give === a.give && o.recv === a.recv);
 		if (drawn) { add(drawn.recv, dealRow(npcId, drawn, used, { climb: climbOf(npcId) })); continue; }

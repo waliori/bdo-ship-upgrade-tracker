@@ -846,3 +846,21 @@ test('what a run loads at the wharf fills the hold to its limit and no further; 
 	assert.ok(run.stops.every(s => s.wharf || (s.weightAfter || 0) <= small.deal + 1e-6), 'and never past the ceiling after');
 	for (const s of run.stops.filter(x => x.wharf && x.loads && x.loads.length)) assert.ok(s.weightAfter <= small.free + 1e-6, `a call loads no further than the limit: ${s.weightAfter}`);
 });
+
+// A Lost Trade Box chain ticked beside a [Level 7] climb that starts at
+// the same island's same exchange -- Havio's Cherry Tree Seed Pouch on
+// layout 22: the first visit deals for both, and neither is cut there.
+test('two chains through the same exchange share its trades: the island deals for both', () => {
+	const l22 = combos.find(c => c.id === '22');
+	const board = boardData(l22, barterData, npcById);
+	const all = chains(board, {}, {}, 4552, 0, false, null, { mats: false, boxes: true });
+	const box = all.find(c => c.pays === 'box' && c.rungs.length === 2);
+	const climb = all.find(c => c.pays === 'goods' && c.from === 'land' && c.rungs[0].npcId === box.rungs[0].npcId && c.rungs.length > 2);
+	assert.ok(box && climb, 'a box chain and a climb from the same first island');
+	const run = chainRun({ chosen: [climb, box], stock: {}, dock: {}, hold: { free: 18300, deal: 22875, max: 31110 }, parley: { bar: 1e6, perTrade: 11755 }, npcById, start: ports.find(p => p.name === 'Iliya Island'), stashes: [], pace: 'full', orders: PLAIN_ORDERS, prices: {} });
+	const first = run.stops.filter(s => s.npcId === box.rungs[0].npcId);
+	assert.equal(first.length, 1, 'the shared island is one stop');
+	assert.ok(run.stops.some(s => s.npcId === box.rungs[1].npcId && s.item === 'Lost Trade Box'), 'the box is traded');
+	assert.ok(run.stops.some(s => s.npcId === climb.rungs[1].npcId), 'and the climb goes on past the shared island');
+	assert.ok(!run.cut.some(c => c.why === 'dealt'), 'neither is cut as dealt');
+});

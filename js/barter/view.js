@@ -160,7 +160,10 @@ export function restore() {
 				pinned: typeof s.board.pinned === 'string' ? s.board.pinned : '',
 				pinnedAt: Number(s.board.pinnedAt) || 0,
 				fresh: s.board.fresh === true,
-				freshAt: Number(s.board.freshAt) || 0
+				freshAt: Number(s.board.freshAt) || 0,
+				// The islands the sailor said show nothing on their window
+				// today: a draw above their count, or a blank.
+				blank: Array.isArray(s.board.blank) ? s.board.blank.map(Number).filter(n => npcById.has(n)) : []
 			};
 		}
 	} catch { /* a view this build does not read: the defaults stand */ }
