@@ -143,6 +143,17 @@ test('the window’s head gives up the sailor’s Parley and barter count', () =
 	assert.deepEqual(figuresFrom(shot('coinWindowFull')), { parley: 269692, barters: 2048 });
 });
 
+test('the "(?)" after Total Barters is not the figure, however it is read', () => {
+	// A real shot of 24 September: the engine read the help mark as
+	// "(7):", and the first box with a digit in it was taken for the
+	// count -- 7 barters where the window says 4,334.
+	assert.deepEqual(figuresFrom(shot('helpMarkSeven')), { parley: 1000000, barters: 4334 });
+	const row = (...texts) => texts.map((text, i) => ({ text, x0: i * 120, y0: 0, x1: i * 120 + 100, y1: 30 }));
+	for (const mark of ['(?)', '(?):', '(7):', '(2)', '[?]']) {
+		assert.equal(figuresFrom(row('Total', 'Barters', mark, '4,334')).barters, 4334, mark);
+	}
+});
+
 test('a shot of the rows alone offers no figures rather than the wrong ones', () => {
 	// Every row says what its exchange costs in Parley. None of those is
 	// the sailor's bar, and a reader that took the first of them would

@@ -86,7 +86,11 @@ export function openBarterImport({ files, deals, onAnswers = () => {} } = {}) {
 	// What the head of the window said about the sailor, and whether
 	// they want it written in. Offered rather than written: a figure
 	// read wrong and applied in silence is worse than one not read.
-	const figures = { parley: null, barters: null, take: true };
+	const figures = { parley: null, barters: null, take: true, oddTake: false };
+	// A lifetime count never goes down, so one read below what the
+	// profile holds is a misreading -- a "(?)" taken for a digit, a
+	// figure half out of the shot -- and is offered apart, unticked.
+	const oddBarters = () => figures.barters > 0 && figures.barters < store.getProfile('barterCount', 0);
 
 	const host = () => document.getElementById('dialog');
 	const draw = body => {
@@ -143,21 +147,29 @@ export function openBarterImport({ files, deals, onAnswers = () => {} } = {}) {
 					? ` · ${T('the app has {n}', { n: F(store.getProfile('parleyHeld', 0)) })}`
 					: ` · ${T('the app has been planning against a full bar')}`));
 		}
-		if (figures.barters > 0 && figures.barters !== store.getProfile('barterCount', 0)) {
+		if (figures.barters > 0 && !oddBarters() && figures.barters !== store.getProfile('barterCount', 0)) {
 			lines.push(T('<b>Total Barters</b> {n}', { n: F(figures.barters) })
 				+ ` · ${T('the app has {n}', { n: F(store.getProfile('barterCount', 0)) })}`);
 		}
-		if (!lines.length) return '';
-		return `<div class="shot-figures"><label class="inline-check">
+		const odd = oddBarters() ? `<label class="inline-check">
+			<input type="checkbox" data-figures-odd${figures.oddTake ? ' checked' : ''}>
+			<span>${T('<b>Total Barters</b> {n}', { n: F(figures.barters) })} · ${T('below the {n} the app has, and a lifetime count never goes down: likely misread, so left unticked', { n: F(store.getProfile('barterCount', 0)) })}</span>
+		</label>` : '';
+		if (!lines.length && !odd) return '';
+		return `<div class="shot-figures">${lines.length ? `<label class="inline-check">
 			<input type="checkbox" data-figures${figures.take ? ' checked' : ''}>
 			<span>${T('The window’s head also says:')} ${lines.join(' · ')} — ${T('write these in')}</span>
-		</label></div>`;
+		</label>` : ''}${odd}</div>`;
 	};
 
 	// The head read and the rows did not: the figures are still worth
 	// having, and used to be shown beside a button that could not be
 	// pressed.
-	const figuresOnly = () => figures.take && !!figuresHTML();
+	const figuresOnly = () => {
+		const news = (figures.parley > 0 && figures.parley !== store.getProfile('parleyHeld', 0))
+			|| (figures.barters > 0 && !oddBarters() && figures.barters !== store.getProfile('barterCount', 0));
+		return (figures.take && news) || (oddBarters() && figures.oddTake);
+	};
 
 	const reviewView = () => {
 		const taking = rows.filter(r => r.keep);
@@ -237,8 +249,10 @@ export function openBarterImport({ files, deals, onAnswers = () => {} } = {}) {
 		const answers = taking.map(r => ({ npcId: r.isle.id, give: r.keep.give, recv: r.keep.item, qty: r.keep.giveText || '1' }));
 		if (figures.take) {
 			if (figures.parley > 0) store.setProfileMany({ parleyHeld: Math.round(figures.parley), parleyDay: barterKey() });
-			if (figures.barters > 0) store.setProfile('barterCount', Math.round(figures.barters));
+			if (figures.barters > 0 && !oddBarters()) store.setProfile('barterCount', Math.round(figures.barters));
 		}
+		// Ticked by hand, against the warning: the sailor knows best.
+		if (oddBarters() && figures.oddTake) store.setProfile('barterCount', Math.round(figures.barters));
 		closeReader();
 		closeDialog();
 		// What the answers mean is the tab's business -- some of these
@@ -255,6 +269,7 @@ export function openBarterImport({ files, deals, onAnswers = () => {} } = {}) {
 		wireShotIntake(box, run);
 		const on = (sel, ev, fn) => box.querySelectorAll(sel).forEach(el => el.addEventListener(ev, fn));
 		on('[data-figures]', 'change', e => { figures.take = !!e.target.checked; });
+		on('[data-figures-odd]', 'change', e => { figures.oddTake = !!e.target.checked; draw(reviewView()); });
 		on('[data-stop]', 'click', () => { if (stop) stop.abort(); });
 		on('[data-again]', 'click', () => pickShots(run));
 		on('[data-use]', 'click', use);

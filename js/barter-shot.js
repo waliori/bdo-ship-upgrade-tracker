@@ -548,6 +548,13 @@ export function figuresFrom(words, lh = lineHeight(words)) {
 			let seen = '';
 			for (let at = w, hops = 0; at && hops < 8; hops++) {
 				const text = String(at.text);
+				// The help mark after the label, "(?)", which the engine
+				// reads as "(7):" as often as not -- a digit, but not the
+				// figure. A bracket round a mark or two is stepped over.
+				if (seen && /^[([{]\S{0,2}[)\]}]:?$/.test(text)) {
+					at = nextTo(at, () => true);
+					continue;
+				}
 				const digit = text.search(/\d/);
 				seen += plain(digit < 0 ? text : text.slice(0, digit));
 				if (digit >= 0) {
