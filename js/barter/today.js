@@ -100,7 +100,7 @@ export function todayHTML() {
 			<h2 class="panel-title">${T('Today’s boards')}</h2>
 			<span class="panel-sub">${runs.length === 1 ? T('one board') : T('{n} boards', { n: runs.length })} ${T('since the {time} refill', { time: esc(refill) })} · ${totals.trades === 1 ? T('{n} trade', { n: F(totals.trades) }) : T('{n} trades', { n: F(totals.trades) })} · ${T('{n} Parley of the {bar} the bar holds', { n: F(totals.parley), bar: F(bar) })}${totals.silver ? ` · ${T('{silver} net', { silver: FC(totals.silver - totals.cost) })}` : ''}</span>
 		</div>
-		<p class="panel-sub barter-caveat day-note">${T('What to load for the <b>next</b> board is in the run’s own sheet, under <b>Lay it out</b>: a refresh deals a different board, so what it will want cannot be known until you have looked at an island on it.')}</p>
+		<p class="panel-sub barter-caveat day-note">${T('What to load for the <b>next</b> board is on the <b>Load</b> step once that board is read: a refresh deals a different board, so what it will want cannot be known until you have looked at an island on it.')}</p>
 		<div class="day-runs">${rows}</div>
 		<div class="day-run day-total">
 			<span class="day-n">Σ</span>
