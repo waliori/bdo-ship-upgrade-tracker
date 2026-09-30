@@ -280,7 +280,7 @@ export function renderQuests() {
 			</div>
 			${chain}
 			${list.map(quest => questRow(quest, short, wanted.get(quest.id), isDone(quest))).join('')}
-			<div class="quest-total"><span>${id === 'daily' ? T('All {n} together, each day:', { n: list.length }) : id === 'weekly' ? T('All {n} together, each week:', { n: list.length }) : T('All {n} together:', { n: list.length })}</span> ${rewardChips(total, short)}</div>
+			${Object.keys(total).length ? `<div class="quest-total"><span>${id === 'daily' ? T('All {n} together, each day:', { n: list.length }) : id === 'weekly' ? T('All {n} together, each week:', { n: list.length }) : T('All {n} together:', { n: list.length })}</span> ${rewardChips(total, short)}</div>` : ''}
 		</div>`;
 	}).join('');
 
