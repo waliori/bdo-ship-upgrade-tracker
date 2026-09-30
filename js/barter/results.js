@@ -86,6 +86,22 @@ function historyHTML() {
 	return `<section class="panel history"><div class="panel-head"><h2 class="panel-title">${T('Past runs')}</h2><span class="panel-sub">${runs.length === 1 ? T('{n} run recorded', { n: runs.length }) : T('{n} runs recorded', { n: runs.length })} · ${T('newest first · open one for every stop')}</span></div>${rows}</section>`;
 }
 
+/**
+ * What a recorded run came to, in the thing it was sailed for: a
+ * material run or a stock run brought goods, and its silver is at most
+ * what the shore goods cost; a silver run, the silver.
+ */
+function recordedGoodsTile(r) {
+	const tile = (k, v, sub, cls) => `<div><div class="summary-k">${k}</div><div class="summary-v ${cls}">${v}</div><div class="summary-sub">${sub}</div></div>`;
+	if (r.goal === 'material' || r.goal === 'stock') {
+		const got = Object.entries(r.got || {}).filter(([item]) => item !== COIN);
+		const n = got.reduce((a, [, k]) => a + k, 0);
+		const goods = tile(`${img(got.length ? got[0][0] : SILVER, 'tile-icon')}${r.goal === 'material' ? T('Materials received') : T('Goods received')}`, n ? `+${F(n)}` : '—', got.length === 1 ? T('{n} kind', { n: 1 }) : T('{n} kinds', { n: got.length }), 'teal');
+		return `${goods}${r.spent ? tile(`${img(SILVER, 'tile-icon')}${T('Silver spent ashore')}`, `−${FC(r.spent)}`, T('for the land goods handed over'), 'warn') : ''}`;
+	}
+	return tile(`${img(SILVER, 'tile-icon')}${T('Silver, net')}`, r.net ? `${r.net > 0 ? '+' : '−'}${FC(Math.abs(r.net))}` : '—', r.spent ? T('{sold} sold · {bought} bought', { sold: FC(r.silver), bought: FC(r.spent) }) : T('sold at the wharf'), r.net < 0 ? 'warn' : 'gold');
+}
+
 export function resultsHTML() {
 	const on = sailing();
 	const plan = on ? sailedPlan() : null;
@@ -93,7 +109,7 @@ export function resultsHTML() {
 	if (!plan) {
 		const was = V.lastTrip ? `<section class="panel"><div class="panel-head"><h2 class="panel-title">✓ ${T('The run, recorded')}</h2><span class="panel-sub">${V.lastTrip.stops === 1 ? T('Recorded: {n} stop', { n: V.lastTrip.stops }) : T('Recorded: {n} stops', { n: V.lastTrip.stops })} · ${T('inventory, storage and Parley moved together.')}</span><span class="panel-spacer"></span><button class="linky" data-act="barter-undo-record">↶ ${T('Undo')}</button></div><div class="panel-body"><div class="run-tiles">
 			<div><div class="summary-k">⇄ ${T('Trades made')}</div><div class="summary-v">${F(V.lastTrip.trades)}</div><div class="summary-sub">${T('Total Barters → {n}', { n: F(barterProfile().barterCount) })}</div></div>
-			<div><div class="summary-k">${img(SILVER, 'tile-icon')}${T('Silver, net')}</div><div class="summary-v ${V.lastTrip.net < 0 ? 'warn' : 'gold'}">${V.lastTrip.net ? `${V.lastTrip.net > 0 ? '+' : '−'}${FC(Math.abs(V.lastTrip.net))}` : '—'}</div><div class="summary-sub">${V.lastTrip.spent ? T('{sold} sold · {bought} bought', { sold: FC(V.lastTrip.silver), bought: FC(V.lastTrip.spent) }) : T('sold at the wharf')}</div></div>
+			${recordedGoodsTile(V.lastTrip)}
 			${V.lastTrip.coins ? `<div><div class="summary-k">${img(COIN, 'tile-icon')}${T('Crow Coins')}</div><div class="summary-v gold">+${F(V.lastTrip.coins)}</div><div class="summary-sub"></div></div>` : ''}
 			<div><div class="summary-k">◈ ${T('Parley spent')}</div><div class="summary-v teal">${F(V.lastTrip.parley)}</div><div class="summary-sub">${V.lastTrip.vouchers ? (V.lastTrip.vouchers === 1 ? T('{n} voucher drawn on', { n: V.lastTrip.vouchers }) : T('{n} vouchers drawn on', { n: V.lastTrip.vouchers })) : ''}</div></div>
 		</div>${exchangeHTML(V.lastTrip.gave, V.lastTrip.got, { spent: V.lastTrip.spent, silver: V.lastTrip.silver, coins: V.lastTrip.coins, parley: V.lastTrip.parley, vouchers: V.lastTrip.vouchers })}<p class="recorded-line">${T('The whole of it is under Past runs below.')}</p></div></section>` : `<p class="empty step-empty">${T('No run under way. Its figures appear here as soon as one is cast off, complete or not; the runs before it are below.')}</p>`;

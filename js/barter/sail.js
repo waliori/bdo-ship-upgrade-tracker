@@ -984,7 +984,7 @@ export function recordTrip(plan, from, on = sailing(), { abandoned = false } = {
 	// cast off: the page would otherwise fall back to the plan the moment
 	// the checklist went, with nothing said about where the silver went.
 	bringUp('.barter-screen .steps');
-	V.lastTrip = { entry: entry && entry.t, applied, stops: on.done.length, trades: Math.round(trip.trades), silver: trip.silver, spent: trip.spent || 0, net: trip.silver - (trip.spent || 0), coins: Math.round(trip.delta[COIN] || 0), parley: parleySpent, vouchers: drawn, gave: moved(-1, SILVER), got: moved(1, SILVER) };
+	V.lastTrip = { entry: entry && entry.t, applied, goal: on.goal || V.goal, stops: on.done.length, trades: Math.round(trip.trades), silver: trip.silver, spent: trip.spent || 0, net: trip.silver - (trip.spent || 0), coins: Math.round(trip.delta[COIN] || 0), parley: parleySpent, vouchers: drawn, gave: moved(-1, SILVER), got: moved(1, SILVER) };
 	setStep('results');
 	V.cursor = null;
 	V.skipped = new Set();
