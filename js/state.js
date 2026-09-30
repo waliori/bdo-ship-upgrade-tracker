@@ -631,6 +631,11 @@ export function canRedo() {
 	return !transient && future.length > 0;
 }
 
+/** Whether the change stamped `t` is still in the history: not undone. */
+export function hasChange(t) {
+	return !!t && state.history.some(e => e.t === t);
+}
+
 export function lastChange() {
 	return state.history[state.history.length - 1] || null;
 }

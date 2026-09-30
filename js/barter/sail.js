@@ -842,7 +842,7 @@ function justOpened(before, after) {
 	return rows.length ? rows[rows.length - 1].opens : null;
 }
 
-export function recordTrip(plan, from, on = sailing()) {
+export function recordTrip(plan, from, on = sailing(), { abandoned = false } = {}) {
 	if (!on || !plan) return;
 	const trip = tripAsSailed(plan, on, from);
 	// What the run took and what it brought back, from the one honest
@@ -961,7 +961,24 @@ export function recordTrip(plan, from, on = sailing()) {
 	const applied = on.applied || null;
 	noteUsed(plan, on);
 	noteMatUsed(plan, on);
-	const entry = store.applyTrip({ delta: rest.delta, moves: rest.moves, at: intoHold, profile: { runs, ratios, sevens, tally, ...counted, ...spentOf, questProgress: Object.keys(progress).length ? progress : null, questsDone: Object.keys(questsDone).length ? questsDone : null }, label: `${on.done.length === 1 ? T('Sailed a run: {n} stop', { n: on.done.length }) : T('Sailed a run: {n} stops', { n: on.done.length })}${trip.silver ? `, ${T('{silver} sold', { silver: FC(trip.silver) })}` : ''}` });
+	// Abandoned, the run goes out in the same change as its record, as
+	// abandonRun's does: one Undo brings both back, the run where it
+	// stood. (Recorded, the run is done with; its Undo, on the results
+	// strip, takes the ticks back too.)
+	let views = null;
+	if (abandoned) {
+		if (V.writeTimer) { clearTimeout(V.writeTimer); V.writeTimer = null; }
+		V.sail = null;
+		views = { views: { ...(store.getProfile('views', {}) || {}), [VIEW_NS]: viewNow() } };
+		V.writing = true;
+	}
+	let entry;
+	try {
+		entry = store.applyTrip({ delta: rest.delta, moves: rest.moves, at: intoHold, profile: { runs, ratios, sevens, tally, ...counted, ...spentOf, questProgress: Object.keys(progress).length ? progress : null, questsDone: Object.keys(questsDone).length ? questsDone : null, ...views }, ...(abandoned ? { viewKeys: { [VIEW_NS]: ['sail'] } } : {}), label: `${on.done.length === 1 ? T('Sailed a run: {n} stop', { n: on.done.length }) : T('Sailed a run: {n} stops', { n: on.done.length })}${trip.silver ? `, ${T('{silver} sold', { silver: FC(trip.silver) })}` : ''}` });
+	} finally {
+		V.writing = false;
+	}
+	if (abandoned) { const s = store.getView(VIEW_NS); V.readSig = s ? JSON.stringify(s) : null; }
 	V.sail = null;
 	// What it came to, for the results step to show until the next run is
 	// cast off: the page would otherwise fall back to the plan the moment

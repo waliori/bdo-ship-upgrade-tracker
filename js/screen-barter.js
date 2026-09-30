@@ -38,6 +38,9 @@ export { barterWritingView } from './barter/view.js';
 
 export function renderBarter() {
 	restore();
+	// A recorded run whose change was undone -- by the Undo at the top,
+	// or the toast's -- is no longer recorded.
+	if (V.lastTrip && !store.hasChange(V.lastTrip.entry)) V.lastTrip = null;
 	const me = currentShip();
 	const b = boardNow();
 	if (!barterData) return `<p class="empty">${T('Reading the barter table…')}</p>`;

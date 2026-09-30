@@ -820,7 +820,7 @@ function askAbandon(redraw) {
 		// the run without writing that down left an island the sailor had
 		// traded five times showing its full ten on the next run.
 		if (mode === 'keep' && on.done.some(k => /^n/.test(k))) {
-			recordTrip(sailedPlan(), ports.find(p => p.id === on.port) || fromPort());
+			recordTrip(sailedPlan(), ports.find(p => p.id === on.port) || fromPort(), on, { abandoned: true });
 			redraw();
 			return;
 		}
