@@ -418,7 +418,7 @@ export function barterAction(act, el, redraw) {
 			const marks = runMarks(V.shownPlan, legs);
 			const mine = ticking && !ticking.over && ticking.label === runLabel(V.shownPlan).slice(0, 60)
 				&& ticking.marks.length === marks.length && ticking.marks.every((m, j) => m.k === marks[j].k);
-			const set = legs.mid > 0 && !mine ? startTimer(legs.mid, runLabel(V.shownPlan), marks) : 0;
+			const set = legs.mid > 0 && !mine ? startTimer(legs.mid, runLabel(V.shownPlan), marks, V.shownPlan.stops.length) : 0;
 			if (set) toast(T('Cast off — the clock is running, ≈ {span}. It has “again” and “stop” on it.', { span: spanText(set) }));
 			persist();
 			return true;

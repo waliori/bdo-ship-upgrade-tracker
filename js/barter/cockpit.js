@@ -340,7 +340,7 @@ export function cockpitHTML({ map = false } = {}) {
 	const doneN = stops.filter((s, k) => ticked(on.done, s, k, stops)).length;
 	// The ship on the clock is the sailor's own, on the tab's cockpit and
 	// on the Map's panel alike: one scene, handed to whichever is showing.
-	const clock = timerHTML({ suggest: (legs.mid || 0) + (book.waited || 0) * 60, label: runLabel(plan), marks: runMarks(plan, legs, book), ship: iconSrc(currentShip().name) });
+	const clock = timerHTML({ suggest: (legs.mid || 0) + (book.waited || 0) * 60, label: runLabel(plan), marks: runMarks(plan, legs, book), of: plan.stops.length, ship: iconSrc(currentShip().name) });
 	const legOf = k => { const m = legs.from ? legs.legs[k] : k > 0 ? legs.legs[k - 1] : null; return m != null ? `${fmtDistance(m)} · ${legs.timeOf(m)}` : ''; };
 	const at = stopAt(plan, on);
 	const along = holdAlong(plan, on);

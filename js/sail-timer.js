@@ -65,6 +65,11 @@ export function timerNow() {
 		startedAt: Number(t.startedAt),
 		seconds: Number(t.seconds),
 		label: typeof t.label === 'string' ? t.label.slice(0, 60) : '',
+		// How many stops the run has: a stop the ship is already at when
+		// it gets there -- the first island of a run begun at it, a second
+		// exchange at the same one -- has no mark, so the marks alone
+		// would number the stops short.
+		...(Number(t.of) > 0 ? { of: Math.floor(Number(t.of)) } : {}),
 		chimed: t.chimed === true,
 		marks,
 		// The estimate the clock was first given, kept so a restart goes
@@ -93,12 +98,16 @@ const write = t => store.setView(NS, t);
  * [{ at, label }] in seconds from the start. Starting again replaces
  * what was running.
  */
-export function startTimer(seconds, label = '', marks = []) {
+/** A mark's place on the run, as the run numbers its stops. */
+const stopNo = (t, m, i) => (Number.isFinite(m && m.k) ? m.k : i) + 1;
+const stopsOf = t => t.of || t.marks.length;
+
+export function startTimer(seconds, label = '', marks = [], of = 0) {
 	const list = marks.filter(m => m && Number(m.at) > 0).map(m => ({ at: Math.round(Number(m.at)), label: String(m.label || '').slice(0, 40), hold: Math.max(0, Math.round(Number(m.hold) || 0)), ...(Number.isFinite(Number(m.k)) ? { k: Math.floor(Number(m.k)) } : {}) })).slice(0, 40);
 	// The end of the run is the last mark, or what was asked for.
 	const end = list.length ? list[list.length - 1].at : Number(seconds) || 0;
 	const s = Math.max(30, Math.min(6 * 3600, Math.round(end)));
-	write({ startedAt: Date.now(), seconds: s, label: String(label || '').slice(0, 60), chimed: false, marks: list, done: 0, reached: 0, legAt: 0, base: { seconds: s, marks: list } });
+	write({ startedAt: Date.now(), seconds: s, label: String(label || '').slice(0, 60), chimed: false, marks: list, done: 0, reached: 0, legAt: 0, base: { seconds: s, marks: list }, ...(Number(of) > 0 ? { of: Math.floor(Number(of)) } : {}) });
 	arm();
 	sendSchedule();
 	return s;
@@ -222,7 +231,7 @@ export function sendSchedule() {
 			title: last ? (t.marks.length ? T('The run should be done') : T('The ship should be in')) : T('{stop} should be in reach', { stop: m.label || T('A stop') }),
 			body: last
 				? T('{stop} — every stop on the run has come up.', { stop: m.label || t.label || T('the last stop') })
-				: T('Stop {n} of {total} — {left} more after this one.', { n: i + 1, total: marks.length, left: marks.length - i - 1 })
+				: T('Stop {n} of {total} — {left} more after this one.', { n: stopNo(t, m, i), total: stopsOf(t), left: stopsOf(t) - stopNo(t, m, i) })
 		}));
 	putAlerts(TAG, alerts);
 }
@@ -284,7 +293,7 @@ export function timerState(now = Date.now()) {
 	// the run after this stop, and it is not over until the last is passed.
 	const left = wait ? t.seconds - t.marks[at].at : t.seconds - ran;
 	const over = t.marks.length ? t.done >= t.marks.length && ran >= t.seconds : ran >= t.seconds;
-	return { ...t, ran, left, over, next, wait, here: null, stops: t.marks.length };
+	return { ...t, ran, left, over, next, wait, here: null, stops: stopsOf(t) };
 }
 
 /* ------------------------------------------------------------------ *
@@ -627,8 +636,8 @@ function fireMark() {
 		notify(T('The run should be done'), T('{stop} — every stop on the run has come up.', { stop: mark.label || t.label || T('the last stop') }));
 	} else if (marksMode() === 'each') {
 		chimeStop();
-		const left = t.marks.length - done;
-		notify(T('{stop} should be in reach', { stop: mark.label || T('A stop') }), T('Stop {n} of {total} — {left} more after this one.', { n: done, total: t.marks.length, left }));
+		const n = stopNo(t, mark, t.done);
+		notify(T('{stop} should be in reach', { stop: mark.label || T('A stop') }), T('Stop {n} of {total} — {left} more after this one.', { n, total: stopsOf(t), left: stopsOf(t) - n }));
 	}
 	if (redraw) redraw();
 	arm();
@@ -665,7 +674,7 @@ export function spanText(secs) {
  * The clock's text carries `data-timer-clock` so the second hand can
  * move without repainting the screen under it.
  */
-export function timerHTML({ suggest = 0, label = '', marks = [], ship = '' } = {}) {
+export function timerHTML({ suggest = 0, label = '', marks = [], ship = '', of = 0 } = {}) {
 	const t = timerState();
 	// The bell says what this browser is actually going to do: ask,
 	// explain why it cannot, or nothing at all once it has said yes.
@@ -703,7 +712,7 @@ export function timerHTML({ suggest = 0, label = '', marks = [], ship = '' } = {
 		// before this, which is a number rather than a time.
 		const stops = marks.length ? ` · ${marks.length === 1 ? T('{n} stop', { n: marks.length }) : T('{n} stops', { n: marks.length })}` : '';
 		const run = suggest > 0
-			? `<button class="chip tiny primary" data-act="barter-timer-start" data-secs="${Math.round(suggest)}" data-label="${esc(label)}" data-marks="${esc(JSON.stringify(marks))}" title="${marks.length ? T('Start the clock at this run\'s own estimate, chiming at every stop on the way') : T('Start the clock at this run\'s own estimate')}">⏱ ${T('start')} · ≈ ${esc(spanText(suggest))}${stops}</button>`
+			? `<button class="chip tiny primary" data-act="barter-timer-start" data-secs="${Math.round(suggest)}" data-label="${esc(label)}" data-marks="${esc(JSON.stringify(marks))}"${of > 0 ? ` data-of="${of}"` : ''} title="${marks.length ? T('Start the clock at this run\'s own estimate, chiming at every stop on the way') : T('Start the clock at this run\'s own estimate')}">⏱ ${T('start')} · ≈ ${esc(spanText(suggest))}${stops}</button>`
 			: '';
 		// Nothing to start when there is no run in hand: the clock is the
 		// run's own, not a kitchen timer.
@@ -732,8 +741,8 @@ export function timerHTML({ suggest = 0, label = '', marks = [], ship = '' } = {
  */
 export function clockText(t = timerState()) {
 	if (!t) return '';
-	if (t.wait) return T('at {stop} · stop {n} of {total} — waiting for Traded', { stop: t.wait.label || T('stop {n}', { n: t.wait.i + 1 }), n: t.wait.i + 1, total: t.stops });
-	if (t.next) return T('{left} to {stop} · stop {n} of {total}', { left: spanText(t.next.left), stop: t.next.label || T('stop {n}', { n: t.next.i + 1 }), n: t.next.i + 1, total: t.stops });
+	if (t.wait) return T('at {stop} · stop {n} of {total} — waiting for Traded', { stop: t.wait.label || T('stop {n}', { n: stopNo(t, t.wait, t.wait.i) }), n: stopNo(t, t.wait, t.wait.i), total: t.stops });
+	if (t.next) return T('{left} to {stop} · stop {n} of {total}', { left: spanText(t.next.left), stop: t.next.label || T('stop {n}', { n: stopNo(t, t.next, t.next.i) }), n: stopNo(t, t.next, t.next.i), total: t.stops });
 	if (t.over) return T('{ran} · {past} past the {set} it was set for', { ran: spanText(t.ran), past: spanText(t.ran - t.seconds), set: spanText(t.seconds) });
 	return T('{ran} of ≈ {of}', { ran: spanText(t.ran), of: spanText(t.seconds) });
 }
@@ -839,7 +848,7 @@ function readMarks(raw) {
  *  and the screen should be drawn again. */
 export function timerAction(act, el, then = null) {
 	if (act === 'barter-timer-start') {
-		startTimer(Number(el.dataset.secs) || 600, el.dataset.label || '', readMarks(el.dataset.marks));
+		startTimer(Number(el.dataset.secs) || 600, el.dataset.label || '', readMarks(el.dataset.marks), Number(el.dataset.of) || 0);
 		// The press that starts the clock is also what lets the page make
 		// a sound later: the browser wants a gesture, and this is it. It
 		// wakes the audio without making a noise -- a beep on starting
