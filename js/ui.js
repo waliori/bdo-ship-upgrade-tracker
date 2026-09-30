@@ -12,14 +12,14 @@ import { esc, F, parseAmount } from './fmt.js';
 import * as store from './state.js';
 import { useGame } from './barter-layouts.js';
 import { initSync, openAccount, feature, me, fetchLink, canKeepLink } from './sync.js';
-import { maxCraftable, craftDelta, enhanceStep, parseEnhanced } from './planner.js';
+import { maxCraftable, craftDelta, enhanceStep, parseEnhanced, enhancedName } from './planner.js';
 import {
 	view, selected, recipes, barterData, snapshot, query,
 	setView, setQuery, setPlanFilter, setInvFilter, setInvKind, setSelected, setBarterData, setCombos, setMatBoards,
 	recompute, readyCrafts, craftStock, CROW_COIN, SILVER, setSort, invPicking, invPicked, setInvPicking
 } from './ui-state.js';
 import { kindOf } from './kinds.js';
-import { toast, openDialog, closeDialog, dismissDialog, holdScreen, whenScreenFree } from './dialogs.js';
+import { toast, hideToast, openDialog, closeDialog, dismissDialog, holdScreen, whenScreenFree } from './dialogs.js';
 import { allItems, img } from './ui-bits.js';
 import { T, TT, said, gameName, LANGS, langById, langFlag, setLang, startingLang, lang as currentLang } from './i18n.js';
 import { encodeShare, decodeShare, decodeAny, shareLink, shareSize, shortLinkId, isPlan, slimShape } from './share.js';
@@ -31,7 +31,7 @@ import { toggleSailBar, openRoutes, openPets } from './profile-bar.js';
 import { hidePeek, wirePeek } from './peek.js';
 import { openGuide, wireGuide } from './guide.js';
 import { renderPlan } from './screen-plan.js';
-import { renderBuilds, openBuildPicker, askRoute, toggleBlockers } from './screen-builds.js';
+import { renderBuilds, openBuildPicker, askRoute, toggleBlockers, askMade, flyToBuilds } from './screen-builds.js';
 import { renderInventory } from './screen-inventory.js';
 import { renderBarter, barterAction, barterChange, barterType, chartFragment, runSheetHTML, sailChart, sailCurrent, sailJump, plannedChart, sailIds, barterWritingView } from './screen-barter.js';
 import { tickTimer, watchTimer } from './sail-timer.js';
@@ -1433,9 +1433,28 @@ function wire() {
 				}
 				// Counted for the career, in the same change as the craft.
 				store.applyDelta(delta, 'craft', label, { tally: store.tallied({ made: { [item]: times } }) });
-				toast(`${label}`, true);
+				// A build's own item made: the toast asks if the build is done.
+				if (!askMade(item, times, label)) toast(`${label}`, true);
 				return;
 			}
+			case 'build-made': {
+				const id = targetIdFrom(el);
+				const t = id && store.getTarget(id);
+				if (!t) return;
+				// Taken from the toast before the toast is redrawn over it.
+				const icon = el.hasAttribute('data-fly') ? el.closest('.toast')?.querySelector('.toast-icon') : null;
+				if (icon) flyToBuilds(icon);
+				const n = Math.max(1, Number(el.dataset.n) || 1);
+				const done = (t.made || 0) + n >= t.qty;
+				if (!store.markTargetMade(id, n)) return;
+				toast(done
+					? T('{item} built — off the queue, kept in your inventory', { item: gameName(t.item) })
+					: T('{item}: {made} of {qty} made', { item: gameName(t.item), made: F((t.made || 0) + n), qty: F(t.qty) }), true);
+				return;
+			}
+			case 'toast-keep':
+				hideToast();
+				return;
 			case 'enhance': {
 				const row = el.closest('[data-base]');
 				const base = row.getAttribute('data-base');
@@ -1490,6 +1509,7 @@ function wire() {
 				const held = (tableFor(base) || {}).keepsLevel !== false || !step.stones['Cron Stone']
 					? T('kept its level')
 					: T('held its level on the Cron Stones');
+				if (ok && askMade(enhancedName(base, level), 1, T('{name} is now +{level}', { name: gameName(base), level }))) return;
 				toast(ok ? T('{name} is now +{level}', { name: gameName(base), level }) : T('Materials spent — {name} {held}', { name: gameName(base), held }), true);
 				return;
 			}

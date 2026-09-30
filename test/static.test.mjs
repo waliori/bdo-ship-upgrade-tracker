@@ -326,7 +326,9 @@ test('no element wears a whole-screen class as if it were a modifier', () => {
 	const overlay = new Map();
 	for (const f of fs.readdirSync(cssDir.pathname).filter(n => n.endsWith('.css'))) {
 		const src = fs.readFileSync(path.join(cssDir.pathname, f), 'utf8');
-		for (const m of src.matchAll(/(?:^|\})\s*\.([A-Za-z0-9_-]+)\s*\{([^}]*)\}/g)) {
+		// The lead-in brace is looked behind, not taken: taken, it is the
+		// brace that closed the rule before, so every other rule went unread.
+		for (const m of src.matchAll(/(?:^|(?<=\}))\s*\.([A-Za-z0-9_-]+)\s*\{([^}]*)\}/g)) {
 			if (/position\s*:\s*fixed/.test(m[2])) overlay.set(m[1], f);
 		}
 	}

@@ -316,7 +316,9 @@ function yardOf(save, tally) {
 	const byItem = {};
 	for (const t of arr(save.targets)) {
 		if (!t || typeof t.item !== 'string') continue;
-		byItem[t.item] = (byItem[t.item] || 0) + Math.max(1, n(t.qty) || 1);
+		// What is still to make: the ones made already are in the tally.
+		const qty = Math.max(1, n(t.qty) || 1);
+		byItem[t.item] = (byItem[t.item] || 0) + Math.max(1, qty - Math.max(0, n(t.made) || 0));
 	}
 	const made = obj(tally.made);
 	let ships = 0, parts = 0, crafts = 0;

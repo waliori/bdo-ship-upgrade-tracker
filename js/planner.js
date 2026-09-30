@@ -238,7 +238,7 @@ export function totalUnits(item, qty, strategy = {}, recipes = defaultRecipes, s
  *
  * @param {object}   opts
  * @param {object}   opts.stock     item -> owned quantity
- * @param {Array}    opts.targets   [{id, item, qty, active}] in priority order
+ * @param {Array}    opts.targets   [{id, item, qty, made?, active}] in priority order
  * @param {object}   opts.strategy  item -> 'craft' | 'buy'
  * @param {object}   [opts.recipes]
  * @param {object}   [opts.failstacks]  base -> { level, stack }: the stack
@@ -253,8 +253,24 @@ export function plan({ stock = {}, targets = [], strategy = {}, recipes = defaul
 	const acc = { reserved: {}, reservedBy: {}, toCraft: {}, missing: {} };
 	const results = [];
 
+	// What a build has already made is its own, not stock for the rest:
+	// set aside first, so neither this build nor one above it counts the
+	// made one again. Only what the inventory still holds of it -- a part
+	// taken on to its next level has left.
+	for (const target of targets) {
+		if (target.active === false || !(target.made > 0)) continue;
+		const keep = Math.min(target.made, pool[target.item] || 0);
+		if (keep <= 0) continue;
+		pool[target.item] -= keep;
+		bump(acc.reserved, target.item, keep);
+		(acc.reservedBy[target.item] || (acc.reservedBy[target.item] = [])).push({
+			targetId: target.id, targetItem: target.item, qty: keep, via: null
+		});
+	}
+
 	for (const target of targets) {
 		if (target.active === false) continue;
+		const made = Math.min(target.made || 0, target.qty - 1);
 
 		const before = { missing: { ...acc.missing } };
 		const ctx = {
@@ -264,7 +280,7 @@ export function plan({ stock = {}, targets = [], strategy = {}, recipes = defaul
 			recipes,
 			failstacks
 		};
-		const tree = explode(target.item, target.qty, pool, acc, ctx, new Set(), null);
+		const tree = explode(target.item, target.qty - made, pool, acc, ctx, new Set(), null);
 
 		// How much of this target's requirement is still unmet.
 		let missingUnits = 0;
@@ -278,6 +294,7 @@ export function plan({ stock = {}, targets = [], strategy = {}, recipes = defaul
 			id: target.id,
 			item: target.item,
 			qty: target.qty,
+			made,
 			tree,
 			totalUnits: total,
 			missingUnits,

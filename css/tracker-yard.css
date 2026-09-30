@@ -108,6 +108,18 @@
 .build-state { font-size: 11.5px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--blue); }
 .build-state.done { color: var(--teal); }
 .build-state.paused { color: var(--ink-off); }
+.build-state.held { color: var(--teal-hi); }
+/* The build's own item is already in the inventory: nothing to craft,
+   only to say it is done. */
+.build-held {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px;
+  margin-top: 8px; padding: 7px 10px;
+  border: 1px solid rgba(78, 201, 174, 0.3); border-radius: var(--r-sm);
+  background: rgba(78, 201, 174, 0.08);
+  font-size: 12px; color: var(--ink);
+}
+.build-held span { flex: 1 1 180px; }
+.build-held .act { white-space: nowrap; }
 .build .bar { margin: 9px 0 6px; }
 .build-meta { font-size: 11.5px; color: var(--ink-mute); }
 .build-meta .n { font-family: var(--font-display); color: var(--ink-dim); }

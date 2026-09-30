@@ -11,11 +11,34 @@ let toastTimer = null;
 
 export function toast(message, undoable = false) {
 	const el = document.getElementById('toast');
+	el.classList.remove('ask');
 	el.innerHTML = `<span>${esc(message)}</span>` +
 		(undoable ? `<button type="button" data-act="undo">${T('Undo')}</button>` : '');
 	el.hidden = false;
 	clearTimeout(toastTimer);
 	toastTimer = setTimeout(() => { el.hidden = true; }, 3600);
+}
+
+/**
+ * A toast that asks something: the caller's markup, its buttons carrying
+ * their own data-act, left up long enough to be read and answered. It is
+ * never in the way -- ignored, it goes, and whatever it offered is still
+ * to be found where it belongs.
+ */
+export function toastAsk(html, ms = 9000) {
+	const el = document.getElementById('toast');
+	el.classList.add('ask');
+	el.innerHTML = html;
+	el.hidden = false;
+	clearTimeout(toastTimer);
+	toastTimer = setTimeout(() => { el.hidden = true; }, ms);
+}
+
+/** Put the toast away now: an ask that has been answered. */
+export function hideToast() {
+	const el = document.getElementById('toast');
+	clearTimeout(toastTimer);
+	el.hidden = true;
 }
 
 /* ------------------------------------------------------------------ *

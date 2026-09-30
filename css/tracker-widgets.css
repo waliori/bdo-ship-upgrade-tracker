@@ -118,10 +118,35 @@
   display: flex;
   align-items: center;
   gap: 14px;
+  /* Its own width, not half the screen's: pinned at the centre, a long
+     line would otherwise wrap into a column on a phone. */
+  width: max-content;
+  max-width: calc(100vw - 32px);
 }
 
 .toast[hidden] { display: none; }
 .toast button { background: none; border: none; color: var(--blue); font-weight: 700; font-size: 13px; }
+
+/* A toast that asks: the icon of what was made, what happened, and the
+   question under it, with its answers beside. It wraps on a phone. */
+.toast.ask { flex-wrap: wrap; gap: 10px 14px; max-width: min(560px, calc(100vw - 32px)); padding: 10px 14px; }
+.toast .toast-icon { width: 36px; height: 36px; flex-shrink: 0; }
+.toast .toast-text { flex: 1 1 200px; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.toast .toast-text small { font-size: 12px; color: var(--ink-mute); }
+.toast .toast-acts { display: flex; align-items: center; gap: 4px; margin-left: auto; }
+.toast .toast-acts button { padding: 6px 8px; border-radius: var(--r-sm); }
+.toast .toast-go { color: var(--teal-hi); background: rgba(78, 201, 174, 0.16); }
+.toast .toast-go:hover { background: rgba(78, 201, 174, 0.28); }
+.toast .toast-undo { color: var(--ink-mute); font-weight: 600; }
+
+/* The made thing on its way to the Builds tab, and the tab taking it. */
+.fly-ghost { position: fixed; z-index: 1001; pointer-events: none; object-fit: contain; filter: drop-shadow(0 4px 10px rgba(var(--shade-rgb), 0.6)); }
+@keyframes tabTick {
+  0% { box-shadow: 0 0 0 0 rgba(78, 201, 174, 0.7); }
+  30% { transform: scale(1.12); }
+  100% { box-shadow: 0 0 0 12px rgba(78, 201, 174, 0); transform: scale(1); }
+}
+.tab-tick { animation: tabTick 0.8s ease-out; }
 
 .dialog {
   position: fixed;

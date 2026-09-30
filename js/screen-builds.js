@@ -7,12 +7,74 @@ import { statsLine, shipStats } from './ship_stats.js';
 import { esc, F } from './fmt.js';
 import { T, said, gameName, nameHas } from './i18n.js';
 import * as store from './state.js';
-import { openDialog, closeDialog, toast } from './dialogs.js';
+import { openDialog, closeDialog, toast, toastAsk } from './dialogs.js';
 import { img, codexName, amountInput, costCtx, costText, buildableItems, heldBox } from './ui-bits.js';
 import { snapshot } from './ui-state.js';
 import { planOne, bottlenecks, routeOf, remainingCost } from './planner.js';
 import { paceText } from './pace.js';
 
+
+/**
+ * Just made `n` of `item`, and `said` is what the toast would have said.
+ * If the item is one of the builds -- the goal itself, not a material
+ * for it -- the toast asks whether the build is done instead. It asks
+ * rather than doing it, because the thing made may be a spare or a
+ * second copy; ignored, the build card still offers the same answer.
+ * False when there is nothing to ask, so the caller says the plain line.
+ */
+export function askMade(item, n, said) {
+	const all = store.getTargets();
+	const t = all.find(x => x.item === item && x.active) || all.find(x => x.item === item);
+	if (!t) return false;
+	const left = t.qty - (t.made || 0);
+	const k = Math.min(n, left);
+	const which = T('Build #{n} on your queue', { n: all.indexOf(t) + 1 });
+	toastAsk(`${img(item, 'row-icon toast-icon')}
+		<span class="toast-text">${esc(said)}<small>${esc(k >= left ? T('{which} — is it done?', { which })
+			: k === 1 ? T('{which} wants {left} — count this one as made?', { which, left: F(left) })
+			: T('{which} wants {left} — count these {n} as made?', { which, left: F(left), n: F(k) }))}</small></span>
+		<span class="toast-acts">
+			<button type="button" class="toast-go" data-act="build-made" data-target="${esc(t.id)}" data-n="${k}" data-fly>${k < left ? T('Count {n} made', { n: F(k) }) : T('Mark done')}</button>
+			<button type="button" data-act="toast-keep">${T('Not yet')}</button>
+			<button type="button" data-act="undo" class="toast-undo">${T('Undo')}</button>
+		</span>`);
+	return true;
+}
+
+/**
+ * The made thing goes to the Builds tab: the icon flies from `from` to
+ * the tab -- or to the phone's Menu, when Builds is not in its bar --
+ * and the tab ticks as it lands. With reduced motion, only the tick.
+ */
+export function flyToBuilds(from) {
+	const shown = el => el && el.offsetParent !== null;
+	const tab = [...document.querySelectorAll('.tab[data-id="builds"], .tabbar-btn[data-id="builds"]')].find(shown)
+		|| [document.querySelector('.tabbar-btn.all')].find(shown);
+	if (!tab) return;
+	const tick = () => {
+		tab.classList.remove('tab-tick');
+		void tab.offsetWidth;
+		tab.classList.add('tab-tick');
+		setTimeout(() => tab.classList.remove('tab-tick'), 900);
+	};
+	const still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+	if (!shown(from) || still || !from.animate) return tick();
+	const a = from.getBoundingClientRect();
+	const b = tab.getBoundingClientRect();
+	const ghost = from.cloneNode(true);
+	ghost.className = 'fly-ghost';
+	Object.assign(ghost.style, { left: `${a.left}px`, top: `${a.top}px`, width: `${a.width}px`, height: `${a.height}px` });
+	document.body.append(ghost);
+	const dx = b.left + b.width / 2 - (a.left + a.width / 2);
+	const dy = b.top + b.height / 2 - (a.top + a.height / 2);
+	// Up and over, not a straight slide: it reads as being put somewhere.
+	const lift = Math.min(90, Math.abs(dy) * 0.4 + 30);
+	ghost.animate([
+		{ transform: 'translate(0, 0) scale(1)', opacity: 1 },
+		{ transform: `translate(${dx * 0.45}px, ${dy * 0.45 - lift}px) scale(1.25)`, opacity: 1, offset: 0.45 },
+		{ transform: `translate(${dx}px, ${dy}px) scale(0.4)`, opacity: 0.7 }
+	], { duration: 700, easing: 'cubic-bezier(.45, 0, .3, 1)' }).onfinish = () => { ghost.remove(); tick(); };
+}
 
 // Whether the blockers panel shows the worst five or the lot.
 let allBlockers = false;
@@ -32,11 +94,16 @@ export function renderBuilds() {
 	const list = targets.length ? targets.map((t, i) => {
 		const r = byId.get(t.id);
 		const pct = r ? r.progress : 0;
-		const state = !t.active ? 'paused' : pct >= 100 ? 'done' : '';
-		const stateLabel = !t.active ? T('Paused') : pct >= 100 ? T('Ready') : T('In progress');
+		// The build's own item already in the inventory -- made here,
+		// bought, handed over by a quest -- is not "Ready": there is
+		// nothing left to craft, only to say it is done.
+		const held = r && t.active ? Math.min(r.tree.fromStock, t.qty - (t.made || 0)) : 0;
+		const state = !t.active ? 'paused' : held > 0 ? 'held' : pct >= 100 ? 'done' : '';
+		const stateLabel = !t.active ? T('Paused') : held > 0 ? T('In your inventory') : pct >= 100 ? T('Ready to make') : T('In progress');
 		const units = r
 			? (r.missingUnits > 0 ? T('{missing} of {total} units still needed', { missing: F(r.missingUnits), total: F(r.totalUnits) }) : T('everything on hand'))
 			: '';
+		const made = t.made ? ` · ${T('{made} of {qty} made', { made: F(t.made), qty: F(t.qty) })}` : '';
 		return `<div class="build ${t.active ? '' : 'paused'}" data-target="${esc(t.id)}">
 			${img(t.item, 'row-icon lg')}
 			<div class="build-main">
@@ -45,7 +112,13 @@ export function renderBuilds() {
 					<span class="build-state ${state}">${stateLabel}</span>
 				</div>
 				<div class="bar tall"><i class="fill" style="width:${pct.toFixed(1)}%"></i></div>
-				<div class="build-meta">${T('Priority {n}', { n: i + 1 })} · <span class="n">${pct.toFixed(1)}%</span> · ${esc(units)}${routeNote(t.item)}</div>
+				<div class="build-meta">${T('Priority {n}', { n: i + 1 })} · <span class="n">${pct.toFixed(1)}%</span> · ${esc(units)}${made}${routeNote(t.item)}</div>
+				${held > 0 ? `<div class="build-held">
+					<span>${held < t.qty - (t.made || 0)
+						? T('In your inventory: {n} of the {left} still to make', { n: F(held), left: F(t.qty - (t.made || 0)) })
+						: T('It is in your inventory — made, bought or given')}</span>
+					<button class="act go small" data-act="build-made" data-n="${held}">${held < t.qty - (t.made || 0) ? T('Count {n} made', { n: F(held) }) : T('Mark done')}</button>
+				</div>` : ''}
 				${statsLine(t.item) ? `<div class="build-meta build-stats" title="${T('What this hull is, in the game\'s own numbers — see Crew for the rest')}">${esc(statsLine(t.item))}</div>` : ''}
 				${(() => {
 					// The bill for finishing this one: every leaf its tree

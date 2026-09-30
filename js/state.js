@@ -209,13 +209,20 @@ function normalise(input) {
 	if (Array.isArray(raw.targets)) {
 		s.targets = raw.targets
 			.filter(t => t && typeof t.item === 'string')
-			.map(t => ({
-				id: String(t.id || makeId()),
-				item: t.item,
-				qty: Math.max(1, Math.floor(Number(t.qty) || 1)),
-				active: t.active !== false,
-				note: typeof t.note === 'string' ? t.note : ''
-			}));
+			.map(t => {
+				const qty = Math.max(1, Math.floor(Number(t.qty) || 1));
+				// How many of it are made already. Always short of the
+				// whole: a build made in full is closed, not kept.
+				const made = Math.min(qty - 1, Math.max(0, Math.floor(Number(t.made) || 0)));
+				return {
+					id: String(t.id || makeId()),
+					item: t.item,
+					qty,
+					...(made > 0 ? { made } : {}),
+					active: t.active !== false,
+					note: typeof t.note === 'string' ? t.note : ''
+				};
+			});
 	}
 	if (raw.strategy && typeof raw.strategy === 'object') {
 		for (const [item, mode] of Object.entries(raw.strategy)) {
@@ -1261,10 +1268,31 @@ export function removeTarget(id) {
 export function setTargetQty(id, qty) {
 	const t = getTarget(id);
 	if (!t) return null;
-	const n = Math.max(1, Math.floor(Number(qty) || 1));
+	// Never down to what is already made: that one is Mark done's.
+	const n = Math.max((t.made || 0) + 1, Math.floor(Number(qty) || 1));
 	if (n === t.qty) return null;
 	return commit('target', `${t.item} ×${n}`, () => {
 		state.targets = state.targets.map(x => (x.id === id ? { ...x, qty: n } : x));
+	});
+}
+
+/**
+ * `n` more of a build made. The made ones stay in the inventory -- the
+ * Ship tab reads the fleet and the fitted parts from it -- so the build
+ * keeps count of them and the plan sets them aside; made in full, the
+ * build is closed, and what it made is free for whatever comes next.
+ */
+export function markTargetMade(id, n = 1) {
+	const t = getTarget(id);
+	if (!t) return null;
+	const made = Math.min(t.qty, (t.made || 0) + Math.max(1, Math.floor(Number(n) || 1)));
+	if (made >= t.qty) {
+		return commit('target', `Finished ${t.item}`, () => {
+			state.targets = state.targets.filter(x => x.id !== id);
+		});
+	}
+	return commit('target', `${t.item}: ${made} of ${t.qty} made`, () => {
+		state.targets = state.targets.map(x => (x.id === id ? { ...x, made } : x));
 	});
 }
 
