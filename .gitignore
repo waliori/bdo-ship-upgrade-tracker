@@ -28,3 +28,5 @@ tools/capture/voice/
 # Artefacts of old agent tooling, never part of the app.
 .claude-flow/
 .hive-mind/
+
+tools/rpit/

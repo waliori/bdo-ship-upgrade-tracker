@@ -172,35 +172,62 @@ async function standing(userId) {
  * is on the far side of the internet, so the wait has a deadline.
  *
  * The words go across as they were written. Discord's own markup is
- * near enough the box's that bold stays bold and a list stays a list --
- * the pictures are the part that cannot travel through a webhook, so
- * they are counted instead and read in the box itself.
+ * near enough the box's that bold stays bold and a list stays a list.
+ * The pictures go as attachments, as many as fit under what one
+ * webhook call may carry; the rest are counted and read in the box.
  */
+const WEBHOOK_BYTES = 9 * 1024 * 1024;
+
+async function pictures(ids, feedbackId) {
+	const out = [];
+	let total = 0;
+	for (const id of ids) {
+		const file = await getFile(id);
+		if (!file || Number(file.feedbackId) !== Number(feedbackId)) continue;
+		if (total + file.bytes > WEBHOOK_BYTES) continue;
+		try {
+			const data = await fs.readFile(onDisk(file));
+			out.push({ name: `${feedbackId}-${out.length + 1}.${EXTENSION[file.mime] || 'bin'}`, mime: file.mime, data });
+			total += data.length;
+		} catch (err) {
+			if (err.code !== 'ENOENT') console.warn('[feedback] could not read an image for the webhook:', err.message);
+		}
+	}
+	return out;
+}
+
 async function ping(entry, id) {
 	if (!config.feedbackWebhook) return;
 	const label = { bug: 'Something is wrong', idea: 'An idea', other: 'Something else' }[entry.kind] || entry.kind;
 	const who = entry.username ? `${entry.username} (${entry.userId})` : `account ${entry.userId}`;
-	const shots = entry.ids.length
-		? `${entry.ids.length} image${entry.ids.length === 1 ? '' : 's'} attached — in the box`
-		: '';
-	const lines = [
-		`**${label}** #${id} from ${who}`,
-		entry.page ? `on: ${entry.page}` : '',
-		entry.version ? `build: ${entry.version}` : '',
-		entry.contact ? `reach: ${entry.contact}` : '',
-		shots,
-		'',
-		entry.text.length > 1800 ? `${entry.text.slice(0, 1800)}…` : entry.text
-	].filter(Boolean);
 	try {
-		await fetch(config.feedbackWebhook, {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			// Discord renders markdown, and a stranger's text must not be
-			// allowed to ping a role or everyone by writing @here.
-			body: JSON.stringify({ content: lines.join('\n'), allowed_mentions: { parse: [] } }),
-			signal: AbortSignal.timeout(8000)
-		});
+		const shots = entry.ids.length ? await pictures(entry.ids, id) : [];
+		const left = entry.ids.length - shots.length;
+		const lines = [
+			`**${label}** #${id} from ${who}`,
+			entry.page ? `on: ${entry.page}` : '',
+			entry.version ? `build: ${entry.version}` : '',
+			entry.contact ? `reach: ${entry.contact}` : '',
+			entry.agent ? `device: ${entry.agent}` : '',
+			left > 0 ? `${left} more image${left === 1 ? '' : 's'} — in the box` : '',
+			'',
+			entry.text.length > 1800 ? `${entry.text.slice(0, 1800)}…` : entry.text
+		].filter((l, i) => l || i === 6).join('\n');
+		// Discord renders markdown, and a stranger's text must not be
+		// allowed to ping a role or everyone by writing @here.
+		const payload = { content: lines.trim(), allowed_mentions: { parse: [] } };
+		let init;
+		if (shots.length) {
+			const form = new FormData();
+			payload.attachments = shots.map((f, i) => ({ id: i, filename: f.name }));
+			form.append('payload_json', JSON.stringify(payload));
+			shots.forEach((f, i) => form.append(`files[${i}]`, new Blob([f.data], { type: f.mime }), f.name));
+			init = { method: 'POST', body: form };
+		} else {
+			init = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) };
+		}
+		const res = await fetch(config.feedbackWebhook, { ...init, signal: AbortSignal.timeout(20000) });
+		if (!res.ok) console.warn('[feedback] the webhook answered', res.status);
 	} catch (err) {
 		console.warn('[feedback] the webhook did not take it:', err.message);
 	}
