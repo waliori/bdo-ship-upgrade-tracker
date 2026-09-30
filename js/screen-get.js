@@ -605,7 +605,10 @@ function todayLine(item) {
 	if (!t.layout) return '';
 	const r = t.rows.find(x => x.item === item);
 	if (!r) return `<div class="row-sub way-today off">${T('not on today’s layout ({layout})', { layout: layoutName(t.layout) })}</div>`;
-	return `<div class="row-sub way-today">${T('today: up to {n} at {isles}', { n: F(r.todayMax), isles: esc(r.deals.map(d => gameName(d.isle)).filter((x, i, a) => a.indexOf(x) === i).join(', ')) })}</div>`;
+	const isles = esc(r.deals.map(d => gameName(d.isle)).filter((x, i, a) => a.indexOf(x) === i).join(', '));
+	// Only pools not read yet: nothing is sure, but a draw may bring it.
+	if (!r.todayMax) return `<div class="row-sub way-today">${T('today: only if a draw shows it — up to {n} at {isles}', { n: F(r.maybe), isles })}</div>`;
+	return `<div class="row-sub way-today">${T('today: up to {n} at {isles}', { n: F(r.todayMax), isles })}</div>`;
 }
 
 /** One material's row inside a step: what it is, why this way, and the
