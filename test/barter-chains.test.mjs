@@ -864,3 +864,29 @@ test('two chains through the same exchange share its trades: the island deals fo
 	assert.ok(run.stops.some(s => s.npcId === climb.rungs[1].npcId), 'and the climb goes on past the shared island');
 	assert.ok(!run.cut.some(c => c.why === 'dealt'), 'neither is cut as dealt');
 });
+
+test('a fast run never passes the limit: the bag is emptied at the end only into the room the sale leaves, and a land good short of the trades takes nothing off the hold', () => {
+	// Layout 24 from Iliya with five of eight [Level 4]-[Level 5] goods in
+	// its storage, a Carrack's hold and a bag of 4,624 LT: "Light and fast"
+	// read 18,905 / 18,300 on the Barter tab.
+	const l24 = combos.find(c => c.id === '24');
+	const d24 = boardData(l24, barterData, npcById);
+	const gives = [...new Set(l24.offers.map(o => o[1]).filter(g => /^\[Level [45]\]/.test(g)))];
+	const dock = Object.fromEntries(gives.slice(0, 8).map(g => [g, 5]));
+	const all = chains(d24, {}, dock, 4006, 0);
+	const docks = wharves.filter(w => w.kind === 'wharf');
+	const stores = docks.filter(w => ['Velia', 'Port Epheria', 'Iliya Island', 'Ancado Inner Harbor', "Oquilla's Eye"].includes(w.at));
+	const hold = { free: 18295, deal: 31105, max: 31105 };
+	const run = ids => chainRun({ chosen: ids.map(id => all.find(c => c.id === id)), dock, stock: {}, hold, parley: { bar: 1e6, perTrade: 11755 }, npcById, start: ports.find(p => p.name === 'Iliya Island'), stashes: stores, docks, pace: 'fast', orders: { ...PLAIN_ORDERS, pace: 'fast', buy: true, landFrom: 'buy', way: 'sea', sell: 5 }, prices: new Proxy({}, { get: () => 18000 }), bag: { free: 4624, slots: 58 }, effort: 1 });
+	// Golden Fish Scales parked in the bag came out of it at the last
+	// wharf before the hold's own [Level 7]s were sold: 20,800 for a moment.
+	const bagged = run(["hold:[Level 4] Marine Knights' Spear:58903.58984.58948", 'hold:[Level 4] Stolen Pirate Dagger:58949.58981.58974', 'hold:[Level 4] Solidified Lava:58909.58977.58976', 'hold:[Level 4] Amethyst Fragment:58905.58971.58954', 'land:Vinegar:58901.58962.58902.58970.50814', 'land:Silk Thread:58964.58958.58906.58957.50815']);
+	assert.ok(bagged.stops.some(s => (s.fromBag || []).length), 'the bag is emptied on this run');
+	assert.ok(bagged.weightPeak <= hold.free + 1e-6, `never over the limit: ${bagged.weightPeak}`);
+	// Eight trades of Tiger Meat, fewer of it loaded than handed over: the
+	// rest is bought at Renilu and never weighed off the hold.
+	const meat = run(["hold:[Level 4] Marine Knights' Spear:58903.58984.58948", 'hold:[Level 4] Solidified Lava:58909.58977.58976', "hold:[Level 4] Marine Knights' Spear:50815", 'hold:[Level 4] Solidified Lava:50816', 'land:Clear Liquid Reagent:58931.58951.58910.58952.50816', 'land:Tiger Meat:58929']);
+	assert.ok(meat.stops.some(s => s.npcId && s.give === 'Tiger Meat'), 'the Tiger Meat is traded');
+	assert.ok(meat.weightPeak <= hold.free + 1e-6, `never over the limit: ${meat.weightPeak}`);
+	for (const s of [...bagged.stops, ...meat.stops]) assert.ok(s.weightAfter <= hold.free + 1e-6, `${s.npc || s.wharf.at} ends at ${s.weightAfter}`);
+});

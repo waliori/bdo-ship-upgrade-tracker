@@ -1217,6 +1217,11 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 			: Infinity;
 		const shared = rungs.slice(i + 1).filter(x => `${x.r.npcId}|${x.r.give}|${x.r.item}` === xkey && x.chain !== chain).reduce((a, x) => a + (cap.get(x.r) || 0), 0);
 		const want = Math.min(Math.min(r.tries, cap.get(r) + shared), byGoods, byParley, byNeed);
+		// What one trade puts on the hold: what comes in, less what goes
+		// out of it. A land good bought at the island itself was never
+		// aboard, so nothing leaves -- counting it as leaving let a fast
+		// run fit a trade more than the limit takes.
+		const dwr = ashore && !held.has(r.give) ? r.recvMax * weightOf(r.item) : dw(r);
 		let times;
 
 		if (pace === 'fast') {
@@ -1225,17 +1230,22 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 				cutAt(chain, r, 'over', { over: Math.round(weight - hold.free) });
 				continue;
 			}
-			times = dw(r) > 0 ? Math.min(want, Math.floor((hold.free - weight) / dw(r) + 1e-9)) : want;
+			times = dwr > 0 ? Math.min(want, Math.floor((hold.free - weight) / dwr + 1e-9)) : want;
 			// With a bag, the goods another chain takes later go in it at
 			// the wharf that bends the leg least, when that lets more in.
-			if (times < want && room && dw(r) > 0) {
-				const park = parkable(i, chain, heldMax, new Set([r.give]), (want - times) * dw(r));
+			if (times < want && room && dwr > 0) {
+				const park = parkable(i, chain, heldMax, new Set([r.give]), (want - times) * dwr);
 				if (park.length) {
 					const w = dockFor(npc);
 					call(w, [], chain, isStash(w) ? saleAt(i) : [], [], null, { park });
-					times = Math.min(want, Math.floor((hold.free - weight) / dw(r) + 1e-9));
+					times = Math.min(want, Math.floor((hold.free - weight) / dwr + 1e-9));
 				}
 			}
+			// And exactly: only what is aboard of the give leaves the hold.
+			// A land good loaded short of the trades is bought on the spot
+			// for the rest, which takes nothing off.
+			const ends = t => weight + t * r.recvMax * weightOf(r.item) - Math.min(heldMax.get(r.give) || 0, t * r.giveN) * weightOf(r.give);
+			while (times > 0 && ends(times) > hold.free + 1e-6) times--;
 		} else {
 			// How many of the attempts wanted the hold lets in from weight
 			// `w` with `goods` aboard (weighed at the most): none over the
@@ -1244,9 +1254,9 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 			// call can bring the hold back under before the next island.
 			const fit = (w, goods) => {
 				if (w > deal + 1e-6) return 0;
-				if (dw(r) <= 0) return want;
-				let t = Math.min(want, Math.floor((deal - w) / dw(r) + 1e-9) + 1, Math.floor((hold.max - w) / dw(r) + 1e-9));
-				const under = Math.floor((deal - w) / dw(r) + 1e-9);
+				if (dwr <= 0) return want;
+				let t = Math.min(want, Math.floor((deal - w) / dwr + 1e-9) + 1, Math.floor((hold.max - w) / dwr + 1e-9));
+				const under = Math.floor((deal - w) / dwr + 1e-9);
 				// Full and never slower: no trade ends over the limit, even
 				// one a wharf call would bring back under -- the leg to that
 				// wharf is sailed slow.
@@ -1256,7 +1266,7 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 					if (!ashore || after.has(r.give)) after.set(r.give, after.get(r.give) - t * r.giveN);
 					after.set(r.item, (after.get(r.item) || 0) + t * r.recvMax);
 					const back = stashes.length ? weighs(spare(after, needFrom(i + 1))) : 0;
-					if (w + t * dw(r) - back > deal + 1e-6) t = under;
+					if (w + t * dwr - back > deal + 1e-6) t = under;
 				}
 				return t;
 			};
@@ -1323,7 +1333,7 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 			cutAt(chain, r,
 				byParley < 1 ? 'parley' : byGoods < 1 ? (ashore && !fromPile && listed.has(r.give) ? 'market' : 'nothing') : starved ? 'share' : 'hold',
 				byGoods < 1 && ashore && !fromPile && listed.has(r.give) ? { good: r.give, want: r.giveN, listed: listed.get(r.give), held: land.get(r.give) || 0 } : starved ? {} : {
-					need: Math.max(0, Math.round(dw(r))),
+					need: Math.max(0, Math.round(dwr)),
 					free: Math.max(0, Math.round((pace === 'fast' ? hold.free : deal) - weight))
 				});
 			continue;
@@ -1404,13 +1414,24 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 	// makes for: the one chosen, else home, else the nearest.
 	// What the bag still holds that the orders sell comes out of it there
 	// to be sold; the rest is carried home in it.
+	// The hold is sold first: out of the bag is loading, no further than
+	// the limit, and the room the sale leaves is what the bag's goods
+	// come aboard into -- as many rounds as it takes to empty it of what
+	// sells, or until nothing more fits.
 	const endAt = stashes.length ? prefer || (start && stashes.find(w => w.at === start.name)) || wharfFor(at) : null;
-	if (endAt && baggedMax.size) {
-		const back = [...baggedMax].filter(([name, n]) => n > 1e-9 && sellable(name, orders) && !keep.includes(name));
-		if (back.length) call(endAt, [], order.length - 1, [], [], null, { fetch: back });
+	if (endAt) {
+		const first = saleAt(rungs.length);
+		if (first.length) call(endAt, [], order.length - 1, first);
+		for (let round = 0; round < 8 && baggedMax.size; round++) {
+			const back = [...baggedMax].filter(([name, n]) => n > 1e-9 && sellable(name, orders) && !keep.includes(name));
+			if (!back.length) break;
+			const was = weightHeld(baggedMax);
+			call(endAt, [], order.length - 1, [], [], null, { fetch: back, lim: hold.free });
+			const last = saleAt(rungs.length);
+			if (last.length) call(endAt, [], order.length - 1, last);
+			if (!(weightHeld(baggedMax) < was - 1e-9)) break;
+		}
 	}
-	const last = saleAt(rungs.length);
-	if (last.length && endAt) call(endAt, [], order.length - 1, last);
 
 	// Goods put in the bag at the start harbour and taken out of it at a
 	// call back there were carried for nothing: they could have waited
