@@ -1396,6 +1396,14 @@ body.sail-scene-hold .sail-scene canvas { visibility: hidden; }
 @media (max-width: 720px) {
   .run-dock > .act, .load-dock > .act, .cockpit-foot > .act { flex: 1 1 100%; min-width: 0; }
 }
+/* On a phone the sailing bar stands over the cockpit it serves: the
+   line and the four presses, two to a row, in about half the height. */
+@media (max-width: 560px) {
+  .sail-bar.sailing.cockpit-foot { padding: 8px 10px; gap: 6px; }
+  .cockpit-foot > .sail-n { flex: 1 1 100%; font-size: 12px; }
+  .cockpit-foot > .panel-spacer { display: none; }
+  .cockpit-foot > .ghost-btn, .cockpit-foot > .act { flex: 1 1 calc(50% - 3px); min-width: 0; padding: 7px 6px; font-size: 12px; white-space: nowrap; text-align: center; justify-content: center; }
+}
 .hold-shore { margin-top: 10px; display: grid; gap: 4px; } .hold-shore .ashore-k { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--teal); }
 
 /* The hold as the game's window draws it: a grid of slots, eleven across. */
