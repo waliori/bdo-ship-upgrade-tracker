@@ -365,12 +365,17 @@ export function tripsHTML(plan, from, chosen, hold) {
 		const heavy = l => !l.bag;
 		const over = plan.weightStart + t.loads.filter(heavy).reduce((a, l) => a + l.n * weightOf(l.item), 0) + trips.slice(1, t.n - 1).reduce((a, x) => a + x.loads.filter(heavy).reduce((b, l) => b + l.n * weightOf(l.item), 0), 0);
 		const bagOnly = t.loads.length > 0 && t.loads.every(l => l.bag);
+		const atStart = shownHold(hold, over);
 		const early = t.at >= 0 && t.head >= 0 && t.at < t.head;
 		const when = t.at < 0 ? T('on the way') : bagOnly ? T('out of your bag at {port} wharf, stop {k}', { port: esc(gameName((plan.stops[t.at].wharf || {}).at || '')), k: t.at + 1 }) : early ? T('picked up early, at {port} wharf, stop {k}, while the trip before is still under way', { port: esc(port), k: t.at + 1 }) : T('picked up at {port} wharf, stop {k}', { port: esc(port), k: t.at + 1 });
 		const drop = `<button class="chip tiny trip-drop" data-act="barter-trip-drop" data-ids="${esc(idsOf(t).join('\n'))}" title="${T('Untick this trip\u2019s chains: the run is laid again without them')}">${T('leave this trip out')}</button>`;
 		return `<section class="trip-card later"><div class="trip-head"><span class="trip-k">${T('Trip {n}', { n: t.n })}</span><b>${when}</b><span class="trip-line">${line(t)}</span><span class="panel-spacer"></span><span class="trip-state">${t.loads.length === 1 ? T('{n} thing picked up on the way', { n: t.loads.length }) : T('{n} things picked up on the way', { n: t.loads.length })}</span>${moveBtns(t)}${drop}</div>
 			${t.loads.map(l => `<div class="trip-row"><i class="trip-dot"></i><span class="pack-icon"${levelOf(l.item) ? ` style="--tier:${TIER(levelOf(l.item))}"` : ''}>${img(l.item, 'row-icon')}</span><span class="pack-what"><b>${esc(gameName(l.item))}</b><em>${l.bag ? T('rides in your bag') : T('waits in the storage at {port}', { port: esc(port) })}${weightOf(l.item) ? ` · ${T('{lt} LT', { lt: (Math.round(l.n * weightOf(l.item) * 10) / 10).toLocaleString() })}` : ''}</em></span><span class="pack-n"><b>${n1(l.n)}</b></span></div>`).join('')}
-			<div class="trip-foot">${bagOnly ? T('in your bag from the start, not the hold') : T('not now: with the trips before it aboard the hold would be {w}, over the limit', { w: esc(w(over)) })} · ${T('hold at its fullest on this trip: {w}', { w: esc(w(t.peak)) })}</div></section>`;
+			<div class="trip-foot">${bagOnly ? T('in your bag from the start, not the hold') : atStart.total > atStart.limit ? T('not now: with the trips before it aboard the hold would be {w}, over the limit', { w: esc(atStart.text) })
+				// It would fit at the start: the lots are cut for the whole
+				// climb and then for the shortest run, so the reason is
+				// there, not in the start's weight.
+				: T('it would fit at the start ({w}), but the run is shorter, or the hold lighter along the way, picking it up later', { w: esc(atStart.text) })} · ${T('hold at its fullest on this trip: {w}', { w: esc(w(t.peak)) })}</div></section>`;
 	}).join('');
 	return `<div class="trips">${head}${first}${rest}</div>`;
 }
