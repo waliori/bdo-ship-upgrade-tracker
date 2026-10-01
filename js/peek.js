@@ -11,6 +11,8 @@ let lastX = -1;
 let lastY = -1;
 // The element the open card describes, so the link can be undone.
 let describedEl = null;
+// When the keyboard last brought a row a card: see onScroll.
+let focusedAt = 0;
 
 // A finger cannot hover: the synthetic mouseover after a tap would park
 // the card over the content with nothing to put it away. Tracked from
@@ -48,6 +50,12 @@ function peekLive() {
  */
 function onScroll() {
 	if (!peekLive()) return;
+	// Tabbing onto a row the page has to scroll to brings that row into
+	// view, and the scroll lands a frame after the focus: that is the
+	// keyboard arriving, not the sailor scrolling away. The card on its
+	// way is left to come, and is placed under the row where the scroll
+	// left it.
+	if (peekTimer && performance.now() - focusedAt < 250) return;
 	clearTimeout(rearmTimer);
 	putAway();
 }
@@ -217,7 +225,9 @@ export function wirePeek() {
 	// what hovering it would.
 	document.addEventListener('focusin', evt => {
 		const el = evt.target.closest ? evt.target.closest('[data-peek]') : null;
-		if (el) showSoon(el, true);
+		if (!el) return;
+		focusedAt = performance.now();
+		showSoon(el, true);
 	});
 	document.addEventListener('focusout', evt =>
 		leaveFor(
