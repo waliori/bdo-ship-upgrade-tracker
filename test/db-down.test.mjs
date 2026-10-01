@@ -29,7 +29,7 @@ test.after(() => { console.warn = realWarn; server.close(); });
 test('the page is served while the database is not', async () => {
 	assert.equal((await fetch(`${base}/`)).status, 200);
 	const { build, ...offered } = await (await fetch(`${base}/api/config`)).json();
-	assert.deepEqual(offered, { sync: true, push: false, feedback: true, uploads: false, community: true, presence: true, links: true });
+	assert.deepEqual(offered, { sync: true, push: false, discordDm: false, feedback: true, uploads: false, community: true, presence: true, links: true });
 	assert.equal(typeof build, 'string', 'the deploy is named');
 });
 

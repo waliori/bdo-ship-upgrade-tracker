@@ -1,5 +1,5 @@
-// The Vell reminder by push: the keys make it available, a subscription
-// is kept by region, and the minute hand knows when a region is due.
+// Push for a sailor's own chimes: the keys make it available, and a
+// subscription is kept and dropped by the browser that holds it.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -19,8 +19,7 @@ process.env.VAPID_PUBLIC_KEY = keys.publicKey;
 process.env.VAPID_PRIVATE_KEY = keys.privateKey;
 
 const app = (await import('../server.js')).default;
-const { dueRegions } = await import('../server/push.js');
-const { listPushSubs } = await import('../server/db.js');
+const { getPushSub } = await import('../server/db.js');
 const server = app.listen(0);
 await new Promise(resolve => server.once('listening', resolve));
 const base = `http://127.0.0.1:${server.address().port}`;
@@ -39,24 +38,23 @@ const SUB = { endpoint: 'https://fcm.googleapis.com/fcm/send/abc', keys: { p256d
 
 test('push is offered without Discord, once the keys are set', async () => {
 	const { build, ...offered } = await (await call('GET', '/api/config')).json();
-	assert.deepEqual(offered, { sync: false, push: true, feedback: true, uploads: true, community: false, presence: true, links: false });
+	assert.deepEqual(offered, { sync: false, push: true, discordDm: false, feedback: true, uploads: true, community: false, presence: true, links: false });
 	assert.ok(build, 'the deploy is named, for a report to say where it came from');
 	const key = await (await call('GET', '/api/push/key')).json();
-	assert.equal(key.key, keys.publicKey);
-	assert.deepEqual(key.regions, ['eu', 'na']);
+	assert.deepEqual(key, { key: keys.publicKey }, 'the Vell timetable is gone, and the key says nothing about it');
 });
 
-test('a subscription is kept by region, and can be dropped', async () => {
-	assert.equal((await call('POST', '/api/push/subscribe', { subscription: SUB, region: 'eu' })).status, 204);
-	assert.equal((await call('POST', '/api/push/subscribe', { subscription: SUB, region: 'na' })).status, 204, 'the same endpoint moves region');
-	assert.equal((await listPushSubs('eu')).length, 0);
-	assert.deepEqual((await listPushSubs('na')).map(s => s.endpoint), [SUB.endpoint]);
-	assert.equal((await call('POST', '/api/push/subscribe', { subscription: SUB, region: 'mars' })).status, 400);
-	assert.equal((await call('POST', '/api/push/subscribe', { subscription: { endpoint: 'http://plain' }, region: 'eu' })).status, 400);
+test('a subscription is kept, and can be dropped', async () => {
+	assert.equal((await call('POST', '/api/push/subscribe', { subscription: SUB })).status, 204);
+	assert.ok(await getPushSub(SUB.endpoint));
+	// An older tab still says which Vell timetable it followed, and
+	// whether it wanted the reminder: both are ignored now, any region.
+	assert.equal((await call('POST', '/api/push/subscribe', { subscription: SUB, region: 'mars', vell: true })).status, 204);
+	assert.equal((await call('POST', '/api/push/subscribe', { subscription: { endpoint: 'http://plain' } })).status, 400);
 	// The browser's own secret comes with the address (see the rule
 	// below: the address alone is not enough to take it away).
 	assert.equal((await call('DELETE', '/api/push/subscribe', { endpoint: SUB.endpoint, auth: AUTH })).status, 204);
-	assert.equal((await listPushSubs('na')).length, 0);
+	assert.equal(await getPushSub(SUB.endpoint), null);
 });
 
 test('only the push services browsers use are subscribed to', async () => {
@@ -68,8 +66,8 @@ test('only the push services browsers use are subscribed to', async () => {
 		'https://wns2-par02p.notify.windows.com/w/?token=abc',
 		'https://web.push.apple.com/abc'
 	]) assert.ok(pushService(ok), ok);
-	// An endpoint is a URL this server will POST to every Vell on the
-	// word of whoever posted it, so anywhere else is refused -- including
+	// An endpoint is a URL this server will POST to on the word of
+	// whoever posted it, so anywhere else is refused -- including
 	// a real service on a plain scheme or hidden in a lookalike host.
 	for (const bad of [
 		'https://push.example/abc',
@@ -78,9 +76,9 @@ test('only the push services browsers use are subscribed to', async () => {
 		'https://evilnotify.windows.com/x',
 		'not a url'
 	]) assert.equal(pushService(bad), false, bad);
-	const res = await call('POST', '/api/push/subscribe', { subscription: { ...SUB, endpoint: 'https://push.example/abc' }, region: 'eu' });
+	const res = await call('POST', '/api/push/subscribe', { subscription: { ...SUB, endpoint: 'https://push.example/abc' } });
 	assert.equal(res.status, 400);
-	assert.equal((await listPushSubs('eu')).length, 0);
+	assert.equal(await getPushSub('https://push.example/abc'), null);
 });
 
 test('the keys must be the size the protocol makes them', async () => {
@@ -98,19 +96,8 @@ test('the keys must be the size the protocol makes them', async () => {
 });
 
 test('a subscription body has a few kilobytes and no more', async () => {
-	const res = await call('POST', '/api/push/subscribe', { subscription: SUB, region: 'eu', padding: 'x'.repeat(9000) });
+	const res = await call('POST', '/api/push/subscribe', { subscription: SUB, padding: 'x'.repeat(9000) });
 	assert.equal(res.status, 413);
-});
-
-test('a region is due once, a quarter of an hour before its spawn', () => {
-	// EU: Sunday 14:00 Berlin (CEST) = 12:00 UTC on 2026-08-30.
-	const spawn = Date.parse('2026-08-30T12:00:00Z');
-	const before = 15 * 60e3;
-	assert.deepEqual(dueRegions(spawn - before, {}, before).map(d => d.region), ['eu']);
-	assert.deepEqual(dueRegions(spawn - before + 30e3, {}, before).map(d => d.region), ['eu'], 'still inside the beat');
-	assert.deepEqual(dueRegions(spawn - before - 61e3, {}, before), [], 'too early');
-	assert.deepEqual(dueRegions(spawn - before, { eu: spawn }, before), [], 'already sent for this spawn');
-	assert.deepEqual(dueRegions(spawn - 5 * 60e3, {}, before), [], 'the window has passed');
 });
 
 test('a kept subscription is changed only by the browser that holds it, or its own account', async () => {

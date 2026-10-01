@@ -90,6 +90,14 @@ const vapid = {
 };
 export const pushEnabled = Boolean(vapid.publicKey && vapid.privateKey && turso.url);
 
+// Chimes as Discord messages ride on the same schedule as the push ones, so
+// they need what push needs, an account to message, and the bot's own token.
+// Slash commands are answered over Discord's interactions webhook, which
+// signs every call with the bot application's public key.
+export const botCommandsEnabled = Boolean(read('DISCORD_BOT_PUBLIC_KEY') && syncEnabled);
+
+export const dmEnabled = Boolean(read('DISCORD_BOT_TOKEN') && pushEnabled && syncEnabled);
+
 // Feedback needs only somewhere to keep it. A Discord webhook, when one
 // is given, gets a copy of each entry the moment it lands, so the
 // operator hears of a bug without opening the inbox.
@@ -138,8 +146,8 @@ const adminIds = new Set(read('ADMIN_IDS').split(',').map(s => s.trim()).filter(
 export const config = {
 	port: num('PORT', 8000),
 	vapid,
-	// How long before a spawn the reminder goes out.
-	pushBeforeMs: num('PUSH_BEFORE_MINUTES', 15) * 60 * 1000,
+	botToken: read('DISCORD_BOT_TOKEN'),
+	botPublicKey: read('DISCORD_BOT_PUBLIC_KEY'),
 	publicUrl,
 	publicOrigin,
 	discord: {

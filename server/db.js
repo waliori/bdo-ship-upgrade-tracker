@@ -407,31 +407,13 @@ export const MIGRATIONS = [
 	},
 	{
 		version: 11,
-		up: async run => {
-			// The boards are opt-in again, and this time for good: signing
-			// in used to put an account on them by name, avatar and all,
-			// before its owner had said a word -- which is publishing
-			// somebody, not inviting them. Now nobody is on them who has
-			// not answered the question, and this column is whether they
-			// have. Off, named or unnamed are all answers; only silence is
-			// not.
-			await run('ALTER TABLE users ADD COLUMN community_asked INTEGER NOT NULL DEFAULT 0');
-			// Who had already answered. Leaving is an answer. So is being
-			// shown unnamed, because signing in only ever put anyone on by
-			// name. And so is any row older than the opt-out rule itself
-			// (version 3): before it, the only way onto the boards was to
-			// press Take part.
-			const { rows } = await run('SELECT applied_at FROM schema_version WHERE version = 3');
-			const optOutSince = rows[0] ? Number(rows[0].applied_at) : 0;
-			await run('UPDATE users SET community_asked = 1 WHERE community_off = 1');
-			await run({
-				sql: `UPDATE users SET community_asked = 1 WHERE id IN (
-					SELECT user_id FROM community WHERE share = 'anon' OR joined_at < ?)`,
-				args: [optOutSince]
-			});
-			// Everybody else was put there by signing in, and comes off
-			// until they say otherwise. The Community tab asks them once.
-			await run('DELETE FROM community WHERE user_id IN (SELECT id FROM users WHERE community_asked = 0)');
+		up: async () => {
+			// Kept as a step that does nothing. For a day on develop this
+			// made the boards opt-in and took off everyone signing in had
+			// put there; that was undone before it reached a live database,
+			// and the boards stay opt-out -- signing in puts an account on
+			// them, and the Community tab takes it off. The number is kept so
+			// the steps after it keep theirs.
 		}
 	},
 	{
@@ -461,6 +443,25 @@ export const MIGRATIONS = [
 				n           INTEGER NOT NULL
 			)`);
 			await run('INSERT OR IGNORE INTO presence_swept (id, n) VALUES (1, 0)');
+		}
+	},
+	{
+		version: 14,
+		up: async run => {
+			// Whether the bot may message this account when a chime is due.
+			// Off for everyone until they switch it on themselves.
+			await run('ALTER TABLE users ADD COLUMN discord_alerts INTEGER NOT NULL DEFAULT 0');
+		}
+	},
+	{
+		version: 15,
+		up: async run => {
+			// The Vell reminder is gone, and with it the only thing a
+			// subscription with no account was ever for: such a row can
+			// never be sent anything again, and still counts against the
+			// cap on subscriptions. A signed-in device subscribes again,
+			// under its account, the next time it asks for a chime.
+			await run('DELETE FROM push_subs WHERE user_id IS NULL');
 		}
 	}
 ];
@@ -549,10 +550,9 @@ export async function ping() {
  * ------------------------------------------------------------------ */
 
 /**
- * Keep a subscription, or bring it up to date. `vell` is whether the
- * Vell reminder is wanted through it; null leaves whatever the row
- * already said, so a device subscribing for its owner's chimes does
- * not turn the reminder off, or on.
+ * Keep a subscription, or bring it up to date. The `region` and `vell`
+ * columns are the Vell reminder's, which is gone: they are still
+ * written so the table keeps its shape, and nothing reads them.
  */
 export async function putPushSub(endpoint, sub, region, userId = null, vell = null) {
 	await migrate();
@@ -560,11 +560,6 @@ export async function putPushSub(endpoint, sub, region, userId = null, vell = nu
 		sql: `INSERT INTO push_subs (endpoint, sub, region, created_at, user_id, vell) VALUES (?, ?, ?, ?, ?, ?)
 			ON CONFLICT(endpoint) DO UPDATE SET sub = excluded.sub, region = excluded.region, user_id = excluded.user_id,
 				vell = COALESCE(?, push_subs.vell)`,
-		// Saying nothing means the Vell reminder, because that is all a
-		// subscription ever meant before there was anything else -- an
-		// older tab that has not reloaded must not quietly lose it. Only
-		// an explicit no makes a row that is not on the Vell round, and
-		// on an update saying nothing leaves the row as it was.
 		args: [endpoint, JSON.stringify(sub), region, Date.now(), userId, vell === false ? 0 : 1, vell === null ? null : (vell ? 1 : 0)]
 	});
 }
@@ -582,12 +577,6 @@ export async function getPushSub(endpoint) {
 export async function deletePushSub(endpoint) {
 	await migrate();
 	await exec({ sql: 'DELETE FROM push_subs WHERE endpoint = ?', args: [endpoint] });
-}
-
-export async function listPushSubs(region) {
-	await migrate();
-	const { rows } = await exec({ sql: 'SELECT endpoint, sub FROM push_subs WHERE region = ? AND vell = 1', args: [region] });
-	return rows.map(r => ({ endpoint: r.endpoint, sub: JSON.parse(r.sub) }));
 }
 
 /** Every subscription an account has: the devices a chime reaches. */
@@ -730,6 +719,18 @@ export async function getUser(id) {
 		args: [id]
 	});
 	return rows[0] || null;
+}
+
+/** Has this account asked for its chimes as Discord messages? */
+export async function getDiscordAlerts(id) {
+	await migrate();
+	const { rows } = await exec({ sql: 'SELECT discord_alerts FROM users WHERE id = ?', args: [id] });
+	return Boolean(rows[0] && Number(rows[0].discord_alerts));
+}
+
+export async function setDiscordAlerts(id, on) {
+	await migrate();
+	await exec({ sql: 'UPDATE users SET discord_alerts = ? WHERE id = ?', args: [on ? 1 : 0, id] });
 }
 
 /* ------------------------------------------------------------------ *
@@ -1025,20 +1026,19 @@ export async function staleFiles(before) {
 export async function getShareState(userId) {
 	await migrate();
 	const { rows } = await exec({
-		sql: `SELECT u.community_off AS off, u.community_asked AS asked, c.share AS share
+		sql: `SELECT u.community_off AS off, c.share AS share
 		      FROM users u LEFT JOIN community c ON c.user_id = u.id
 		      WHERE u.id = ?`,
 		args: [userId]
 	});
-	if (!rows[0]) return { share: null, off: true, asked: false, known: false };
-	return { share: rows[0].share || null, off: Number(rows[0].off) === 1, asked: Number(rows[0].asked) === 1, known: true };
+	if (!rows[0]) return { share: null, off: true, known: false };
+	return { share: rows[0].share || null, off: Number(rows[0].off) === 1, known: true };
 }
 
-/** Remember the account's answer: off the boards, or on them. Either
- *  way it has now been asked, and is not asked again. */
+/** Remember that the account left the boards, or came back. */
 export async function setCommunityOff(userId, off) {
 	await migrate();
-	await exec({ sql: 'UPDATE users SET community_off = ?, community_asked = 1 WHERE id = ?', args: [off ? 1 : 0, userId] });
+	await exec({ sql: 'UPDATE users SET community_off = ? WHERE id = ?', args: [off ? 1 : 0, userId] });
 }
 
 /** Put an account on the boards, or change how it is shown there. */

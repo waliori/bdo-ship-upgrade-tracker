@@ -14,7 +14,7 @@ import fs from 'fs';
 import path from 'path';
 import { execFileSync } from 'child_process';
 import { fileURLToPath } from 'url';
-import { config, syncEnabled, pushEnabled, feedbackEnabled, uploadsEnabled, communityEnabled, presenceEnabled, ephemeralSecret, describe } from './server/config.js';
+import { config, syncEnabled, pushEnabled, dmEnabled, botCommandsEnabled, feedbackEnabled, uploadsEnabled, communityEnabled, presenceEnabled, ephemeralSecret, describe } from './server/config.js';
 import { presenceRoutes, startPresenceSweep } from './server/presence.js';
 import { marketRoutes } from './server/market.js';
 import { accessLog, counters } from './server/log.js';
@@ -201,22 +201,23 @@ if (syncEnabled) {
 	}
 }
 
-// Vell reminders by push: a key pair and a table are all it takes, so
-// it can run on a deployment without Discord. Off without the keys.
+// The bot's slash commands (/ship, /sailors): Discord posts them here,
+// signed. They read the sailor's saved account, so sync has to be on.
+if (botCommandsEnabled) app.use('/api', (await import('./server/discord-bot.js')).botRoutes());
+
+// Chimes by push: a key pair and a table. Off without the keys.
 if (pushEnabled) {
-	const [{ migrate, ping }, { pushRoutes, startVellPushes, startAlertPushes }] = await Promise.all([
+	const [{ migrate, ping }, { pushRoutes, startAlertPushes }] = await Promise.all([
 		import('./server/db.js'),
 		import('./server/push.js')
 	]);
 	if (!syncEnabled) migrate().catch(err => console.warn('[db] tables not ready yet:', err.message));
 	dbPing = ping;
 	app.use('/api', pushRoutes());
-	if (process.env.NODE_ENV !== 'test') {
-		startVellPushes();
-		// An account's own chimes: a clock set on one device reaching the
-		// rest. Needs sign-in, so it only runs where sync does.
-		if (syncEnabled) startAlertPushes();
-	}
+	if (dmEnabled) app.use('/api', (await import('./server/discord-dm.js')).dmRoutes());
+	// An account's own chimes: a clock set on one device reaching the
+	// rest. Needs sign-in, so it only runs where sync does.
+	if (process.env.NODE_ENV !== 'test' && syncEnabled) startAlertPushes();
 }
 
 // Feedback needs a table and nothing else, so like the push reminders it
@@ -264,7 +265,7 @@ app.get('/api/config', (req, res) => {
 	// `build` is the deploy's stamp, the one the service worker's cache is
 	// named for: what a bug report says it was sent from, so a report can
 	// be matched to a deploy rather than to a release that spans dozens.
-	res.json({ sync: syncEnabled, push: pushEnabled, feedback: feedbackEnabled, uploads: uploadsEnabled, community: communityEnabled, presence: presenceEnabled, links: syncEnabled, build: VERSION });
+	res.json({ sync: syncEnabled, push: pushEnabled, discordDm: dmEnabled, feedback: feedbackEnabled, uploads: uploadsEnabled, community: communityEnabled, presence: presenceEnabled, links: syncEnabled, build: VERSION });
 });
 
 // Is it up, and is the database behind it answering? `db` is 'off' on a

@@ -19,8 +19,7 @@
 
 import { esc } from './fmt.js';
 import * as store from './state.js';
-import { canReachDevices, subscribeFor, putAlerts, clearAlerts } from './push-sub.js';
-import { pushRegion } from './today.js';
+import { canReachDevices, subscribePush, putAlerts, clearAlerts, discordDm, setDiscordDm } from './push-sub.js';
 import { toast } from './dialogs.js';
 import { T, TT, said } from './i18n.js';
 import { mountScene } from './sail-scene.js';
@@ -234,7 +233,7 @@ export function arrivedAt(index, fresh = null, of = 0) {
  * changes, since the schedule is replaced rather than added to.
  */
 export function sendSchedule() {
-	if (!pushOn()) return;
+	if (!pushOn() && !discordOn()) return;
 	const t = timerNow();
 	if (!t) return clearAlerts(TAG);
 	const from = t.startedAt;
@@ -260,7 +259,7 @@ export function sendSchedule() {
 export function stopTimer() {
 	write(null);
 	arm();
-	if (pushOn()) clearAlerts(TAG);
+	if (pushOn() || discordOn()) clearAlerts(TAG);
 }
 
 /**
@@ -335,6 +334,27 @@ export const soundOn = () => soundKind() !== 'off';
  */
 export const pushOn = () => store.getSetting('timerPush', false) === true && canReachDevices();
 export const canPush = () => canReachDevices();
+
+/** Each chime also as a Discord message from the community bot, once the
+ *  sailor has asked and the bot has managed to say hello. */
+export const discordOn = () => canReachDevices() && !!(discordDm() && discordDm().on);
+
+export async function toggleDiscord() {
+	if (discordOn()) {
+		const off = await setDiscordDm(false);
+		if (off.ok && !pushOn()) await clearAlerts(TAG);
+		toast(off.ok ? T('Chimes stay out of Discord now') : T('That did not go through — try again'));
+		return false;
+	}
+	const on = await setDiscordDm(true);
+	if (!on.ok) {
+		toast(on.error ? T(on.error) : T('That did not go through — try again'), true);
+		return false;
+	}
+	sendSchedule();
+	toast(T('A message just reached you on Discord — each chime will come there too'), true);
+	return true;
+}
 
 /** The tag every chime of a sailing clock is filed under: one clock,
  *  one schedule, so setting it again replaces what was there. */
@@ -750,6 +770,9 @@ export function timerHTML({ suggest = 0, label = '', marks = [], ship = '', of =
 	const devices = canPush()
 		? `<button class="chip tiny${pushOn() ? ' active' : ''}" data-act="barter-timer-devices" title="${pushOn() ? T('Chiming on every device signed in to this account; press to keep it to this one') : T('Chime on every device signed in to this account — the phone in your pocket as well as this tab')}">📱 ${pushOn() ? T('every device') : T('my devices too')}</button>`
 		: '';
+	const discord = canPush() && discordDm() && discordDm().available
+		? `<button class="chip tiny${discordOn() ? ' active' : ''}" data-act="barter-timer-discord" title="${discordOn() ? T('Each chime is also a Discord message from the bot; press to stop them') : T('Have the bot message you on Discord at every chime — you will need to be in the community server')}">💬 ${discordOn() ? T('on Discord') : T('Discord too')}</button>`
+		: '';
 	// Which stops make a sound. Offered wherever a run is in hand, and
 	// beside a running clock that has stops of its own.
 	const mode = marksMode();
@@ -765,8 +788,8 @@ export function timerHTML({ suggest = 0, label = '', marks = [], ship = '', of =
 			: '';
 		// Nothing to start when there is no run in hand: the clock is the
 		// run's own, not a kitchen timer.
-		if (!run) return `<span class="sail-timer">${ear}${bell}${devices}</span>`;
-		return `<span class="sail-timer">${run}${modes}${ear}${bell}${devices}</span>`;
+		if (!run) return `<span class="sail-timer">${ear}${bell}${devices}${discord}</span>`;
+		return `<span class="sail-timer">${run}${modes}${ear}${bell}${devices}${discord}</span>`;
 	}
 	const pct = Math.max(0, Math.min(100, (t.ran / t.seconds) * 100));
 	// The run's name is the chime's to say, not the chip's: on a phone a
@@ -777,7 +800,7 @@ export function timerHTML({ suggest = 0, label = '', marks = [], ship = '', of =
 	return `<span class="sail-timer running${t.over ? ' over' : ''}${scene ? ' with-scene' : ''}"${t.label ? ` title="${esc(t.label)}"` : ''}>
 		${scene}<span class="sail-timer-bar"><i style="width:${pct.toFixed(1)}%"></i></span>
 		<b data-timer-clock>${esc(clockText(t))}</b>
-		<span class="sail-timer-ctl">${modes}${ear}${devices}
+		<span class="sail-timer-ctl">${modes}${ear}${devices}${discord}
 		<button class="chip tiny sail-timer-again" data-act="barter-timer-restart" title="${T('Set the clock back to nought and run it again from now, at this run’s own estimate')}">↻ ${T('again')}</button>
 		<button class="chip tiny sail-timer-off" data-act="barter-timer-stop" title="${T('Stop the clock and forget it')}">${T('stop')}</button></span>
 	</span>`;
@@ -854,8 +877,7 @@ export async function wantNotify() {
 
 /**
  * Turn the account's own chimes on or off. Turning them on needs the
- * browser's permission and a subscription -- made for this and nothing
- * else, so nobody is signed up for the Vell reminder by the back door.
+ * browser's permission and a subscription.
  */
 export async function togglePush() {
 	if (pushOn()) {
@@ -870,8 +892,7 @@ export async function togglePush() {
 		toast(T('The browser would not allow notifications — check the site settings'));
 		return false;
 	}
-	const region = pushRegion();
-	const ok = await subscribeFor({ region: region || 'na', vell: null });
+	const ok = await subscribePush();
 	store.setSetting('timerPush', ok === true);
 	if (ok) {
 		sendSchedule();
@@ -930,6 +951,10 @@ export function timerAction(act, el, then = null) {
 	}
 	if (act === 'barter-timer-devices') {
 		togglePush().then(() => { if (then) then(); });
+		return true;
+	}
+	if (act === 'barter-timer-discord') {
+		toggleDiscord().then(() => { if (then) then(); });
 		return true;
 	}
 	if (act === 'barter-timer-notify') {

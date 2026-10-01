@@ -64,7 +64,7 @@ const SAVE = { stock: { 'Tidal Black Stone': 400 }, targets: [], strategy: {} };
 
 test('both halves are on', async () => {
 	const { build, ...offered } = await (await call('GET', '/api/config')).json();
-	assert.deepEqual(offered, { sync: true, push: true, feedback: true, uploads: true, community: true, presence: true, links: true });
+	assert.deepEqual(offered, { sync: true, push: true, discordDm: false, feedback: true, uploads: true, community: true, presence: true, links: true });
 	assert.equal(typeof build, 'string', 'the deploy is named');
 });
 

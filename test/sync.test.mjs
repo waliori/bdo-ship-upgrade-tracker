@@ -79,7 +79,7 @@ test('the page is still served', async () => {
 test('the client is told sync is available', async () => {
 	const res = await call('GET', '/api/config');
 	const { build, ...offered } = await res.json();
-	assert.deepEqual(offered, { sync: true, push: false, feedback: true, uploads: true, community: true, presence: true, links: true });
+	assert.deepEqual(offered, { sync: true, push: false, discordDm: false, feedback: true, uploads: true, community: true, presence: true, links: true });
 	assert.equal(typeof build, 'string', 'the deploy is named');
 });
 
