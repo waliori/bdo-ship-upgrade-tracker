@@ -890,3 +890,61 @@ test('a fast run never passes the limit: the bag is emptied at the end only into
 	assert.ok(meat.weightPeak <= hold.free + 1e-6, `never over the limit: ${meat.weightPeak}`);
 	for (const s of [...bagged.stops, ...meat.stops]) assert.ok(s.weightAfter <= hold.free + 1e-6, `${s.npc || s.wharf.at} ends at ${s.weightAfter}`);
 });
+
+// The hold's slots (owner's rule, 2026-10-01): a [Level 5] and up -- the
+// [Great Ocean] goods with them -- does not stack, so each unit is a slot
+// of its own; [Level 1] to [Level 4] take one a kind. A Volante has
+// twenty. The weight is given room here so the slots alone bite.
+const slotsOver = run => Math.max(run.slotsStart, ...run.stops.map(s => (Number.isFinite(s.slotsAfter) ? s.slotsAfter : 0)));
+test('a 20-slot Volante with twenty-five [Level 5]s to climb from never holds more than twenty: the run is split into trips, and every chain still climbs', () => {
+	const gives = [...new Set(layout.offers.map(o => o[1]).filter(x => /^\[Level 5\]/.test(x)))];
+	const dock = Object.fromEntries(gives.map(x => [x, 5]));
+	const cs = chains(data, {}, dock).filter(c => c.from === 'dock').slice(0, 5);
+	assert.equal(cs.reduce((a, c) => a + Math.min(dock[c.item], c.rungs[0].tries * c.rungs[0].giveN), 0), 25, 'twenty-five [Level 5]s to start from');
+	const start = ports.find(p => p.name === 'Velia');
+	const roomy = { free: 60000, deal: 102000, max: 102000 };
+	for (const pace of ['full', 'fast', 'steady']) {
+		const opts = { chosen: cs, dock, parley, npcById, start, stashes, pace, orders: { ...PLAIN_ORDERS, pace, way: 'sea' } };
+		const free = chainRun({ ...opts, hold: roomy });
+		const run = chainRun({ ...opts, hold: { ...roomy, slots: 20 } });
+		assert.equal(slotsOver(free), 25, `${pace}: without slots all twenty-five sail at once`);
+		assert.ok(slotsOver(run) <= 20, `${pace}: the hold takes ${slotsOver(run)} slots of 20`);
+		assert.ok(run.lots.length > 1 || run.loaded.reduce((a, l) => a + l.n, 0) <= 20, `${pace}: split into trips, or loaded no further than the slots`);
+		assert.ok(run.stops.filter(s => s.wharf && s.loads && s.loads.length).every(s => s.slotsAfter <= 20), `${pace}: a later trip's call loads to the slots`);
+		assert.equal(run.trades, free.trades, `${pace}: no attempt lost to the split`);
+	}
+	// And on the real hull's weight: a Volante limits at 13,500 LT, and
+	// still no stop past its twenty slots.
+	const volante = chainRun({ chosen: cs, dock, parley, npcById, start, stashes, pace: 'full', orders: { ...PLAIN_ORDERS, pace: 'full', way: 'sea' }, hold: { free: 13500, deal: 22950, max: 22950, slots: 20 } });
+	assert.ok(slotsOver(volante) <= 20 && volante.trades > 0);
+});
+
+test('stacking and non-stacking goods together: [Level 4]s take a slot a kind, the [Level 5]s they make one each, and a hold of few slots says the slots stopped the chain', () => {
+	const gives = [...new Set(layout.offers.map(o => o[1]).filter(x => /^\[Level 4\]/.test(x)))];
+	const dock = Object.fromEntries(gives.map(x => [x, 30]));
+	const cs = chains(data, {}, dock).filter(c => c.from === 'dock' && levelOf(c.rungs[0].item) === 5);
+	const start = ports.find(p => p.name === 'Velia');
+	for (const way of ['sea', 'chain']) for (const pace of ['full', 'fast', 'steady']) {
+		const run = chainRun({ chosen: cs, dock, parley, npcById, start, stashes, pace, orders: { ...PLAIN_ORDERS, pace, way }, hold: { free: 13500, deal: 22950, max: 22950, slots: 8 } });
+		assert.ok(slotsOver(run) <= 8, `${way} ${pace}: ${slotsOver(run)} slots of 8`);
+		assert.ok(run.trades > 0, `${way} ${pace}: still trades`);
+		for (const c of run.cut.filter(x => x.why === 'slots')) assert.ok(c.slots === 8 && c.need >= 1, 'a slots cut carries the figures the sentence quotes');
+	}
+	const fast = chainRun({ chosen: cs, dock, parley, npcById, start, stashes, pace: 'fast', orders: { ...PLAIN_ORDERS, pace: 'fast', way: 'chain' }, hold: { free: 13500, deal: 22950, max: 22950, slots: 8 } });
+	assert.ok(fast.cut.some(c => c.why === 'slots'), 'a chain stopped by the slots says so, not "nothing to hand over"');
+});
+
+test('the bag counts its slots the same way: a [Level 5] parked or loaded into it takes one each', () => {
+	const gives = [...new Set(layout.offers.map(o => o[1]).filter(x => /^\[Level 5\]/.test(x)))];
+	const dock = Object.fromEntries(gives.map(x => [x, 5]));
+	const cs = chains(data, {}, dock).filter(c => c.from === 'dock').slice(0, 5);
+	const docks = wharves.filter(w => w.kind === 'wharf');
+	const opts = { chosen: cs, dock, parley, npcById, start: ports.find(p => p.name === 'Velia'), stashes, docks, pace: 'full', orders: { ...PLAIN_ORDERS, way: 'sea' }, hold: { free: 60000, deal: 102000, max: 102000, slots: 20 } };
+	const inBag = run => [...(run.bagLoaded || []), ...(run.bagFromHold || [])].reduce((a, l) => a + l.n, 0);
+	const roomy = chainRun({ ...opts, bag: { free: 30000, slots: 40 } });
+	assert.ok(inBag(roomy) > 3, `a bag of forty slots carries the later trip's [Level 5]s: ${inBag(roomy)}`);
+	const tight = chainRun({ ...opts, bag: { free: 30000, slots: 3 } });
+	assert.ok(inBag(tight) <= 3, `a bag of three slots takes no more than three of them: ${inBag(tight)}`);
+	assert.equal(tight.bagNote && tight.bagNote.why, 'small', 'and says the bag was too small');
+	assert.ok(slotsOver(roomy) <= 20 && slotsOver(tight) <= 20);
+});

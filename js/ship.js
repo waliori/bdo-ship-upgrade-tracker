@@ -477,11 +477,30 @@ export function shipFrom(setup) {
 		// is aboard before anything is loaded -- the crew's own weight and
 		// the parts' -- and what is left is what a run can carry. `deal`
 		// is the most it carries and still barters, at BARTER_OVER; `max`
-		// the most the hull will move under at all, at OVERLOAD.
-		hold: { limit, crew: crew.weight, gear, aboard, free: Math.max(0, limit - aboard), deal: Math.max(0, Math.round(limit * BARTER_OVER) - aboard), max: Math.max(0, Math.round(limit * OVERLOAD) - aboard), lines },
+		// the most the hull will move under at all, at OVERLOAD. `slots` is
+		// the hull's inventory slots: nothing in the model sits in them
+		// but goods, and a [Level 5] and up takes one a unit.
+		hold: { limit, crew: crew.weight, gear, aboard, free: Math.max(0, limit - aboard), deal: Math.max(0, Math.round(limit * BARTER_OVER) - aboard), max: Math.max(0, Math.round(limit * OVERLOAD) - aboard), slots: stats.slots, lines },
 		durability: stats.durability + parts('durability') + gem('durability') + crew.durability + skin('durability'),
 		rations: stats.rations + parts('rations') + crew.rations,
 		damage: parts('damage') + gem('damage')
+	};
+}
+
+/**
+ * The hold's slots as every screen shows them, beside the LT: `used`
+ * slots of the hull's -- one a kind for what stacks, one a unit for a
+ * [Level 5] and up (slotsHeld in barter-plan.js).
+ */
+export function shownSlots(hold, used = 0) {
+	// An old saved plan kept a hold without slots: the count alone then.
+	const cap = hold && Number.isFinite(hold.slots) ? hold.slots : null;
+	const n = Math.max(0, Math.round(Number(used) || 0));
+	return {
+		used: n, cap, over: cap !== null && n > cap, full: cap !== null && n >= cap,
+		text: cap !== null ? T('{used} / {cap} slots', { used: F(n), cap: F(cap) }) : T('{n} slots', { n: F(n) }),
+		// The figures alone, for a place that labels them "slots" already.
+		short: cap !== null ? `${F(n)} / ${F(cap)}` : F(n)
 	};
 }
 

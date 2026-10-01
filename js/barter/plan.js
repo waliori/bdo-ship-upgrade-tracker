@@ -1027,6 +1027,7 @@ function soloWhy(c, solo) {
 	if (cut && cut.why === 'full') return T('stops: {good} is up to its target', { good: esc(gameName(cut.good)) });
 	if (cut && cut.why === 'parley') return T('stops: the Parley runs out');
 	if (cut && (cut.why === 'hold' || cut.why === 'over' || cut.why === 'share')) return T('stops: the hold is full');
+	if (cut && cut.why === 'slots') return T('stops: the hold has no slot left');
 	if (cut && cut.why === 'market') return T('stops: the Market has too few');
 	const o = ordersNow();
 	if (c.item === COIN || V.goal === 'coin') return '';

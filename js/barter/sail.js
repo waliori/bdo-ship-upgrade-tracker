@@ -572,11 +572,13 @@ export function sailRecord(plan) {
 	const questsOf = s => (s.quests || []).map(x => ({ id: x.q.id, what: x.step.what, who: x.step.who || '' }));
 	// The rations on arrival, and what a wharf takes on: withRations' marks.
 	const poolOf = x => (x.pool ? { pool: { left: num(x.pool.left), full: num(x.pool.full), take: num(x.pool.take), short: x.pool.short === true } } : {});
+	// The hold's slots after the stop, where the run was laid with them.
+	const slotsOf = x => (x.slotsAfter != null && Number.isFinite(Number(x.slotsAfter)) ? { slotsAfter: num(x.slotsAfter) } : {});
 	const stops = plan.stops.map(x => ({ ...(x.npcId
 		? { npcId: x.npcId, npc: x.npc, give: x.give, giveText: x.giveText, giveN: num(x.giveN), item: x.item, recv: num(x.recv), recvMin: num(x.recvMin), recvMax: num(x.recvMax), rangeMin: num(x.rangeMin ?? x.recvMin), rangeMax: num(x.rangeMax ?? x.recvMax), recvText: x.recvText, times: num(x.times), parley: num(x.parley), weightAfter: num(x.weightAfter), level: num(x.level), chain: num(x.chain), quests: questsOf(x) }
 		: x.wait ? { wait: num(x.wait), waitAt: x.waitAt, weightAfter: num(x.weightAfter), chain: num(x.chain) }
 		: x.quest ? { quest: true, hunt: x.hunt ? String(x.hunt) : null, place: { name: x.place.name, who: x.place.who || '', x: num(x.place.x), y: num(x.place.y) }, weightAfter: num(x.weightAfter), chain: num(x.chain), quests: questsOf(x) }
-			: { wharf: { name: x.wharf.name, at: x.wharf.at, x: num(x.wharf.x), y: num(x.wharf.y) }, dropped: (x.dropped || []).map(d => ({ item: d.item, n: num(d.n) })), loads: (x.loads || []).map(l => ({ item: l.item, n: num(l.n) })), ...(x.toBag ? { toBag: x.toBag.map(d => ({ item: d.item, n: num(d.n) })) } : {}), ...(x.fromBag ? { fromBag: x.fromBag.map(d => ({ item: d.item, n: num(d.n) })) } : {}), sale: x.sale ? { n: num(x.sale.n), total: num(x.sale.total), levels: (x.sale.levels || []).map(num), items: (x.sale.items || []).map(i => ({ item: i.item, n: num(i.n), total: num(i.total) })) } : null, weightAfter: num(x.weightAfter), chain: num(x.chain), quests: questsOf(x), ...(x.refill ? { refill: true } : {}) }), ...poolOf(x) }));
+			: { wharf: { name: x.wharf.name, at: x.wharf.at, x: num(x.wharf.x), y: num(x.wharf.y) }, dropped: (x.dropped || []).map(d => ({ item: d.item, n: num(d.n) })), loads: (x.loads || []).map(l => ({ item: l.item, n: num(l.n) })), ...(x.toBag ? { toBag: x.toBag.map(d => ({ item: d.item, n: num(d.n) })) } : {}), ...(x.fromBag ? { fromBag: x.fromBag.map(d => ({ item: d.item, n: num(d.n) })) } : {}), sale: x.sale ? { n: num(x.sale.n), total: num(x.sale.total), levels: (x.sale.levels || []).map(num), items: (x.sale.items || []).map(i => ({ item: i.item, n: num(i.n), total: num(i.total) })) } : null, weightAfter: num(x.weightAfter), chain: num(x.chain), quests: questsOf(x), ...(x.refill ? { refill: true } : {}) }), ...poolOf(x), ...slotsOf(x) }));
 	const legs = legsOf(plan.stops);
 	const book = ledgerOf(plan.stops, legs);
 	return {
@@ -585,6 +587,7 @@ export function sailRecord(plan) {
 		bagLoaded: (plan.bagLoaded || []).map(l => ({ item: l.item, n: num(l.n) })),
 		bagFromHold: (plan.bagFromHold || []).map(l => ({ item: l.item, n: num(l.n) })),
 		weightStart: num(plan.weightStart),
+		...(Number.isFinite(plan.slotsStart) ? { slotsStart: num(plan.slotsStart) } : {}),
 		bought: (plan.bought || []).filter(b => b.n > 0).slice(0, 40).map(b => ({ item: b.item, n: num(b.n), each: num(b.each || (b.total && b.n ? b.total / b.n : 0)) })),
 		cost: num(plan.cost), silver: num(plan.silver), net: num(plan.net), trades: num(plan.trades), parleyUsed: num(plan.parleyUsed),
 		questsHome: (plan.questsHome || []).map(x => ({ id: x.q.id, what: x.step.what, who: x.step.who || '' })),
@@ -634,7 +637,7 @@ export function syncSail(plan) {
 		// And what was loaded before casting off stays what was loaded:
 		// the hold is written from it, and a new laying's load is goods
 		// still in the storage behind the ship.
-		for (const k of ['loaded', 'bagLoaded', 'bagFromHold', 'weightStart', 'bought', 'cost']) if (k in on) rec[k] = on[k];
+		for (const k of ['loaded', 'bagLoaded', 'bagFromHold', 'weightStart', 'slotsStart', 'bought', 'cost']) if (k in on) rec[k] = on[k];
 	}
 	Object.assign(on, rec, { laidFor });
 	// A quest stop the new laying puts in, whose quests were all handed
@@ -706,7 +709,7 @@ export function planOfSail(on) {
 		const redone = n > 0 && n !== s.times ? { times: n, planned: s.times, parley: Number(s.parley) > 0 && s.times > 0 ? s.parley * n / s.times : s.parley } : {};
 		return { ...s, ...redone, quests: hydrate(s.quests) };
 	});
-	return { stops, loaded: on.loaded || [], bagLoaded: on.bagLoaded || [], bagFromHold: on.bagFromHold || [], weightStart: on.weightStart || 0, bought: on.bought || [], cost: on.cost || 0, parleyUsed: on.parleyUsed || 0, questsHome: hydrate(on.questsHome), silver: on.silver || 0, net: on.net || 0, trades: on.trades || 0 };
+	return { stops, loaded: on.loaded || [], bagLoaded: on.bagLoaded || [], bagFromHold: on.bagFromHold || [], weightStart: on.weightStart || 0, ...(Number.isFinite(on.slotsStart) ? { slotsStart: on.slotsStart } : {}), bought: on.bought || [], cost: on.cost || 0, parleyUsed: on.parleyUsed || 0, questsHome: hydrate(on.questsHome), silver: on.silver || 0, net: on.net || 0, trades: on.trades || 0 };
 }
 
 /**

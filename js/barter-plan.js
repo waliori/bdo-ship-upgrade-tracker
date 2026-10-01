@@ -11,7 +11,9 @@
 // Nothing here touches the store or the screen: stock and the table
 // come in as arguments.
 
-import { GOODS, SELL_PRICES, RARE_WEIGHT, amount, goodSell, levelOf, triesFor } from './barter.js';
+import { GOODS, SELL_PRICES, RARE_WEIGHT, amount, goodSell, levelOf, rankOf, isGreatOcean, triesFor } from './barter.js';
+
+export { rankOf, isGreatOcean };
 import { landGoods } from './land_goods.js';
 import { landWeights } from './land_weights.js';
 
@@ -40,15 +42,34 @@ export function stacks(name) {
 	return lv < 5;
 }
 
+/** The slots `k` of one good take: one for what stacks, one a unit
+ *  for what does not, none for none. */
+export function slotsFor(name, k) {
+	if (!(k > 1e-9)) return 0;
+	return stacks(name) ? 1 : Math.ceil(k - 1e-9);
+}
+
 /** The inventory slots a set of goods takes: one a kind for what
- *  stacks, one a unit for what does not. */
+ *  stacks, one a unit for what does not. The same count holds for the
+ *  ship's hold, the character's bag and a storage: the game stacks
+ *  [Level 1] to [Level 4] everywhere and the rest nowhere. */
 export function bagSlotsOf(goods) {
 	let n = 0;
-	for (const [name, k] of goods) {
-		if (!(k > 1e-9)) continue;
-		n += stacks(name) ? 1 : Math.ceil(k - 1e-9);
-	}
+	for (const [name, k] of goods) n += slotsFor(name, k);
 	return n;
+}
+/** The same count, said for the hold or a storage. */
+export const slotsHeld = bagSlotsOf;
+
+/** How many of `n` more of a good fit in `room` slots, with `have` of
+ *  it already among goods that take `used` slots: all of them when it
+ *  stacks and a slot holds it already (or one is free), else one a
+ *  free slot. */
+export function slotFit(name, n, have, used, room) {
+	if (!Number.isFinite(room)) return n;
+	if (stacks(name)) return have > 1e-9 || used < room ? n : 0;
+	const free = room - (used - slotsFor(name, have));
+	return Math.max(0, Math.min(n, Math.floor(free - have + 1e-9)));
 }
 
 /** What a barterer pays for a good, 0 for the unsellable levels and

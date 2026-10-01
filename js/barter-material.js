@@ -38,7 +38,7 @@
 // bends the legs round the land the same way.
 
 import { levelOf } from './barter.js';
-import { goodsHeld, weightHeld, weightOf } from './barter-plan.js';
+import { goodsHeld, weightHeld, weightOf, slotsHeld, slotFit } from './barter-plan.js';
 import { isLandGood } from './land_goods.js';
 import { seaDist, tour } from './barter-route.js';
 
@@ -85,6 +85,10 @@ export function materialRun({ picks = [], wants = new Map(), reach = 'want', pac
 	// hold lighter. So every departure is loaded to the limit, whatever
 	// the pace.
 	const limit = hold.free;
+	// And the slots: a [Level 5] and up takes one a unit, the rest one a
+	// kind, and a wharf loads nothing into a hold whose slots are full.
+	// Goods recorded aboard past them stay; nothing is added to them.
+	const slotCap = Number.isFinite(hold.slots) && hold.slots >= 0 ? hold.slots : Infinity;
 	const place = x => npcById.get(x.npcId);
 	const isGood = name => levelOf(name) !== null;
 
@@ -196,6 +200,11 @@ export function materialRun({ picks = [], wants = new Map(), reach = 'want', pac
 	let weight = weightHeld(heldMax);
 	const weightStart = weight;
 	let peak = weight;
+	const slotLim = Math.max(slotCap, slotsHeld(heldMax));
+	// Whether the gives `nds` find slots beside what is aboard.
+	const slotsFor = nds => { const m = new Map(heldMax); for (const nd of nds) m.set(nd.give, (m.get(nd.give) || 0) + nd.n); return slotsHeld(m); };
+	const fitsSlots = nds => slotsFor(nds) <= slotLim;
+	let slotsPeak = slotsHeld(heldMax);
 	// Where the ship is: the start harbour, or -- a run taken up again at
 	// sea -- the island it stopped at, with what is aboard.
 	let pos = at || start;
@@ -272,7 +281,7 @@ export function materialRun({ picks = [], wants = new Map(), reach = 'want', pac
 		const feeds = pending.filter(i => i.needs.some(nd => !nd.loaded && nd.src === H.town));
 		const seq = ordered(feeds, H.wharf, null);
 		const loadOf = i => i.needs.filter(nd => !nd.loaded && nd.src === H.town);
-		if (weight + weighs(seq.flatMap(loadOf)) > limit + 1e-6) {
+		if (weight + weighs(seq.flatMap(loadOf)) > limit + 1e-6 || !fitsSlots(seq.flatMap(loadOf))) {
 			for (const [name, n] of spare()) {
 				heldMax.set(name, heldMax.get(name) - n);
 				if (heldMax.get(name) <= 1e-9) heldMax.delete(name);
@@ -290,7 +299,7 @@ export function materialRun({ picks = [], wants = new Map(), reach = 'want', pac
 		};
 		for (const isle of seq) {
 			const nds = loadOf(isle);
-			if (weight + weighs(nds) <= limit + 1e-6) {
+			if (weight + weighs(nds) <= limit + 1e-6 && fitsSlots(nds)) {
 				nds.forEach(load);
 				weight = weightHeld(heldMax);
 				loaded++;
@@ -303,7 +312,10 @@ export function materialRun({ picks = [], wants = new Map(), reach = 'want', pac
 			// never fit: then as many attempts as do.
 			if (loaded || later()) continue;
 			const each = isle.giveN * weightOf(isle.give);
-			const fit = each > 0 && nds.length === 1 ? Math.floor((limit - weight) / each + 1e-9) : 0;
+			const byWeight = each > 0 && nds.length === 1 ? Math.floor((limit - weight) / each + 1e-9) : 0;
+			// As many attempts as find slots, too: a slot a unit, so an
+			// attempt's gives take giveN of them when they do not stack.
+			const fit = byWeight > 0 ? Math.min(byWeight, Math.floor(slotFit(isle.give, byWeight * isle.giveN, heldMax.get(isle.give) || 0, slotsHeld(heldMax), slotLim) / isle.giveN + 1e-9)) : 0;
 			if (fit >= 1) {
 				const cut = (isle.times - fit) * isle.giveN;
 				isle.times = fit;
@@ -331,6 +343,8 @@ export function materialRun({ picks = [], wants = new Map(), reach = 'want', pac
 		}
 		peak = Math.max(peak, weight);
 		stop.weightAfter = weight;
+		stop.slotsAfter = slotsHeld(heldMax);
+		slotsPeak = Math.max(slotsPeak, stop.slotsAfter);
 		stops.push(stop);
 		if (called.get(H.town)) returns++;
 		called.set(H.town, (called.get(H.town) || 0) + 1);
@@ -343,7 +357,7 @@ export function materialRun({ picks = [], wants = new Map(), reach = 'want', pac
 	// carried round the sea.
 	if (home && !at) {
 		if (harbours.has(home.town)) callAt(home);
-		else if (weight > limit + 1e-6 && spare().length) {
+		else if ((weight > limit + 1e-6 || slotsHeld(heldMax) > slotCap) && spare().length) {
 			const stop = { wharf: startWharf, dropped: [], sale: null, loads: [], hold };
 			for (const [name, n] of spare()) {
 				heldMax.set(name, heldMax.get(name) - n);
@@ -352,6 +366,7 @@ export function materialRun({ picks = [], wants = new Map(), reach = 'want', pac
 			}
 			weight = weightHeld(heldMax);
 			stop.weightAfter = weight;
+			stop.slotsAfter = slotsHeld(heldMax);
 			stops.push(stop);
 			called.set(start.name, 1);
 			pos = startWharf;
@@ -361,6 +376,8 @@ export function materialRun({ picks = [], wants = new Map(), reach = 'want', pac
 	// The hold at its fullest is what the run sails with, not what was
 	// aboard at the pier before the storage took its share.
 	peak = weight;
+	const slotsStart = slotsHeld(heldMax);
+	slotsPeak = slotsStart;
 
 	let guard = 0;
 	while (pending.length && guard++ < 1000) {
@@ -376,7 +393,9 @@ export function materialRun({ picks = [], wants = new Map(), reach = 'want', pac
 				if (weightOf(isle.item) > 0) heldMax.set(isle.item, (heldMax.get(isle.item) || 0) + isle.times * isle.recvMax);
 				weight = weightHeld(heldMax);
 				peak = Math.max(peak, weight);
-				stops.push({ ...isle, weightAfter: weight });
+				const slotsAfter = slotsHeld(heldMax);
+				slotsPeak = Math.max(slotsPeak, slotsAfter);
+				stops.push({ ...isle, weightAfter: weight, slotsAfter });
 				pos = place(isle);
 				drop(isle);
 			}
@@ -409,6 +428,7 @@ export function materialRun({ picks = [], wants = new Map(), reach = 'want', pac
 		calls: stops.filter(s => s.wharf).length,
 		returns,
 		weightStart, weightPeak: peak,
+		slotsStart, slotsPeak,
 		ticked: mine.length,
 		dry, parleyLeft: parley ? budget : null
 	};

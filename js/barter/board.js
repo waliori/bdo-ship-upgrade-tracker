@@ -14,7 +14,7 @@ import { paceNow } from '../ship-pace.js';
 import { PARLEY, COIN, nextGateAbove, levelOf, npcGate, npcOpen } from '../barter.js';
 import { exchanges } from '../barter-plan.js';
 import { openBarterImport } from '../barter-import.js';
-import { openLayoutBook } from '../layouts-view.js';
+import { whileLoading } from '../loading.js';
 import { driftOf } from '../layout-book.js';
 import { coinSides, listSides } from '../barter-layouts.js';
 import { boardsFor, sawItToo, tellFleet, shared as boardsShared } from '../sea-boards.js';
@@ -537,10 +537,19 @@ export function takeFleetBoard(id, then) {
  * this is where the evidence is kept, and the two presses in it that
  * change today's board come back here to be done.
  */
-export function openBook(then) {
+export async function openBook(then) {
 	if (!combos) { toast(T('The record of the boards did not load')); return; }
+	// The book's own screen is fetched when it is first opened, not with
+	// the page; the service worker keeps it for offline all the same.
+	let book;
+	try {
+		book = await whileLoading(import('../layouts-view.js'), T('Opening the layout book…'));
+	} catch {
+		toast(T('The layout book could not load — check your connection and try again'));
+		return;
+	}
 	boardNow();   // the day's answers, reset if the refill has passed
-	openLayoutBook({
+	book.openLayoutBook({
 		combos,
 		answers: V.board.answers,
 		day: barterKey(),

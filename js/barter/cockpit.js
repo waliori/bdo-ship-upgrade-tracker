@@ -6,7 +6,7 @@ import { esc, F, FC } from '../fmt.js';
 import { T, gameName } from '../i18n.js';
 import { img, iconSrc } from '../ui-bits.js';
 import { barterProfile } from '../ui-state.js';
-import { currentShip, shownHold } from '../ship.js';
+import { currentShip, shownHold, shownSlots } from '../ship.js';
 import { shipStats } from '../ship_stats.js';
 import { isleOf, whoOf } from '../barter_npcs.js';
 import { fmtDistance } from '../sailing.js';
@@ -18,7 +18,7 @@ import { fleetPaid } from './fleet.js';
 import { VOUCHER_COOLDOWN_MIN } from '../parley-ledger.js';
 import { V } from './state.js';
 import { timerHTML, timerState, spanText } from '../sail-timer.js';
-import { weightOf } from '../barter-plan.js';
+import { weightOf, slotsHeld, slotsFor, rankOf } from '../barter-plan.js';
 import { parleyOf, ordersNow } from './plan.js';
 import { placeOf, legsOf, questWanted, tradesDone, questChip, n1, TIER, ledgerOf, doneLabel, sevenOf, fourNote, stopDid, stopAsks, rationMarks } from './route.js';
 import { fmtRations, RATION_RESERVE } from '../rations.js';
@@ -196,11 +196,14 @@ function tickUntil() {
 	if (!V.untilBeat) V.untilBeat = setInterval(tickUntil, 1000);
 }
 
-/** The mini bars a stop carries: the hold after it and the Parley. */
-function stopBars(s, row, weight = s.weightAfter) {
-	const w = shownHold(s.hold || currentShip().hold, weight);
-	const bad = w.state === 'heavy' || w.state === 'dead', over = w.state === 'over';
-	return { w, bad, over, hold: `<div class="mini-bar"><div><span>${T('hold')}</span><b class="${bad ? 'warn' : over ? 'amber' : ''}">${esc(w.text)}</b></div><div class="run-bar"><i style="width:${w.fill.toFixed(1)}%"></i><i class="over" style="width:${w.extra.toFixed(1)}%"></i><i class="heavy" style="width:${w.worse.toFixed(1)}%"></i></div></div>`,
+/** The mini bars a stop carries: the hold after it and the Parley. The
+ *  hold says its slots beside its LT when they are known. */
+function stopBars(s, row, weight = s.weightAfter, slots = s.slotsAfter) {
+	const hold = s.hold || currentShip().hold;
+	const w = shownHold(hold, weight);
+	const sl = Number.isFinite(slots) ? shownSlots(Number.isFinite(hold.slots) ? hold : currentShip().hold, slots) : null;
+	const bad = w.state === 'heavy' || w.state === 'dead' || !!(sl && sl.over), over = w.state === 'over';
+	return { w, sl, bad, over, hold: `<div class="mini-bar"><div><span>${T('hold')}</span><b class="${bad ? 'warn' : over ? 'amber' : ''}">${esc(w.text)}</b></div>${sl ? `<div class="mini-slots"><span>${T('slots')}</span><b class="${sl.over ? 'warn' : ''}">${esc(sl.short)}</b></div>` : ''}<div class="run-bar"><i style="width:${w.fill.toFixed(1)}%"></i><i class="over" style="width:${w.extra.toFixed(1)}%"></i><i class="heavy" style="width:${w.worse.toFixed(1)}%"></i></div></div>`,
 		parley: row ? `<div class="mini-bar"><div><span>${T('parley')}</span><b class="${row.short ? 'warn' : ''}">${F(row.after)}</b></div><div class="run-bar parley"><i style="width:${Math.min(100, row.pct).toFixed(1)}%"></i></div></div>` : '' };
 }
 
@@ -234,6 +237,17 @@ function holdAlong(plan, on) {
 	const done = stops.map((s, k) => ticked(on.done, s, k, stops));
 	const skip = stops.map((s, k) => V.skipped.has(stopKey(s, k, stops)));
 	const after = stops.map((s, k) => eff.reduce((w, e, j) => w + (j <= k ? (done[j] || skip[j] ? 0 : e) : done[j] ? -e : 0), w0));
+	// The slots along the run, counted the same way from the goods: the
+	// hold now, each stop's goods in or out, a [Level 5] and up a slot a
+	// unit and the rest a slot a kind.
+	const slots = stops.map((s, k) => {
+		const m = new Map(now);
+		effects.forEach((e, j) => {
+			const sign = j <= k ? (done[j] || skip[j] ? 0 : 1) : done[j] ? -1 : 0;
+			if (sign) for (const [name, d] of e || []) m.set(name, (m.get(name) || 0) + sign * d);
+		});
+		return slotsHeld(m);
+	});
 	const around = k => {
 		const before = new Map(now), next = new Map(now);
 		for (const [name, d] of effects[k] || []) {
@@ -242,7 +256,7 @@ function holdAlong(plan, on) {
 		}
 		return { before, after: next, done: done[k] };
 	};
-	return { after, around };
+	return { after, slots, around };
 }
 
 /**
@@ -368,7 +382,7 @@ export function cockpitHTML({ map = false } = {}) {
 		${guessed ? `<span class="sail-guess" title="${T('Press the count an island paid on its stop, and the trip is recorded at that instead')}">${guessed === 1 ? T('{n} island’s pay not said', { n: guessed }) : T('{n} islands’ pay not said', { n: guessed })} — ${T('recorded at the middle of the range')}</span>` : ''}
 		<span class="panel-spacer"></span>
 		${map ? '' : `<button class="ghost-btn sm" data-act="barter-sail-chart" title="${T('The route on the Map, with the same checklist beside it')}">🗺 ${T('On the chart')}</button>`}
-		<button class="ghost-btn sm" data-act="barter-sail-drop" title="${T('Drop the checklist; nothing is recorded')}">${T('Abandon')}</button>
+		<button class="ghost-btn sm danger" data-act="barter-sail-drop" title="${T('Drop the checklist; nothing is recorded')}">${T('Abandon')}</button>
 		${V.sailAll.open ? '' : `<button class="ghost-btn sm" data-act="barter-sail-all" title="${T('Tick every stop and every quest off at once')}">${T('All done…')}</button>`}
 		<button class="act" data-act="barter-step" data-id="results">${T('See the results')} ›</button>
 		${allAsk}
@@ -385,7 +399,8 @@ export function cockpitHTML({ map = false } = {}) {
 	// The hold before and after this stop, as the Inventory has it:
 	// crew and parts aboard included, as the game's window counts them.
 	const hereHold = along.around(at);
-	const bars = stopBars(s, row, ltOf(hereHold.after));
+	const bars = stopBars(s, row, ltOf(hereHold.after), slotsHeld(hereHold.after));
+	const slotsBefore = slotsHeld(hereHold.before);
 	// The rations: what was aboard leaving the stop before, what is on
 	// arrival here, and what a wharf takes on.
 	const pools = rationMarks(stops, plan.weightStart || 0);
@@ -441,7 +456,7 @@ export function cockpitHTML({ map = false } = {}) {
 		</div>`
 		: `<div class="cockpit-call">${stopDid(s, true) || `<span class="faint">${names.kind}</span>`}</div>`;
 	const figures = `<div class="cockpit-figs">
-		<div class="cockpit-fig"><div class="cockpit-fig-k"><span>${T('hold')}</span><span>${bars.w.note || ''}</span></div><div class="cockpit-fig-v">${holdBefore !== bars.w.total ? `<span>${F(holdBefore)}</span><i>→</i>` : ''}<b class="${bars.bad ? 'warn' : bars.over ? 'amber' : ''}">${esc(bars.w.text)}</b></div><div class="run-bar"><i style="width:${bars.w.fill.toFixed(1)}%"></i><i class="over" style="width:${bars.w.extra.toFixed(1)}%"></i><i class="heavy" style="width:${bars.w.worse.toFixed(1)}%"></i></div></div>
+		<div class="cockpit-fig"><div class="cockpit-fig-k"><span>${T('hold')}</span><span>${bars.sl && bars.sl.over ? T('more goods than the hull has slots for') : bars.w.note || ''}</span></div><div class="cockpit-fig-v">${holdBefore !== bars.w.total ? `<span>${F(holdBefore)}</span><i>→</i>` : ''}<b class="${bars.w.state === 'heavy' || bars.w.state === 'dead' ? 'warn' : bars.over ? 'amber' : ''}">${esc(bars.w.text)}</b></div>${bars.sl ? `<div class="cockpit-fig-v slots">${slotsBefore !== bars.sl.used ? `<span>${F(slotsBefore)}</span><i>→</i>` : ''}<b class="${bars.sl.over ? 'warn' : bars.sl.full ? 'amber' : ''}">${esc(bars.sl.text)}</b></div>` : ''}<div class="run-bar"><i style="width:${bars.w.fill.toFixed(1)}%"></i><i class="over" style="width:${bars.w.extra.toFixed(1)}%"></i><i class="heavy" style="width:${bars.w.worse.toFixed(1)}%"></i></div></div>
 		${row ? `<div class="cockpit-fig"><div class="cockpit-fig-k"><span>${T('parley')}</span><span>${s.npcId && row.spent ? `−${F(row.spent)}` : ''}</span></div><div class="cockpit-fig-v">${row.before != null && Math.round(row.before) !== Math.round(row.after) ? `<span>${F(row.before)}</span><i>→</i>` : ''}<b class="${row.short ? 'warn' : ''}">${F(row.after)}</b></div><div class="run-bar parley"><i style="width:${Math.min(100, row.pct).toFixed(1)}%"></i></div>${row.voucher && !s.wait ? '' : parleyNotes(book, at, s).note}<label class="parley-fix" title="${T('What the game’s Barter window shows now, before this barter: the bar is counted from it for the rest of the run')}"><span>${T('game shows')}</span><input class="purse-inline narrow" inputmode="numeric" data-act="barter-parley-fix" data-k="${esc(key)}"${map ? ' data-map="1"' : ''} value="${on.parleyFix && on.parleyFix.k === key ? esc(String(on.parleyFix.bar)) : ''}" placeholder="${F(row.before)}" aria-label="${T('What the game’s Barter window shows now, before this barter: the bar is counted from it for the rest of the run')}"></label></div>` : ''}
 		${rationsFig}
 	</div>`;
@@ -517,13 +532,13 @@ function holdSlotsHTML(around = null) {
 	// Level 5 and up takes one each, the rest stack -- since the game
 	// will not take a good into a full hold; the goods themselves are
 	// drawn as the app draws goods everywhere else, a tile each.
-	const used = goods.reduce((a, g) => a + (g.n > 0 ? (g.lv >= 5 ? g.n : 1) : 0), 0);
+	const used = goods.reduce((a, g) => a + slotsFor(g.name, g.n), 0);
 	const moved = goods.some(g => g.n !== g.was);
 	const tile = g => {
 		const how = g.n === g.was ? '' : !g.n ? ' gone' : !g.was ? ' new' : ' moved';
 		return `<span class="shelf-tile${how}" title="${esc(`${g.was !== g.n ? `${F(g.was)} → ` : ''}${F(g.n)}× ${gameName(g.name)}`)}"><i class="shelf-lv${g.lv ? '' : ' shore'}"${g.lv ? ` style="--tier:${TIER(g.lv)}"` : ''}>${g.lv ? lvTag(g.lv) : '⌂'}</i>${img(g.name, 'shelf-icon')}<b>${how ? `<s>${n1(g.was)}</s> → ` : ''}${n1(g.n)}</b><span>${esc(gameName(g.name))}</span></span>`;
 	};
-	const tiles = goods.sort((a, b) => b.lv - a.lv || b.n - a.n || a.name.localeCompare(b.name)).map(tile).join('');
+	const tiles = goods.sort((a, b) => rankOf(b.name) - rankOf(a.name) || b.n - a.n || a.name.localeCompare(b.name)).map(tile).join('');
 	const lt = shownHold(me.hold, ltOf(after)), was = shownHold(me.hold, ltOf(before));
 	const sub = `${cap ? T('{n} of {of} slots', { n: F(used), of: F(cap) }) : T('{n} slots', { n: F(used) })} · ${was.total !== lt.total ? `${F(was.total)} → ` : ''}${esc(lt.text)}`;
 	const legend = moved ? `<p class="hold-slots-legend">${around.done ? T('Before this stop → after it, as the hold stands now') : T('As the hold stands now → after this stop')}</p>` : '';
@@ -542,7 +557,7 @@ function restHTML(plan, on, book, legOf, at, along) {
 	const pools = rationMarks(stops, plan.weightStart || 0);
 	const rows = stops.map((s, k) => {
 		const key = stopKey(s, k, stops), names = stopNames(s), done = ticked(on.done, s, k, stops);
-		const bars = stopBars(s, book.rows[k], along.after[k]);
+		const bars = stopBars(s, book.rows[k], along.after[k], along.slots[k]);
 		const what = s.npcId
 			? `${img(s.give, 'row-icon xs')}<span>${esc(s.giveText)}× ${esc(gameName(s.give))}</span><span class="faint">→</span>${img(sevenOf(s), 'row-icon xs')}<span class="tiered" style="--tier:${TIER(levelOf(s.item))}">${esc(s.recvText)}× ${esc(gameName(sevenOf(s)))}</span><b>×${F(s.times)}</b>`
 			: `<span>${s.wharf ? [s.toBag && s.toBag.length ? T('Into your bag') : '', s.fromBag && s.fromBag.length ? T('Out of your bag, aboard') : '', s.loads && s.loads.length ? T('Loads from storage') : '', s.dropped && s.dropped.length ? T('Leaves in storage') : '', s.sale ? T('sells {n} {what} here for {silver}', { n: n1(s.sale.n), what: T('goods'), silver: FC(Math.round(s.sale.total)) }) : ''].filter(Boolean).join(' · ') || names.kind : names.kind}</span>`;

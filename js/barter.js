@@ -656,6 +656,31 @@ export const SELL_PRICES = {
 /** The rare pays weigh a tenth of an LT, as jewellery does. */
 export const RARE_WEIGHT = 0.1;
 
+/** Whether a good is one of the five [Great Ocean] goods: a [Level 5]
+ *  by name in the app (or the game's own "[Great Ocean] ..." name) with
+ *  a price of its own. */
+export function isGreatOcean(name) {
+	const key = name || '';
+	return key.startsWith('[Great Ocean]') || (levelOf(key) === 5 && SELL_PRICES[key] !== undefined);
+}
+
+/**
+ * Where a good stands among the others, for every order the planner
+ * keeps -- what to sell first and what to keep, what to load first, the
+ * tie-breaks, the orders' "sell from Level N": its level, except that a
+ * [Great Ocean] good stands above a [Level 5] and below a [Level 6]
+ * (5.5). It is worth more than a [Level 5], but nobody runs them any
+ * more, so it is never put ahead of a [Level 6] or [Level 7] (the
+ * owner's ruling, 2026-10-01). The rare pays carry no level and sell as
+ * a [Level 7] does; anything else that is not a trade good is 0.
+ */
+export function rankOf(name) {
+	if (isGreatOcean(name)) return 5.5;
+	const lv = levelOf(name);
+	if (lv !== null) return lv;
+	return SELL_PRICES[name] !== undefined ? TOP_LEVEL : 0;
+}
+
 /** What a barterer pays for a good: its own price where it has one,
  *  else its level's; 0 for the unsellable levels and for anything that
  *  is not a good. */

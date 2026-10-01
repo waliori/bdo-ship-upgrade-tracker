@@ -19,6 +19,7 @@ import { shutNow, fromPort, sailCal } from './board.js';
 import { aboardStock, dockStock } from './hold.js';
 import { parleyOf, stashAt, ordersNow } from './plan.js';
 import { docks, bagNow, stashes } from './route.js';
+import { loading } from '../loading.js';
 
 /* ------------------------------------------------------------------ *
  * the search, off the main thread
@@ -63,6 +64,24 @@ function workerOf() {
 function settle() {
 	if (V.pending && V.pending.timer) clearTimeout(V.pending.timer);
 	V.pending = null;
+	searchLight();
+}
+
+/**
+ * The page's loading thread while the runs, or the ways of sailing's
+ * cards, are being searched: one wait for the lot, started when the
+ * first goes out and ended when the last is back -- whichever way it
+ * ends, an answer, a worker given up on, or a request superseded.
+ */
+let searchStop = null;
+function searchLight() {
+	const st = V.presetState;
+	// Work actually out, not work queued: the cards' queue waits for the
+	// tab to be drawn again, and a thread left running over another tab
+	// for a search nobody has asked to resume would never stop.
+	const out = Boolean(V.pending) || Boolean(st && st.busy);
+	if (out && !searchStop) searchStop = loading(T('Searching the board…'));
+	else if (!out && searchStop) { searchStop(); searchStop = null; }
 }
 
 function dropWorker() {
@@ -105,8 +124,10 @@ function presetNext() {
 		V.presetState.job = null;
 		if (!V.presetState.queue.length) redrawSoon();
 		presetNext();
+		searchLight();
 	};
 	st.busy = true;
+	searchLight();
 	const w = presetWorkerOf();
 	if (!w) { setTimeout(() => done(propose({ ...job.args, budgetMs: 150 })), 0); return; }
 	w.onmessage = evt => done(evt.data && evt.data.result);
@@ -120,6 +141,7 @@ export function presetSearch(key, jobs) {
 	V.presetState = { key, res: new Map(), queue: jobs, busy: false, job: null };
 	if (V.presetWorker) { V.presetWorker.terminate(); V.presetWorker = null; }
 	presetNext();
+	searchLight();
 }
 
 /** A request answered on this thread after all. */
@@ -162,6 +184,7 @@ export function proposeAsync(args, tag, then) {
 		if (req) answerHere(req);
 	}, SEARCH_BUDGET_MS + SEARCH_PATIENCE_MS);
 	V.pending = { id, tag, args, then, timer };
+	searchLight();
 	try {
 		w.postMessage({ id, ...args, budgetMs: SEARCH_BUDGET_MS });
 	} catch {

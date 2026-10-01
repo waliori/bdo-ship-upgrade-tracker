@@ -6,7 +6,7 @@ import * as store from '../state.js';
 import { img } from '../ui-bits.js';
 import { barterProfile, SILVER } from '../ui-state.js';
 import { ports } from '../barter_npcs.js';
-import { COIN, levelOf } from '../barter.js';
+import { COIN, levelOf, rankOf } from '../barter.js';
 import { V } from './state.js';
 import { timerState, spanText } from '../sail-timer.js';
 import { fromPort } from './board.js';
@@ -35,7 +35,7 @@ function exchangeHTML(gave, got, { spent = 0, silver = 0, coins = 0, parley = 0,
 		const lv = levelOf(item);
 		return `<span class="shelf-tile"><i class="shelf-lv${lv ? '' : ' shore'}"${lv ? ` style="--tier:${TIER(lv)}"` : ''}>${lv ? lvTag(lv) : '⌂'}</i>${img(item, 'shelf-icon')}<b>${n1(n)}</b><span>${esc(gameName(item))}</span></span>`;
 	};
-	const list = m => Object.entries(m || {}).filter(([, n]) => n > 0).sort((a, b) => (levelOf(b[0]) || 0) - (levelOf(a[0]) || 0) || b[1] - a[1]).map(([item, n]) => tile(item, n)).join('');
+	const list = m => Object.entries(m || {}).filter(([, n]) => n > 0).sort((a, b) => rankOf(b[0]) - rankOf(a[0]) || b[1] - a[1]).map(([item, n]) => tile(item, n)).join('');
 	const out = `${spent ? `<span class="shelf-tile silver out">${img(SILVER, 'shelf-icon')}<b>−${FC(Math.round(spent))}</b><span>${T('for the land goods')}</span></span>` : ''}${parley ? `<span class="shelf-tile parley"><i class="shelf-glyph">◈</i><b>−${F(Math.round(parley))}</b><span>${T('Parley')}</span></span>` : ''}${vouchers ? `<span class="shelf-tile voucher">${img(VOUCHER, 'shelf-icon')}<b>−${F(vouchers)}</b><span>${vouchers === 1 ? T('voucher') : T('vouchers')}</span></span>` : ''}${list(gave)}`;
 	const inn = `${silver ? `<span class="shelf-tile silver">${img(SILVER, 'shelf-icon')}<b>+${FC(Math.round(silver))}</b><span>${T('at the wharf')}</span></span>` : ''}${coins ? `<span class="shelf-tile coin${guessedCoins ? ' guess' : ''}">${img(COIN, 'shelf-icon')}<b>+${F(Math.round(coins))}</b><span>${T('Crow Coins')}</span></span>` : ''}${list(coins ? Object.fromEntries(Object.entries(got || {}).filter(([item]) => item !== COIN)) : got)}`;
 	return `<div class="exchange">

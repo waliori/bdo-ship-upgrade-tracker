@@ -6,9 +6,9 @@ import { T, said, gameName } from '../i18n.js';
 import * as store from '../state.js';
 import { img, codexName, amountInput } from '../ui-bits.js';
 import { barterProfile } from '../ui-state.js';
-import { currentShip, shownHold, aboardWhat } from '../ship.js';
+import { currentShip, shownHold, shownSlots, aboardWhat } from '../ship.js';
 import { GOODS, PARLEY, COIN_LEVEL, levelOf, levelDiscount } from '../barter.js';
-import { goodsHeld, landHeld, weightOf, sellOf, aboardStock as aboardOf } from '../barter-plan.js';
+import { goodsHeld, landHeld, weightOf, sellOf, slotsHeld, stacks, rankOf, aboardStock as aboardOf } from '../barter-plan.js';
 import { TOWNS } from '../screen-inventory.js';
 import { wharves } from '../wharves.js';
 import { openDialog } from '../dialogs.js';
@@ -113,7 +113,7 @@ function ashore() {
 			}
 		}
 	}
-	return [...byTown].map(([town, goods]) => ({ town, here: !!from && from.name === town, goods: goods.sort((a, b) => b.lv - a.lv || a.name.localeCompare(b.name)) }))
+	return [...byTown].map(([town, goods]) => ({ town, here: !!from && from.name === town, goods: goods.sort((a, b) => rankOf(b.name) - rankOf(a.name) || a.name.localeCompare(b.name)) }))
 		.sort((a, b) => Number(b.here) - Number(a.here) || a.town.localeCompare(b.town));
 }
 
@@ -127,11 +127,26 @@ export function unloadTo() {
 }
 const unloadTitle = () => (unloadTo() ? T('Put them ashore at {town}', { town: gameName(unloadTo()) }) : T('Put them ashore: choose the storage'));
 
-/** The goods aboard: name, level, count, weight; heaviest level first. */
+/** The goods aboard: name, level, count, weight; the highest rank
+ *  first (a [Great Ocean] good between the [Level 5]s and [Level 6]s). */
 export function held() {
 	return [...goodsHeld(aboardStock())]
 		.map(([name, n]) => ({ name, lv: levelOf(name), n, weight: n * weightOf(name) }))
-		.sort((a, b) => b.lv - a.lv || a.name.localeCompare(b.name));
+		.sort((a, b) => rankOf(b.name) - rankOf(a.name) || a.name.localeCompare(b.name));
+}
+
+/** The hold's slots as they stand: the trade goods aboard -- a [Level 5]
+ *  and up a slot each, the rest a slot a kind -- and the shore goods in
+ *  the hold, a slot a kind. `less` is goods to count as off it. */
+export function holdSlotsNow(less = null) {
+	const m = goodsHeld(aboardStock());
+	for (const name of Object.keys(store.getAllStock())) {
+		if (levelOf(name) !== null) continue;
+		const n = store.stockAt(name, store.ABOARD);
+		if (n > 0) m.set(name, n);
+	}
+	for (const [name, n] of less || []) m.set(name, Math.max(0, (m.get(name) || 0) - n));
+	return slotsHeld(m);
 }
 
 /**
@@ -140,7 +155,7 @@ export function held() {
  * into the whole thing -- which opens over the page, so the run under
  * it has the page to itself.
  */
-export function holdBarHTML(me, tickedLT = 0) {
+export function holdBarHTML(me, tickedLT = 0, slotsUsed = null) {
 	const prof = barterProfile();
 	const goods = held();
 	// On the wharf step the gauge follows the packing list: a good ticked
@@ -148,9 +163,11 @@ export function holdBarHTML(me, tickedLT = 0) {
 	// unticked comes off, so the bar answers the press that was made.
 	const lt = Math.max(0, goods.reduce((a, g) => a + g.weight, 0) + tickedLT);
 	const w = shownHold(me.hold, lt);
+	// And the slots: a Volante holds twenty [Level 5]s whatever they weigh.
+	const sl = shownSlots(me.hold, slotsUsed ?? holdSlotsNow());
 	const pct = w.max > 0 ? Math.min(100, w.total / w.max * 100) : 0;
 	const mark = w.mark;
-	const state = w.state === 'heavy' ? 'over' : w.state;
+	const state = w.state === 'heavy' || sl.over ? 'over' : w.state;
 	const byLv = new Map();
 	for (const g of goods) byLv.set(g.lv, (byLv.get(g.lv) || 0) + g.n);
 	const levels = [...byLv].sort((a, b) => b[0] - a[0]).map(([lv, n]) => `<span class="hold-bar-lv" style="--tier:${TIER(lv)}" title="${T('{n} of Level {lv} aboard', { n: F(n), lv })}"><i>L${lv}</i>${F(n)}</span>`).join('');
@@ -168,7 +185,7 @@ export function holdBarHTML(me, tickedLT = 0) {
 		elsewhere ? T('{n} ashore elsewhere', { n: F(elsewhere) }) : '',
 		pileN ? (pile.size === 1 ? T('{n} shore goods over {kinds} kind', { n: F(pileN), kinds: pile.size }) : T('{n} shore goods over {kinds} kinds', { n: F(pileN), kinds: pile.size })) : ''
 	].filter(Boolean).join(' · ');
-	const weightText = `${w.text}${!goods.length ? ` · ${w.aboard ? T('no goods aboard, {n} of it {what}', { n: F(w.aboard), what: said(aboardWhat(w)) }) : T('no goods aboard')}` : w.note ? ` — ${w.note}` : ''} · ${T('barters to {n}', { n: F(w.deal) })}${tickedLT ? ` · ${T('as ticked below')}` : ''}`;
+	const weightText = `${w.text} · ${sl.text}${!goods.length ? ` · ${w.aboard ? T('no goods aboard, {n} of it {what}', { n: F(w.aboard), what: said(aboardWhat(w)) }) : T('no goods aboard')}` : w.note ? ` — ${w.note}` : ''}${sl.over ? ` — ${T('more goods than the hull has slots for: the game will not load them all')}` : ''} · ${T('barters to {n}', { n: F(w.deal) })}${tickedLT ? ` · ${T('as ticked below')}` : ''}`;
 	// Two different things were in one row here -- what the hull is
 	// carrying, and what the sailor can spend -- with the way into the
 	// hold hidden at the end of the first as a word. They are two
@@ -254,13 +271,19 @@ function holdHTML(me) {
 	const n = goods.reduce((a, g) => a + g.n, 0) + shore.reduce((a, g) => a + g.n, 0);
 	const worth = goods.reduce((a, g) => a + g.n * sellOf(g.name), 0);
 	const w = shownHold(me.hold, lt);
+	const sl = shownSlots(me.hold, holdSlotsNow());
 	const pct = w.max > 0 ? Math.min(100, w.total / w.max * 100) : 0;
 	const mark = w.mark;
-	const state = w.state === 'heavy' ? 'over' : w.state;
-	const room = lv => Math.max(0, Math.floor((w.limit - w.total) / GOODS[lv].weight));
-	const sub = !n ? `${w.text} · ${w.aboard ? T('no goods aboard, {n} of it {what}', { n: F(w.aboard), what: said(aboardWhat(w)) }) : T('no goods aboard')} · ${w.deal === w.max ? T('barters and moves to {max}', { max: F(w.max) }) : T('barters to {deal}, moves to {max}', { deal: F(w.deal), max: F(w.max) })}`
-		: w.note ? `${w.text} — ${w.note}`
-			: `${w.text} · ${T('room for {a} more Lv4–5 or {b} Lv6–7 under the limit', { a: room(5), b: room(6) })}`;
+	const state = w.state === 'heavy' || sl.over ? 'over' : w.state;
+	// The room is the weight's and the slots' together: a [Level 5] and
+	// up takes a slot each, so a hold with LT to spare and no slot left
+	// has no room at all.
+	const free = sl.cap === null ? Infinity : Math.max(0, sl.cap - sl.used);
+	const room = lv => Math.min(free, Math.max(0, Math.floor((w.limit - w.total) / GOODS[lv].weight)));
+	const sub = !n ? `${w.text} · ${sl.text} · ${w.aboard ? T('no goods aboard, {n} of it {what}', { n: F(w.aboard), what: said(aboardWhat(w)) }) : T('no goods aboard')} · ${w.deal === w.max ? T('barters and moves to {max}', { max: F(w.max) }) : T('barters to {deal}, moves to {max}', { deal: F(w.deal), max: F(w.max) })}`
+		: sl.over ? `${w.text} · ${sl.text} — ${T('more goods than the hull has slots for: the game will not load them all')}`
+		: w.note ? `${w.text} · ${sl.text} — ${w.note}`
+			: `${w.text} · ${sl.text} · ${T('room for {a} more Lv4–5 or {b} Lv6–7 under the limit', { a: room(5), b: room(6) })}`;
 	const q = V.holdQ.trim().toLowerCase();
 	const passes = g => (!q || g.name.toLowerCase().includes(q)) && (!V.holdLv.size || V.holdLv.has(g.lv));
 	const shown = goods.filter(passes);
@@ -272,7 +295,7 @@ function holdHTML(me) {
 		${img(g.name, 'row-icon')}
 		<span class="map-row-main">
 			<span class="map-row-name">${codexName(g.name)}</span>
-			<span class="map-row-sub">${T('{each} LT each · {all} LT', { each: F(GOODS[g.lv].weight), all: F(g.weight) })}${sellOf(g.name) ? ` · ${T('a barterer pays {silver}', { silver: FC(sellOf(g.name)) })}` : ` · ${T('cannot be sold')}`}</span>
+			<span class="map-row-sub">${T('{each} LT each · {all} LT', { each: F(GOODS[g.lv].weight), all: F(g.weight) })} · ${stacks(g.name) ? T('one slot') : T('{n} slots, one each', { n: F(Math.ceil(g.n)) })}${sellOf(g.name) ? ` · ${T('a barterer pays {silver}', { silver: FC(sellOf(g.name)) })}` : ` · ${T('cannot be sold')}`}</span>
 		</span>
 		<span class="barter-count">
 			<button class="map-load-btn" data-act="barter-good" data-item="${esc(g.name)}" data-delta="-1" aria-label="${T('One fewer {name}', { name: esc(gameName(g.name)) })}">−</button>

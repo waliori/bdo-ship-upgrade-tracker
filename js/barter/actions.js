@@ -7,7 +7,7 @@ import { esc, F, FC } from '../fmt.js';
 import { T, gameName } from '../i18n.js';
 import * as store from '../state.js';
 import { barterKey, periodKey } from '../clock.js';
-import { currentShip, shownHold } from '../ship.js';
+import { currentShip, shownHold, shownSlots } from '../ship.js';
 import { npcById, ports, isleShort } from '../barter_npcs.js';
 import { noteLeg, LEARN_AT, timingLegs, setTimingLegs } from '../ship-pace.js';
 import { cadenceOf } from '../quests.js';
@@ -29,7 +29,7 @@ import { fromPort, sailCal, itemNow, readWindow, takeFleetBoard, openBook, tellT
 import { openRolls } from './rolls.js';
 import { bringUp, patchPaid, restFind, sailLocked } from './cockpit.js';
 import { castOffFx } from './setsail.js';
-import { aboardStock, unloadTo, held, openSheet, shoreAboard } from './hold.js';
+import { aboardStock, unloadTo, held, openSheet, shoreAboard, holdSlotsNow } from './hold.js';
 import { matBoardNow, matFitNow, takeMatOffers, openMatBook, openMatRolls, pickGood, pickMaterial, matOn, openMatIsles, pickShipAt } from './material.js';
 import { packedNow, unloadMoves, packApply, toldOf } from './packing.js';
 import { parleyRefilled, retickIfAuto, ordersNow, setOrders, applySaved, dropSaved, askSaveOrders, sellFrom, keepFrom, readBagShot, chainStepsDialog, chainClaimDialog } from './plan.js';
@@ -37,6 +37,14 @@ import { STASHES, bagSet, legsOf, skippedToday, pulledToday, ledgerOf } from './
 import { sailKey, sailing, stopKey, ticked, runLabel, runMarks, owesCount, rangeOf, unsyncHold, abandonRun, markDone, sailRecord, planOfSail, stranded, sailedPlan, recordTrip } from './sail.js';
 import { proposeAsync, redrawSoon } from './search.js';
 import { setStep, restore, persist, persistNamed, flushView } from './view.js';
+
+// A tick on the packing list loads for real, and the game takes no good
+// into a hold whose slots are full: said the moment the ticks pass the
+// hull's slots, so the sailor knows before casting off.
+function slotsWarn() {
+	const sl = shownSlots(currentShip().hold, holdSlotsNow());
+	if (sl.over) toast(T('The hold is at {text}: more goods than the hull has slots for. The game will not load them all — untick some, or leave them for a later trip.', { text: sl.text }));
+}
 
 /** A click on the tab. Returns true when it was one of ours, with the
  *  screen to be redrawn by the caller. */
@@ -116,7 +124,7 @@ export function barterAction(act, el, redraw) {
 		case 'barter-pack': {
 			const k = String(el.dataset.k || '');
 			const x = { key: k, item: el.dataset.item, n: Number(el.dataset.n) || 0, cost: Number(el.dataset.cost) || 0 };
-			if (/^[bltasu]\|/.test(k)) { packApply([x], !packedNow(x), fromPort()); return true; }
+			if (/^[bltasu]\|/.test(k)) { const want = !packedNow(x); packApply([x], want, fromPort()); if (want) slotsWarn(); return true; }
 			if (V.packed.has(k)) V.packed.delete(k); else V.packed.add(k);
 			persist();
 			return true;
@@ -127,7 +135,7 @@ export function barterAction(act, el, redraw) {
 			const want = el.dataset.on !== '1';
 			const rows = JSON.parse(el.dataset.rows || '[]');
 			const loads = rows.filter(x => /^[bltasu]\|/.test(x.key) && packedNow(x) !== want);
-			if (loads.length) packApply(loads, want, fromPort());
+			if (loads.length) { packApply(loads, want, fromPort()); if (want) slotsWarn(); }
 			const marks = rows.filter(x => !/^[bltasu]\|/.test(x.key));
 			for (const x of marks) if (want) V.packed.add(String(x.key)); else V.packed.delete(String(x.key));
 			if (marks.length) persist();

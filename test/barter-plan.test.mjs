@@ -9,7 +9,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-import { exchanges, goodsHeld, weightOf, sellOf, stacks, bagSlotsOf } from '../js/barter-plan.js';
+import { exchanges, goodsHeld, weightOf, sellOf, stacks, bagSlotsOf, slotsHeld, slotFit, rankOf, isGreatOcean } from '../js/barter-plan.js';
 import { GOODS } from '../js/barter.js';
 import { sellable, PLAIN_ORDERS } from '../js/barter-orders.js';
 
@@ -50,4 +50,33 @@ test('a [Level 5] and up takes a slot a unit; the levels under it stack', () => 
 	assert.ok(!stacks('Obsidian Crystal Bracelet'));
 	const bag = new Map([['[Level 4] Old Chest with Gold Coins', 12], ["[Level 5] Statue's Tear", 3], ['[Level 6] Brass Bowl Crate', 2], ['[Level 3] Ancient Orders', 0]]);
 	assert.equal(bagSlotsOf(bag), 1 + 3 + 2, 'twelve chests in one slot, every [Level 5] and [Level 6] in its own');
+});
+
+test('the hold and a storage count slots as the bag does, and a load fits as far as the slots go', () => {
+	const hold = new Map([['[Level 4] Old Chest with Gold Coins', 40], ["[Level 5] Statue's Tear", 18], ['Cactus Rind', 300]]);
+	assert.equal(slotsHeld(hold), 1 + 18 + 1, 'a kind of [Level 4] and of a shore good, a slot each [Level 5]');
+	// A Volante: twenty slots, all of them taken by the hold above, so
+	// no other [Level 5] -- but any number more of the chests.
+	assert.equal(slotFit("[Level 5] Statue's Tear", 5, 18, 20, 20), 0, 'no slot left for another');
+	assert.equal(slotFit("[Level 5] Azure Quartz", 5, 0, 18, 20), 2, 'two free slots, two more');
+	assert.equal(slotFit('[Level 4] Old Chest with Gold Coins', 500, 40, 20, 20), 500, 'a kind already aboard stacks on');
+	assert.equal(slotFit('[Level 4] Panacea', 5, 0, 20, 20), 0, 'a new kind wants a slot of its own');
+	assert.equal(slotFit('[Level 4] Panacea', 5, 0, 19, 20), 5);
+	assert.equal(slotFit("[Level 5] Statue's Tear", 5, 0, 0, Infinity), 5, 'no cap, no limit');
+});
+
+test('a [Great Ocean] good stands above a [Level 5] and below a [Level 6] in every order the planner keeps', () => {
+	const ocean = "[Level 5] Cox Pirates' Journal";
+	assert.ok(isGreatOcean(ocean) && isGreatOcean("[Great Ocean] Cox Pirates' Journal"));
+	assert.ok(!isGreatOcean("[Level 5] Statue's Tear"));
+	assert.ok(rankOf("[Level 5] Statue's Tear") < rankOf(ocean), 'above a [Level 5]');
+	assert.ok(rankOf(ocean) < rankOf('[Level 6] Brass Bowl Crate'), 'below a [Level 6]');
+	assert.ok(rankOf('[Level 6] Brass Bowl Crate') < rankOf('[Level 7] Golden Flour Sack'));
+	assert.ok(!stacks(ocean), 'and a slot each, as a [Level 5]');
+	const sorted = ['[Level 7] Golden Flour Sack', "[Level 5] Statue's Tear", '[Level 6] Brass Bowl Crate', ocean].sort((a, b) => rankOf(b) - rankOf(a));
+	assert.deepEqual(sorted, ['[Level 7] Golden Flour Sack', '[Level 6] Brass Bowl Crate', ocean, "[Level 5] Statue's Tear"]);
+	// The orders' "sell from Level N": kept from Level 6 up, sold from 5.
+	assert.ok(sellable(ocean, { ...PLAIN_ORDERS, sell: 5 }));
+	assert.ok(!sellable(ocean, { ...PLAIN_ORDERS, sell: 6 }), 'a wharf selling from Level 6 keeps it');
+	assert.ok(sellable('[Level 6] Brass Bowl Crate', { ...PLAIN_ORDERS, sell: 6 }));
 });

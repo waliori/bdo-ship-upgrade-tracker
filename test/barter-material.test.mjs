@@ -240,3 +240,19 @@ test('a run taken up again at sea starts at the island the ship is at, with what
 	assert.ok(seq.some(n => n.startsWith('Velia')), `home for the rest: ${seq.join(' > ')}`);
 	assert.equal(run.trades, 6);
 });
+
+// A [Level 5] does not stack: each one is a slot of the hold (owner's
+// rule, 2026-10-01). Ten Figurines in the harbour's storage for five
+// islands, a hold that carries all ten by weight and has four slots:
+// four go aboard a departure, and the run comes back for the rest.
+test('a departure is loaded to the hold’s slots as well as its weight: a [Level 5] a slot', () => {
+	const picks = [pick(1), pick(2), pick(3), pick(4), pick(5)];
+	const plan = materialRun({ picks, wants: { [SCALE]: 999 }, reach: 'all', dock: { [L5]: 10 }, hold: { free: 20000, deal: 25000, max: 30000, slots: 4 }, start: velia, startWharf: veliaWharf, npcById });
+	const calls = plan.stops.filter(s => s.wharf && s.loads.length);
+	assert.ok(calls.length >= 3, `three departures at least: ${names(plan.stops).join(' ')}`);
+	for (const s of calls) assert.ok(s.slotsAfter <= 4, `a call loads to the slots: ${s.slotsAfter}`);
+	assert.ok(plan.slotsPeak <= 4);
+	assert.equal(plan.trades, 10, 'every attempt still made');
+	const free = materialRun({ picks, wants: { [SCALE]: 999 }, reach: 'all', dock: { [L5]: 10 }, hold: { free: 20000, deal: 25000, max: 30000 }, start: velia, startWharf: veliaWharf, npcById });
+	assert.equal(free.stops.filter(s => s.wharf && s.loads.length).length, 1, 'without slots, one departure');
+});

@@ -11,7 +11,7 @@
 // Pure: no store, no screen. The shape is read and cleaned in
 // profile-shape.js the same way the stash is.
 
-import { GOODS, PARLEY, SELL_PRICES, goodSell, levelOf } from './barter.js';
+import { GOODS, PARLEY, SELL_PRICES, goodSell, levelOf, rankOf } from './barter.js';
 import { TT } from './i18n.js';
 
 /** One normal trade's Parley at Beginner 1: the guide's "barter
@@ -252,11 +252,12 @@ export function onPreset(orders) {
 
 /** Whether a wharf call sells this good under the orders. The rare
  *  pays of the trade board have no level and nothing takes them: they
- *  sell as a [Level 7] does. */
+ *  sell as a [Level 7] does. Measured by `rankOf`, so a [Great Ocean]
+ *  good sells under "from Level 5" and is kept under "from Level 6". */
 export function sellable(name, orders) {
 	const lv = levelOf(name);
-	if (lv === null) return SELL_PRICES[name] > 0 && 7 >= orders.sell;
-	return !!GOODS[lv] && goodSell(name) > 0 && lv >= orders.sell;
+	if (lv === null) return SELL_PRICES[name] > 0 && rankOf(name) >= orders.sell;
+	return !!GOODS[lv] && goodSell(name) > 0 && rankOf(name) >= orders.sell;
 }
 
 /** How many of a good to keep back, under the orders. */

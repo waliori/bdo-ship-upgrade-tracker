@@ -19,7 +19,8 @@ import { levelOf, GOODS } from './barter.js';
 /** A level's own colour, as the Barter tab draws it. */
 const TIER = lv => `var(--tier-${Math.max(1, Math.min(7, lv || 1))})`;
 import { shipStats } from './ship_stats.js';
-import { listSetups, shipName } from './ship.js';
+import { listSetups, shipName, currentShip, shownSlots } from './ship.js';
+import { stacks, slotsHeld, slotsFor } from './barter-plan.js';
 import { maxCraftable, enhanceStep, parseEnhanced, enhancedName, waysToGet, routeOf } from './planner.js';
 
 
@@ -190,7 +191,10 @@ export function renderInventory() {
 	const bandHead = (lv, keys) => {
 		const n = keys.reduce((a, k) => a + (stock[k] || 0), 0);
 		const lt = lv ? n * GOODS[lv].weight : 0;
-		return `<div class="inv-band" style="--tier:${lv ? TIER(lv) : 'var(--ink-mute)'}"><i>${lv ? `L${lv}` : '⌂'}</i><b>${lv ? T('Level {lv}', { lv }) : T('Land')}</b><span>${keys.length === 1 ? T('{n} kind', { n: keys.length }) : T('{n} kinds', { n: keys.length })} · ${n === 1 ? T('{n} good', { n: F(n) }) : T('{n} goods', { n: F(n) })}${lt ? ` · ${T('{lt} LT', { lt: F(lt) })}` : ''}</span></div>`;
+		// And the slots they take, place by place: a [Level 5] and up one
+		// a unit wherever it is, the rest one a kind at each storage.
+		const slots = keys.reduce((a, k) => a + placesOf(k, stock[k] || 0, stashAll).reduce((b, [, m]) => b + slotsFor(k, m), 0), 0);
+		return `<div class="inv-band" style="--tier:${lv ? TIER(lv) : 'var(--ink-mute)'}"><i>${lv ? `L${lv}` : '⌂'}</i><b>${lv ? T('Level {lv}', { lv }) : T('Land')}</b><span>${keys.length === 1 ? T('{n} kind', { n: keys.length }) : T('{n} kinds', { n: keys.length })} · ${n === 1 ? T('{n} good', { n: F(n) }) : T('{n} goods', { n: F(n) })}${lt ? ` · ${T('{lt} LT', { lt: F(lt) })}` : ''}${slots ? ` · ${slots === 1 ? T('{n} slot', { n: F(slots) }) : T('{n} slots', { n: F(slots) })}${lv >= 5 ? ` ${T('(one each: they do not stack)')}` : ''}` : ''}</span></div>`;
 	};
 	// Within a band the goods stand most-held first, as a storage is
 	// read, unless a sort by name or by count was asked for above: the
@@ -214,6 +218,7 @@ export function renderInventory() {
 				<button class="chip" data-act="inv-shot" title="${T("Read a storage off screenshots of the game's own window — in this browser; nothing is uploaded")}">📷 ${T('Read a storage')}</button>
 			</div>
 			${homesHTML()}
+			${storeSlotsHTML(stock, stashAll)}
 			${invPicking ? pickBar(shown.filter(k => (stock[k] || 0) > 0 || isEnhanceable(k)).map(k => (isEnhanceable(k) ? familyStats(k).at : k))) : ''}
 			${shown.length
 				? `<div class="inv-grid">${grid}</div>`
@@ -273,6 +278,43 @@ function waysBlock(item) {
  * it, "bags" when none is noted, or "split" when it is in more than one
  * place -- enough to spot the good recorded at the wrong harbour.
  */
+/** Where a good is, place by place, as [place, n]: every storage noted,
+ *  and what none claims -- aboard, for a trade good; in the bags for
+ *  anything else. */
+function placesOf(item, own, stashAll) {
+	const at = Object.entries(stashAll[item] || {}).filter(([, n]) => n > 0);
+	const rest = Math.max(0, own - at.reduce((a, [, n]) => a + n, 0));
+	return rest > 0 ? [...at, [levelOf(item) !== null ? store.ABOARD : '', rest]] : at;
+}
+
+/**
+ * The slots the trade and shore goods take, storage by storage: one a
+ * kind for what stacks, one a unit for a [Level 5] and up, which do not
+ * stack in a storage any more than in the hold. The ship's hold says it
+ * against the hull's slots; a storage's own size is not known to the
+ * app, so it says only what is taken.
+ */
+function storeSlotsHTML(stock, stashAll) {
+	const by = new Map();
+	for (const [name, qty] of Object.entries(stock)) {
+		if (!(qty > 0) || (levelOf(name) === null && !isLandGood(name))) continue;
+		for (const [town, n] of placesOf(name, qty, stashAll)) {
+			if (!town) continue;
+			if (!by.has(town)) by.set(town, new Map());
+			by.get(town).set(name, (by.get(town).get(name) || 0) + n);
+		}
+	}
+	if (!by.size) return '';
+	const hold = currentShip().hold;
+	const list = [...by].map(([town, m]) => ({ town, slots: slotsHeld(m), loose: [...m].some(([name]) => !stacks(name)) }))
+		.sort((a, b) => Number(b.town === store.ABOARD) - Number(a.town === store.ABOARD) || b.slots - a.slots || a.town.localeCompare(b.town));
+	const cell = x => {
+		const sl = x.town === store.ABOARD ? shownSlots(hold, x.slots) : null;
+		return `<span class="inv-slot-at${sl && sl.over ? ' warn' : ''}"><span>${esc(gameName(x.town))}</span><b>${esc(sl ? sl.text : x.slots === 1 ? T('{n} slot', { n: F(x.slots) }) : T('{n} slots', { n: F(x.slots) }))}</b></span>`;
+	};
+	return `<div class="inv-slots" title="${T('A [Level 5] and up takes a slot each, in the hold, the bag and a storage; the rest a slot a kind')}"><span class="inv-slots-k">${T('Goods by storage')}</span>${list.map(cell).join('')}</div>`;
+}
+
 function whereTag(item, own, stashAll) {
 	if (!(own > 0)) return '';
 	const places = Object.entries(stashAll[item] || {}).filter(([, n]) => n > 0);
@@ -348,7 +390,7 @@ function whereBlock(item, own) {
 		+ Object.entries(stash).sort((a, b) => b[1] - a[1]).map(([town, n]) => line(town, n, false)).join('');
 	const options = TOWNS.filter(t => !(t in stash) && !(goods && t === store.ABOARD)).map(t => `<option value="${esc(t)}">${esc(gameName(t))}</option>`).join('');
 	return `<div class="detail-block">
-		<div class="detail-label">${T('Where it is')} <span class="detail-note">· ${T('{n} in all', { n: F(own) })}</span></div>
+		<div class="detail-label">${T('Where it is')} <span class="detail-note">· ${T('{n} in all', { n: F(own) })}${levelOf(item) !== null && !stacks(item) ? ` · ${T('a slot each, wherever it is kept: it does not stack')}` : ''}</span></div>
 		${lines}
 		<select class="field select where-add" data-act="stash-town" data-item="${esc(item)}" aria-label="${T('Note a storage this is kept in')}"><option value="">${T('+ a storage…')}</option>${options}</select>
 	</div>`;

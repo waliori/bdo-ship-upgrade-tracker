@@ -108,6 +108,8 @@ function shapeChips() {
 const shortWhy = why => ({
 	parley: T('the Parley runs out'),
 	hold: T('over the hold’s limit'),
+	over: T('over the hold’s limit'),
+	slots: T('no slot left in the hold'),
 	market: T('the Market lists too few'),
 	share: T('another trade takes the goods'),
 	floor: T('your floor keeps them'),

@@ -28,6 +28,7 @@ import { openDialog, closeDialog, toast } from './dialogs.js';
 import { LIMITS, triage, readStorageShots, wireShotIntake, close as closeReader } from './shot-reader.js';
 import { allItems, img } from './ui-bits.js';
 import { TOWNS } from './screen-inventory.js';
+import { stacks, slotsHeld } from './barter-plan.js';
 import { levelOf } from './barter.js';
 
 /** Where a reading is written by default, remembered between goes: a
@@ -63,7 +64,7 @@ function knownName(row, known) {
  * storage and their slots add up. Two slots of the same thing add up
  * too -- the game splits a stack over slots once it passes a thousand.
  */
-function gather(results, known) {
+export function gather(results, known) {
 	const by = new Map();
 	for (const shot of results) {
 		for (const row of shot.rows || []) {
@@ -71,7 +72,12 @@ function gather(results, known) {
 			if (!name) continue;
 			if (!by.has(name)) by.set(name, { item: name, n: 0, slots: 0, guessed: 0, shots: [] });
 			const line = by.get(name);
-			line.n += Math.max(0, Number(row.qty) || 0);
+			// A good that does not stack -- a [Level 5] and up, the [Great
+			// Ocean] goods, the rare pays -- is one to a slot in the game, so
+			// each slot of it is one, whatever figure the reader thought it
+			// saw on it.
+			const one = levelOf(name) !== null && !stacks(name);
+			line.n += one ? 1 : Math.max(0, Number(row.qty) || 0);
 			line.slots++;
 			if (!row.sure) line.guessed++;
 			// the doubtful slots' corners first: they are the ones to look at
@@ -206,6 +212,11 @@ export function openStorageImport(after = () => {}, handOff = null) {
 		const gone = goneList();
 		const going = gone.filter(g => !keep.has(g.item));
 		const total = taking.reduce((a, r) => a + r.n, 0);
+		// The slots what is written takes at this storage, counted the
+		// game's way: a [Level 5] and up one a unit, the rest one a kind.
+		// The storage's own size is not read off the shots, so this says
+		// what is taken and holds nothing back.
+		const slots = slotsHeld(new Map(taking.map(r => [r.item, r.n])));
 		const guessed = taking.filter(r => r.guessed).length;
 		return `
 		<p class="dialog-note">${rows.length
@@ -227,7 +238,7 @@ export function openStorageImport(after = () => {}, handOff = null) {
 		${rows.length ? `<div class="shot-table-wrap"><table class="shot-table">
 			<thead><tr><th></th><th>${T('What')}</th><th>${T('How many')}</th><th>${T('at {place}', { place: esc(place ? gameName(place) : T('the bags')) })}</th><th></th></tr></thead>
 			<tbody>${rows.map(rowHTML).join('')}</tbody>
-		</table></div>` : ''}
+		</table></div>${slots ? `<p class="dialog-note quiet">${T('What is ticked takes {n} slots there: a [Level 5] and up one each, the rest one a kind.', { n: F(slots) })}</p>` : ''}` : ''}
 		${goneHTML(gone)}
 		${handOff ? '' : `<div class="shot-lang">${placePicker()}</div>`}
 		<div class="dialog-actions">

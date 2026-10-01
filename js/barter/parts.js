@@ -6,7 +6,7 @@ import { T, said, gameName } from '../i18n.js';
 import * as store from '../state.js';
 import { img } from '../ui-bits.js';
 import { barterProfile, snapshot } from '../ui-state.js';
-import { shownHold, aboardWhat, rationDrain } from '../ship.js';
+import { shownHold, shownSlots, aboardWhat, rationDrain } from '../ship.js';
 import { npcById, ports, isleOf, isleShort } from '../barter_npcs.js';
 import { fmtRange, fmtDistance } from '../sailing.js';
 import { PARLEY_UNIT, NOTHING, SAIL_PRESETS, sailPresetOf, stockOrders, yardsticks } from '../barter-orders.js';
@@ -21,11 +21,12 @@ import { fromPort, layCal, spendUsed, continueHTML, keepRoute } from './board.js
 import { narrow, lvTag } from './cockpit.js';
 import { aboardStock, everythingHeld, floorsShut, cashFloorNow, dockStock } from './hold.js';
 import { heldOf } from './material.js';
-import { packedNow, sparesOf, packingOf, packingLT, packingCount, tripsOf, stagedRun, tripsHTML, leaveHomeHTML, packingHTML, afterShelfHTML } from './packing.js';
+import { packedNow, sparesOf, packingOf, packingLT, packingSlots, packingCount, tripsOf, stagedRun, tripsHTML, leaveHomeHTML, packingHTML, afterShelfHTML } from './packing.js';
 import { chartButton, parleyGuessed, parleyOf, stashAt, ordersNow, payRangeHTML, perUnitText, perHourText, stockGains, aheadHTML, goalLine, ladderHTML, howLine, howHTML, parleyLine, parleyHTML, marketDead, chainRow, soloRun } from './plan.js';
 import { docks, bagNow, stashes, withWaits, withRations, rationsLine, legsOf, questPlan, questsLine, questsPanels, n1, TIER, ledgerOf, runTime, routeEditBar, castOffRow, stopRows, cutsHTML } from './route.js';
 import { sailing, planSeen, syncSail, castOffCaps, castOffLand, digest } from './sail.js';
 import { SEARCH_BUDGET_MS, presetSearch, proposeAsync, searching, redrawSoon, expectedBest } from './search.js';
+import { loadingNote } from '../loading.js';
 import { coinsOf, coinRange, bonusNote, coinPurseHTML, shortSummary, shortHTML, canAppearHTML } from './short.js';
 import { takenNote } from './today.js';
 import { editsBy, persist } from './view.js';
@@ -313,7 +314,7 @@ export function silverParts(me, b) {
 	const budgetText = T('best found in {n} s', { n: (SEARCH_BUDGET_MS / 1000).toLocaleString(undefined, { maximumFractionDigits: 1 }) });
 	const proposals = `<div class="proposals${V.proposed.working ? ' working' : ''}">
 		<div class="proposals-head"><span>${T('Runs worth sailing')}</span><span class="faint">${V.proposed.working ? T('working out the runs…') : `${T('found on today’s board under these orders')}${o.hours ? `, ${o.hours === 1 ? T('within {n} hour', { n: o.hours }) : T('within {n} hours', { n: o.hours })}` : ''}${V.proposed.partial ? ` · ${budgetText}` : ''}`} · ${T('the value counts silver net of land goods and the goods kept')}</span></div>
-		${cards ? `<div class="proposal-cards">${cards}</div>` : V.proposed.working ? `<div class="proposal-cards"><div class="proposal placeholder" aria-busy="true"><span class="proposal-k">${T('Working out the runs…')}</span><b>&nbsp;</b><span class="proposal-sub">${T('the board’s chains, searched in the background')}</span></div></div>` : `<p class="empty">${stocking ? T('Nothing on this board climbs toward the stock under these orders.') : T('Nothing on this board pays under these orders.')}</p>`}
+		${cards ? `<div class="proposal-cards">${cards}</div>` : V.proposed.working ? `<div class="proposal-cards"><div class="proposal placeholder" aria-busy="true"><span class="proposal-k">${loadingNote(T('Working out the runs…'))}</span><b>&nbsp;</b><span class="proposal-sub">${T('the board’s chains, searched in the background')}</span></div></div>` : `<p class="empty">${stocking ? T('Nothing on this board climbs toward the stock under these orders.') : T('Nothing on this board pays under these orders.')}</p>`}
 	</div>`;
 	const fillable = chosen.length > 0 && !V.proposed.proposals.some(p => sameSet(p.ids, V.routes.ids));
 	// A new sailor needs one sentence on what to do here, and a sailor
@@ -535,6 +536,9 @@ export function silverParts(me, b) {
 	// so, since the empty run looks like a board with nothing on it.
 	const heavy = pace === 'fast' && plan.trades === 0 && chosen.length > 0 && plan.weightStart > me.hold.free;
 	const peak = shownHold(me.hold, plan.weightPeak), atStart = shownHold(me.hold, plan.weightStart);
+	// And the hold's slots at their fullest, beside the LT: every tile
+	// that shows the hold says both.
+	if (Number.isFinite(plan.slotsPeak)) peak.text = `${peak.text} · ${shownSlots(me.hold, plan.slotsPeak).text}`;
 	// The bag, when the run used it: what it held at the most.
 	if (plan.bag && plan.bagPeak > 0) peak.note = `${peak.note || T('under the limit')} · ${T('your bag at most {lt} of {free} LT', { lt: F(Math.round(plan.bagPeak)), free: F(plan.bag.free) })}`;
 	// And when it was not: why, since the sailor asked for it.
@@ -622,7 +626,7 @@ export function silverParts(me, b) {
 		const own = p.id === sailPresetOf(o) && !V.proposed.working;
 		const ready = V.presetState.res.has(p.id) || own;
 		const best = V.presetState.res.has(p.id) ? V.presetState.res.get(p.id) : V.proposed.best;
-		const f = !ready ? { big: '…', sub: T('searching this way…'), wait: true } : best ? figOf(best.run) : { big: '—', sub: T('nothing sails this way today') };
+		const f = !ready ? { big: '…', sub: loadingNote(T('searching this way…'), { status: false }), wait: true } : best ? figOf(best.run) : { big: '—', sub: T('nothing sails this way today') };
 		if (handPicked) {
 			// Laid once for these inputs and kept: a press on the way --
 			// Arrived, Traded -- draws the tab again, and laying the run
@@ -760,7 +764,7 @@ export function silverParts(me, b) {
 					['chains', T('Chains on offer'), esc(chainsSummary), `${chainsBody}${chosen.length ? runFigures : ''}`]])
 		],
 		cont: continueHTML(fullAll, b),
-		load, dock: foot, packLT: packingLT(plan, from, chosen), things: { ...packingCount(plan, from, chosen), later: staged ? tripsOf(plan).slice(1).reduce((a, t) => a + t.loads.length, 0) : 0, trips: tripsN }, stops: plan.stops.length, time: runTime(legs, book) || ''
+		load, dock: foot, packLT: packingLT(plan, from, chosen), packSlots: packingSlots(plan, from, chosen), things: { ...packingCount(plan, from, chosen), later: staged ? tripsOf(plan).slice(1).reduce((a, t) => a + t.loads.length, 0) : 0, trips: tripsN }, stops: plan.stops.length, time: runTime(legs, book) || ''
 	};
 }
 

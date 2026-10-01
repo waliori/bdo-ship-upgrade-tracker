@@ -23,7 +23,7 @@ import { GRADES, gradeById, crystalById, crystalsOf, crystalVariant, crystalLine
 import { skinFor, SKIN_SLOTS } from './ship_skins.js';
 import { openFleet } from './setups.js';
 import { openPicker } from './picker.js';
-import { openSailorImport } from './sailor-import.js';
+import { whileLoading } from './loading.js';
 import { roleOf, CRYSTAL_FOR, SAILOR_NOTE, PART_PATH } from './ship_roles.js';
 import { encodeAny, shipLink } from './share.js';
 import { buildLink, copyLink } from './links.js';
@@ -642,12 +642,17 @@ function crystalCard(ship) {
 function holdLines(me) {
 	const h = me.hold;
 	const line = l => `<span class="hold-line${l.lt < 0 ? ' minus' : ''}"><span>${esc(l.label)}</span><b>${l.lt < 0 ? '−' : '+'}${F(Math.abs(l.lt))}</b></span>`;
-	const perLevel = [5, 6].map(lv => T('{n} of Lv{range}', { n: Math.floor(h.free / GOODS[lv].weight), range: lv === 5 ? '4–5' : '6–7' })).join(', ');
+	// What fits is the weight's answer held to the slots: a [Level 5] and
+	// up takes a slot each, so a Volante's twenty slots are twenty of
+	// them however light the hold.
+	const slots = Number.isFinite(h.slots) ? h.slots : Infinity;
+	const perLevel = [5, 6].map(lv => T('{n} of Lv{range}', { n: Math.min(slots, Math.floor(h.free / GOODS[lv].weight)), range: lv === 5 ? '4–5' : '6–7' })).join(', ');
 	return `<div class="hold-lines" title="${T('The hold, line by line. A ship sails past its limit up to {pct}% over, slower the further it is, and not at all beyond that.', { pct: Math.round((OVERLOAD - 1) * 100) })}">
 		<span class="hold-lines-k">${T('Hold')}</span>
 		${h.lines.map(line).join('')}
 		<span class="hold-line total"><span>${T('free to load')}</span><b>${F(h.free)} LT</b></span>
 		<span class="hold-line sub"><span>${T('overweight, sailing slower, up to')}</span><b>${F(h.max)} LT</b></span>
+		${Number.isFinite(h.slots) ? `<span class="hold-line sub"><span>${T('slots')}</span><b>${T('{n} — a [Level 5] and up takes one each', { n: F(h.slots) })}</b></span>` : ''}
 		<span class="hold-line sub"><span>${T('fits')}</span><b>${perLevel}</b></span>
 	</div>`;
 }
@@ -827,7 +832,7 @@ export function renderCrew() {
 		</div>
 		<div class="ship-card-facts">
 			<div><div class="summary-k">${T('Speed')}</div><div class="summary-v">${me.speed.total}%</div><div class="summary-sub">${T('hull {n}', { n: stats.speed })}${me.speed.parts ? ` + ${T('parts {n}', { n: me.speed.parts })}` : ''}${me.speed.crystal ? ` + ${T('crystal {n}', { n: me.speed.crystal })}` : ''}${me.speed.crew ? ` + ${T('crew {n}', { n: me.speed.crew })}` : ''}${me.mastery ? ` + ${T('mastery {n}', { n: me.mastery })}` : ''}${me.corsair ? ` + ${T('Corsair {n}', { n: me.corsair })}` : ''}${me.speed.skin ? ` + ${T('skin {n}', { n: me.speed.skin })}` : ''}${me.speed.log ? `<br>${T('{name}: +{n}% top speed at sea — legs are timed at {sea}%', { name: esc(gameName(sailingLog().name)), n: me.speed.log, sea: me.speed.sea })}` : ''}${me.crew.guessed ? `<br><span class="amber">${me.crew.guessed === 1 ? T('{n} seated sailor’s figures are estimated from the level — read or type them for the exact total', { n: me.crew.guessed }) : T('{n} seated sailors’ figures are estimated from their level — read or type them for the exact total', { n: me.crew.guessed })}</span>` : ''}</div></div>
-			<div><div class="summary-k">${T('Hold')}</div><div class="summary-v">${F(me.hold.limit)} LT</div><div class="summary-sub">${T('the limit, as fitted')}${me.hold.aboard ? ` · ${T('{n} of it {what}', { n: F(me.hold.aboard), what: said(aboardWhat(me.hold)) })}` : ''} · ${T('barters to {n}', { n: F(me.hold.deal + me.hold.aboard) })}</div></div>
+			<div><div class="summary-k">${T('Hold')}</div><div class="summary-v">${F(me.hold.limit)} LT</div><div class="summary-sub">${T('the limit, as fitted')}${me.hold.aboard ? ` · ${T('{n} of it {what}', { n: F(me.hold.aboard), what: said(aboardWhat(me.hold)) })}` : ''} · ${T('barters to {n}', { n: F(me.hold.deal + me.hold.aboard) })}${Number.isFinite(me.hold.slots) ? ` · ${T('{n} slots', { n: F(me.hold.slots) })}` : ''}</div></div>
 			<div><div class="summary-k">${T('Fitted')}</div><div class="summary-v">${T('{n} of 5', { n: fittedN + (me.crystal ? 1 : 0) })}</div><div class="summary-sub">${stats.crew ? T('{n} of {seats} seats taken', { n: me.crew.seated, seats: stats.crew }) : T('carries no sailors')}</div></div>
 		</div>
 		${shipSpecs(me, stats)}
@@ -1027,7 +1032,11 @@ export function crewAction(act, el) {
 	if (looking && !LOOK_ONLY.has(act)) { toast(T('Only a look — nothing on this boat can be changed')); return false; }
 	switch (act) {
 		case 'crew-select': selId = selId === id ? null : id; return true;
-		case 'crew-import': openSailorImport(); return false;
+		// The reader's dialog is fetched on the first press.
+		case 'crew-import':
+			whileLoading(import('./sailor-import.js'), T('Loading…'), { by: el })
+				.then(m => m.openSailorImport(), () => toast(T('That could not load — check your connection and try again')));
+			return false;
 		case 'crew-fleet': openFleet(); return true;
 		case 'crew-skin-all': {
 			const on = el.dataset.on === '1';

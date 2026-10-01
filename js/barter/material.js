@@ -7,13 +7,13 @@ import * as store from '../state.js';
 import { img, copyName } from '../ui-bits.js';
 import { barterProfile, SILVER, CROW_COIN, totalsToGo } from '../ui-state.js';
 import { barterKey } from '../clock.js';
-import { currentShip, shownHold } from '../ship.js';
+import { currentShip, shownHold, shownSlots } from '../ship.js';
 import { npcById, ports, isleOf, whoOf, isleShort } from '../barter_npcs.js';
 import { fmtDistance } from '../sailing.js';
 import { QUEST_CHOICES, VOUCHER_CHOICES } from '../barter-orders.js';
 import { landPrices } from '../land-cost.js';
 import { GOODS, PARLEY, levelOf } from '../barter.js';
-import { weightOf, sellOf } from '../barter-plan.js';
+import { weightOf, sellOf, stacks } from '../barter-plan.js';
 import { shotGuideHTML } from '../barter-import.js';
 import { bookFromGame, fitOf as matFitOf, MIN_FIT as MAT_MIN_FIT } from '../material-book.js';
 import { materialPages, materialDeal } from '../barter-layouts.js';
@@ -584,7 +584,7 @@ export function materialParts(me, data) {
 		if (net < coin.qty) { coin.qty = net; coin.saved = saved; plan = layFor(); }
 	}
 	const listPanel = `<section class="barter-chains mat-list hero">${matNeedHTML(mats)}</section>`;
-	plan.stops = nudged(plan.stops, V.routeEdit.nudge, plan.weightStart);
+	plan.stops = nudged(plan.stops, V.routeEdit.nudge, plan.weightStart, plan.slotsStart);
 	for (const s of plan.stops) s.hold = me.hold;
 	// Each island at its own price: the material list's exchanges cost far
 	// more Parley than a trade good's, and a run recorded at the trade
@@ -633,12 +633,13 @@ export function materialParts(me, data) {
 		return `<div class="mat-yield-row ${state}">${img(m.it, 'row-icon sm')}<span class="mat-yield-name">${esc(gameName(m.it))}</span><b class="mat-yield-n">${g.max > 0 ? gotText(m) : '0'}<small> ${T('of {n}', { n: wantSaid(m.qty) })}</small></b><span class="mat-yield-bar"><i style="width:${pctMax.toFixed(1)}%"></i><i class="least" style="width:${pct.toFixed(1)}%"></i></span><span class="mat-yield-note">${state === 'met' ? T('the want is met') : state === 'none' ? (showing.some(a => a.recv === m.it) ? T('nothing comes of it today') : T('no island ticked')) : all ? T('as much as the Parley pays for') : T('{n} still wanted · another refresh', { n: F(Math.ceil(w)) })}</span></div>`;
 	}).join('');
 	const peakM = shownHold(me.hold, plan.weightPeak);
+	const slotsM = Number.isFinite(plan.slotsPeak) ? shownSlots(me.hold, plan.slotsPeak) : null;
 	const holdCls = peakM.state === 'heavy' || peakM.state === 'dead' ? 'warn' : peakM.state === 'over' ? 'amber' : 'ok';
 	const fig = (icon, v, sub, cls = '') => `<span class="mat-fig${cls ? ` ${cls}` : ''}"><i>${icon}</i><span class="mat-fig-text"><b>${v}</b>${sub ? `<small>${sub}</small>` : ''}</span></span>`;
 	const figs = plan.stops.length ? `<div class="mat-figs">
 		${fig(img(currentShip().name, 'ship-ico'), plan.islands === 1 ? T('{n} island', { n: plan.islands }) : T('{n} islands', { n: plan.islands }), plan.trades === 1 ? T('{n} trade', { n: plan.trades }) : T('{n} trades', { n: plan.trades }))}
 		${plan.calls ? fig('⚓', plan.calls === 1 ? T('{n} harbour call', { n: plan.calls }) : T('{n} harbour calls', { n: plan.calls }), plan.returns ? T('{n} departures: the hold cannot carry every give at once', { n: plan.returns + 1 }) : T('to load from storage')) : ''}
-		${fig('⚖', esc(peakM.text), `${T('at its fullest')} · ${holdCls === 'ok' ? T('under the limit') : holdCls === 'amber' ? T('over the limit: sailing slower') : T('over {n}: too heavy to barter', { n: F(peakM.deal) })}`, holdCls)}
+		${fig('⚖', `${esc(peakM.text)}${slotsM ? ` · ${esc(slotsM.text)}` : ''}`, `${T('at its fullest')} · ${holdCls === 'ok' ? T('under the limit') : holdCls === 'amber' ? T('over the limit: sailing slower') : T('over {n}: too heavy to barter', { n: F(peakM.deal) })}`, holdCls)}
 		${(n => (n ? fig('🍞', n === 1 ? T('{n} call for supplies', { n }) : T('{n} calls for supplies', { n }), T('put in where the rations would run low')) : ''))(plan.stops.filter(s => s.refill).length)}
 		${legs.total ? fig('⏱', esc(runTime(legs, book)), `${T('{dist} at {speed}%', { dist: esc(fmtDistance(legs.total)), speed: me.speed.total })}${from ? ` ${T('from {port}', { port: esc(gameName(from.name)) })}` : ''}`) : ''}
 		${plan.cost ? fig(img(SILVER, 'row-icon xs'), FC(plan.cost), T('to buy ashore first')) : ''}
@@ -860,7 +861,7 @@ function matsToday() {
  * wharf calls stay where they are, since a trip carries only what was
  * loaded for it -- and the hold weighed again along the trip.
  */
-function nudged(stops, nudge, weightStart) {
+function nudged(stops, nudge, weightStart, slotsStart) {
 	if (!Object.keys(nudge || {}).length) return stops;
 	const out = [...stops];
 	for (const [id, by] of Object.entries(nudge)) {
@@ -872,11 +873,14 @@ function nudged(stops, nudge, weightStart) {
 		const j = Math.max(lo, Math.min(hi, i + by));
 		if (j !== i) out.splice(j, 0, out.splice(i, 1)[0]);
 	}
-	let w = weightStart;
+	let w = weightStart, sl = slotsStart;
 	return out.map(x => {
-		if (!x.npcId) { w = x.weightAfter; return x; }
+		if (!x.npcId) { w = x.weightAfter; sl = x.slotsAfter; return x; }
 		w += x.times * (x.recvMax * weightOf(x.item) - (levelOf(x.give) !== null ? x.giveN * weightOf(x.give) : 0));
-		return { ...x, weightAfter: w };
+		// The slots fall as the gives leave: a slot a unit for a [Level 5]
+		// and up; a kind that stacks is counted as staying till the call.
+		if (Number.isFinite(sl) && levelOf(x.give) !== null && !stacks(x.give)) sl = Math.max(0, sl - x.times * x.giveN);
+		return { ...x, weightAfter: w, ...(Number.isFinite(sl) ? { slotsAfter: sl } : {}) };
 	});
 }
 

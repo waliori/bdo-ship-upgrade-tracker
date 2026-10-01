@@ -8,6 +8,7 @@
 // sailor's own.
 
 import { call, feature } from '../sync.js';
+import { T } from '../i18n.js';
 import { redrawSoon } from './search.js';
 import { paidBand } from '../digest.js';
 
@@ -20,7 +21,7 @@ let askedAt = 0;
 async function ask() {
 	askedAt = Date.now();
 	try {
-		const res = await call('GET', '/api/community');
+		const res = await call('GET', '/api/community', null, T('Asking what the fleet was paid…'));
 		if (res && res.ok && res.body && res.body.stats) {
 			held = res.body.stats.sevens || {};
 			heldRolls = res.body.stats.rolls || {};

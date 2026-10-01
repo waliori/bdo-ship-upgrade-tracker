@@ -6,16 +6,16 @@ import { T, gameName } from '../i18n.js';
 import * as store from '../state.js';
 import { img, copyName } from '../ui-bits.js';
 import { SILVER } from '../ui-state.js';
-import { shownHold } from '../ship.js';
+import { shownHold, shownSlots } from '../ship.js';
 import { npcById, isleShort } from '../barter_npcs.js';
 import { floorOf } from '../barter-orders.js';
 import { marketStatus } from '../market.js';
 import { COIN, levelOf } from '../barter.js';
-import { weightOf, sellOf } from '../barter-plan.js';
+import { weightOf, sellOf, slotsHeld, rankOf } from '../barter-plan.js';
 import { tailOf } from '../barter-chains.js';
 import { V } from './state.js';
 import { lvTag } from './cockpit.js';
-import { aboardStock, unloadTo } from './hold.js';
+import { aboardStock, unloadTo, holdSlotsNow } from './hold.js';
 import { n1, TIER } from './route.js';
 import { sailing, moveKey, mergeApplied } from './sail.js';
 import { coinsOf, coinRange } from './short.js';
@@ -152,7 +152,7 @@ export function sparesOf(chosen, from, o, stocking = false) {
 		if (spare <= 0) continue;
 		// Sold only what the day sells and a floor does not keep.
 		const keep = stocking ? spare : Math.min(spare, Math.max(0, floorOf(item, o) - (store.getStock(item) - n)));
-		const sell = !stocking && lv >= o.sell && sellOf(item) > 0 ? spare - keep : 0;
+		const sell = !stocking && rankOf(item) >= o.sell && sellOf(item) > 0 ? spare - keep : 0;
 		if (sell > 0) out.push({ item, n: sell, sell: true });
 		if (spare - sell > 0) out.push({ item, n: spare - sell, sell: false });
 	}
@@ -276,6 +276,13 @@ export function packingLT(plan, from, chosen) {
 	return shoreAboard - p.aboard.filter(x => !packedNow(x)).reduce((a, x) => a + x.n * weightOf(x.item), 0);
 }
 
+/** The same for the hold's slots: the hold as it stands, less the goods
+ *  aboard whose tick was taken off. */
+export function packingSlots(plan, from, chosen) {
+	const p = packingOf(plan, from, chosen);
+	return holdSlotsNow(p.aboard.filter(x => !packedNow(x)).map(x => [x.item, x.n]));
+}
+
 export function packingCount(plan, from, chosen) {
 	const p = packingOf(plan, from, chosen);
 	const list = [...p.ashore, ...p.market, ...p.storage, ...p.bag, ...p.aboard];
@@ -316,6 +323,7 @@ export function tripsOf(plan) {
 		const from = t.head >= 0 ? t.head : 0;
 		t.stops = stops.slice(from, end);
 		t.peak = t.stops.reduce((a, s) => Math.max(a, s.weightAfter || 0), t.head < 0 ? plan.weightStart || 0 : 0);
+		t.peakSlots = t.stops.reduce((a, s) => Math.max(a, s.slotsAfter || 0), t.head < 0 ? plan.slotsStart || 0 : 0);
 		// What the call at the end of the trip sells: the next trip's
 		// start, or the run's last call.
 		const sold = next && next.head >= 0 ? [...stops.slice(0, next.head + 1)].reverse().find(s => s.wharf && s.sale) : [...stops].reverse().find(s => s.wharf && s.sale);
@@ -347,6 +355,8 @@ export function tripsHTML(plan, from, chosen, hold) {
 		return `${t.chains.map(cn).join(' · ')} · ${isl === 1 ? T('{n} island', { n: isl }) : T('{n} islands', { n: isl })}${t.sale ? ` · ${T('back at {port}: sells {n} [Level 7]', { port: esc(port), n: n1(l7(t)) })}` : ''}`;
 	};
 	const w = lt => shownHold(hold, lt).text;
+	// The fullest a trip gets, by weight and by slots.
+	const fullest = t => (Number.isFinite(plan.slotsStart) ? `${w(t.peak)} · ${shownSlots(hold, t.peakSlots).text}` : w(t.peak));
 	// The chains a trip climbs, and the ticked chains folded into them:
 	// leaving the trip out unticks them all.
 	const idsOf = t => { const hosts = t.chains.map(k => plan.order[k]); return chosen.filter(c => hosts.includes(c) || hosts.some(h => tailOf(h, c))).map(c => c.id); };
@@ -358,7 +368,7 @@ export function tripsHTML(plan, from, chosen, hold) {
 	const head = `<div class="trips-head"><b>${trips.length === 1 ? T('{n} trip out of {port}', { n: trips.length, port: esc(port) }) : T('{n} trips out of {port}', { n: trips.length, port: esc(port) })}</b><span>${T('load {a} now, {b} picked up on the way', { a: trips[0].loads.length + packingCount(plan, from, chosen).all - trips[0].loads.length, b: later })} · ${T('the hold cannot carry every chain\u2019s first goods at once, so the run calls back for the rest; a trip can be left out below')}</span>${(V.routeEdit.trips || []).length || V.routeEdit.skip.length || Object.keys(V.routeEdit.nudge).length ? `<span class="panel-spacer"></span><button class="chip tiny primary" data-act="barter-route-reset" title="${T('Every change taken back: the route the planner found shortest')}">↺ ${T('back to the optimised route')}</button>` : ''}</div>`;
 	const first = `<section class="trip-card now"><div class="trip-head"><span class="trip-k">${T('Trip {n}', { n: 1 })}</span><b>${T('load now at {port}', { port: esc(port) })}</b><span class="trip-line">${line(trips[0])}</span><span class="panel-spacer"></span><span class="trip-state">${(() => { const c = packingCount(plan, from, chosen); return T('{n} of {of} aboard', { n: c.done, of: c.all }); })()}</span>${moveBtns(trips[0])}</div>
 		${packingHTML(plan, from, chosen)}
-		<div class="trip-foot">${T('hold at its fullest on this trip: {w}', { w: esc(w(trips[0].peak)) })}</div></section>`;
+		<div class="trip-foot">${T('hold at its fullest on this trip: {w}', { w: esc(fullest(trips[0])) })}</div></section>`;
 	const rest = trips.slice(1).map(t => {
 		// Goods riding in the bag weigh nothing on the hold, and come out
 		// of it at whichever wharf the trip starts from.
@@ -366,16 +376,23 @@ export function tripsHTML(plan, from, chosen, hold) {
 		const over = plan.weightStart + t.loads.filter(heavy).reduce((a, l) => a + l.n * weightOf(l.item), 0) + trips.slice(1, t.n - 1).reduce((a, x) => a + x.loads.filter(heavy).reduce((b, l) => b + l.n * weightOf(l.item), 0), 0);
 		const bagOnly = t.loads.length > 0 && t.loads.every(l => l.bag);
 		const atStart = shownHold(hold, over);
+		// And its slots: the goods of the trips before it and its own, on
+		// what the run casts off with. A trip over the slots is why it waits
+		// as often as a trip over the weight.
+		const loadsTo = new Map();
+		for (const x of [t, ...trips.slice(1, t.n - 1)]) for (const l of x.loads.filter(heavy)) loadsTo.set(l.item, (loadsTo.get(l.item) || 0) + l.n);
+		const slotsAtStart = Number.isFinite(plan.slotsStart) ? shownSlots(hold, plan.slotsStart + slotsHeld(loadsTo)) : null;
 		const early = t.at >= 0 && t.head >= 0 && t.at < t.head;
 		const when = t.at < 0 ? T('on the way') : bagOnly ? T('out of your bag at {port} wharf, stop {k}', { port: esc(gameName((plan.stops[t.at].wharf || {}).at || '')), k: t.at + 1 }) : early ? T('picked up early, at {port} wharf, stop {k}, while the trip before is still under way', { port: esc(port), k: t.at + 1 }) : T('picked up at {port} wharf, stop {k}', { port: esc(port), k: t.at + 1 });
 		const drop = `<button class="chip tiny trip-drop" data-act="barter-trip-drop" data-ids="${esc(idsOf(t).join('\n'))}" title="${T('Untick this trip\u2019s chains: the run is laid again without them')}">${T('leave this trip out')}</button>`;
 		return `<section class="trip-card later"><div class="trip-head"><span class="trip-k">${T('Trip {n}', { n: t.n })}</span><b>${when}</b><span class="trip-line">${line(t)}</span><span class="panel-spacer"></span><span class="trip-state">${t.loads.length === 1 ? T('{n} thing picked up on the way', { n: t.loads.length }) : T('{n} things picked up on the way', { n: t.loads.length })}</span>${moveBtns(t)}${drop}</div>
 			${t.loads.map(l => `<div class="trip-row"><i class="trip-dot"></i><span class="pack-icon"${levelOf(l.item) ? ` style="--tier:${TIER(levelOf(l.item))}"` : ''}>${img(l.item, 'row-icon')}</span><span class="pack-what"><b>${esc(gameName(l.item))}</b><em>${l.bag ? T('rides in your bag') : T('waits in the storage at {port}', { port: esc(port) })}${weightOf(l.item) ? ` · ${T('{lt} LT', { lt: (Math.round(l.n * weightOf(l.item) * 10) / 10).toLocaleString() })}` : ''}</em></span><span class="pack-n"><b>${n1(l.n)}</b></span></div>`).join('')}
 			<div class="trip-foot">${bagOnly ? T('in your bag from the start, not the hold') : atStart.total > atStart.limit ? T('not now: with the trips before it aboard the hold would be {w}, over the limit', { w: esc(atStart.text) })
+				: slotsAtStart && slotsAtStart.over ? T('not now: with the trips before it aboard the hold would take {s}, more than it has', { s: esc(slotsAtStart.text) })
 				// It would fit at the start: the lots are cut for the whole
 				// climb and then for the shortest run, so the reason is
 				// there, not in the start's weight.
-				: T('it would fit at the start ({w}), but the run is shorter, or the hold lighter along the way, picking it up later', { w: esc(atStart.text) })} · ${T('hold at its fullest on this trip: {w}', { w: esc(w(t.peak)) })}</div></section>`;
+				: T('it would fit at the start ({w}), but the run is shorter, or the hold lighter along the way, picking it up later', { w: esc(atStart.text) })} · ${T('hold at its fullest on this trip: {w}', { w: esc(fullest(t)) })}</div></section>`;
 	}).join('');
 	return `<div class="trips">${head}${first}${rest}</div>`;
 }
@@ -427,7 +444,7 @@ export function packingHTML(plan, from, chosen = [], only = null) {
 	return `<div class="pack-groups">
 		${group(T('Buy at the Market'), `${plan.cost ? T('{silver} to buy', { silver: FC(Math.round(plan.cost)) }) : T('before casting off')}${p.market.length ? ` · ${T('{lt} LT to carry', { lt: (Math.round(p.market.reduce((w, x) => w + x.n * weightOf(x.item), 0) * 10) / 10).toLocaleString() })}` : ''}`, p.market, T('nothing to buy — the run starts from what is held'))}
 		${group(T('Take from storage'), where ? esc(T('{at} wharf', { at: where })) : T('before casting off'), p.storage, T('nothing in storage is needed'))}
-		${p.bag.length ? group(T('Into your bag'), `${T('your inventory, not the hold')} · ${(lt => (plan.bag ? T('{lt} LT of the {free} it takes', { lt, free: F(plan.bag.free) }) : T('{lt} LT', { lt })))((Math.round(p.bag.reduce((w, x) => w + x.n * weightOf(x.item), 0) * 10) / 10).toLocaleString())}`, p.bag, '') : ''}
+		${p.bag.length ? group(T('Into your bag'), `${T('your inventory, not the hold')} · ${(lt => (plan.bag ? T('{lt} LT of the {free} it takes', { lt, free: F(plan.bag.free) }) : T('{lt} LT', { lt })))((Math.round(p.bag.reduce((w, x) => w + x.n * weightOf(x.item), 0) * 10) / 10).toLocaleString())} · ${(n => (plan.bag && plan.bag.slots !== null && plan.bag.slots !== undefined ? T('{n} of {of} slots', { n: F(n), of: F(plan.bag.slots) }) : T('{n} slots', { n: F(n) })))(slotsHeld(new Map(p.bag.map(x => [x.item, x.n]))))}`, p.bag, '') : ''}
 		${group(T('Already aboard'), T('checked against the hold'), p.aboard, T('nothing the run starts from is aboard yet'))}
 	</div>`;
 }
@@ -461,7 +478,7 @@ export function afterShelfHTML(plan, from) {
 	}
 	for (const g of plan.stashed || []) add(g.item, g.n, g.at || '', 'left');
 	const noteOf = x => [x.at ? T('at {where}', { where: gameName(x.at) }) : '', x.how === 'stock' ? T('kept for the stock') : x.how === 'left' ? T('left on the way') : ''].filter(Boolean).join(' · ');
-	const backRows = [...back.values()].filter(x => x.n > 0).sort((a, b) => (levelOf(b.item) || 0) - (levelOf(a.item) || 0) || b.n - a.n);
+	const backRows = [...back.values()].filter(x => x.n > 0).sort((a, b) => rankOf(b.item) - rankOf(a.item) || b.n - a.n);
 	const kinds = n => (n === 1 ? T('{n} kind', { n }) : T('{n} kinds', { n }));
 	const sold = plan.silver > 0 ? `<span class="shelf-tile silver"><b>${FC(Math.round(plan.silver))}</b><span>${T('sold at the wharf')}</span></span>` : '';
 	// Coins are not cargo, so they are not a tile like a good is -- but
