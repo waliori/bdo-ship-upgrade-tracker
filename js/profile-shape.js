@@ -414,7 +414,7 @@ export function readProfile(raw) {
 			// A run stopped part-way, to be continued: the chains ticked, the
 			// islands each climbed, how many stops of how many were done.
 			...(r.cont && typeof r.cont === 'object' && Array.isArray(r.cont.ids) ? { cont: { ids: r.cont.ids.filter(x => typeof x === 'string').slice(0, 20).map(x => x.slice(0, 160)), isles: (Array.isArray(r.cont.isles) ? r.cont.isles : []).filter(Array.isArray).slice(0, 20).map(l => l.map(Number).filter(n => Number.isFinite(n) && n > 0).slice(0, 10)), done: Math.max(0, Math.floor(Number(r.cont.done) || 0)), all: Math.max(0, Math.floor(Number(r.cont.all) || 0)) } } : {}),
-			stops_: Array.isArray(r.stops_) ? r.stops_.filter(x => x && ['n', 'w', 'q', 'v'].includes(x.k)).slice(0, 80).map(x => {
+			stops_: Array.isArray(r.stops_) ? r.stops_.filter(x => x && ['n', 'w', 'q', 'v'].includes(x.k)).slice(0, RUN_STOPS).map(x => {
 				const str = (v, n = 80) => (typeof v === 'string' ? v.slice(0, n) : '');
 				const num = v => (Number.isFinite(Number(v)) ? Math.floor(Number(v)) : 0);
 				const o = { k: x.k, p: str(x.p) };
@@ -549,6 +549,9 @@ export function readProfile(raw) {
 export const VIEW_NAMESPACES = ['map', 'barter', 'timer'];
 export const VIEW_BYTES = 300_000;
 const VIEW_STRING = 120;
+// The most stops one run is kept with -- the checklist being sailed and
+// the run log alike.
+export const RUN_STOPS = 300;
 const VIEW_DEPTH = 8;
 const VIEW_LIST = 200;
 
@@ -566,7 +569,11 @@ const VIEW_CAPS = {
 	timer: {},
 	barter: {
 		'board.answers': 120, 'board.used': 100, 'board.last.ids': 20, 'board.last.isles': 20, 'matBoard.answers': 120, 'matBoard.used': 120, 'wants': 60, 'routes.ids': 40, 'routesOther.ids': 40,
-		'sail.stops': 80, 'sail.done': 80, 'questSkip.ids': 100, 'questPull.ids': 100
+		// A run's stops are its islands and every wharf, supply, voucher
+		// and quest call between them: twenty chains of a dozen islands
+		// with their calls come to a few hundred, and a checklist cut
+		// short of the run it belongs to is read back as no run at all.
+		'sail.stops': RUN_STOPS, 'sail.done': RUN_STOPS, 'questSkip.ids': 100, 'questPull.ids': 100
 	}
 };
 // The one string a player writes at length: a trace's notes.

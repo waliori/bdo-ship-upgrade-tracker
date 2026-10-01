@@ -340,7 +340,9 @@ function sailorSheet(s, { ship, where = null, readOnly = false } = {}) {
 		// known level by level; the band's ends and middle where not.
 		const rank = typed && band ? rollRank(s.type, key, s.lv, v) : null;
 		const word = rank
-			? (v >= band.max ? T('top roll') : v <= band.min ? T('floor roll') : v > band.max ? T('past the top') : T('beats {pct}%', { pct: Math.round(rank.below * 100) }))
+			// Past the top before the top itself: tested the other way
+			// round, a roll above the band read as a plain top roll.
+			? (v > band.max ? T('past the top') : v >= band.max ? T('top roll') : v <= band.min ? T('floor roll') : T('beats {pct}%', { pct: Math.round(rank.below * 100) }))
 			: typed && band
 				? (v >= band.max - 0.05 ? T('top roll') : v <= band.min + 0.05 ? T('floor roll') : v >= band.avg ? T('above average') : T('below average'))
 				: '';
@@ -1296,8 +1298,15 @@ async function copyShipLink() {
  * The profile fields a ship setup writes -- the hull, its parts,
  * crystal and seats, and the roster -- read against `get`, the profile
  * it is written over. Null when the setup names no hull the app knows.
+ *
+ * `join` is for taking the ship, not looking at it: the link's sailors
+ * come aboard beside the roster already here instead of in place of it.
+ * A link's ids are only "0", "1", ...; written over the roster, every
+ * seat on another hull, every saved setup and preset that named one of
+ * the sailors here pointed at nobody, and a link with no crew emptied
+ * the roster outright.
  */
-export function shipSetupPatch(setup, get = (key, fallback) => store.getProfile(key, fallback)) {
+export function shipSetupPatch(setup, get = (key, fallback) => store.getProfile(key, fallback), { join = false } = {}) {
 	if (!setup || !shipStats[setup.ship]) return null;
 	const patch = { crewShip: setup.ship };
 	if (setup.fitted && typeof setup.fitted === 'object') {
@@ -1308,6 +1317,16 @@ export function shipSetupPatch(setup, get = (key, fallback) => store.getProfile(
 		if (setup.crystal && crystalById[setup.crystal]) all[setup.ship] = Number(setup.crystal); else delete all[setup.ship];
 		patch.crystal = Object.keys(all).length ? all : null;
 	}
+	if (join) {
+		const joined = joinCrew(setup, get('roster', []) || []);
+		if (joined) {
+			patch.roster = joined.roster;
+			const all = { ...(get('seats', {}) || {}) };
+			if (Object.keys(joined.seats).length) all[setup.ship] = joined.seats; else delete all[setup.ship];
+			patch.seats = all;
+		}
+		return patch;
+	}
 	if (Array.isArray(setup.roster)) patch.roster = setup.roster;
 	if (setup.seats && typeof setup.seats === 'object') {
 		const all = { ...(get('seats', {}) || {}) };
@@ -1317,8 +1336,47 @@ export function shipSetupPatch(setup, get = (key, fallback) => store.getProfile(
 	return patch;
 }
 
+// The most sailors a roster keeps; see readProfile.
+const ROSTER_CAP = 60;
+
+/**
+ * The link's crew brought aboard the roster here: the roster as it
+ * will stand, and the linked hull's seats in its ids. A sailor already
+ * on the roster -- same name, type and level, as when the same link is
+ * taken twice -- is the one seated rather than a second copy. The
+ * sailors seated on the hull come first, so a roster near its cap
+ * still takes the ones who sail it. Null when the link carries no
+ * crew: the roster and the seats here are left as they are.
+ */
+function joinCrew(setup, mine) {
+	const theirs = Array.isArray(setup.roster) ? setup.roster.filter(s => s && typeof s === 'object' && typeof s.type === 'string' && s.id != null) : [];
+	if (!theirs.length) return null;
+	const linkSeats = setup.seats && typeof setup.seats === 'object' ? setup.seats : {};
+	const seated = new Set(Object.values(linkSeats).map(String));
+	const order = [...theirs.filter(s => seated.has(String(s.id))), ...theirs.filter(s => !seated.has(String(s.id)))];
+	const roster = [...mine];
+	const taken = new Set();
+	const idOf = new Map();
+	let n = 0;
+	for (const s of order) {
+		const same = mine.find(m => !taken.has(m.id) && m.type === s.type && m.name === (s.name || s.type) && Number(m.lv) === Number(s.lv));
+		if (same) {
+			taken.add(same.id);
+			idOf.set(String(s.id), same.id);
+			continue;
+		}
+		if (roster.length >= ROSTER_CAP) continue;
+		const id = 's' + Date.now().toString(36) + (n++).toString(36) + Math.floor(Math.random() * 1e5).toString(36);
+		roster.push({ ...s, id });
+		idOf.set(String(s.id), id);
+	}
+	const seats = {};
+	for (const [seat, id] of Object.entries(linkSeats)) if (idOf.has(String(id))) seats[seat] = idOf.get(String(id));
+	return { roster, seats };
+}
+
 export function applyShipSetup(setup) {
-	const patch = shipSetupPatch(setup);
+	const patch = shipSetupPatch(setup, undefined, { join: true });
 	if (!patch) return false;
 	// The dialog promises one Undo takes it back, so it is one change.
 	store.setProfileMany(patch, T('Took a ship from a link: {ship}', { ship: gameName(setup.ship) }));

@@ -19,6 +19,7 @@ import { T, TT, said } from './i18n.js';
 
 const REV_KEY = 'sync.rev';
 const DEVICE_KEY = 'sync.device';
+const REV_WHO_KEY = 'sync.revWho';
 
 // Long enough that typing a quantity does not push on every keystroke,
 // short enough that switching to your phone finds the change already there.
@@ -37,6 +38,10 @@ const PUSH_DELAY = 500;
 // backing off up to about half a minute.
 const RETRY_MIN = 1500;
 const RETRY_MAX = 30000;
+
+// What a browser lets a keepalive request carry: 64 KiB, less a little
+// for the headers.
+const KEEPALIVE_MAX = 63 * 1024;
 
 let hooks = {};
 let account = null;      // { id, username, avatar, share, admin } once signed in
@@ -101,11 +106,22 @@ function localText() {
 	return JSON.stringify(out);
 }
 
+// A profile is something too: a browser holding only a roster, the
+// ship setups, traces and a barter count is not an empty one, and
+// counting stock and builds alone had sign-in replace all of that
+// without a word.
 const isEmpty = data =>
-	!data || (!Object.keys(data.stock || {}).length && !(data.targets || []).length);
+	!data || (!Object.keys(data.stock || {}).length && !(data.targets || []).length && !Object.keys(data.profile || {}).length);
 
 const rev = () => Number(store.getSetting(REV_KEY, 0)) || 0;
-const setRev = value => store.setSetting(REV_KEY, value);
+// The revision is noted with the account it belongs to, so a revision
+// learned under one account is never taken as agreement with another's
+// save of the same number.
+const setRev = value => {
+	store.setSetting(REV_KEY, value);
+	store.setSetting(REV_WHO_KEY, account ? account.id : null);
+};
+const revIsMine = () => Boolean(account) && store.getSetting(REV_WHO_KEY, null) === account.id;
 
 /** A name for this browser, so the other one can say where a save came
  *  from. Guessed from the user agent and never sent anywhere else. */
@@ -216,7 +232,7 @@ export function call(method, path, body) {
 export async function setShare(share) {
 	const res = await api('PUT', '/api/community/share', { share });
 	if (!res.ok) throw new Error((res.body && res.body.error) || T('The boards did not answer.'));
-	if (account) account = { ...account, share: res.body.share };
+	if (account) account = { ...account, share: res.body.share, asked: true };
 	tell();
 	return res.body.share;
 }
@@ -279,6 +295,13 @@ async function firstPull() {
 		return say('idle');
 	}
 
+	// The server has not moved since this browser last agreed with it,
+	// so the copy here is simply ahead: edits made offline, or a push
+	// lost with the tab inside the delay. Nothing else changed, so there
+	// is nothing to choose between -- asking offered "Use the saved one",
+	// which threw those edits away.
+	if (remote.rev === rev() && rev() > 0 && revIsMine()) return push(true);
+
 	askWhichCopy(remote, T('You have an inventory here and another one saved.'));
 }
 
@@ -335,6 +358,17 @@ async function push(force = false) {
 			// would wipe the inventory it was meant to protect. That is a
 			// bad moment, not a conflict: try again later.
 			if (!res.body || !res.body.data) {
+				// The server holds no save at all -- the row was lost, or
+				// never flushed. Pushing again at the old revision meets the
+				// same refusal for ever; this copy is the only one there
+				// is, so it goes up as the first save. Once only: a second
+				// refusal at nought is a bad moment, retried as one.
+				if (res.body && res.body.rev === 0 && rev() > 0) {
+					setRev(0);
+					lastPushed = null;
+					again = true;
+					return say('syncing');
+				}
 				retryLater();
 				return say('error', T('that did not save'));
 			}
@@ -366,7 +400,9 @@ async function push(force = false) {
 		}
 		if (res.status === 401) {
 			account = null;
-			return say('out');
+			say('out');
+			tell();
+			return;
 		}
 		// Too fast, not wrong. The save is fine and will go through; it
 		// just has to wait, which is what the backoff already does.
@@ -410,7 +446,14 @@ function retryLater() {
 /** Check for someone else's changes -- on focus, and when asked. */
 async function pull() {
 	if (!account || resolving || inFlight || store.isTransient()) return;
-	const got = await api('GET', '/api/state');
+	// Offline, the request throws; a pull that could not happen is not
+	// news, and "Sync now" must still go on to its push.
+	let got;
+	try {
+		got = await api('GET', '/api/state');
+	} catch {
+		return;
+	}
 	if (!got.ok || !got.body) return;
 	const remote = got.body;
 	// Only ever move forwards. A server that lost an unflushed revision --
@@ -704,7 +747,7 @@ export async function initSync(callbacks = {}) {
 		return;
 	}
 
-	account = { ...me.body.user, share: me.body.share || null, admin: me.body.admin === true };
+	account = { ...me.body.user, share: me.body.share || null, asked: me.body.asked !== false, admin: me.body.admin === true };
 	// Not "Synced" yet -- nothing has been compared. Saying so before the
 	// first pull would be a claim the app cannot make.
 	say('syncing');
@@ -751,15 +794,24 @@ export async function initSync(callbacks = {}) {
 		// this yet", and only the second one is answerable here.
 		const text = localText();
 		if (text === lastPushed) return;
-		fetch('/api/state', {
+		const body = JSON.stringify({ rev: rev(), data: JSON.parse(text), device: deviceName() });
+		// A browser refuses a keepalive request whose body is over 64 KiB,
+		// and a profile with its traces and run log is often that big. An
+		// ordinary request may still leave before the page goes, so a body
+		// too big -- or a keepalive refused -- is sent the ordinary way
+		// rather than not at all.
+		const send = keepalive => fetch('/api/state', {
 			method: 'PUT',
 			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ rev: rev(), data: JSON.parse(text), device: deviceName() }),
+			body,
 			credentials: 'same-origin',
-			keepalive: true
-		}).catch(() => {
+			keepalive
+		});
+		const plain = () => send(false).catch(() => {
 			// Nothing can be reported from a page that is going away. The
 			// local copy is intact and the next visit will push it.
 		});
+		if (new Blob([body]).size < KEEPALIVE_MAX) send(true).catch(plain);
+		else plain();
 	});
 }

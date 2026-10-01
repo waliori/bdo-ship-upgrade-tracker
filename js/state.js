@@ -226,7 +226,15 @@ function normalise(input) {
 	}
 	if (raw.strategy && typeof raw.strategy === 'object') {
 		for (const [item, mode] of Object.entries(raw.strategy)) {
-			if (isStrategy(mode)) s.strategy[item] = mode;
+			if (!isStrategy(mode)) continue;
+			// A route kept in the buy-or-craft slot (before 2026-10-01) moves
+			// to its own key (planner.js routeKey); picking it meant crafting.
+			if (mode !== 'buy' && mode !== 'craft' && routes[item] && Object.hasOwn(routes[item], mode)) {
+				if (!(`route:${item}` in raw.strategy)) s.strategy[`route:${item}`] = mode;
+				if (buyFirst.has(item) && !(item in s.strategy)) s.strategy[item] = 'craft';
+				continue;
+			}
+			s.strategy[item] = mode;
 		}
 	}
 	s.profile = readProfile(raw.profile);
@@ -550,9 +558,12 @@ export function undo() {
 	if (entry.viewKeys) redoEntry.viewKeys = entry.viewKeys;
 	future.push(redoEntry);
 
-	// Undo is replayed as the change it made, with no entry of its own:
-	// the entry it took off is the other tab's to keep or not.
-	const replay = {};
+	// Undo is replayed as the change it made, with no entry of its own,
+	// and names the entry it took off: another tab's save that lands
+	// inside the debounce still has that entry, and taking its history
+	// with the entry left in would let a second Undo reverse the same
+	// change twice.
+	const replay = { undone: { t: entry.t, type: entry.type, label: entry.label } };
 	if (entry.delta) {
 		replay.delta = {};
 		for (const [item, diff] of Object.entries(entry.delta)) {
@@ -1339,10 +1350,13 @@ export function moveTarget(id, direction) {
  * recognise the name, so an unknown value is inert rather than wrong.
  */
 export function setStrategy(item, mode) {
+	// A route goes under its own key (planner.js routeKey), never over the
+	// item's buy-or-craft choice.
+	if (typeof mode === 'string' && mode !== 'buy' && mode !== 'craft' && routes[item] && Object.hasOwn(routes[item], mode)) item = `route:${item}`;
 	const next = typeof mode === 'string' && mode ? mode : 'craft';
 	if (getStrategy(item) === next) return null;
 	const how = next === 'buy' ? 'buy it' : next === 'craft' ? 'craft it' : `via ${next}`;
-	return commit('strategy', `${item}: ${how}`, () => {
+	return commit('strategy', `${String(item).replace(/^route:/, '')}: ${how}`, () => {
 		const s = { ...state.strategy };
 		// The default is not stored, so a save only holds decisions.
 		if (next === defaultStrategy(item)) delete s[item];
@@ -1435,8 +1449,9 @@ export function inspectImport(parsed) {
 			.map(t => t.item))];
 	}
 	if (parsed.strategy && typeof parsed.strategy === 'object' && !Array.isArray(parsed.strategy)) {
-		for (const [item, route] of Object.entries(parsed.strategy)) {
+		for (const [key, route] of Object.entries(parsed.strategy)) {
 			if (route === 'buy' || route === 'craft') continue;
+			const item = key.replace(/^route:/, '');
 			if (routes[item] && typeof route === 'string' && route in routes[item]) continue;
 			out.unknownRoutes.push({ item, route: String(route) });
 		}
@@ -1477,7 +1492,7 @@ export function saveShape() {
  * every other device. An empty object still clears it, so a deliberate
  * reset survives the round trip.
  */
-export function adopt(data, label = T('Replaced tracker data')) {
+export function adopt(data, label = T('Replaced tracker data'), { keepAbsent = [] } = {}) {
 	const incoming = normalise(data);
 	// `isProfile` and not a bare typeof check: an array is an object to
 	// JavaScript but is not a profile, and treating one as a deliberate
@@ -1487,7 +1502,16 @@ export function adopt(data, label = T('Replaced tracker data')) {
 		state.stock = incoming.stock;
 		state.targets = incoming.targets;
 		state.strategy = incoming.strategy;
-		if (carriesProfile) state.profile = incoming.profile;
+		// `keepAbsent` names the fields a copy leaves out by design -- a
+		// slim link carries no views and no diaries -- and those stay as
+		// they are here when it does: taking a plan is not clearing the
+		// traces drawn, the run log or the barter checklist. A copy that
+		// does carry one replaces it like any other field.
+		if (carriesProfile) {
+			const kept = {};
+			for (const k of keepAbsent) if (!(k in data.profile) && k in state.profile) kept[k] = state.profile[k];
+			state.profile = Object.keys(kept).length ? readProfile({ ...incoming.profile, ...kept }) : incoming.profile;
+		}
 		// The profile kept is the old one, and its places were noted
 		// against the old counts: an item no longer owned is no longer
 		// anywhere, and a place cannot hold more than the new total.
@@ -1572,13 +1596,23 @@ export function merge(data, label = T('Merged tracker data')) {
  * Temporary state, for the guided tour
  * ------------------------------------------------------------------ */
 
-/** A copy of everything that matters, to put back later. */
+/**
+ * A copy of everything that matters, to put back later.
+ *
+ * A copy taken while something is already on show -- the tour started
+ * over a shared plan someone is looking around -- is marked as one, so
+ * putting it back puts the look back and not the save: the tour's
+ * capture used to be the shared plan, and its restore wrote that plan
+ * to the disk as the player's own. The looks nest, each restore going
+ * back one level, and only the outermost one writes.
+ */
 export function capture() {
 	return JSON.stringify({
 		stock: state.stock,
 		targets: state.targets,
 		strategy: state.strategy,
-		profile: state.profile
+		profile: state.profile,
+		...(transient ? { transient: true } : {})
 	});
 }
 
@@ -1596,13 +1630,17 @@ export function applyTransient(json) {
 	} catch {
 		return false;
 	}
-	transient = true;
-	// Drop any queued write from before the swap, so it cannot land later
-	// carrying example data.
-	if (writeTimer) {
+	// A write still inside the debounce goes out now, before the swap:
+	// it is the player's real change, and once the example is in it could
+	// only land carrying example data. Written here, it is on the disk
+	// whatever happens next -- another tab saving mid-look used to make
+	// restore() take the disk copy, which never had it.
+	if (!transient && writeTimer) {
 		clearTimeout(writeTimer);
 		writeTimer = null;
+		write();
 	}
+	transient = true;
 	// Through the same bounds as a save from the disk: a link is a save
 	// somebody else made, and one made by hand must not put a string or
 	// a negative count in front of the planner.
@@ -1623,15 +1661,30 @@ export function applyTransient(json) {
 
 /** Put back a captured copy and start saving again. */
 export function restore(json) {
+	let raw;
+	try {
+		raw = JSON.parse(json);
+	} catch {
+		return false;
+	}
+	// A copy of a look, taken from inside it: back to that look, and
+	// still nothing saved. See capture(). If the look has already ended
+	// underneath -- "Back to mine" pressed while the tour was up -- the
+	// player's own data is on screen and stays there.
+	if (raw && raw.transient === true) {
+		if (!transient) return false;
+		if (!applyTransient(json)) return false;
+		notify('restore');
+		return true;
+	}
 	// Another tab may have saved while the demo data was in. Its write is
 	// newer than our capture, so the disk copy wins -- the same rule the
-	// storage listener applies when we are not mid-tour.
+	// storage listener applies when we are not mid-tour, and by the same
+	// steps: anything this tab had not yet written goes back on top.
 	if (staleWhileTransient) {
 		transient = false;
 		staleWhileTransient = false;
-		state = normalise(readRaw());
-		written = { targets: JSON.stringify(state.targets), strategy: JSON.stringify(state.strategy) };
-		pending = [];
+		reload();
 		future = [];
 		notify('restore');
 		return true;
@@ -1832,6 +1885,16 @@ function reload() {
 		if (r.entry) {
 			state.history.push(r.entry);
 			if (state.history.length > HISTORY_CAP) state.history.shift();
+		}
+		if (r.undone) {
+			const u = r.undone;
+			for (let i = state.history.length - 1; i >= 0; i--) {
+				const e = state.history[i];
+				if (e.t === u.t && e.type === u.type && e.label === u.label) {
+					state.history.splice(i, 1);
+					break;
+				}
+			}
 		}
 	}
 	if (JSON.stringify(saveShape()) !== before) future = [];

@@ -178,6 +178,12 @@ test('auto assign seats everyone, the mate at the bow, and follows the goal it i
 	const turn = autoAssign(roster, ship, shipStats[ship], 'turn');
 	assert.equal(at(turn, 'wheel:0'), 'w', 'and the best handler to the wheel when turning is');
 	assert.ok(SAILOR_CAP >= 20);
+
+	// A sick sailor gives a seat nothing: left ashore, never at the Sail.
+	const sick = roster.map(s => (s.id === 'f' ? { ...s, cond: 0 } : s));
+	const mended = autoAssign(sick, ship, shipStats[ship], 'speed');
+	assert.ok(!Object.values(mended).includes('f'), 'the sick sailor stays ashore');
+	assert.notEqual(at(mended, 'sail:0'), undefined);
 });
 
 test('the goal decides the sail seat, not the sum of what it doubles', () => {

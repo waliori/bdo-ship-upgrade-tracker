@@ -170,7 +170,7 @@ test('a shared link goes through the same bounds as a save', () => {
 	assert.equal(store.getTargets().length, 1);
 	assert.equal(store.getTargets()[0].qty, 1);
 	assert.equal(store.getStrategy('Steel'), 'craft');
-	assert.equal(store.getStrategy('Epheria Cog'), 'pirates');
+	assert.equal(store.getStrategy('route:Epheria Cog'), 'pirates', 'a route lands under its own key');
 	store.restore(kept);
 });
 
