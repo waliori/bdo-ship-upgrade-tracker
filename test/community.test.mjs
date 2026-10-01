@@ -263,22 +263,16 @@ test('taking part puts the digest of the save on the boards, by name or unnamed'
 	assert.equal(me.share, 'named');
 	assert.equal(me.admin, true);
 
-	assert.equal(me.asked, true, 'choosing is answering');
-
-	// The boards are opt-in: signing in puts nobody on them. The
-	// stranger -- the highest mastery of the three -- is signed in, has
-	// never been asked, and is on no board however often the page asks
-	// who is there; the page is told to put the question.
+	// The boards are opt-out: asking who is signed in puts an account
+	// that has never said on them, by name. The stranger -- the highest
+	// mastery of the three -- is put on, then leaves, and is not put
+	// back however often the page asks again.
 	const first = await (await call('GET', '/api/me', { cookie: stranger })).json();
-	assert.equal(first.share, null);
-	assert.equal(first.asked, false);
+	assert.equal(first.share, 'named');
 	assert.equal(first.admin, false);
-	assert.equal((await (await call('GET', '/api/me', { cookie: stranger })).json()).share, null);
-	// "No, thanks" is an answer, and is kept.
 	assert.deepEqual(await (await call('PUT', '/api/community/share', { cookie: stranger, body: { share: 'off' } })).json(), { share: null });
-	const after = await (await call('GET', '/api/me', { cookie: stranger })).json();
-	assert.equal(after.share, null);
-	assert.equal(after.asked, true);
+	assert.equal((await (await call('GET', '/api/me', { cookie: stranger })).json()).share, null);
+	assert.equal((await (await call('GET', '/api/me', { cookie: stranger })).json()).share, null);
 
 	const body = await (await call('GET', '/api/community', { cookie: deckhand })).json();
 	assert.equal(body.sailors, 2);
@@ -419,10 +413,10 @@ test('the list is anyone\'s to read; answering one is the admin\'s', async () =>
 	assert.equal(after[1].status, 'done');
 });
 
-test('the move to opt-in takes off the boards only those signing in put there', async () => {
+test('the migrations after 10 take nobody off the boards', async () => {
 	// A database as it stood under the opt-out rule: one sailor who
-	// joined before it by pressing Take part, one who chose to be shown
-	// unnamed, one who left, and one whom signing in put on by name.
+	// pressed Take part, one shown unnamed, one who left, and one whom
+	// signing in put on by name. Every later step leaves them as they are.
 	const { createClient } = await import('@libsql/client');
 	const { MIGRATIONS } = await import('../server/db.js');
 	const c = createClient({ url: `file:${path.join(dir, 'migrate.db')}` });
@@ -430,7 +424,7 @@ test('the move to opt-in takes off the boards only those signing in put there', 
 	await run('CREATE TABLE schema_version (version INTEGER PRIMARY KEY, applied_at INTEGER NOT NULL)');
 	for (const step of MIGRATIONS.filter(m => m.version <= 10)) {
 		await step.up(run);
-		await run({ sql: 'INSERT INTO schema_version (version, applied_at) VALUES (?, ?)', args: [step.version, step.version === 3 ? 5000 : 1] });
+		await run({ sql: 'INSERT INTO schema_version (version, applied_at) VALUES (?, ?)', args: [step.version, 1] });
 	}
 	for (const id of ['early', 'anon', 'left', 'auto']) await run({ sql: 'INSERT INTO users (id, username, created_at, seen_at) VALUES (?, ?, 0, 0)', args: [id, id] });
 	await run("UPDATE users SET community_off = 1 WHERE id = 'left'");
@@ -440,9 +434,7 @@ test('the move to opt-in takes off the boards only those signing in put there', 
 	for (const step of MIGRATIONS.filter(m => m.version > 10)) await step.up(run);
 
 	const on = (await run('SELECT user_id FROM community ORDER BY user_id')).rows.map(r => r.user_id);
-	assert.deepEqual(on, ['anon', 'early'], 'the one signing in put on is still on, or a chooser was taken off');
-	const asked = Object.fromEntries((await run('SELECT id, community_asked FROM users')).rows.map(r => [r.id, Number(r.community_asked)]));
-	assert.deepEqual(asked, { early: 1, anon: 1, left: 1, auto: 0 }, 'the Community tab asks only the one who never answered');
+	assert.deepEqual(on, ['anon', 'auto', 'early']);
 	c.close();
 });
 

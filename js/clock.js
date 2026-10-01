@@ -3,9 +3,9 @@
 // Three resets pace a sailor's day and none of them is midnight where
 // the player sits: daily quests turn over, the barter refresh count
 // refills, and weekly quests come round again. Each is a wall-clock time
-// on a server's own clock, so it is worked out here the way Vell's
-// spawns already were -- from the player's own browser, through Intl,
-// with no server asked and nothing to be out of date but the table.
+// on a server's own clock, so it is worked out here from the player's
+// own browser, through Intl, with no server asked and nothing to be out
+// of date but the table.
 //
 // What is actually known, and what is only assumed:
 //
@@ -19,11 +19,8 @@
 //     carry `sure: false`, the screen says so, and the times can be
 //     corrected in place. Better an admitted assumption than a number
 //     presented as fact.
-//
-// Vell keeps a timetable of its own per region, read off mmotimer.com on
-// 2026-08-30, on the same correctable footing.
 
-import { T, TT, said } from './i18n.js';
+import { T, TT } from './i18n.js';
 
 export const DAILY_RESET_UTC = 0;
 export const BARTER_RESET_UTC = 6;
@@ -269,7 +266,7 @@ export function lastSpawn(zone, times, now = Date.now()) {
  *  their weekdays. A whole calendar day is stepped each time, never 24
  *  hours, which on a daylight-saving day lands on the wrong date: the
  *  hour before a spring-forward midnight jumped Saturday straight to
- *  Monday, and Sunday's Vell went missing. */
+ *  Monday, and a Sunday entry went missing. */
 function calendarDays(zone, now, from, to) {
 	const w = wallDate(zone, now);
 	const out = [];
@@ -278,25 +275,6 @@ function calendarDays(zone, now, from, to) {
 		out.push({ y: c.getUTCFullYear(), m: c.getUTCMonth(), d: c.getUTCDate(), day: c.getUTCDay() });
 	}
 	return out;
-}
-
-/** Vell's timetable by server, on the server's own clock. Checked
- *  against mmotimer.com on 2026-08-30. */
-export const VELL = {
-	eu: { label: 'EU', zone: 'Europe/Berlin', times: [{ day: 3, hour: 19 }, { day: 0, hour: 14 }] },
-	na: { label: 'NA', zone: 'America/Los_Angeles', times: [{ day: 3, hour: 17 }, { day: 0, hour: 14 }] }
-};
-export const VELL_CHECKED = '2026-08-30';
-
-/** "Wed 19:00" on whatever clock the entry is kept in. */
-export function timeLabel(t) {
-	return `${said(DAYS[t.day])} ${String(t.hour).padStart(2, '0')}:${String(t.minute || 0).padStart(2, '0')}`;
-}
-
-/** The same instant on the player's own clock: "Sun 13:00". */
-export function localLabel(at) {
-	const d = new Date(at);
-	return `${said(DAYS[d.getDay()])} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
 /* ------------------------------------------------------------------ *
@@ -333,7 +311,7 @@ let lastBarter = '';
 /** Start the minute hand; `onRollover` is called once when a reset
  *  passes while the page is open, so a done quest becomes undone and
  *  the barter day's ticks clear without a reload. */
-export function startClocks(onRollover, onTick = null) {
+export function startClocks(onRollover) {
 	if (ticking) return;
 	// Read on the standing region's clock, so a reset that is not UTC
 	// still clears the day's ticks at the moment its countdown reaches
@@ -347,7 +325,6 @@ export function startClocks(onRollover, onTick = null) {
 	const beat = () => {
 		const now = Date.now();
 		tickClocks(now);
-		if (onTick) onTick(now);
 		const [d, w, b] = marks(now);
 		if (d !== lastDay || w !== lastWeek || b !== lastBarter) {
 			lastDay = d; lastWeek = w; lastBarter = b;

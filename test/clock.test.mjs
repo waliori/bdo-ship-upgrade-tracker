@@ -1,15 +1,21 @@
-// The game's clocks: when a day turns, when a week turns, and when Vell
-// is next up on a server that keeps a different clock from the player.
+// The game's clocks: when a day turns, when a week turns, and when a
+// timetable kept on a server's own clock next fires.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
 	dayKey, weekKey, periodKey, untilDaily, untilWeekly, untilBarter, countdown,
 	REGION_CLOCK, resetPlan, untilHourIn,
-	nextSpawn, zonedInstant, VELL
+	nextSpawn, zonedInstant
 } from '../js/clock.js';
 
 const at = iso => Date.parse(iso);
+
+// Two timetables on a server's own clock, of the shape a weekly reset
+// kept in a zone is counted with: Sunday 14:00 and Wednesday 19:00 in
+// Berlin, Sunday 14:00 and Wednesday 17:00 in Los Angeles.
+const EU = { zone: 'Europe/Berlin', times: [{ day: 3, hour: 19 }, { day: 0, hour: 14 }] };
+const NA = { zone: 'America/Los_Angeles', times: [{ day: 3, hour: 17 }, { day: 0, hour: 14 }] };
 
 test('a daily turns at 00:00 UTC, a barter day at 06:00 UTC', () => {
 	assert.equal(dayKey(at('2026-08-30T23:59:00Z')), '2026-08-30');
@@ -48,16 +54,16 @@ test('a server wall-clock time becomes the right instant, summer and winter', ()
 	assert.equal(zonedInstant('America/Los_Angeles', 2026, 7, 30, 14), at('2026-08-30T21:00:00Z'));
 });
 
-test("Vell's next spawn is the nearest entry ahead, on the server's clock", () => {
-	// Sunday 2026-08-30 10:00 UTC = 12:00 in Berlin; EU spawns Sun 14:00 and Wed 19:00.
-	const eu = nextSpawn(VELL.eu.zone, VELL.eu.times, at('2026-08-30T10:00:00Z'));
+test("a timetable's next entry is the nearest ahead, on the server's clock", () => {
+	// Sunday 2026-08-30 10:00 UTC = 12:00 in Berlin; Sun 14:00 and Wed 19:00 there.
+	const eu = nextSpawn(EU.zone, EU.times, at('2026-08-30T10:00:00Z'));
 	assert.equal(eu.at, at('2026-08-30T12:00:00Z'));
 	assert.equal(eu.entry.day, 0);
 	// Just after it, Wednesday 19:00 Berlin = 17:00 UTC.
-	const later = nextSpawn(VELL.eu.zone, VELL.eu.times, at('2026-08-30T12:00:00Z'));
+	const later = nextSpawn(EU.zone, EU.times, at('2026-08-30T12:00:00Z'));
 	assert.equal(later.at, at('2026-09-02T17:00:00Z'));
 	// NA on the same Sunday morning: Sun 14:00 Los Angeles = 21:00 UTC.
-	const na = nextSpawn(VELL.na.zone, VELL.na.times, at('2026-08-30T10:00:00Z'));
+	const na = nextSpawn(NA.zone, NA.times, at('2026-08-30T10:00:00Z'));
 	assert.equal(na.at, at('2026-08-30T21:00:00Z'));
 	assert.equal(nextSpawn('Europe/Berlin', []), null);
 });
@@ -138,10 +144,10 @@ test('a zone that keeps summer time turns its day once, at the reset, across the
 	assert.equal(untilHourIn('Europe/London', 0, at('2026-03-28T23:15:00Z')), 45 * 60e3);
 });
 
-test("Vell on the night the clocks go forward is still Sunday's", () => {
+test("a Sunday entry on the night the clocks go forward is still Sunday's", () => {
 	// Saturday 2026-03-28 between 23:15 and midnight Berlin (CET, 22:15Z-23:00Z).
 	for (const iso of ['2026-03-28T22:15:00Z', '2026-03-28T22:45:00Z', '2026-03-28T23:15:00Z']) {
-		const n = nextSpawn(VELL.eu.zone, VELL.eu.times, at(iso));
+		const n = nextSpawn(EU.zone, EU.times, at(iso));
 		assert.equal(n.at, at('2026-03-29T12:00:00Z'), iso);
 	}
 });

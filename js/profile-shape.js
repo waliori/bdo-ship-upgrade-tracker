@@ -45,13 +45,10 @@ export function readProfile(raw) {
 	const vouchers = Math.max(0, Math.floor(Number(raw.vouchers) || 0));
 	if (vouchers > 0) out.vouchers = vouchers;
 	const held = Math.max(0, Math.floor(Number(raw.parleyHeld) || 0));
+	// The bar as last said or as the last run left it. It refills on a
+	// Barter Refresh, never at the 06:00 reset, so it carries no day:
+	// the `parleyDay` older saves wrote beside it is dropped here.
 	if (held > 0) out.parleyHeld = held;
-	// The barter day that figure was true on. The bar refills at the
-	// barter reset, so a figure from an earlier day is a full bar again
-	// -- without this, a bar written down after a run stayed down for
-	// ever, and the app that had stopped over-promising Parley began
-	// under-promising it the next morning.
-	if (held > 0 && typeof raw.parleyDay === 'string' && raw.parleyDay) out.parleyDay = raw.parleyDay.slice(0, 20);
 	// The failstack the player takes into a yellow attempt. Bounded the
 	// way the game bounds one; zero means "the quoted stack", so only a
 	// real number is kept.

@@ -272,8 +272,8 @@ export function profileHTML({ sheet = false } = {}) {
 		// The server you play on, which is a fact about the sailor and
 		// not about any one screen: every Market price in the app -- the
 		// buy list, the item cards, what a barter's cargo would have
-		// sold for -- is quoted in this region's silver, and Vell's
-		// timetable is read from it too. It lived in a tile on To Get,
+		// sold for -- is quoted in this region's silver, and the reset
+		// clock is read from it too. It lived in a tile on To Get,
 		// which priced the whole app from a select most people never
 		// scrolled to.
 		// The pets out at the moment. Bos'n Jack is the only pet in the
@@ -286,7 +286,7 @@ export function profileHTML({ sheet = false } = {}) {
 		chip('region', '⊕', T('Region'),
 			`<select class="pouch-input select" data-act="market-region" aria-label="${T("Which region's Central Market prices the plan")}">${regions}</select>`,
 			`${esc(priceAge())} · <button class="linky" data-act="market-refresh">${T('refresh')}</button>`,
-			T("The region your Central Market prices come from, and the one Vell's times are read for. Every silver figure in the app is this region's."))
+			T("The region your Central Market prices come from. Every silver figure in the app is this region's."))
 	].join('');
 }
 

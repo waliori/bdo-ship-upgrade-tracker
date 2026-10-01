@@ -28,11 +28,11 @@ export const REGIONS = [
 /**
  * The region assumed until someone chooses one.
  *
- * NA rather than EU. It decides more than the prices: Vell's timetable
- * and the reminder that goes with it are read from whichever region is
- * standing (see today.js), so this is the one setting that has to be
- * named in a single place -- a default that drifted between the two
- * would price against one server and time Vell against the other.
+ * NA rather than EU. It decides more than the prices: the reset clock
+ * is read from whichever region is standing (see today.js), so this is
+ * the one setting that has to be named in a single place -- a default
+ * that drifted between the two would price against one server and count
+ * the resets of another.
  *
  * Anyone who has already picked a region keeps it; this is only what a
  * browser that has never been asked starts from.

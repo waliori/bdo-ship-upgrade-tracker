@@ -102,6 +102,7 @@ The diary of 14 September said **Total Barters adds a percent to every exchange*
 - A held count can be typed in place on the Builds blockers and every To Get row; crafting a build’s own item asks whether the build is done.
 - The two Barter Goods Support dailies ask which [Level 1] good went.
 - On a phone the sailing bar is half as tall.
+- **The Vell timer is gone**: its countdown on the Plan and the Map, its own times and its reminder.
 
 ### Fixes, and a Map that fits a phone
 
@@ -109,7 +110,7 @@ A last sweep before the release, through saves, the clock, the Ship tab and the 
 
 - **Your save is safer.** The tour over someone’s shared plan no longer keeps their plan as yours; *Replace mine* keeps your Map routes, drawings and run diary; *Make it my ship* brings their sailors aboard beside yours; signing in asks before replacing a save that holds only a crew or drawings; edits made offline go up without asking which copy; one Undo is never applied twice across two tabs; a run of more than eighty stops keeps them all.
 - **The barter run.** The five [Great Ocean] goods sell at their 25 million and the rare goods are priced at last; a [Level 5] or higher takes a bag slot each; Undo after Record gives the islands their attempts back; route edits survive a reload with many chains ticked; a 2–3 range is recorded fairly; three Crow Coin Shop prices agree everywhere; Sail and Results say what to do when there is nothing to show.
-- **The clock.** Resets and Vell’s times hold across a clock change in a zone of your own; *the whole run* chime rings, and the end bell rings once; the stop count follows a run laid again under way.
+- **The clock.** Resets hold across a clock change in a zone of your own; *the whole run* chime rings, and the end bell rings once; the stop count follows a run laid again under way.
 - **The ship.** The Fleet list reads the ship as it sails — the Corsair point and the parts you own included; a crafting route no longer switches a thing from bought to crafted; auto-arrange leaves sick sailors ashore; a pool you watched is used by the barter routes too, ship by ship.
 - **The Map.** Its tools fit a phone and have names, its tabs are *Who has it*, *Route*, *Draw*, *Hunt* and *Today*, the chart starts higher, and its labels keep their colours in the light theme.
 - **The harbour.** Signing in no longer puts you on the community boards: you are asked first. And on a weak signal the app opens from its offline copy after a few seconds instead of waiting on the network.

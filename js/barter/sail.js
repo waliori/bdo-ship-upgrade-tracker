@@ -960,8 +960,8 @@ export function recordTrip(plan, from, on = sailing(), { abandoned = false } = {
 	// The Parley the trip spent comes off the bar, and the vouchers it
 	// drew on out of the bags. The figures tile has always said "74,032
 	// spent from 1,000,000" -- and then the next run was laid against the
-	// same million, because nothing wrote the answer down. The bar is
-	// stamped with the barter day, so the reset fills it again.
+	// same million, because nothing wrote the answer down. It stays
+	// down until a Barter Refresh fills it; the day turning does not.
 	const bar = prof.parleyHeld > 0 ? Math.min(PARLEY.max, prof.parleyHeld) : PARLEY.max;
 	// The vouchers drawn on are the ledger's: the ones the ticked stops
 	// drew, whether the bar as typed needed them or not, never more
@@ -973,7 +973,7 @@ export function recordTrip(plan, from, on = sailing(), { abandoned = false } = {
 	const lastTicked = plan.stops.reduce((m, st, k) => (ticked(on.done, st, k, plan.stops) ? k : m), -1);
 	const fromWindow = on.parleyFix && lastTicked >= 0 && bookOf.rows[lastTicked] ? bookOf.rows[lastTicked].after : null;
 	const parleyLeft = Math.max(1, Math.min(PARLEY.max, fromWindow !== null ? fromWindow : bar + drawn * PARLEY.voucher - parleySpent));
-	const spentOf = parleySpent > 0 ? { parleyHeld: parleyLeft, parleyDay: barterKey(), ...(drawn ? { vouchers: prof.vouchers - drawn } : {}) } : {};
+	const spentOf = parleySpent > 0 ? { parleyHeld: parleyLeft, ...(drawn ? { vouchers: prof.vouchers - drawn } : {}) } : {};
 	// The hold has had the ticked stops written into it as they were
 	// ticked: what is left to write is the rest.
 	const rest = holdDiff({ delta: trip.delta, moves: netMoves(trip.moves) }, on.applied || NO_HOLD);

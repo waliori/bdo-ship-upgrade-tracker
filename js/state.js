@@ -240,6 +240,9 @@ function normalise(input) {
 	s.profile = readProfile(raw.profile);
 	s.history = readHistory(raw.history);
 	if (raw.settings && typeof raw.settings === 'object') s.settings = { ...raw.settings };
+	// The Vell timer is gone (1.5): its own times and its reminder
+	// switches are let go rather than carried for ever.
+	for (const k of ['vellTimes', 'vellNotify', 'vellPush']) delete s.settings[k];
 	// Anything a newer version wrote that this one does not know rides
 	// along untouched, so opening a save in an old tab cannot strip what
 	// the new one added.

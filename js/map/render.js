@@ -13,8 +13,6 @@ import { npcs, npcById } from '../barter_npcs.js';
 import { wharves } from '../wharves.js';
 import { monsterArt } from '../monster_art.js';
 import { quests } from '../quests.js';
-import { nextSpawn, localLabel } from '../clock.js';
-import { vellPlan } from '../today.js';
 import { barterData } from '../ui-state.js';
 import { mv, restore, doneSet } from './state.js';
 import { marksNow, barterKind, goodsOf } from './marks.js';
@@ -28,13 +26,6 @@ import { traceHTML } from './trace.js';
  *  of the app's fonts, and on a system without a font that has it the
  *  button was an empty box. A path is the same on every machine. */
 const MOUNTAIN = `<svg class="ico" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M2 20 9 7l4 7 3-4 6 10z"/><path d="m7.4 10 1.6 1.4L10.6 10"/></svg>`;
-
-/** Vell's next spawn on the standing region's timetable, or null. */
-function vellNext() {
-	const plan = vellPlan();
-	const next = plan && nextSpawn(plan.zone, plan.times);
-	return next ? { at: next.at, label: localLabel(next.at) } : null;
-}
 
 /** The Hunt tab: the community courses and the monster grounds, each a
  *  switch. A course is drawn under the route in its own colour with its
@@ -134,15 +125,13 @@ export function renderMap() {
 	</div>`;
 
 	// The clocks the sea runs on, always in view over the chart: when
-	// the barterers redraw, when the dailies and weeklies reset, and
-	// when Vell is next up on this player's servers. A pill on the
-	// chart's own corner, so the chart keeps every pixel of its height.
-	const vell = vellNext();
+	// the barterers redraw and when the dailies and weeklies reset. A
+	// pill on the chart's own corner, so the chart keeps every pixel of
+	// its height.
 	const clocks = `<div class="map-clocks" role="status">
 		<span title="${T("Every barterer's list redraws")}">${T('barter')} <b data-until="barter"></b></span>
 		<span title="${T('The daily quests reset')}">${T('dailies')} <b data-until="daily"></b></span>
 		<span title="${T('The weekly quests reset')}">${T('weeklies')} <b data-until="weekly"></b></span>
-		${vell ? `<span title="${T("Vell's next spawn on your servers, {when}", { when: esc(vell.label) })}">${gameName('Vell')} <b data-until="at" data-at="${vell.at}"></b></span>` : ''}
 	</div>`;
 	// Over the whole screen, the header's buttons are out of reach, so
 	// the chart carries the few that matter and the way back.

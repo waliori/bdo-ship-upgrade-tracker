@@ -106,7 +106,7 @@ export function barterAction(act, el, redraw) {
 		case 'barter-order': return barterChange({ dataset: { act: el.dataset.k }, value: el.dataset.v, checked: el.dataset.v === 'true' }, n => Number(n));
 		// The bar really is full: said once, so the figures stop hedging.
 		case 'barter-parley-full': {
-			store.setProfileMany({ parleyHeld: PARLEY.max, parleyDay: barterKey() });
+			store.setProfileMany({ parleyHeld: PARLEY.max });
 			toast(T('The Parley bar is full — the run is planned on {n}', { n: F(PARLEY.max) }), true);
 			return true;
 		}

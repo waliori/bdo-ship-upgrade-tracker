@@ -32,7 +32,6 @@ export const DATA = [
 	{ what: TT('Sailing time of a leg'), asOf: '2026-09-23', from: TT('measured: five legs of a Carrack timed in game, 8.75 m/s at 100% and 23 s a leg; an estimate for any other ship until it times its own') },
 	{ what: TT('The barter ceiling, 170% of the hold limit'), asOf: '2026-09-11', from: TT('an estimate: community ship calculators and sailors’ own runs; the game states no figure') },
 	{ what: TT('A wharf loads no further than the hold limit'), asOf: '2026-09-28', from: TT('measured: Load Cargo refusing past the limit in game; only exchanges go on to the barter ceiling') },
-	{ what: TT('Vell’s timetable (EU, NA)'), asOf: '2026-08-30', from: 'mmotimer.com' },
 	{ what: TT('Sea crystals — 287 variants and the Nols'), asOf: '2026-08-31', from: 'BDOCodex' },
 	{ what: TT('Central Market prices'), asOf: 'live', from: TT('the community market API, per region') }
 ];
@@ -169,7 +168,8 @@ export const RELEASES = [
 					TT('Items can be removed from the Inventory, and reading a storage can replace it rather than add to it.'),
 					TT('A held count can be typed in place on the Builds blockers and every To Get row; crafting a build’s own item asks whether the build is done.'),
 					TT('The two Barter Goods Support dailies ask which [Level 1] good went.'),
-					TT('On a phone the sailing bar is half as tall.')
+					TT('On a phone the sailing bar is half as tall.'),
+					TT('<b>The Vell timer is gone</b>: its countdown on the Plan and the Map, its own times and its reminder.')
 				]
 			},
 			{
@@ -178,7 +178,7 @@ export const RELEASES = [
 				points: [
 					TT('<b>Your save is safer.</b> The tour over someone’s shared plan no longer keeps their plan as yours; <i>Replace mine</i> keeps your Map routes, drawings and run diary; <i>Make it my ship</i> brings their sailors aboard beside yours; signing in asks before replacing a save that holds only a crew or drawings; edits made offline go up without asking which copy; one Undo is never applied twice across two tabs; a run of more than eighty stops keeps them all.'),
 					TT('<b>The barter run.</b> The five [Great Ocean] goods sell at their 25 million and the rare goods are priced at last; a [Level 5] or higher takes a bag slot each; Undo after Record gives the islands their attempts back; route edits survive a reload with many chains ticked; a 2–3 range is recorded fairly; three Crow Coin Shop prices agree everywhere; Sail and Results say what to do when there is nothing to show.'),
-					TT('<b>The clock.</b> Resets and Vell’s times hold across a clock change in a zone of your own; <i>the whole run</i> chime rings, and the end bell rings once; the stop count follows a run laid again under way.'),
+					TT('<b>The clock.</b> Resets hold across a clock change in a zone of your own; <i>the whole run</i> chime rings, and the end bell rings once; the stop count follows a run laid again under way.'),
 					TT('<b>The ship.</b> The Fleet list reads the ship as it sails — the Corsair point and the parts you own included; a crafting route no longer switches a thing from bought to crafted; auto-arrange leaves sick sailors ashore; a pool you watched is used by the barter routes too, ship by ship.'),
 					TT('<b>The Map.</b> Its tools fit a phone and have names, its tabs are <i>Who has it</i>, <i>Route</i>, <i>Draw</i>, <i>Hunt</i> and <i>Today</i>, the chart starts higher, and its labels keep their colours in the light theme.'),
 					TT('<b>The harbour.</b> Signing in no longer puts you on the community boards: you are asked first. And on a weak signal the app opens from its offline copy after a few seconds instead of waiting on the network.'),

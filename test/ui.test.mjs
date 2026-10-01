@@ -1302,10 +1302,7 @@ test('the names on the chart do not print over each other', async () => {
 	await context.close();
 });
 
-test('the region starts at NA, and the Vell clock follows whichever region is standing', async () => {
-	// One setting decides two things: which server the Market is priced
-	// against, and which timetable Vell is counted down to. They must not
-	// be able to disagree, so both read the same default.
+test('the region starts at NA, and the Vell timer is gone from the Plan', async () => {
 	const { page, context, errors } = await open('#plan');
 	await page.evaluate(async () => {
 		const store = await import('/js/state.js');
@@ -1314,23 +1311,12 @@ test('the region starts at NA, and the Vell clock follows whichever region is st
 	await wait(1200);
 	const start = await page.evaluate(async () => {
 		const market = await import('/js/market.js');
-		const today = await import('/js/today.js');
-		return { def: market.DEFAULT_REGION, active: market.region(), first: market.REGIONS[0][0], vell: today.vellPlan() };
+		return { def: market.DEFAULT_REGION, active: market.region(), first: market.REGIONS[0][0] };
 	});
 	assert.equal(start.def, 'na');
 	assert.equal(start.active, 'na', 'a browser that has never chosen is not on NA');
 	assert.equal(start.first, 'na', 'and NA is not the first region offered');
-	assert.equal(start.vell.label, 'NA');
-	assert.equal(start.vell.zone, 'America/Los_Angeles', 'Vell is being counted to the wrong server');
-	assert.match(await text(page, '.today'), /NA: .*Los Angeles time/, 'the Vell tile does not say which server it means');
-
-	// Change the region and the timetable moves with it.
-	await page.evaluate(async () => { (await import('/js/market.js')).setRegion('eu'); });
-	await wait(1200);
-	const moved = await page.evaluate(async () => (await import('/js/today.js')).vellPlan());
-	assert.equal(moved.label, 'EU');
-	assert.equal(moved.zone, 'Europe/Berlin', 'the Vell clock did not follow the region');
-	assert.match(await text(page, '.today'), /EU: .*Berlin time/);
+	assert.doesNotMatch(await text(page, '.today'), /Vell/, 'the Today strip still counts down to Vell');
 
 	// The daily, weekly and barter resets are the game's own UTC clocks
 	// and belong to no server, so they must not move with the region.

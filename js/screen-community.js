@@ -48,6 +48,11 @@ let numSort = 'count';    // count | name
 const numOpen = new Set();   // the panels unfolded past their first rows
 let rerender = () => {};
 
+// Whether this browser has been told that signing in puts you on the
+// boards. Per browser rather than per save: it is a thing to be told
+// once where you are, not a preference to carry about.
+const TOLD_KEY = 'community.told';
+
 const FRESH_MS = 60_000;
 
 // After a push, how long to give the server to notice. The boards hold
@@ -242,20 +247,18 @@ function headHTML() {
 	let you;
 	if (!who) {
 		you = `<div class="comm-you"><p class="comm-copy">${T('The boards show only what sailors chose to share. <button class="act small" data-act="signin">Sign in with Discord</button> to take part — by name, or as an unnamed sailor.')}</p></div>`;
-	} else if (!who.share && !who.asked) {
-		// Signed in and never asked. Signing in puts nobody on the boards
-		// -- a name and an avatar on a public page are the sailor's to
-		// give -- so the question is put here, once, and the answer is
-		// kept on the account whichever it is.
-		you = `<div class="comm-you"><p class="comm-notice comm-ask"><b>${T('Would you like to be on the community boards?')}</b> ${T('Nothing about you is shown to anyone until you say yes. Taking part shows exactly what would be shared first — only numbers, never your stock, your notes or your traces.')} <button class="act small" data-act="community-join">${T('Take part…')}</button> <button class="chip tiny" data-act="community-decline">${T('No, thanks')}</button></p></div>`;
 	} else if (!who.share) {
 		you = `<div class="comm-you"><p class="comm-copy">${T('You are not on the boards; nothing about your save is shown to anyone. <button class="act small" data-act="community-join">Take part</button> — you will see exactly what would be shared before you agree.')}</p></div>`;
 	} else {
 		const y = data && data.you ? data.you : { places: {} };
+		// Signing in puts an account on the boards, so the first time
+		// someone opens the tab it has to say so plainly, and say how to
+		// stop -- being on a public board is not a thing to discover.
+		const notice = store.getSetting(TOLD_KEY, false) ? '' : `<p class="comm-notice">${who.share === 'named' ? T('Signing in put you on the boards by name.') : T('Signing in put you on the boards.')} ${T('Only the numbers below are shared — never your stock, your notes or your traces.')} <button class="chip tiny" data-act="community-join">${T('Change how you are shown')}</button> <button class="chip tiny" data-act="community-leave">${T('Leave the boards')}</button> <button class="chip tiny" data-act="community-told">${T('Got it')}</button></p>`;
 		const places = Object.entries(y.places).map(([id, p]) => ({ b: boardById[id], p })).filter(x => x.b).sort((a, b) => a.p.rank - b.p.rank || b.p.of - a.p.of);
 		const shown = places.slice(0, 4);
 		const src = avatarURL(who);
-		you = `<div class="comm-you on">
+		you = `${notice}<div class="comm-you on">
 			${src ? `<img class="comm-avatar big" src="${esc(src)}" alt="">` : `<span class="comm-avatar anon big" aria-hidden="true">${who.share === 'named' ? esc(who.username.slice(0, 1)) : '☸'}</span>`}
 			<div class="comm-you-body">
 				<p class="comm-you-line">${T('You are on the boards as <b>{who}</b>', { who: who.share === 'named' ? esc(who.username) : T('an unnamed sailor') })}${y.level ? ` <span>· ${esc(y.level)}</span>` : ''}${y.joinedAt ? ` <span>· ${T('since {day}', { day: day(y.joinedAt) })}</span>` : ''}</p>
@@ -883,11 +886,7 @@ export function communityAction(act, el) {
 		case 'community-board': openBoard(el.dataset.id); return false;
 		case 'community-find': openFind(); return false;
 		case 'community-places': openPlaces(); return false;
-		case 'community-decline':
-			// "No" is an answer too, and is kept, so the question is not
-			// put again on the next visit or the next device.
-			setShare('off').then(() => toast(T('Not on the boards — you can take part whenever you like')), err => toast(said(err.message)));
-			return false;
+		case 'community-told': store.setSetting(TOLD_KEY, true); return true;
 		case 'community-how': openHow(el.dataset.id); return false;
 		default: return false;
 	}

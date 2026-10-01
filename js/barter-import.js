@@ -26,7 +26,6 @@ import { offersFrom, figuresFrom, localized, inEnglish } from './barter-shot.js'
 import { npcs, isleOf, whoOf } from './barter_npcs.js';
 import { img } from './ui-bits.js';
 import * as store from './state.js';
-import { barterKey } from './clock.js';
 
 /**
  * What the reader reads, drawn on the game's own window: the whole
@@ -248,7 +247,7 @@ export function openBarterImport({ files, deals, onAnswers = () => {} } = {}) {
 		if (!taking.length && !figuresOnly()) return;
 		const answers = taking.map(r => ({ npcId: r.isle.id, give: r.keep.give, recv: r.keep.item, qty: r.keep.giveText || '1' }));
 		if (figures.take) {
-			if (figures.parley > 0) store.setProfileMany({ parleyHeld: Math.round(figures.parley), parleyDay: barterKey() });
+			if (figures.parley > 0) store.setProfileMany({ parleyHeld: Math.round(figures.parley) });
 			if (figures.barters > 0 && !oddBarters()) store.setProfile('barterCount', Math.round(figures.barters));
 		}
 		// Ticked by hand, against the warning: the sailor knows best.

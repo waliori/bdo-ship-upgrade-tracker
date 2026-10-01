@@ -306,28 +306,20 @@ test('the exchanges a barterer would not make are kept with the count the sailor
 	assert.equal('shutOffers' in readProfile({}), false);
 });
 
-test('the Parley written down keeps its day, and stands until it is changed', async () => {
-	const { barterKey } = await import('../js/clock.js');
-	const today = barterKey();
-	// Kept with its day while there is a figure to keep it with...
-	assert.deepEqual(
-		{ held: readProfile({ parleyHeld: 250000, parleyDay: today }).parleyHeld, day: readProfile({ parleyHeld: 250000, parleyDay: today }).parleyDay },
-		{ held: 250000, day: today });
-	// ...and never on its own: a day without a figure means nothing.
-	assert.equal('parleyDay' in readProfile({ parleyDay: today }), false);
+test('the Parley written down stands until it is changed, and carries no day', async () => {
+	// The bar refills on a Barter Refresh, never at the 06:00 reset, so
+	// the day older saves stamped beside it means nothing: dropped on read.
+	assert.deepEqual(readProfile({ parleyHeld: 250000, parleyDay: '2026-09-30' }), { parleyHeld: 250000 });
+	assert.equal('parleyDay' in readProfile({ parleyDay: '2026-09-30' }), false);
 
 	// Read back through the profile the whole app plans with: the figure
 	// stands whatever day it was written on. A board carried over from
-	// yesterday carries its bar; only the sailor says it refilled.
+	// yesterday carries its bar; only a refresh fills it.
 	const store = await import('../js/state.js');
 	const { barterProfile } = await import('../js/ui-state.js');
-	store.setProfileMany({ parleyHeld: 250000, parleyDay: today });
-	assert.equal(barterProfile().parleyHeld, 250000);
 	store.setProfileMany({ parleyHeld: 250000, parleyDay: '1999-01-01' });
 	assert.equal(barterProfile().parleyHeld, 250000, 'a figure from an earlier barter day still stands');
-	// A save from before the day was kept has no day, and is believed.
-	store.setProfileMany({ parleyHeld: 250000, parleyDay: null });
-	assert.equal(barterProfile().parleyHeld, 250000);
+	assert.equal('parleyDay' in store.saveShape().profile, false);
 });
 
 test('an island\'s four keep their count, and a count that is not a count is dropped', () => {

@@ -41,8 +41,8 @@ import { renderCrew, crewAction, crewChange, applyShipSetup, shipSetupPatch, ope
 import { statusLine } from './today.js';
 import { renderQuests, questAction, questDone, wantedQuests, setQuestPay, setQuestFocus } from './screen-quests.js';
 import { renderCommunity, communityAction, wireCommunity } from './screen-community.js';
-import { openVellDialog, openResetsDialog } from './today.js';
-import { startClocks, tickClocks, barterKey } from './clock.js';
+import { openResetsDialog } from './today.js';
+import { startClocks, tickClocks } from './clock.js';
 import { recordProgress } from './pace.js';
 import { openJump } from './jump.js';
 import { openItemCard } from './item-card.js';
@@ -53,7 +53,6 @@ import { film } from './film.js';
 import { openProfiles, activeProfile } from './profiles.js';
 import { DATA, CHANGES, LATEST, RELEASES, RELEASE } from './about.js';
 import { openTables } from './screen-tables.js';
-import { toggleVellReminder, checkVellReminder } from './today.js';
 import { openTripLog } from './triplog.js';
 import { pickGameFolder, writeGameFile, restoreGameFile } from './gamefile.js';
 import { renderGet, shoppingText, shoppingCSV, getAction, getChange } from './screen-get.js';
@@ -1104,11 +1103,9 @@ function wire() {
 			case 'blockers-all': toggleBlockers(); return render();
 			case 'enh-blocked': toggleBlocked(); return render();
 			case 'open-item': hidePeek(); showView('inventory'); setSelected(el.dataset.item); return render();
-			case 'vell-edit': return openVellDialog();
 			case 'resets-edit': return openResetsDialog();
 			case 'jump': return openJumpPalette();
 			case 'profiles': return openProfiles({ toast });
-			case 'vell-notify': return toggleVellReminder();
 			case 'trip-log': return openTripLog();
 			case 'quest-pay-pick': return questAction(act, el);
 			case 'quest-pay-del': questAction(act, el); return render();
@@ -1715,7 +1712,7 @@ function wire() {
 		else if (el.dataset.act === 'target-qty') store.setTargetQty(el.dataset.target, n);
 		else if (el.dataset.act === 'barter-count') store.setProfile('barterCount', n);
 		else if (el.dataset.act === 'vouchers') store.setProfile('vouchers', n);
-		else if (el.dataset.act === 'parley-held') store.setProfileMany({ parleyHeld: n, parleyDay: n > 0 ? barterKey() : null }, T('Changed the parley you hold'));
+		else if (el.dataset.act === 'parley-held') store.setProfileMany({ parleyHeld: n }, T('Changed the parley you hold'));
 		else if (el.dataset.act === 'failstacks') {
 			const stacks = { ...(store.getProfile('failstacks', {}) || {}) };
 			stacks[el.dataset.base] = n;
@@ -2664,9 +2661,9 @@ export async function init() {
 		Promise.resolve().then(() => { if (stale) render(); });
 	});
 	render();
-	// The minute hand on every countdown, a repaint when a reset passes
-	// with the page open, and the Vell reminder if it was asked for.
-	startClocks(render, checkVellReminder);
+	// The minute hand on every countdown, and a repaint when a reset
+	// passes with the page open.
+	startClocks(render);
 	// The sailing clock chimes on its own schedule, whichever screen is
 	// up, and the page is drawn again when it does.
 	watchTimer(render);

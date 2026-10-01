@@ -232,7 +232,7 @@ export function call(method, path, body) {
 export async function setShare(share) {
 	const res = await api('PUT', '/api/community/share', { share });
 	if (!res.ok) throw new Error((res.body && res.body.error) || T('The boards did not answer.'));
-	if (account) account = { ...account, share: res.body.share, asked: true };
+	if (account) account = { ...account, share: res.body.share };
 	tell();
 	return res.body.share;
 }
@@ -747,7 +747,7 @@ export async function initSync(callbacks = {}) {
 		return;
 	}
 
-	account = { ...me.body.user, share: me.body.share || null, asked: me.body.asked !== false, admin: me.body.admin === true };
+	account = { ...me.body.user, share: me.body.share || null, admin: me.body.admin === true };
 	// Not "Synced" yet -- nothing has been compared. Saying so before the
 	// first pull would be a claim the app cannot make.
 	say('syncing');

@@ -1,7 +1,6 @@
 // An account's own chimes: a clock set on one device reaching the rest.
 //
-// A subscription made while signed in belongs to the account as well as
-// to a region, and a set of chimes put under a tag is sent to every one
+// A subscription made while signed in belongs to the account, and a set of chimes put under a tag is sent to every one
 // of that account's devices when its moment comes. What can go wrong: a
 // chime set by a stranger, one set for someone else's account, a run
 // restarted chiming twice for the same stop, a row that is sent again
@@ -62,9 +61,9 @@ const oni = cookieFor('2001');
 const other = cookieFor('2002');
 
 test('a subscription made while signed in belongs to the account, and one made signed out does not', async () => {
-	assert.equal((await call('POST', '/api/push/subscribe', { cookie: oni, body: { subscription: subFor('desk'), region: 'na' } })).status, 204);
-	assert.equal((await call('POST', '/api/push/subscribe', { cookie: oni, body: { subscription: subFor('phone'), region: 'na' } })).status, 204);
-	assert.equal((await call('POST', '/api/push/subscribe', { body: { subscription: subFor('stranger'), region: 'na' } })).status, 204);
+	assert.equal((await call('POST', '/api/push/subscribe', { cookie: oni, body: { subscription: subFor('desk') } })).status, 204);
+	assert.equal((await call('POST', '/api/push/subscribe', { cookie: oni, body: { subscription: subFor('phone') } })).status, 204);
+	assert.equal((await call('POST', '/api/push/subscribe', { body: { subscription: subFor('stranger') } })).status, 204);
 	const mine = await listUserPushSubs('2001');
 	assert.deepEqual(mine.map(s => s.endpoint).sort(), [
 		'https://fcm.googleapis.com/fcm/send/devdesk',
@@ -141,27 +140,9 @@ test('too many chimes at once is refused, and a tag that is not a name is refuse
 	assert.equal(await countPushAlerts('2001'), 0);
 });
 
-test('a device subscribed for its owner’s chimes is not signed up for Vell', async () => {
-	const { listPushSubs } = await import('../server/db.js');
-	// Vell first, the way it has always been: the row wants the reminder.
-	await call('POST', '/api/push/subscribe', { cookie: oni, body: { subscription: subFor('bell'), region: 'na', vell: true } });
-	assert.ok((await listPushSubs('na')).some(s => s.endpoint.endsWith('devbell')));
-	// A device subscribed only so a chime can reach it asks for nothing
-	// from the timetable.
-	await call('POST', '/api/push/subscribe', { cookie: oni, body: { subscription: subFor('quiet'), region: 'na', vell: false } });
-	const audience = (await listPushSubs('na')).map(s => s.endpoint);
-	assert.ok(!audience.some(e => e.endsWith('devquiet')), 'the quiet one is left out of the Vell round');
-	assert.ok((await listUserPushSubs('2001')).some(s => s.endpoint.endsWith('devquiet')), 'but its owner’s chimes still reach it');
-	// Saying nothing at all is what every tab said before there was
-	// anything but Vell to subscribe for, so it still means Vell: an
-	// older tab that has not reloaded must not quietly lose its
-	// reminder. It is the page that says the explicit no above when it
-	// subscribes a fresh device for the sailor's own chimes.
-	await call('POST', '/api/push/subscribe', { cookie: oni, body: { subscription: subFor('fresh'), region: 'na' } });
-	assert.ok((await listPushSubs('na')).some(s => s.endpoint.endsWith('devfresh')), 'an older tab keeps the reminder it always had');
-	// Saying nothing either way leaves an existing row as it was.
-	await call('POST', '/api/push/subscribe', { cookie: oni, body: { subscription: subFor('quiet'), region: 'na' } });
-	assert.ok(!(await listPushSubs('na')).some(e => String(e.endpoint).endsWith('devquiet')));
-	await call('POST', '/api/push/subscribe', { cookie: oni, body: { subscription: subFor('bell'), region: 'na' } });
-	assert.ok((await listPushSubs('na')).some(s => s.endpoint.endsWith('devbell')));
+test('an older tab that still asks for Vell is filed for its owner’s chimes and nothing else', async () => {
+	// The Vell reminder is gone. A tab from before still sends a region
+	// and a yes; the row is kept all the same, for the chimes.
+	assert.equal((await call('POST', '/api/push/subscribe', { cookie: oni, body: { subscription: subFor('bell'), region: 'na', vell: true } })).status, 204);
+	assert.ok((await listUserPushSubs('2001')).some(s => s.endpoint.endsWith('devbell')), 'its owner’s chimes reach it');
 });

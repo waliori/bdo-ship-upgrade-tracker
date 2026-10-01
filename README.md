@@ -497,15 +497,9 @@ you plan on today's board.
 The plan says what is left; the **Today** strip on the Plan says what
 today can do about it: the quests still open that pay in something on
 your list, how long until the dailies, the weeklies and the barter
-refill reset (00:00 UTC, Thursday 00:00 UTC and 06:00 UTC), when
-**Vell** is next up on your servers — the EU and NA timetables as of
-2026‑08‑30, correctable in place, with a reminder a quarter of an hour
-before while the tab is open — and the **pace** each build has been
-moving at, with the finish that pace implies. The pace is a diary kept
-in this browser, not part of the save.
-
-With a key pair configured (see below) the Vell reminder reaches a
-phone with the tab closed; without one it fires while the tab is open.
+refill reset (00:00 UTC, Thursday 00:00 UTC and 06:00 UTC), and the
+**pace** each build has been moving at, with the finish that pace
+implies. The pace is a diary kept in this browser, not part of the save.
 
 ### Quests: what the sea hands out free
 
@@ -1342,7 +1336,7 @@ and `docker compose up` read that file on their own:
 | `DISCORD_CLIENT_ID` / `DISCORD_CLIENT_SECRET` | from a [Discord application](https://discord.com/developers/applications) → OAuth2 |
 | `TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN` | from `turso db show <name> --url` and `turso db tokens create <name>` |
 | `SESSION_SECRET` | any long random string — `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
-| `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | optional, for Vell reminders by push — `npx web-push generate-vapid-keys`; needs the database, not Discord |
+| `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | optional, for the sailing clock's chimes by push on every signed-in device — `npx web-push generate-vapid-keys`; needs the database and sign-in |
 | `ADMIN_IDS` / `FEEDBACK_WEBHOOK_URL` | optional: the Discord account ids that may read the feedback inbox, and a webhook that gets a copy of each entry |
 | `UPLOAD_DIR` | optional: where screenshots sent with a report are kept — `./.data/uploads` by default, which the compose volume already covers. `FEEDBACK_IMAGES=0` turns them off |
 
@@ -1650,7 +1644,7 @@ js/
   courses.js          the community maps fitted to the chart
   worldmap.js         the game's own world map, and a route put on it
   gamefile.js         writing stops into the game's own world map
-  today.js            the Today strip, the clocks and the Vell timetable
+  today.js            the Today strip and the clocks
   clock.js            the resets, ticking in place
   triplog.js          everything one trip brought back, as one change
   recipes.js          recipes and enhancement chains
@@ -1705,7 +1699,7 @@ server/               only loaded when sync is configured
   feedback.js         /api/feedback — posts, screenshots, the inbox, a webhook
   images.js           is this actually a picture, and how big is it
   market.js           /api/market — the Market relay, on by default
-  push.js             the Vell reminder, and an account's own chimes
+  push.js             an account's own chimes, by push
   presence.js         how many sailors are out
   limit.js            how often an account, or an address, may ask
   log.js              one line per request, and a few counters

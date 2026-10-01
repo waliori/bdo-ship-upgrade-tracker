@@ -37,6 +37,9 @@ import { acct } from './log.js';
 
 export const SHARES = ['named', 'anon'];
 
+/** How an account is shown when it has never said. */
+export const DEFAULT_SHARE = 'named';
+
 let held = null;       // the boards as last built
 let building = null;   // the build in progress, so two requests share one
 
@@ -397,23 +400,29 @@ function answer(b, userId) {
 }
 
 /**
- * How a signed-in account stands on the boards, and whether it has ever
- * been asked.
+ * Put a signed-in account on the boards unless it has asked not to be.
  *
- * The boards are opt-in. For a while they were not: signing in put an
- * account on them by name, Discord avatar and all, before its owner had
- * said a word, on the reasoning that an empty leaderboard stays empty.
- * But a name on a public board is the owner's to give, and publishing
- * first and offering a way off afterwards is not asking. So signing in
- * puts nobody anywhere; the Community tab asks once, plainly, and the
- * answer -- on by name, on unnamed, or no -- is remembered either way
- * (server/db.js, version 11).
+ * The boards were opt-in and nearly empty, which is the usual fate of a
+ * leaderboard nobody is on: there is nothing to look at, so nobody
+ * joins, so there is nothing to look at. They are opt-out instead --
+ * signing in puts you on them by name, and one press on the Community
+ * tab takes you off again and remembers it.
  *
- * Called from /api/me, which every load asks.
+ * Called from /api/me, which every load asks: that is the one place
+ * that already knows who is signed in and already reads how they stand.
+ * It writes only when there is no row and no refusal on record, so the
+ * common case is the read it was doing anyway.
+ *
+ * Returns how the account is shown, which is what the caller answers.
  */
-export async function shareStanding(userId) {
+export async function ensureOnBoards(userId) {
 	const state = await getShareState(userId);
-	return { share: state.share, asked: state.asked || Boolean(state.share) };
+	if (state.share || state.off || !state.known) return state.share;
+	const { stats, rev } = await digestOf(userId);
+	await putCommunity(userId, DEFAULT_SHARE, stats, rev);
+	members.add(userId);
+	invalidate();
+	return DEFAULT_SHARE;
 }
 
 export function communityRoutes() {

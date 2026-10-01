@@ -6,7 +6,7 @@ import { T, said, gameName } from '../i18n.js';
 import * as store from '../state.js';
 import { img, amountInput } from '../ui-bits.js';
 import { barterData, SILVER, snapshot } from '../ui-state.js';
-import { barterKey, currentPlan } from '../clock.js';
+import { currentPlan } from '../clock.js';
 import { currentShip } from '../ship.js';
 import { BREEZY_EVERY } from '../rations.js';
 import { npcById, ports, isleOf, isleShort } from '../barter_npcs.js';
@@ -92,7 +92,7 @@ export function chartButton(stops, pick) {
 }
 
 // The Parley the run can reach in all: what the bar holds now -- full
-// after the refill, less when some was spent already -- and a quarter
+// after a refresh, less when some was spent already -- and a quarter
 // of a bar for each voucher carried. The ledger drawn beside each stop
 // says where the vouchers are actually drawn on, and where the two-hour
 // cooldown leaves a stop short.
@@ -105,9 +105,10 @@ export function chartButton(stops, pick) {
 export const parleyGuessed = prof => !(prof.parleyHeld > 0);
 
 /** A barter list refreshed in game -- the trade goods or the ship
- *  materials, whichever -- fills the Parley bar again. */
+ *  materials, whichever -- fills the Parley bar again. Only a refresh
+ *  does: the 06:00 reset brings back the refresh points, not the bar. */
 export function parleyRefilled() {
-	store.setProfileMany({ parleyHeld: PARLEY.max, parleyDay: barterKey() });
+	store.setProfileMany({ parleyHeld: PARLEY.max });
 }
 // Vouchers the sailor is keeping are not the run's to plan on, so the
 // bar the planner budgets against leaves them out too.
