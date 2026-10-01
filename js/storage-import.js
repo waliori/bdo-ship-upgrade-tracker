@@ -30,6 +30,8 @@ import { allItems, img } from './ui-bits.js';
 import { TOWNS } from './screen-inventory.js';
 import { stacks, slotsHeld } from './barter-plan.js';
 import { levelOf } from './barter.js';
+import { holdGoods, hullSlots, inHoldAt } from './hold-room.js';
+import { currentShip, shownSlots } from './ship.js';
 
 /** Where a reading is written by default, remembered between goes: a
  *  player reads the same storage every week. */
@@ -217,6 +219,18 @@ export function openStorageImport(after = () => {}, handOff = null) {
 		// The storage's own size is not read off the shots, so this says
 		// what is taken and holds nothing back.
 		const slots = slotsHeld(new Map(taking.map(r => [r.item, r.n])));
+		// Written into the ship's hold -- a trade good in the bags is aboard
+		// -- the reading is the game's own and is written as read, but a
+		// hold it takes past the hull's slots is said: a misread, most
+		// likely, and the hold shows over until it is put right.
+		const aboard = holdGoods();
+		let into = false;
+		for (const r of [...taking, ...going.map(g => ({ item: g.item, n: 0 }))]) {
+			if (!inHoldAt(r.item, place)) continue;
+			into = true;
+			aboard.set(r.item, Math.max(0, (aboard.get(r.item) || 0) - store.stockAt(r.item, place)) + r.n);
+		}
+		const holdOver = into && slotsHeld(aboard) > hullSlots() ? shownSlots(currentShip().hold, slotsHeld(aboard)) : null;
 		const guessed = taking.filter(r => r.guessed).length;
 		return `
 		<p class="dialog-note">${rows.length
@@ -238,7 +252,7 @@ export function openStorageImport(after = () => {}, handOff = null) {
 		${rows.length ? `<div class="shot-table-wrap"><table class="shot-table">
 			<thead><tr><th></th><th>${T('What')}</th><th>${T('How many')}</th><th>${T('at {place}', { place: esc(place ? gameName(place) : T('the bags')) })}</th><th></th></tr></thead>
 			<tbody>${rows.map(rowHTML).join('')}</tbody>
-		</table></div>${slots ? `<p class="dialog-note quiet">${T('What is ticked takes {n} slots there: a [Level 5] and up one each, the rest one a kind.', { n: F(slots) })}</p>` : ''}` : ''}
+		</table></div>${slots ? `<p class="dialog-note quiet">${T('What is ticked takes {n} slots there: a [Level 5] and up one each, the rest one a kind.', { n: F(slots) })}</p>` : ''}${holdOver ? `<p class="dialog-note warn">⚠ ${T('Written as read, this puts the ship\'s hold at {text}: more than the hull has. Nothing is left out, and the hold shows over until some of it goes ashore — check the counts against the shots.', { text: esc(holdOver.text) })}</p>` : ''}` : ''}
 		${goneHTML(gone)}
 		${handOff ? '' : `<div class="shot-lang">${placePicker()}</div>`}
 		<div class="dialog-actions">

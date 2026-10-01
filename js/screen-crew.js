@@ -14,6 +14,7 @@ import { T, TT, said, gameName } from './i18n.js';
 import * as store from './state.js';
 import { img, iconSrc, codexName } from './ui-bits.js';
 import { openDialog, closeDialog, toast } from './dialogs.js';
+import { withOver, overSaid } from './hold-room.js';
 import { shipStats } from './ship_stats.js';
 import { describeStats, statsAt, partLT } from './part_stats.js';
 import { families, tables } from './enhancement.js';
@@ -797,11 +798,11 @@ export function openSetupPicker(after) {
 			const bare = hullOfRow(id);
 			if (bare) {
 				store.setProfile('crewShip', bare, T('Sailing the {ship}', { ship: gameName(bare) }));
-				toast(T('Sailing the {ship}', { ship: gameName(bare) }));
+				toast(withOver(T('Sailing the {ship}', { ship: gameName(bare) })));
 				if (after) after();
 				return;
 			}
-			if (loadSetup(id)) { toast(T('Sailing {name}', { name: (list.find(s => s.id === id) || {}).name })); if (after) after(); }
+			if (loadSetup(id)) { toast(withOver(T('Sailing {name}', { name: (list.find(s => s.id === id) || {}).name }))); if (after) after(); }
 		}
 	});
 }
@@ -1044,7 +1045,7 @@ export function crewAction(act, el) {
 			toast(on ? T('Set on — its stats now count') : T('Set taken off'));
 			return true;
 		}
-		case 'crew-setup-load': if (loadSetup(id)) toast(T('Sailing it')); return true;
+		case 'crew-setup-load': if (loadSetup(id)) toast(withOver(T('Sailing it'))); return true;
 		case 'crew-setup-del': deleteSetup(id); return true;
 		case 'crew-setup-save': {
 			const host = openDialog(`
@@ -1211,7 +1212,7 @@ function shipPicker() {
 		title: T('Which ship do you sail?'),
 		hint: T('The Map times routes and sizes the hold from this hull, as fitted and crewed here. What each is for is the fleet’s reading, not a rule.'),
 		items, selected: shipName(),
-		onPick: name => store.setProfile('crewShip', name)
+		onPick: name => { store.setProfile('crewShip', name); const over = overSaid(); if (over) toast(over); }
 	});
 }
 

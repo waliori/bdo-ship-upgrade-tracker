@@ -11,7 +11,8 @@ import { npcById, isleShort } from '../barter_npcs.js';
 import { floorOf } from '../barter-orders.js';
 import { marketStatus } from '../market.js';
 import { COIN, levelOf } from '../barter.js';
-import { weightOf, sellOf, slotsHeld, rankOf } from '../barter-plan.js';
+import { weightOf, sellOf, slotsHeld, slotFit, rankOf } from '../barter-plan.js';
+import { holdGoods, hullSlots, inHoldAt } from '../hold-room.js';
 import { tailOf } from '../barter-chains.js';
 import { V } from './state.js';
 import { lvTag } from './cockpit.js';
@@ -167,14 +168,38 @@ export function unloadMoves(item, to, n = Infinity) {
 	}
 	return moves;
 }
-export function packApply(rows, want, from) {
-	const delta = {}, moves = [];
-	for (const x of rows) {
+export function packApply(asked, want, from) {
+	const delta = {}, moves = [], rows = [];
+	// A tick that loads is held to the hold's free slots, as the game
+	// holds it: each row in turn takes what still fits, and what does not
+	// is handed back to be said. A good that stacks goes whole or not at
+	// all; a [Level 5] and up a unit a free slot.
+	const aboard = holdGoods(), slots = hullSlots(), left = [];
+	const free = Number.isFinite(slots) ? Math.max(0, slots - slotsHeld(aboard)) : Infinity;
+	for (const x0 of asked) {
+		let x = x0;
+		if (want && /^[blt]\|/.test(String(x.key || ''))) {
+			const add = packChange(x, want, from).moves.filter(m => inHoldAt(m.item, m.to) && !inHoldAt(m.item, m.from)).reduce((a, m) => a + m.n, 0);
+			const have = aboard.get(x.item) || 0;
+			const k = slotFit(x.item, add, have, slotsHeld(aboard), slots);
+			if (k < add) {
+				left.push([x.item, add - k]);
+				if (!(k > 0)) continue;
+				// The row shrunk to what fits: a load from a storage is the
+				// count itself, a buy or a fetch is a count to reach in the
+				// hold, and the silver follows the goods.
+				const n = String(x.key).startsWith('l|') ? k : x.n - (add - k);
+				x = { ...x, n, cost: x.cost ? x.cost * n / x.n : x.cost };
+			}
+			aboard.set(x.item, have + k);
+		}
+		rows.push(x);
 		const c = packChange(x, want, from);
 		for (const [i, n] of Object.entries(c.delta)) delta[i] = (delta[i] || 0) + n;
 		moves.push(...c.moves.filter(m => m.n > 0));
 	}
-	if (!Object.keys(delta).length && !moves.length) return false;
+	const refused = { left, free, slots };
+	if (!Object.keys(delta).length && !moves.length) return { done: false, ...refused };
 	// Loaded after casting off: the checklist was frozen with this load
 	// still to make, and Record makes whatever loads it still lists.
 	if (V.sail && Array.isArray(V.sail.loaded)) {
@@ -193,10 +218,10 @@ export function packApply(rows, want, from) {
 	const sold = new Set(rows.filter(x => want && String(x.key).startsWith('s|')).map(x => x.item));
 	if (rows.every(x => /^[su]\|/.test(String(x.key)))) {
 		store.applyTrip({ delta, moves, at: item => (sold.has(item) ? store.ABOARD : false), label: n === 1 ? (sold.size ? T('Sold {item} at the wharf', { item: gameName(rows[0].item) }) : T('{item} put in storage before casting off', { item: gameName(rows[0].item) })) : T('{n} goods dealt with before casting off', { n }) });
-		return true;
+		return { done: true, ...refused };
 	}
 	store.applyTrip({ delta, moves, label: !want && rows.every(x => String(x.key).startsWith('a|')) ? (n === 1 ? T('{item} put back ashore', { item: gameName(rows[0].item) }) : T('{n} goods put back ashore', { n })) : want ? (n === 1 ? T('Loaded {item} at the wharf', { item: gameName(rows[0].item) }) : T('Loaded {n} goods at the wharf', { n })) : (n === 1 ? T('Took {item} off the ship', { item: gameName(rows[0].item) }) : T('Took {n} goods off the ship', { n })) });
-	return true;
+	return { done: true, ...refused };
 }
 
 /** What the packing list holds, in its three piles: to buy at the

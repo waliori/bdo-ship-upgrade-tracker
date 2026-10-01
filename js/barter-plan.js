@@ -72,6 +72,29 @@ export function slotFit(name, n, have, used, room) {
 	return Math.max(0, Math.min(n, Math.floor(free - have + 1e-9)));
 }
 
+/**
+ * Goods put into a hold of `room` slots that holds `held` (a Map of
+ * name to count), in the order given: each takes what `slotFit` lets
+ * it, and what it takes is aboard for the next. `adds` is a list of
+ * [name, n]. Handed back as what goes aboard and what is left over,
+ * each a list of [name, n] with the noughts left out, and the slots
+ * the hold has free before any of it.
+ */
+export function fitInto(held, adds, room) {
+	const m = new Map(held || []);
+	const used0 = slotsHeld(m);
+	const fit = [], left = [];
+	for (const [name, n0] of adds || []) {
+		const n = Math.max(0, Math.floor(Number(n0) || 0));
+		if (!n) continue;
+		const have = m.get(name) || 0;
+		const k = slotFit(name, n, have, slotsHeld(m), room);
+		if (k > 0) { fit.push([name, k]); m.set(name, have + k); }
+		if (n - k > 0) left.push([name, n - k]);
+	}
+	return { fit, left, free: Number.isFinite(room) ? Math.max(0, room - used0) : Infinity };
+}
+
 /** What a barterer pays for a good, 0 for the unsellable levels and
  *  for anything that is not a good: the [Great Ocean] and rare goods at
  *  their own price (SELL_PRICES). */

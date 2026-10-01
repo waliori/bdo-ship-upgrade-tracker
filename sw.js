@@ -140,6 +140,7 @@ const SHELL = [
 	'/js/guide.js',
 	'/js/guided-tour.js',
 	'/js/habitats.js',
+	'/js/hold-room.js',
 	'/js/i18n.js',
 	'/js/icon-loader.js',
 	'/js/item-card.js',

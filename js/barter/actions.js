@@ -7,7 +7,7 @@ import { esc, F, FC } from '../fmt.js';
 import { T, gameName } from '../i18n.js';
 import * as store from '../state.js';
 import { barterKey, periodKey } from '../clock.js';
-import { currentShip, shownHold, shownSlots } from '../ship.js';
+import { currentShip, shownHold } from '../ship.js';
 import { npcById, ports, isleShort } from '../barter_npcs.js';
 import { noteLeg, LEARN_AT, timingLegs, setTimingLegs } from '../ship-pace.js';
 import { cadenceOf } from '../quests.js';
@@ -29,7 +29,8 @@ import { fromPort, sailCal, itemNow, readWindow, takeFleetBoard, openBook, tellT
 import { openRolls } from './rolls.js';
 import { bringUp, patchPaid, restFind, sailLocked } from './cockpit.js';
 import { castOffFx } from './setsail.js';
-import { aboardStock, unloadTo, held, openSheet, shoreAboard, holdSlotsNow } from './hold.js';
+import { aboardStock, unloadTo, held, openSheet, shoreAboard } from './hold.js';
+import { fitAboard, refusedSaid, inHoldAt } from '../hold-room.js';
 import { matBoardNow, matFitNow, takeMatOffers, openMatBook, openMatRolls, pickGood, pickMaterial, matOn, openMatIsles, pickShipAt } from './material.js';
 import { packedNow, unloadMoves, packApply, toldOf } from './packing.js';
 import { parleyRefilled, retickIfAuto, ordersNow, setOrders, applySaved, dropSaved, askSaveOrders, sellFrom, keepFrom, readBagShot, chainStepsDialog, chainClaimDialog } from './plan.js';
@@ -39,11 +40,19 @@ import { proposeAsync, redrawSoon } from './search.js';
 import { setStep, restore, persist, persistNamed, flushView } from './view.js';
 
 // A tick on the packing list loads for real, and the game takes no good
-// into a hold whose slots are full: said the moment the ticks pass the
-// hull's slots, so the sailor knows before casting off.
-function slotsWarn() {
-	const sl = shownSlots(currentShip().hold, holdSlotsNow());
-	if (sl.over) toast(T('The hold is at {text}: more goods than the hull has slots for. The game will not load them all — untick some, or leave them for a later trip.', { text: sl.text }));
+// into a hold whose slots are full: the tick loads what fits, and what
+// did not go aboard is said with the slots the hold had free.
+function slotsSaid(r) {
+	if (r && r.left && r.left.length) toast(refusedSaid(r, r.done), r.done);
+}
+
+/** How many of `n` more of a good the hold takes: all, or what its
+ *  free slots allow, the rest said as not gone aboard. */
+function aboardFit(item, n) {
+	const r = fitAboard([[item, n]]);
+	const k = r.fit.reduce((a, [, m]) => a + m, 0);
+	if (r.left.length) toast(refusedSaid(r, k > 0));
+	return k;
 }
 
 /** A click on the tab. Returns true when it was one of ours, with the
@@ -124,7 +133,7 @@ export function barterAction(act, el, redraw) {
 		case 'barter-pack': {
 			const k = String(el.dataset.k || '');
 			const x = { key: k, item: el.dataset.item, n: Number(el.dataset.n) || 0, cost: Number(el.dataset.cost) || 0 };
-			if (/^[bltasu]\|/.test(k)) { const want = !packedNow(x); packApply([x], want, fromPort()); if (want) slotsWarn(); return true; }
+			if (/^[bltasu]\|/.test(k)) { const want = !packedNow(x); slotsSaid(packApply([x], want, fromPort())); return true; }
 			if (V.packed.has(k)) V.packed.delete(k); else V.packed.add(k);
 			persist();
 			return true;
@@ -135,7 +144,7 @@ export function barterAction(act, el, redraw) {
 			const want = el.dataset.on !== '1';
 			const rows = JSON.parse(el.dataset.rows || '[]');
 			const loads = rows.filter(x => /^[bltasu]\|/.test(x.key) && packedNow(x) !== want);
-			if (loads.length) { packApply(loads, want, fromPort()); if (want) slotsWarn(); }
+			if (loads.length) slotsSaid(packApply(loads, want, fromPort()));
 			const marks = rows.filter(x => !/^[bltasu]\|/.test(x.key));
 			for (const x of marks) if (want) V.packed.add(String(x.key)); else V.packed.delete(String(x.key));
 			if (marks.length) persist();
@@ -169,7 +178,9 @@ export function barterAction(act, el, redraw) {
 		// reaches past what is aboard into a pile ashore.
 		case 'barter-good': {
 			const d = Number(el.dataset.delta);
-			store.addStock(el.dataset.item, d < 0 ? -Math.min(-d, aboardStock()[el.dataset.item] || 0) : d, null, false);
+			// One more is one more only while the hold has the slot for it.
+			const k = d > 0 ? aboardFit(el.dataset.item, d) : d;
+			if (k) store.addStock(el.dataset.item, k < 0 ? -Math.min(-k, aboardStock()[el.dataset.item] || 0) : k, null, false);
 			return false;
 		}
 		case 'barter-unload': {
@@ -205,7 +216,10 @@ export function barterAction(act, el, redraw) {
 			return false;
 		}
 		case 'barter-load': {
-			const n = Number(el.dataset.n) || store.stockAt(el.dataset.item, el.dataset.town);
+			const want = Number(el.dataset.n) || store.stockAt(el.dataset.item, el.dataset.town);
+			// Loaded as far as the hold's slots go; the rest stays ashore.
+			const n = inHoldAt(el.dataset.item, '') ? aboardFit(el.dataset.item, want) : want;
+			if (!n) return false;
 			store.moveStash(el.dataset.item, el.dataset.town, '', n, T('{n}× {item} loaded at {town}', { n, item: el.dataset.item, town: el.dataset.town }));
 			// Marked aboard while the run is already being sailed: the
 			// checklist was frozen with this load still to make, and Record
@@ -785,7 +799,10 @@ export function barterChange(el, parseAmount) {
 			const n = parseAmount(el.value);
 			if (n === null) return true;
 			const have = aboardStock()[el.dataset.item] || 0;
-			store.addStock(el.dataset.item, Math.max(0, Math.floor(n)) - have, T('{item}: {before} → {after} aboard', { item: el.dataset.item, before: F(have), after: F(Math.max(0, Math.floor(n))) }), false);
+			// A count typed up is held to the slots the hold has free.
+			const asked = Math.max(0, Math.floor(n));
+			const to = asked > have ? have + aboardFit(el.dataset.item, asked - have) : asked;
+			store.addStock(el.dataset.item, to - have, T('{item}: {before} → {after} aboard', { item: el.dataset.item, before: F(have), after: F(to) }), false);
 			return true;
 		}
 		case 'barter-pace': retickIfAuto(); setOrders({ pace: el.value === 'full' ? 'full' : el.value === 'steady' ? 'steady' : 'fast' }); return true;

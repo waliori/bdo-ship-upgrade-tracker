@@ -54,6 +54,7 @@ import { openProfiles, activeProfile } from './profiles.js';
 // needs at boot; the notes behind them are 170 KB and are fetched when
 // What's new or Help is opened (aboutNotes, below).
 import { RELEASE, LATEST, LATEST_TITLE } from './release.js';
+import { placeableAboard, forgetSaid, cappedAboard, cappedOwn, refusedSaid, overSaid, withOver } from './hold-room.js';
 import { whileLoading, loadingNote } from './loading.js';
 import { openTables } from './screen-tables.js';
 import { openTripLog } from './triplog.js';
@@ -1112,12 +1113,21 @@ function wire() {
 			case 'trip-log': return openTripLog();
 			case 'quest-pay-pick': return questAction(act, el);
 			case 'quest-pay-del': questAction(act, el); return render();
-			case 'stash-del': store.setStash(el.dataset.item, el.dataset.town, null); return;
+			// Forgotten, a place's count goes back to the bags -- the ship,
+			// for a trade good -- and only into the slots the hold has free.
+			case 'stash-del': {
+				const no = forgetSaid(el.dataset.item, el.dataset.town);
+				if (no) return toast(no);
+				store.setStash(el.dataset.item, el.dataset.town, null);
+				return;
+			}
 			// Tens straight into a storage: a run comes back with ten or
 			// twenty of a good, and the card's own +10 puts them aboard.
 			case 'stash-bump': {
 				const at = ((store.getProfile('stash', {}) || {})[el.dataset.item] || {})[el.dataset.town] || 0;
-				store.setStash(el.dataset.item, el.dataset.town, Math.max(0, at + Number(el.dataset.delta || 0)));
+				const { n, said: no } = cappedAboard(el.dataset.item, el.dataset.town, Math.max(0, at + Number(el.dataset.delta || 0)));
+				if (no) toast(no);
+				if (n !== at) store.setStash(el.dataset.item, el.dataset.town, n);
 				return;
 			}
 			// The name as the game prints it, for the Market's search box.
@@ -1411,11 +1421,13 @@ function wire() {
 					toast(T('{item} — {route}', { item: gameName(el.dataset.item), route: info ? said(info.label).charAt(0).toLowerCase() + said(info.label).slice(1) : name }), true);
 				}
 			});
+			// A trade good's count lands on the ship, and only into its
+			// free slots (bumpOwn).
 			case 'bump':
-				if (selected) store.addStock(selected, Number(el.dataset.delta));
+				if (selected) bumpOwn(selected, Number(el.dataset.delta));
 				return;
 			case 'own':
-				store.addStock(el.dataset.item, Number(el.dataset.delta));
+				bumpOwn(el.dataset.item, Number(el.dataset.delta));
 				return;
 			case 'move-level': {
 				const from = el.dataset.from;
@@ -1653,10 +1665,13 @@ function wire() {
 		if (pl) {
 			const town = pl.value === 'bags' ? '' : pl.value;
 			if (!pl.value) return;
-			const items = [...invPicked];
-			const done = store.placeAll(items, town);
+			// To the bags is to the ship for a trade good, and a good the
+			// hold has no slots for stays where it is, said.
+			const { items, refused } = town ? { items: [...invPicked], refused: null } : placeableAboard([...invPicked]);
+			const done = items.length ? store.placeAll(items, town) : null;
 			invPicked.clear();
-			if (done) toast(town
+			if (refused) toast(refusedSaid(refused, !!done), !!done);
+			else if (done) toast(town
 				? T('{what} noted at {town}', { what: items.length === 1 ? gameName(items[0]) : T('{n} items', { n: items.length }), town: gameName(town) })
 				: T('{what} back in the bags', { what: items.length === 1 ? gameName(items[0]) : T('{n} items', { n: items.length }) }), true);
 			else render();
@@ -1680,7 +1695,13 @@ function wire() {
 		}
 
 		const cs = evt.target.closest('[data-act="crew-ship"]');
-		if (cs) return store.setProfile('crewShip', cs.value || null);
+		if (cs) {
+			store.setProfile('crewShip', cs.value || null);
+			// A smaller hull keeps every good aboard, and says the hold is over.
+			const over = overSaid();
+			if (over) toast(over);
+			return;
+		}
 
 		// The sailor list's order is a select now that a growth can be
 		// picked to sort by, and a select answers on change -- but the
@@ -1713,7 +1734,11 @@ function wire() {
 		if (!el) return;
 		const n = parseAmount(el.value);
 		if (n === null) return render();   // gibberish: put the stored value back
-		if (el.dataset.act === 'stash-set') store.setStash(el.dataset.item, el.dataset.town, n);
+		if (el.dataset.act === 'stash-set') {
+			const capped = cappedAboard(el.dataset.item, el.dataset.town, n);
+			if (capped.said) toast(capped.said);
+			store.setStash(el.dataset.item, el.dataset.town, capped.n);
+		}
 		else if (el.dataset.act === 'target-qty') store.setTargetQty(el.dataset.target, n);
 		else if (el.dataset.act === 'barter-count') store.setProfile('barterCount', n);
 		else if (el.dataset.act === 'vouchers') store.setProfile('vouchers', n);
@@ -1723,7 +1748,11 @@ function wire() {
 			stacks[el.dataset.base] = n;
 			store.setProfile('failstacks', stacks);
 		}
-		else store.setStock(el.dataset.item, n);
+		else {
+			const capped = cappedOwn(el.dataset.item, n);
+			if (capped.said) toast(capped.said);
+			store.setStock(el.dataset.item, capped.n);
+		}
 		// A number typed in the bar and committed with Enter keeps the
 		// focus where it is, so the chips around it are repainted here
 		// rather than waiting for the focus to leave the bar. The
@@ -2094,7 +2123,7 @@ function openSharedSetup(setup) {
 	});
 	host.querySelector('[data-ship-take]').addEventListener('click', () => {
 		closeDialog();
-		if (applyShipSetup(setup)) toast(T('Sailing as {ship} — one Undo takes it back', { ship: gameName(setup.ship) }), true);
+		if (applyShipSetup(setup)) toast(withOver(T('Sailing as {ship} — one Undo takes it back', { ship: gameName(setup.ship) })), true);
 	});
 	const queue = host.querySelector('[data-ship-queue]');
 	if (queue) queue.addEventListener('click', () => {
@@ -2929,4 +2958,13 @@ async function firstRun({ arrivedOnALink, legacyDialogUp }) {
 			/* the tour is optional */
 		}
 	}
+}
+
+/** The Inventory's +/- on an item: a rise held to the hold's free
+ *  slots when it lands on the ship, what did not fit said. */
+function bumpOwn(item, d) {
+	const before = store.getStock(item);
+	const capped = cappedOwn(item, Math.max(0, before + d));
+	if (capped.said) toast(capped.said);
+	if (capped.n !== before) store.addStock(item, capped.n - before);
 }

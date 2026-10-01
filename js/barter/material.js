@@ -23,6 +23,7 @@ import { tradeGoodNames } from '../trade_goods.js';
 import { landGoods } from '../land_goods.js';
 import { openPicker } from '../picker.js';
 import { toast, openDialog } from '../dialogs.js';
+import { fitAboard, refusedSaid } from '../hold-room.js';
 import { V } from './state.js';
 import { fromPort, materials, keepRoute } from './board.js';
 import { narrow, lvTag } from './cockpit.js';
@@ -742,7 +743,14 @@ export function pickGood(then) {
 		title: T('Which good is aboard?'),
 		hint: T('A sea trade good, or a shore good a chain starts from. The count lives in the Inventory.'),
 		items,
-		onPick: name => { store.addStock(name, 1, T('1 {name} aboard', { name }), false); then(); }
+		onPick: name => {
+			// A trade good goes aboard, and only into a free slot; a shore
+			// good's count is the bags'.
+			const r = levelOf(name) !== null ? fitAboard([[name, 1]]) : null;
+			if (r && r.left.length) { toast(refusedSaid(r)); return; }
+			store.addStock(name, 1, T('1 {name} aboard', { name }), false);
+			then();
+		}
 	});
 }
 

@@ -16,6 +16,7 @@ import { esc, F } from './fmt.js';
 import { T, TT, said, gameName } from './i18n.js';
 import { img } from './ui-bits.js';
 import { openDialog, closeDialog, toast } from './dialogs.js';
+import { withOver } from './hold-room.js';
 import * as store from './state.js';
 import {
 	listFleet, listSetups, setupSummary, loadSetup, deleteSetup, activeSetupId, hullOfRow, shipName, OWNED_PREFIX
@@ -219,12 +220,12 @@ function onFleetClick(host, evt) {
 		if (bare) {
 			store.setProfile('crewShip', bare, T('Sailing the {ship}', { ship: gameName(bare) }));
 			closeDialog();
-			return toast(T('Sailing the {ship}', { ship: gameName(bare) }));
+			return toast(withOver(T('Sailing the {ship}', { ship: gameName(bare) })));
 		}
 		const s = listSetups().find(x => x.id === el.dataset.id);
 		if (loadSetup(el.dataset.id)) {
 			closeDialog();
-			toast(s ? T('Sailing {name}', { name: gameName(s.name) }) : T('Sailing it'));
+			toast(withOver(s ? T('Sailing {name}', { name: gameName(s.name) }) : T('Sailing it')));
 		}
 	}
 }

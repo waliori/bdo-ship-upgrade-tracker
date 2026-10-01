@@ -9,7 +9,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-import { exchanges, goodsHeld, weightOf, sellOf, stacks, bagSlotsOf, slotsHeld, slotFit, rankOf, isGreatOcean } from '../js/barter-plan.js';
+import { exchanges, goodsHeld, weightOf, sellOf, stacks, bagSlotsOf, slotsHeld, slotFit, fitInto, rankOf, isGreatOcean } from '../js/barter-plan.js';
 import { GOODS } from '../js/barter.js';
 import { sellable, PLAIN_ORDERS } from '../js/barter-orders.js';
 
@@ -79,4 +79,45 @@ test('a [Great Ocean] good stands above a [Level 5] and below a [Level 6] in eve
 	assert.ok(sellable(ocean, { ...PLAIN_ORDERS, sell: 5 }));
 	assert.ok(!sellable(ocean, { ...PLAIN_ORDERS, sell: 6 }), 'a wharf selling from Level 6 keeps it');
 	assert.ok(sellable('[Level 6] Brass Bowl Crate', { ...PLAIN_ORDERS, sell: 6 }));
+});
+
+test('goods put into a hold take its free slots in turn: a stack whole or not at all, a [Level 5] a unit a slot', () => {
+	const L5 = "[Level 5] Statue's Tear", L5b = '[Level 5] Azure Quartz', L3 = '[Level 3] Ancient Orders', L3b = '[Level 3] Narvo Sword';
+	const held = new Map([[L5, 17], [L3, 4]]);          // 18 of 20 slots
+	const r = fitInto(held, [[L3, 50], [L5b, 3], [L3b, 2]], 20);
+	assert.equal(r.free, 2);
+	assert.deepEqual(r.fit, [[L3, 50], [L5b, 2]], 'more of a stack aboard takes no slot; two [Level 5]s take the last two');
+	assert.deepEqual(r.left, [[L5b, 1], [L3b, 2]], 'a new stack finds no slot');
+	assert.deepEqual(held.get(L3), 4, 'the hold handed in is not written');
+	assert.deepEqual(fitInto(held, [[L5b, 9]], Infinity).left, [], 'a hold without slots takes everything');
+});
+
+test('a packing tick loads only what the hold has slots for, and hands back what did not go aboard', async () => {
+	const store = await import('../js/state.js');
+	const { packApply } = await import('../js/barter/packing.js');
+	const { holdSlotsUsed } = await import('../js/hold-room.js');
+	const L5 = "[Level 5] Statue's Tear", L5b = '[Level 5] Azure Quartz', L5c = '[Level 5] Luxury Patterned Fabric';
+	store.setHome('goods', '');
+	store.removeItems(Object.keys(store.getAllStock()), 'clear');
+	store.setProfile('crewShip', 'Carrack (Volante)');   // twenty slots
+	store.addStock(L5, 18, null, false);
+	store.setStockAt(L5b, 'Iliya Island', 5);
+	store.setStockAt(L5c, 'Iliya Island', 4);
+	const from = { name: 'Iliya Island' };
+	// One row: two of the five fit.
+	const one = packApply([{ key: `l|${L5b}`, item: L5b, n: 5 }], true, from);
+	assert.ok(one.done);
+	assert.deepEqual(one.left, [[L5b, 3]]);
+	assert.equal(one.free, 2);
+	assert.equal(store.stockAt(L5b, ''), 2, 'two aboard');
+	assert.equal(store.stockAt(L5b, 'Iliya Island'), 3, 'three wait ashore');
+	assert.equal(holdSlotsUsed(), 20);
+	// "Tick them all" on a full hold: nothing loads, and all of it is said.
+	const all = packApply([{ key: `l|${L5b}`, item: L5b, n: 3 }, { key: `l|${L5c}`, item: L5c, n: 4 }], true, from);
+	assert.equal(all.done, false);
+	assert.deepEqual(all.left, [[L5b, 3], [L5c, 4]]);
+	assert.equal(all.free, 0);
+	assert.equal(store.stockAt(L5c, 'Iliya Island'), 4);
+	assert.equal(holdSlotsUsed(), 20, 'never past the slots');
+	store.setProfile('crewShip', null);
 });

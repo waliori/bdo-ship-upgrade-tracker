@@ -8,12 +8,13 @@ import { img, codexName, amountInput } from '../ui-bits.js';
 import { barterProfile } from '../ui-state.js';
 import { currentShip, shownHold, shownSlots, aboardWhat } from '../ship.js';
 import { GOODS, PARLEY, COIN_LEVEL, levelOf, levelDiscount } from '../barter.js';
-import { goodsHeld, landHeld, weightOf, sellOf, slotsHeld, stacks, rankOf, aboardStock as aboardOf } from '../barter-plan.js';
+import { goodsHeld, landHeld, weightOf, sellOf, stacks, rankOf, aboardStock as aboardOf } from '../barter-plan.js';
 import { TOWNS } from '../screen-inventory.js';
 import { wharves } from '../wharves.js';
 import { openDialog } from '../dialogs.js';
 import { V } from './state.js';
 import { timerHTML } from '../sail-timer.js';
+import { holdSlotsUsed } from '../hold-room.js';
 import { fromPort } from './board.js';
 import { parleyOf, ordersNow } from './plan.js';
 import { STASHES, storeOf, TIER } from './route.js';
@@ -138,16 +139,7 @@ export function held() {
 /** The hold's slots as they stand: the trade goods aboard -- a [Level 5]
  *  and up a slot each, the rest a slot a kind -- and the shore goods in
  *  the hold, a slot a kind. `less` is goods to count as off it. */
-export function holdSlotsNow(less = null) {
-	const m = goodsHeld(aboardStock());
-	for (const name of Object.keys(store.getAllStock())) {
-		if (levelOf(name) !== null) continue;
-		const n = store.stockAt(name, store.ABOARD);
-		if (n > 0) m.set(name, n);
-	}
-	for (const [name, n] of less || []) m.set(name, Math.max(0, (m.get(name) || 0) - n));
-	return slotsHeld(m);
-}
+export const holdSlotsNow = holdSlotsUsed;
 
 /**
  * The hold as one line across the page: the ship, its weight against
