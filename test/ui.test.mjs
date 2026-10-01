@@ -2706,11 +2706,16 @@ test('the cockpit weighs the hold from the Inventory, shows each stop before and
 	// The hold across the stop, good by good.
 	assert.match(await text(page, '.hold-slots-legend'), /after this stop/i);
 	assert.ok(await count(page, '.hold-tiles .shelf-tile.moved, .hold-tiles .shelf-tile.new, .hold-tiles .shelf-tile.gone') >= 1, 'the goods the stop changes are marked');
-	// Traded more times than the run said.
+	// Traded more times than the run said. The run loads what its own
+	// count needs and often no more -- which good, and how much over,
+	// is down to the day's board -- so a sailor who traded once more
+	// had one more trade's worth aboard: put it there, or the hold
+	// cannot give what it never had.
 	const s = await page.evaluate(async () => {
 		const sail = await import('/js/barter/sail.js'); const store = await import('/js/state.js');
 		const npc = Number(document.querySelector('[data-act="barter-did-open"]').dataset.npc);
 		const st = sail.sailedPlan().stops.find(x => x.npcId === npc);
+		store.setStockAt(st.give, store.ABOARD, store.stockAt(st.give, store.ABOARD) + Math.ceil(st.giveN));
 		return { npc, times: st.times, giveN: st.giveN, give: st.give, had: store.getStock(st.give) };
 	});
 	await tap(page, '[data-act="barter-did-open"]'); await wait(400);
@@ -3062,7 +3067,14 @@ test('a phone on its side is a phone: the thumb bar and the menu, and the hover 
 
 	const desk = await open('#inventory');
 	await seed(desk.page); await wait(300);
+	// The Market's prices land a second or two after the page opens and
+	// redraw the Inventory, which drops the focus and the card with it:
+	// wait for them first (the same request, not a second one), so the
+	// focus below is on the tile that stays.
+	await desk.page.evaluate(async () => { await (await import('/js/market.js')).loadMarket(); }); await wait(300);
 	// A tile the card has something to say about: a stone with a price.
+	// It sits low in the grid, so focusing it scrolls the page: the
+	// card has to survive the scroll its own focus makes.
 	await desk.page.focus('.tile[data-peek="Tidal Black Stone"]'); await wait(600);
 	assert.equal(await desk.page.evaluate(() => document.getElementById('peek').hidden), false, 'focus shows the card');
 	assert.equal(await desk.page.evaluate(() => document.activeElement.getAttribute('aria-describedby')), 'peek');
