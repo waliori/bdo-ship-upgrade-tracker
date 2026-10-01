@@ -173,6 +173,9 @@ export async function open({ width = 1280, height = 820, touch = false, url = `h
 	});
 	const page = await browser.newPage();
 	await page.setViewport({ width, height, deviceScaleFactor: 1 });
+	// The app follows the system's scheme until a theme is chosen, and
+	// headless Chrome says light; the films are shot in the dark one.
+	await page.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: 'dark' }]);
 	await page.evaluateOnNewDocument(CURSOR);
 	if (touch) await page.evaluateOnNewDocument('window.__touch = true;');
 	page.on('pageerror', e => console.log('  PAGEERR', e.message));

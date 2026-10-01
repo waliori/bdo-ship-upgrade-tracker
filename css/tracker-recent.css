@@ -121,18 +121,8 @@
  * Barter: the sailing orders
  * ------------------------------------------------------------------ */
 .orders { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
-.orders-sub, .orders-adjusted { font-size: 12px; color: var(--ink-mute); }
-.orders-adjusted { color: var(--amber); }
-.floors-note { flex: 1 1 260px; min-width: 0; }
+.orders-sub { font-size: 12px; color: var(--ink-mute); }
 
-/* ---- the stock: a row a level, what is held against what is kept --- */
-.stock-rows { display: flex; flex-direction: column; gap: 4px; background: var(--panel-inset); border-radius: var(--r-btn); padding: 8px 9px; }
-.stock-lv { width: 18px; height: 16px; border-radius: 3px; background: var(--tier); color: var(--on-tint); font-family: var(--font-display); font-style: normal; font-size: 10px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
-.stock-have, .stock-each { font-size: 12px; color: var(--ink-mid); line-height: 1.25; }
-.stock-have em, .stock-each em { display: block; font-style: normal; font-size: 10.5px; color: var(--ink-faint); }
-.stock-bar { display: block; height: 6px; border-radius: 3px; background: var(--panel-sunk, rgba(255, 255, 255, 0.06)); overflow: hidden; }
-.stock-bar i { display: block; height: 100%; background: var(--tier); border-radius: 3px; }
-.stock-note { font-size: 11.5px; color: var(--ink-faint); }
 .run-pauses { display: flex; align-items: center; gap: 8px 14px; flex-wrap: wrap; background: var(--panel-inset); border-radius: var(--r-btn); padding: 7px 9px; }
 .run-pauses .run-pick-k { margin-bottom: 0; flex: none; }
 .run-pause { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-mid); }
@@ -147,10 +137,6 @@
 .run-ahead { margin: 10px 0 0; padding: 9px 12px; border-radius: var(--r-btn); background: var(--panel-inset); color: var(--ink-mid); font-size: 12.5px; line-height: 1.5; }
 .run-ahead b { color: var(--ink-hi); }
 .run-ahead.full { color: var(--teal); }
-@media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
-  .stock-bar { grid-column: 2 / -1; }
-  .stock-note { grid-column: 2 / -1; }
-}
 
 .chain-yard { font-size: 11px; color: var(--ink-mute); }
 .chain-yard em { font-style: normal; color: var(--teal); font-weight: 600; }
@@ -350,17 +336,7 @@ body.map-turned .toast { left: 40px; top: 50%; bottom: auto; transform: translat
    on the left, the islands that can deal it as chips on the right.
    Ticking is the work, so a row ticked wears the teal edge. */
 .mat-list.hero { padding: 0; overflow: hidden; }
-.mat-strip { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--line-head); }
-.mat-tile { display: flex; align-items: stretch; background: var(--panel-inset); border: 1px solid var(--line); border-radius: 10px; padding: 0; text-align: left; color: var(--ink-mid); font: inherit; overflow: hidden; }
-.mat-tile:hover { border-color: rgba(var(--blue-rgb), 0.5); }
-.mat-tile-x { flex: none; border: none; border-left: 1px solid var(--line); background: none; color: var(--ink-faint); padding: 0 10px; font: inherit; font-size: 15px; line-height: 1; cursor: pointer; }
-.mat-tile-x:hover { color: var(--red); background: rgba(232, 122, 109, 0.09); }
-.mat-tile .row-icon.md { flex: none; }
 .mat-pick-hint { padding: 22px 18px 26px; text-align: center; color: var(--ink-mute); font-size: 13px; line-height: 1.6; }
-.mat-tile.add { border-style: dashed; border-color: var(--line-btn); color: var(--ink-faint); padding: 12px 14px; font-size: 12px; font-weight: 600; }
-.mat-tile.add:hover { color: var(--ink-dim); border-color: var(--line-btn-hi); }
-.mat-strip .linky.faint { color: var(--ink-faint); text-decoration: none; font-size: 11.5px; font-weight: 600; }
-.mat-strip .linky.faint:hover { color: var(--red); }
 
 .mat-want { display: flex; align-items: center; gap: 7px; }
 .mat-want .run-pick-k { margin: 0; }
@@ -374,7 +350,6 @@ body.map-turned .toast { left: 40px; top: 50%; bottom: auto; transform: translat
 .mat-need-text { flex: 1 1 200px; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .mat-need-text b { font-size: 14px; color: var(--ink-hi); }
 .mat-need-text small { font-size: 11.5px; color: var(--ink-faint); }
-.mat-need-head .mat-tile-x { border: 1px solid var(--line); border-radius: 7px; padding: 6px 10px; }
 .mat-rows { display: flex; flex-direction: column; border: 1px solid var(--line-soft); border-radius: var(--r-tile); overflow: hidden; }
 .mat-row { display: grid; grid-template-columns: minmax(130px, 190px) minmax(0, 1fr) auto minmax(110px, auto); align-items: center; gap: 6px 14px; padding: 7px 12px; border-top: 1px solid var(--line-soft); font-size: 12.5px; }
 .mat-row:first-child { border-top: none; }
@@ -393,31 +368,14 @@ body.map-turned .toast { left: 40px; top: 50%; bottom: auto; transform: translat
 .mat-row-state.shut { color: var(--amber); }
 .mat-rows-k { margin: 10px 0 5px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-faint); }
 .mat-none { margin: 2px 0; font-size: 12.5px; color: var(--ink-mute); }
-.mat-cards { margin-bottom: 10px; }
 @media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
   .mat-need { padding: 11px 14px 13px; }
   .mat-row { grid-template-columns: minmax(0, 1fr) auto; }
   .mat-row-swap { grid-column: 1 / -1; order: 3; }
   .mat-row-day { display: none; }
-  .mat-strip { padding-left: 14px; padding-right: 14px; }
 }
 
 /* ---- The run for a material, and the hold beside it ---- */
-.run-head .run-pick { flex: none; }
-.run-head .run-pick .run-pick-k { margin: 0; letter-spacing: 0; text-transform: none; font-size: 11.5px; color: var(--ink-mute); }
-.run-head .run-pick .select { padding: 5px 9px; font-size: 12px; }
-.mat-run-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding: 12px 18px; border-bottom: 1px solid var(--line-soft); }
-.mat-run-head .panel-title { margin: 0; }
-.mat-run-head .run-pick { margin-left: auto; }
-.mat-run-for { display: flex; flex-wrap: wrap; gap: 6px; flex: 1 1 200px; min-width: 0; }
-.mat-for { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px 3px 4px; border-radius: 999px; background: var(--panel-inset); border: 1px solid var(--line); font-size: 12px; color: var(--ink-mid); }
-.mat-for.active { border-color: rgba(var(--blue-rgb), 0.45); color: var(--ink-hi); }
-.mat-for .row-icon.sm { width: 22px; height: 22px; border-radius: 5px; flex: none; }
-.mat-for b { font-family: var(--font-display); font-weight: 600; color: var(--ink-hi); }
-.mat-orders { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; padding: 10px 18px; border-bottom: 1px solid var(--line-soft); font-size: 12.5px; color: var(--ink-mid); }
-.mat-order { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
-.mat-order .run-pick-k { margin: 0; }
-.mat-orders .purse-inline { text-transform: none; letter-spacing: 0; max-width: 100%; }
 .mat-summary { padding: 14px 18px 16px; display: flex; flex-direction: column; gap: 14px; }
 .mat-yield { display: flex; flex-direction: column; gap: 8px; }
 .mat-yield-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "icon name n" "icon bar bar" "icon note note"; column-gap: 10px; row-gap: 3px; align-items: center; }
@@ -448,10 +406,7 @@ body.map-turned .toast { left: 40px; top: 50%; bottom: auto; transform: translat
 .mat-goods .run-good > span:not(.faint):not(.run-good-worth) { white-space: normal; flex: 1 1 150px; }
 .mat-goods .run-good .faint { flex: 1 1 100%; order: 5; padding-left: 2px; white-space: normal; }
 @media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
-  .mat-run-head, .mat-orders, .mat-summary { padding-left: 14px; padding-right: 14px; }
-  .mat-run-head .run-pick { margin-left: 0; }
-  .mat-order { display: flex; width: 100%; }
-  .mat-order .purse-inline { flex: 1 1 auto; min-width: 0; }
+  .mat-summary { padding-left: 14px; padding-right: 14px; }
   .mat-figs .mat-fig { flex: 1 1 45%; }
   .mat-goods .run-good { padding-left: 14px; padding-right: 14px; }
   .mat-goods .run-good .run-good-worth { flex: 1 1 100%; order: 6; margin-left: 0; }
@@ -508,6 +463,11 @@ body.map-turned .toast { left: 40px; top: 50%; bottom: auto; transform: translat
 .sel-log-row b { color: var(--ink); }
 .sel-log-row.quiet { opacity: 0.7; }
 .sel-log-stats { display: block; font-size: 10.5px; opacity: 0.8; }
+
+/* On the Map the day's line steps aside on every screen: its clocks
+   are on the chart's own pill, and the line was one more band pushing
+   the chart down to the middle of the window. */
+body[data-view="map"] .status-bar { display: none; }
 
 /* A phone on its side is 390 pixels tall, and the chart was under
    every one of them: the header, the purse, the day's line and the
@@ -694,11 +654,6 @@ body.map-turned .toast { left: 40px; top: 50%; bottom: auto; transform: translat
 }
 
 /* The three paces, compared, under the run's tiles. */
-.pace-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; margin: 10px 0 0; }
-.pace-k { font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-mute); }
-.pace-sub { font-size: 11.5px; color: var(--ink-faint); }
-.pace-sub.amber { color: var(--amber); }
-.pace-sub.warn { color: var(--red); }
 /* Quests off the way fold away; the head is the handle. */
 details.run-quests-off > summary { list-style: none; cursor: pointer; }
 details.run-quests-off > summary::-webkit-details-marker { display: none; }
@@ -1011,7 +966,6 @@ img.comm-silver { width: 1.25em; height: 1.25em; vertical-align: -0.25em; object
 .sail-scene-cheer.on { animation: sail-cheer 2.4s ease-out both; }
 @keyframes sail-cheer { 0% { opacity: 0; transform: translateY(6px); } 20% { opacity: 1; transform: none; } 80% { opacity: 1; } 100% { opacity: 0; transform: translateY(-4px); } }
 @media (prefers-reduced-motion: reduce) { .sail-scene-cheer.on { animation: none; opacity: 0; } }
-.mat-card-got { display: inline-flex; align-items: center; gap: 3px; margin-right: 8px; white-space: nowrap; }
 .mat-nothing { padding: 4px 2px 8px; }
 .mat-nothing b { color: var(--ink-dim); font-weight: 600; }
 
@@ -1020,3 +974,58 @@ img.comm-silver { width: 1.25em; height: 1.25em; vertical-align: -0.25em; object
 .cockpit-voucher .voucher-drawn.active { border-color: var(--teal); color: var(--teal); }
 .parley-fix { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 11px; color: var(--ink-faint); }
 .parley-fix input { width: 9em; }
+
+/* ------------------------------------------------------------------ *
+ * The guided tour, in the app's own materials
+ * ------------------------------------------------------------------ */
+
+/* Driver.js ships a white box in Helvetica with a pale-grey close at
+   1.5:1 -- a different product's dialog standing in the middle of this
+   one. Its sheet arrives after these (it is fetched with the tour), so
+   every rule here carries the tour's own class to outrank it. */
+.driver-popover.sail-tour {
+  background: var(--sheet-solid);
+  color: var(--ink);
+  font-family: var(--font-body);
+  border: 1px solid var(--line-btn);
+  border-radius: var(--r-panel);
+  box-shadow: 0 16px 48px rgba(var(--shade-rgb), 0.55);
+  padding: 16px 18px 14px;
+  min-width: 260px;
+  max-width: 360px;
+}
+.sail-tour .driver-popover-title { font-family: var(--font-display); font-size: 16px; font-weight: 600; letter-spacing: 0.02em; color: var(--ink-hi); padding-right: 30px; line-height: 1.35; }
+.sail-tour .driver-popover-description { font-size: 13.5px; line-height: 1.55; color: var(--ink-mid); }
+.sail-tour .driver-popover-description b { color: var(--ink-hi); }
+.sail-tour .driver-popover-close-btn { width: 36px; height: 36px; top: 6px; right: 6px; border-radius: var(--r-btn); color: var(--ink-mute); font-size: 20px; line-height: 36px; }
+.sail-tour .driver-popover-close-btn:hover, .sail-tour .driver-popover-close-btn:focus-visible { color: var(--ink-hi); background: rgba(var(--line-rgb), 0.12); }
+.sail-tour .driver-popover-progress-text { color: var(--ink-faint); font-size: 12px; font-family: var(--font-display); }
+.sail-tour .driver-popover-footer { margin-top: 14px; gap: 8px; }
+.sail-tour .driver-popover-footer-btn { font-family: var(--font-body); font-size: 13px; font-weight: 600; padding: 7px 14px; border-radius: var(--r-btn); border: 1px solid rgba(var(--line-rgb), 0.25); background: none; color: var(--ink-dim); text-shadow: none; }
+.sail-tour .driver-popover-footer-btn:hover, .sail-tour .driver-popover-footer-btn:focus-visible { border-color: var(--line-btn-hi); color: var(--ink-hi); background: none; }
+.sail-tour .driver-popover-next-btn { background: rgba(var(--blue-rgb), 0.15); border-color: rgba(var(--blue-rgb), 0.45); color: var(--blue-hi); }
+.sail-tour .driver-popover-next-btn:hover, .sail-tour .driver-popover-next-btn:focus-visible { background: rgba(var(--blue-rgb), 0.3); color: var(--blue-hi); }
+.sail-tour .driver-popover-navigation-btns button + button { margin-left: 8px; }
+.sail-tour .driver-popover-arrow-side-left { border-left-color: var(--sheet-solid); }
+.sail-tour .driver-popover-arrow-side-right { border-right-color: var(--sheet-solid); }
+.sail-tour .driver-popover-arrow-side-top { border-top-color: var(--sheet-solid); }
+.sail-tour .driver-popover-arrow-side-bottom { border-bottom-color: var(--sheet-solid); }
+
+/* On a phone the step is a sheet at the thumb, the width of the screen,
+   rather than a box over the middle of it; a step about the bar at the
+   bottom puts its sheet at the top instead. */
+@media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
+  .driver-popover.sail-tour {
+    position: fixed !important;
+    top: auto !important;
+    bottom: calc(10px + env(safe-area-inset-bottom, 0px)) !important;
+    left: 10px !important;
+    right: 10px !important;
+    min-width: 0;
+    max-width: none;
+    max-height: 44vh;
+    overflow-y: auto;
+  }
+  .driver-popover.sail-tour.tour-top { top: calc(10px + env(safe-area-inset-top, 0px)) !important; bottom: auto !important; }
+  .sail-tour .driver-popover-arrow { display: none; }
+}

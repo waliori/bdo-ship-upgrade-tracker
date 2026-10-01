@@ -63,7 +63,20 @@
   .map.is-loading::after { animation: none; background: rgba(125, 200, 255, 0.5); }
 }
 
-.map-layer { position: absolute; inset: 0; }
+/* The chart is dark in either theme -- the tiles are the game's own
+   sea -- so whatever is drawn on it keeps the dark theme's ink. In the
+   light theme the island and barterer names turned dark teal and grey
+   on dark water and all but vanished. The values are the dark theme's,
+   so in that theme this changes nothing. */
+.map-layer {
+  position: absolute; inset: 0;
+  --ink: #d9e6f2; --ink-hi: #eef5fb; --ink-row: #e6eff8; --ink-mid: #b7c9da;
+  --ink-dim: #a8bed3; --ink-soft: #9db3c9; --ink-mute: #8aa3bd; --ink-faint: #7690ad; --ink-off: #94aac2;
+  --blue: #7cc3ee; --blue-hi: #9fd0f2; --teal: #4ec9ae; --teal-hi: #7fe0c9;
+  --amber: #e8b661; --stash: #b28fe0; --red: #e87a6d; --red-soft: #e0988e;
+  --line-rgb: 125, 175, 225; --deep-rgb: 9, 22, 42; --blue-rgb: 88, 168, 232; --shade-rgb: 0, 0, 0;
+  --done-ink: #5ef0c9; --star: #ffd77a;
+}
 
 /* ---- the chart stood up --------------------------------------------
    The terrain draws into its own canvas behind the layer, and the
@@ -224,7 +237,7 @@
   background: none;
   color: var(--ink-mute);
   font-family: var(--font-display);
-  font-size: 10px;
+  font-size: 11.5px;
   white-space: nowrap;
   cursor: pointer;
 }
@@ -255,7 +268,7 @@
 }
 
 /* The island itself, under the barterer who stands on it. */
-.map-pin-at { font-size: 9px; letter-spacing: 0.02em; color: var(--ink-mute); }
+.map-pin-at { font-size: 10.5px; letter-spacing: 0.02em; color: var(--ink-mute); }
 .map-pin.wanted .map-pin-at { color: var(--ink-dim); }
 .map-pin:hover .map-pin-name { opacity: 1; color: var(--ink-hi); }
 
@@ -330,24 +343,35 @@
 .map-pin-badge:not(:empty) { display: grid; }
 .map-pin-badge.is-done { background: var(--done-bg); color: var(--done-ink); border-color: var(--done-edge); }
 
-.map-zoom { display: flex; gap: 6px; }
+/* The chart's tools wrap rather than run past the edge: on a phone
+   the last of nine buttons (Keep this area offline) was cut off where
+   no scroll could reach it. The two that are not self-evident -- the
+   3D lean and the offline keep -- carry a word beside their mark. */
+.map-zoom { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; min-width: 0; }
+.map-zoom .ghost-btn { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
+.map-zoom .btn-label { font-size: 12px; font-family: var(--font-display); letter-spacing: 0.04em; }
+.ico { flex: none; vertical-align: middle; }
 
 /* ------------------------------------------------------------------ *
  * The chart's furniture: the side panel, the pin's card, the minimap.
  * All float on the sea inside the map box, in the app's own materials.
  * ------------------------------------------------------------------ */
 
+/* Flush with the chart's edge: inset by 12 pixels, the panel left a
+   strip of sea round it where island names showed through and ran
+   across its top. */
 .map-side {
   position: absolute;
-  left: 12px;
-  top: 12px;
-  bottom: 12px;
-  width: min(300px, calc(100% - 24px));
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: min(300px, 100%);
   display: flex;
   flex-direction: column;
   background: var(--panel-solid);
-  border: 1px solid var(--line-btn);
-  border-radius: var(--r-panel);
+  border: 0;
+  border-right: 1px solid var(--line-btn);
+  border-radius: 0;
   backdrop-filter: blur(10px);
   box-shadow: 0 12px 40px rgba(var(--shade-rgb), 0.45);
   z-index: 10;
@@ -379,7 +403,7 @@
 .map-side-close:hover,
 .map-x:hover { color: var(--ink-hi); }
 
-.map-tabs { display: flex; gap: 4px; padding: 0 10px 8px; }
+.map-tabs { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 10px 8px; }
 
 .map-tab {
   flex: 1;
@@ -389,9 +413,10 @@
   background: none;
   color: var(--ink-mute);
   font-family: var(--font-display);
-  font-size: 11px;
-  letter-spacing: 0.1em;
+  font-size: 12px;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
+  white-space: nowrap;
   cursor: pointer;
 }
 .map-tab.active {
@@ -453,7 +478,7 @@
 }
 
 .map-row-sub {
-  font-size: 10.5px;
+  font-size: 12px;
   color: var(--ink-mute);
   white-space: nowrap;
   overflow: hidden;
@@ -469,7 +494,7 @@
   flex: none;
 }
 
-.map-row-more { font-size: 10px; color: var(--ink-mute); }
+.map-row-more { font-size: 11.5px; color: var(--ink-mute); }
 
 /* An item's face, at chart scale. */
 .map-icon {
@@ -496,7 +521,7 @@
 }
 
 .map-hint {
-  font-size: 11.5px;
+  font-size: 12.5px;
   color: var(--ink-mute);
   background: var(--panel-inset);
   border: 1px dashed var(--line-btn);
@@ -713,15 +738,6 @@
   flex: none;
 }
 
-.picker-head {
-  padding: 9px 10px 4px;
-  font-family: var(--font-display);
-  font-size: 10.5px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--ink-mute);
-}
-
 /* Give and get, at a glance: minus on what leaves, plus on what boards. */
 .map-io { position: relative; display: inline-flex; flex: none; }
 .map-io::after {
@@ -761,7 +777,7 @@
   background: none;
   color: var(--ink-mute);
   font-family: var(--font-display);
-  font-size: 9.5px;
+  font-size: 10.5px;
   white-space: nowrap;
   cursor: pointer;
   z-index: 3;
@@ -816,8 +832,8 @@
    leaves, and never wider than that water. The panel is wider while a
    run is sailed. */
 @media (min-width: 721px) {
-  .map:has(.map-side) { --side-w: 312px; }
-  .map:has(.map-side .map-run) { --side-w: 452px; }
+  .map:has(.map-side) { --side-w: 300px; }
+  .map:has(.map-side .map-run) { --side-w: 440px; }
   /* The minimap at its corner takes the bottom right too, unless it
      was dragged elsewhere. */
   .map:has(.map-mini:not(.moved)) { --mini-w: 186px; }
@@ -986,7 +1002,7 @@
   border: 1px solid var(--line);
   background: var(--panel-inset);
   color: var(--ink-mute);
-  font-size: 11px;
+  font-size: 12px;
   cursor: pointer;
 }
 .map-kind-chip.on { color: var(--teal-hi); border-color: var(--teal-edge); background: var(--teal-glow); }
@@ -1048,7 +1064,7 @@
 
 /* The run sheet in the chart's panel: the Barter tab's rows, the panel
    wide enough for them, the stop the chart stands at lit. */
-.map-side:has(.map-run) { width: min(440px, calc(100% - 24px)); }
+.map-side:has(.map-run) { width: min(440px, 100%); }
 .map-run { display: flex; flex-direction: column; gap: 10px; }
 .map-run-head { display: flex; flex-direction: column; gap: 6px; }
 .map-run-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }

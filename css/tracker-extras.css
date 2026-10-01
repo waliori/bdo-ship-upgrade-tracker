@@ -491,12 +491,12 @@
   .masthead-actions, .hamburger, .tabs, .tabbar, .pouch, .status-bar, .toast, .peek, .dialog,
   .app-tip, .shared-bar, .detail, .detail-veil, .controls, .get-copy, .chips, .sq-btn, .stepper,
   .readybar, .step-cta, .tcaret, .chart-link, .linky, .ghost-btn, .act, .info-dot, canvas,
-  .map-tools, .map-side, .map-clocks, .map-mini, .quest-actions, .get-quests, .brand-sub { display: none !important; }
+  .map-side, .map-clocks, .map-mini, .quest-actions, .get-quests, .brand-sub { display: none !important; }
   .brand-name { color: #000; }
   .masthead { padding: 0 0 8pt; border-bottom: 1pt solid #000; margin-bottom: 10pt; }
   .screen { gap: 10pt; }
   .panel, .stats, .summary, .stat, .tile, .want, .row, .trow, .quest, .craft, .card, .build, .today, .step,
-  .kv-row, .way, .detail-body, .group, .picker, .item-card {
+  .kv-row, .way, .group, .picker, .item-card {
     background: none !important;
     border-color: #999 !important;
     box-shadow: none !important;

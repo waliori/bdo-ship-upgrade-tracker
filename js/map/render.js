@@ -24,6 +24,11 @@ import { routeHTML } from './route.js';
 import { errandsHTML } from './errands.js';
 import { traceHTML } from './trace.js';
 
+/** The 3D switch's mark, drawn rather than typed: U+26F0 is in neither
+ *  of the app's fonts, and on a system without a font that has it the
+ *  button was an empty box. A path is the same on every machine. */
+const MOUNTAIN = `<svg class="ico" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M2 20 9 7l4 7 3-4 6 10z"/><path d="m7.4 10 1.6 1.4L10.6 10"/></svg>`;
+
 /** Vell's next spawn on the standing region's timetable, or null. */
 function vellNext() {
 	const plan = vellPlan();
@@ -116,12 +121,12 @@ export function renderMap() {
 			</div>
 		</div>
 		<div class="map-zoom">
-			<button class="ghost-btn" data-act="map-zoom" data-step="-1" aria-label="${T('Zoom out')}">−</button>
-			<button class="ghost-btn" data-act="map-zoom" data-step="1" aria-label="${T('Zoom in')}">+</button>
-			<button class="ghost-btn" data-act="map-fit" aria-label="${T('Fit the marked islands in view')}">⌖</button>
+			<button class="ghost-btn" data-act="map-zoom" data-step="-1" aria-label="${T('Zoom out')}" title="${T('Zoom out')}">−</button>
+			<button class="ghost-btn" data-act="map-zoom" data-step="1" aria-label="${T('Zoom in')}" title="${T('Zoom in')}">+</button>
+			<button class="ghost-btn" data-act="map-fit" aria-label="${T('Fit the marked islands in view')}" title="${T('Fit the marked islands in view')}">⌖</button>
 			<button class="ghost-btn" data-act="map-measure" aria-pressed="${mv.measuring}" aria-label="${T('Measure a distance')}" title="${T('Ruler: click two points on the sea')}">⟷</button>
-			<button class="ghost-btn" data-act="map-3d" aria-pressed="${mv.threeD}" aria-label="${T('Stand the chart up')}"
-				title="${T("Stand the chart up: the game's own terrain, read out of your client")}">⛰</button>
+			<button class="ghost-btn map-3d-btn" data-act="map-3d" aria-pressed="${mv.threeD}" aria-label="${T('Stand the chart up')}"
+				title="${T("Stand the chart up: the game's own terrain, read out of your client")}">${MOUNTAIN}<span class="btn-label">${T('3D')}</span></button>
 			<button class="ghost-btn" data-act="map-mini" aria-pressed="${mv.miniOn}" aria-label="${T('Show or hide the minimap')}" title="${T('Minimap: show or hide it; drag its grip to move it')}">▭</button>
 			<button class="ghost-btn" data-act="map-full" aria-pressed="${mv.fullOn}" aria-label="${T('Show the chart over the whole screen')}" title="${T('Full screen: the chart over everything; ✕ or Esc brings the page back')}">⛶</button>
 			<span class="map-pins" data-map-pins>${pinButtonsHTML()}</span>
@@ -142,10 +147,10 @@ export function renderMap() {
 	// Over the whole screen, the header's buttons are out of reach, so
 	// the chart carries the few that matter and the way back.
 	const fullBar = `<div class="map-full-bar" data-map-fullbar>
-		<button class="ghost-btn" data-act="map-zoom" data-step="-1" aria-label="${T('Zoom out')}">−</button>
-		<button class="ghost-btn" data-act="map-zoom" data-step="1" aria-label="${T('Zoom in')}">+</button>
-		<button class="ghost-btn" data-act="map-fit" aria-label="${T('Fit the marked islands in view')}">⌖</button>
-		<button class="ghost-btn" data-act="map-3d" aria-pressed="${mv.threeD}" aria-label="${T('Stand the chart up')}" title="${T('Stand the chart up')}">⛰</button>
+		<button class="ghost-btn" data-act="map-zoom" data-step="-1" aria-label="${T('Zoom out')}" title="${T('Zoom out')}">−</button>
+		<button class="ghost-btn" data-act="map-zoom" data-step="1" aria-label="${T('Zoom in')}" title="${T('Zoom in')}">+</button>
+		<button class="ghost-btn" data-act="map-fit" aria-label="${T('Fit the marked islands in view')}" title="${T('Fit the marked islands in view')}">⌖</button>
+		<button class="ghost-btn" data-act="map-3d" aria-pressed="${mv.threeD}" aria-label="${T('Stand the chart up')}" title="${T('Stand the chart up')}">${MOUNTAIN}</button>
 		<button class="ghost-btn" data-act="map-full" aria-label="${T('Back to the page')}" title="${T('Back to the page (Esc)')}">✕</button>
 	</div>`;
 
@@ -180,19 +185,23 @@ function sideHTML(marks) {
 	if (!mv.panelOpen) {
 		return `<button class="map-side-pill" data-act="map-panel">☰ ${T('Where to sail')}</button>`;
 	}
-	const tabs = [['sail', T('Barter')], ['route', T('Route')], ['trace', T('Draw')], ['hunt', T('Grounds')], ['today', T('Today')]]
-		.map(([id, label]) => `<button class="map-tab${mv.mode === id ? ' active' : ''}"
+	// One name per tab, and the panel's heading is that name: the
+	// heading used to say something else ("Plot the loop" over Route,
+	// "Hunting grounds" over Grounds), and the first tab was called
+	// Barter, the same word as a whole section of the app.
+	const names = [['sail', T('Who has it')], ['route', T('Route')], ['trace', T('Draw')], ['hunt', T('Hunt')], ['today', T('Today')]];
+	const tabs = names.map(([id, label]) => `<button class="map-tab${mv.mode === id ? ' active' : ''}" role="tab"
+			aria-selected="${mv.mode === id}" tabindex="${mv.mode === id ? 0 : -1}"
 			data-act="map-mode" data-id="${id}">${label}</button>`).join('');
 	const body = mv.mode === 'route' ? routeHTML(marks)
 		: mv.mode === 'trace' ? traceHTML()
 		: mv.mode === 'hunt' ? huntHTML()
 		: mv.mode === 'today' ? todayHTML(marks)
 		: sailHTML(marks);
+	const heading = (names.find(([id]) => id === mv.mode) || names[0])[1];
 	return `<div class="map-side">
-		<div class="map-side-head"><span>${
-			mv.mode === 'route' ? T('Plot the loop') : mv.mode === 'trace' ? T('Trace a route') : mv.mode === 'hunt' ? T('Hunting grounds') : mv.mode === 'today' ? T('Sailed today') : T('Who has it')
-		}</span><span class="map-side-head-btns"><button class="map-side-close" data-act="map-side-flip" aria-label="${T('Move the panel to the other side')}" title="${mv.sideRight ? T('Move the panel to the left') : T('Move the panel to the right')}">⇄</button><button class="map-side-close" data-act="map-panel" aria-label="${T('Hide the panel')}">${mv.sideRight ? '›' : '‹'}</button></span></div>
-		<div class="map-tabs" role="tablist">${tabs}</div>
+		<div class="map-side-head"><span>${heading}</span><span class="map-side-head-btns"><button class="map-side-close" data-act="map-side-flip" aria-label="${T('Move the panel to the other side')}" title="${mv.sideRight ? T('Move the panel to the left') : T('Move the panel to the right')}">⇄</button><button class="map-side-close" data-act="map-panel" aria-label="${T('Hide the panel')}">${mv.sideRight ? '›' : '‹'}</button></span></div>
+		<div class="map-tabs" role="tablist" aria-label="${T('Where to sail')}">${tabs}</div>
 		${layersHTML()}
 		<div class="map-side-body">${body}</div>
 	</div>`;
@@ -217,7 +226,7 @@ function layersHTML() {
 		chip('map-wharves', 'wharf', mv.wharvesOn.includes('wharf'), '#9fd0f0', T('Wharves'), T('{n} wharf managers — repair, rations, sailor contracts', { n: wharfN('wharf') })),
 		chip('map-wharves', 'guild', mv.wharvesOn.includes('guild'), '#c6a0ff', T('Guild'), T("{n} guild wharves — the Old Moon Guild's, for a guild ship", { n: wharfN('guild') })),
 		chip('map-labels', '', mv.labelsOn, '#cfe3f5', T('Islands'), T('Island names, faint, once the chart is close enough to read them')),
-		chip('map-traces', '', mv.tracesOn, '#ffd77a', T('Traces'), T('What you drew by hand, and every kept trace with its eye open'))
+		chip('map-traces', '', mv.tracesOn, '#ffd77a', T('Drawings'), T('What you drew by hand, and every kept trace with its eye open'))
 	].join('');
 	const on = [mv.pinsOn, mv.habitatsOn, mv.labelsOn, mv.tracesOn].filter(Boolean).length + mv.wharvesOn.length;
 	return `<div class="map-layers${mv.layersOpen ? ' open' : ''}">

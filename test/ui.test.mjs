@@ -489,6 +489,20 @@ test('items leave the Inventory from the select bar or the Delete key, after ask
 	await context.close();
 });
 
+test('with nothing planned, Sail says why and Results says no run has been recorded yet', async () => {
+	const { page, context, errors } = await open('#barter');
+	await wait(400);
+	assert.ok(await page.$('[data-act="barter-step"][data-id="sail"].locked'), 'Sail is drawn as having nothing yet');
+	await tap(page, '[data-act="barter-step"][data-id="sail"]'); await wait(500);
+	assert.ok(await page.$('.barter-screen.step-plan'), 'nothing to sail: the plan, where the next press is');
+	assert.match(await text(page, '.toast'), /tick a chain in plan first/i, 'and the reason is said');
+	await tap(page, '[data-act="barter-step"][data-id="results"]'); await wait(600);
+	assert.match(await text(page, '.step-empty'), /no runs recorded yet/i);
+	assert.doesNotMatch(await text(page, '.step-empty'), /below/i, 'nothing is below to point at');
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
 test('the Results step opens with no run under way, and keeps past runs there', async () => {
 	const { page, context, errors } = await open('#barter');
 	await page.evaluate(async () => {
@@ -928,6 +942,16 @@ test('the barterers and the traces are layers like any other, on whichever tab i
 		assert.equal(await count(page, '.map-chip'), 6, `and on ${id}`);
 	}
 	await page.click('[data-act="map-mode"][data-id="sail"]'); await wait(300);
+	// The tabs are a real tablist, named as their headings are, and the
+	// arrows walk them.
+	const tabs = () => page.evaluate(() => [...document.querySelectorAll('.map-tabs [role="tab"]')].map(b => `${b.textContent.trim()}:${b.getAttribute('aria-selected')}`));
+	assert.deepEqual(await tabs(), ['Who has it:true', 'Route:false', 'Draw:false', 'Hunt:false', 'Today:false']);
+	const head = () => page.evaluate(() => document.querySelector('.map-side-head span').textContent.trim());
+	assert.equal(await head(), 'Who has it', 'the heading is the tab\'s own name');
+	await page.focus('.map-tabs [aria-selected="true"]'); await page.keyboard.press('ArrowRight'); await wait(300);
+	assert.equal(await page.evaluate(() => document.activeElement.dataset.id), 'route', 'the arrow moved to the next tab and kept the focus');
+	assert.equal(await head(), 'Route');
+	await page.click('[data-act="map-mode"][data-id="sail"]'); await wait(300);
 	// It folds away when it is in the road, and comes back.
 	await page.click('[data-act="map-layers"]'); await wait(300);
 	assert.equal(await count(page, '.map-chip'), 0);
@@ -1010,6 +1034,18 @@ test('a phone is given a bar at the thumb, not a tab row that scrolls out of sig
 	assert.equal(await page.evaluate(() => getComputedStyle(document.getElementById('tabs')).display), 'none', 'the sideways row is put away');
 	assert.equal(await count(page, '.tabbar-btn'), 5, 'four sections and the way to the rest');
 	assert.ok(await page.evaluate(() => !!document.querySelector('.tabbar-btn.active[data-id="crew"]')), 'the standing section has a seat of its own');
+	// The four seats never change hands: an odd section lights the Menu
+	// slot instead, and the Menu's badge counts the same sections
+	// whichever one is open.
+	const seats = () => page.evaluate(() => [...document.querySelectorAll('.tabbar-btn:not(.all)')].map(b => b.dataset.id));
+	assert.deepEqual(await seats(), ['plan', 'inventory', 'map', 'barter']);
+	assert.equal(await page.evaluate(() => document.querySelector('.tabbar-btn.all').dataset.id), 'crew', 'the Menu slot wears the standing section');
+	const badge = () => page.evaluate(() => document.querySelector('.tabbar-btn.all .tabbar-count')?.textContent || '');
+	const onCrew = await badge();
+	await page.evaluate(() => { location.hash = '#plan'; }); await wait(400);
+	assert.deepEqual(await seats(), ['plan', 'inventory', 'map', 'barter']);
+	assert.equal(await badge(), onCrew, 'the Menu badge does not change by itself');
+	await page.evaluate(() => { location.hash = '#crew'; }); await wait(400);
 	await page.click('[data-act="tab-sheet"]'); await wait(400);
 	assert.equal(await count(page, '.sheet-tab'), 10, 'every section, named');
 	await page.click('.sheet-tab[data-id="workshop"]'); await wait(700);
@@ -1930,7 +1966,7 @@ test('the material book is the game’s own layouts, every one, and a page read 
 		takeRead([[58904, '[Level 4] Green Salt Lump'], [58901, '[Level 2] Urchin Spine'], [58903, '[Level 4] Opulent Thread Spool'], [58902, '[Level 3] Scout Binoculars'], [58964, '[Level 2] Pirate Gold Coin'], [58963, '[Level 2] Monster Tentacle']].map(([npcId, give]) => ({ npcId, give, recv: 'Crow Coin' })));
 		ui.render();
 	}); await wait(800);
-	assert.match(await text(page, '.mat-say'), /board M11/, 'the coin rows found their material board');
+	assert.match(await text(page, '.mat-say'), /layout M11/, 'the coin rows found their material layout');
 	assert.equal(await count(page, '.mat-steps, [data-act="barter-mat-tell"], [data-act="barter-mat-fleet-take"]'), 0, 'no steps to share it by');
 	// The islands M11 fills at random are asked about as it is found:
 	// each once, its exchanges under what they pay, with the game's odds.
@@ -2019,7 +2055,7 @@ test('a material layout read: what the builds need is chosen, today’s islands 
 	});
 	await wait(800);
 	// Read whole, the layout is known and filled in: nothing to press.
-	assert.match(await text(page, '.mat-say'), /board M1/);
+	assert.match(await text(page, '.mat-say'), /layout M1/);
 	assert.equal(await count(page, '[data-act="barter-mat-fill"]'), 0, 'filled in without asking');
 	// The material is chosen by itself, since the builds are short of it.
 	const need = sel => page.evaluate((m, q) => { const sec = [...document.querySelectorAll('.mat-need')].find(el => el.querySelector('.mat-need-text b').textContent === m); return sec ? [...sec.querySelectorAll(q)].map(r => r.textContent.replace(/\s+/g, ' ').trim()) : null; }, pick.mat, sel);
@@ -2966,7 +3002,13 @@ test('the shell answers the keyboard: digits and 0 switch tabs from the page, no
 	assert.match(await text(page, '#save-badge'), /Not saving — storage full/);
 	await page.evaluate(() => window.dispatchEvent(new CustomEvent('tracker-save-ok', { detail: {} })));
 	assert.equal(await count(page, '#save-badge'), 0, 'a save that goes through clears it');
+	// Nobody chose, so the page follows the system; the round then goes
+	// dark, then light.
+	assert.equal(await page.evaluate(() => document.documentElement.dataset.theme), undefined, 'the system decides until someone chooses');
 	await page.click('[data-act="more"]'); await wait(100);
+	await page.click('[data-act="theme"]'); await wait(200);
+	assert.equal(await page.evaluate(() => document.documentElement.dataset.theme), 'dark');
+	// The theme row keeps the menu standing, so it is pressed again in place.
 	await page.click('[data-act="theme"]'); await wait(200);
 	assert.equal(await page.evaluate(() => document.documentElement.dataset.theme), 'light');
 	assert.equal(await page.evaluate(() => document.querySelector('meta[name="theme-color"]').content), '#eef3f8');

@@ -115,7 +115,7 @@ function peekHTML() {
 		title="${T('What you are carrying, and the numbers about you — press to set them')}"
 		aria-label="${T('Carrying: {list}. Press to set these and the numbers about you.', { list: esc(said.join('; ')) })}">
 		${head}
-		${rest.length ? `<span class="peek-bit more" title="${esc(rest.map(e => `${gameName(e.label)} ${F(store.getStock(e.item))}`).join(' · '))}">+${rest.length}</span>` : ''}
+		${rest.length ? `<span class="peek-bit more" role="img" aria-label="${esc(T('{n} more carried: {list}', { n: rest.length, list: rest.map(e => `${gameName(e.label)} ${F(store.getStock(e.item))}`).join(' · ') }))}" title="${esc(rest.map(e => `${gameName(e.label)} ${F(store.getStock(e.item))}`).join(' · '))}">+${rest.length}</span>` : ''}
 		${profilePeekHTML()}
 		<span class="pouch-fold" aria-hidden="true">✎</span>
 	</button>`;

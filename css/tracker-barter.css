@@ -286,8 +286,6 @@
 
 /* the run */
 .run-head { flex-wrap: wrap; }
-.run-pick { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--ink-mute); }
-.run-pick .select { padding: 4px 8px; font-size: 12px; }
 .run-pick-sub { display: block; margin-top: 4px; font-size: 10.5px; line-height: 1.35; color: var(--ink-faint); }
 .run-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 6px; margin-top: 10px; }
 .run-tiles > div { background: var(--panel-inset); border-radius: var(--r-btn); padding: 9px 11px; }
@@ -784,7 +782,6 @@ ul.lb-readers.flat { margin: 0 0 12px; }
 .mat-say.new { color: var(--amber); }
 .mat-say b { color: var(--ink-hi); }
 .mat-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.mat-done { font-size: 12.5px; color: var(--teal-hi); }
 .mat-help { font-size: 12.5px; color: var(--ink-dim); }
 .mat-help summary { cursor: pointer; color: var(--blue-hi); width: fit-content; }
 .mat-help-fig { margin: 8px 0; }
@@ -800,8 +797,6 @@ ul.lb-readers.flat { margin: 0 0 12px; }
 .shot-key { flex: none; display: grid; place-items: center; width: 18px; height: 18px; font-style: normal; font-size: 11px; font-weight: 700; border-radius: 50%; color: #10202e; }
 .shot-key.at-head { background: #f2b84b; }
 .mat-help-list { margin: 4px 0 0; padding-left: 18px; line-height: 1.6; color: var(--ink-mute); }
-@media (max-width: 720px) {
-}
 
 /* the material book: what a board pays, material by material */
 .mb-card { min-width: 0; overflow: hidden; }
@@ -829,6 +824,8 @@ ul.lb-readers.flat { margin: 0 0 12px; }
 .step:hover { border-color: var(--line-btn); opacity: 1; }
 .step.past { opacity: 1; }
 .step.on { opacity: 1; border-color: var(--teal-edge); background: var(--teal-glow); }
+/* A step with nothing to show yet: still pressable, it says why. */
+.step.locked { opacity: 0.45; border-style: dashed; }
 .step-k { display: flex; align-items: baseline; gap: 5px; font-family: var(--font-display); font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint); }
 .step-k > i { font-style: normal; }
 .step-k > i::after { content: " ·"; }
@@ -1253,8 +1250,8 @@ button.rung-fate { cursor: pointer; }
 /* ---- a phone: one thing at a time, and nothing spent on chrome ----
    Four step cards, a board of pills and an eight-rung ladder are a
    screenful and a half of furniture before the page begins. On a
-   narrow screen the steps shrink to numbers with only the one you are
-   on spelled out, the board's pills and buttons scroll sideways rather
+   narrow screen the steps shrink to a number and a one-word name, with
+   only the one you are on spelled out in full, the board's pills and buttons scroll sideways rather
    than stacking, and the ladder turns on its side: a row a level, read
    down, which is the shape a phone has room for. */
 @media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
@@ -1262,8 +1259,7 @@ button.rung-fate { cursor: pointer; }
   .steps::-webkit-scrollbar { display: none; }
   .step { flex: 0 0 auto; padding: 7px 11px; gap: 0; }
   .step > b, .step-sub { display: none; }
-  .step:not(.on) .step-k > em { display: none; }
-  .step:not(.on) .step-k > i::after { content: none; }
+  .step:not(.on) .step-k > em { font-size: 10px; letter-spacing: 0.08em; }
   .step.on { flex: 1 1 auto; min-width: 0; }
   .step.on > b { display: block; font-size: 14px; }
   .step.on .step-sub { display: -webkit-box; }
@@ -1346,8 +1342,6 @@ button.rung-fate { cursor: pointer; }
   .barter-screen .seg { min-height: 36px; }
   .barter-screen .chip { min-height: 34px; }
   .barter-screen .chip.tiny.lvl { width: auto; min-width: 34px; padding-left: 0; padding-right: 0; }
-  /* A later sheet pins these to 26px squares; under a thumb they are 34. */
-  .barter-screen .mat-filters .chip.tiny.lvl { width: 34px; height: 34px; }
   .barter-screen .field { min-height: 36px; }
   .barter-screen .step { min-width: 40px; justify-content: center; }
   .barter-screen .step:not(.on) { align-items: center; }

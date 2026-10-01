@@ -370,3 +370,10 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
   padding: 0 24px 90px;
 }
 
+
+/* A live countdown is one word: "12 h 50 m" broken after the 50 left
+   the m alone on the next line. */
+[data-until] { white-space: nowrap; }
+
+/* Words for a screen reader alone. */
+.sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }

@@ -24,7 +24,7 @@ function canPin() {
 export function pinButtonsHTML() {
 	if (!canPin()) return '';
 	const kept = pinnedN ? ` — ${pinnedN === 1 ? T('{n} tile kept so far', { n: pinnedN }) : T('{n} tiles kept so far', { n: pinnedN })}` : '';
-	return `<button class="ghost-btn map-pin-btn" data-act="map-pin-area" aria-label="${T('Keep this area offline')}" title="${T('Keep this area offline: the tiles in view and one zoom level either side, fetched now and never shed')}${kept}">⇩${pinnedN ? `<span class="map-pin-n">${pinnedN}</span>` : ''}</button>${pinnedN
+	return `<button class="ghost-btn map-pin-btn" data-act="map-pin-area" aria-label="${T('Keep this area offline')}" title="${T('Keep this area offline: the tiles in view and one zoom level either side, fetched now and never shed')}${kept}">⇩<span class="btn-label">${T('Offline')}</span>${pinnedN ? `<span class="map-pin-n">${pinnedN}</span>` : ''}</button>${pinnedN
 		? `<button class="ghost-btn map-pin-btn" data-act="map-pin-forget" aria-label="${T('Forget the offline area')}" title="${T('Forget the offline area: let the {n} kept tiles go', { n: pinnedN })}">⌫</button>` : ''}`;
 }
 

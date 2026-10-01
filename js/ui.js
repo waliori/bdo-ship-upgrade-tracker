@@ -22,7 +22,7 @@ import { kindOf } from './kinds.js';
 import { toast, hideToast, openDialog, closeDialog, dismissDialog, holdScreen, whenScreenFree } from './dialogs.js';
 import { allItems, img } from './ui-bits.js';
 import { T, TT, said, gameName, LANGS, langById, langFlag, setLang, startingLang, lang as currentLang } from './i18n.js';
-import { encodeShare, decodeShare, decodeAny, shareLink, shareSize, shortLinkId, isPlan, slimShape } from './share.js';
+import { encodeShare, decodeShare, decodeAny, shareLink, shareSize, shortLinkId, isPlan, slimShape, SLIM_DROP } from './share.js';
 import { buildLink, copyLink } from './links.js';
 import { massProcess } from './vendor_items.js';
 import { loadMarket, onMarket, setRegion as setMarketRegion } from './market.js';
@@ -93,7 +93,8 @@ const TABS = [
 const tabs = () => TABS.filter(t => !t.when || t.when());
 
 // The four a phone gets at the thumb; the rest live behind "Menu".
-const THUMB_TABS = ['plan', 'inventory', 'map', 'quests'];
+// Barter is the day's main errand, so it has a seat of its own.
+const THUMB_TABS = ['plan', 'inventory', 'map', 'barter'];
 
 /* The sailors' own server (412710365475110953) -- the room this app was
    written for. The masthead links it on every screen; this is the same
@@ -132,7 +133,7 @@ const MENU = [
 		{ act: 'inbox', icon: '✉', label: () => (me() && me().admin ? T('Feedback inbox') : T('What people wrote in')), hint: TT('every report sent in, and which have been answered'), when: () => feature('feedback') }
 	] },
 	{ group: TT('The page'), items: [
-		{ act: 'theme', icon: '◐', label: () => (store.getSetting('theme', 'dark') === 'light' ? T('Theme: light') : store.getSetting('theme', 'dark') === 'system' ? T('Theme: system') : T('Theme: dark')), hint: TT('dark, light, or as the system has it'), keep: true },
+		{ act: 'theme', icon: '◐', label: () => (store.getSetting('theme', 'system') === 'light' ? T('Theme: light') : store.getSetting('theme', 'system') === 'system' ? T('Theme: system') : T('Theme: dark')), hint: TT('dark, light, or as the system has it'), keep: true },
 		{ act: 'water', icon: '≈', label: () => (store.getSetting('water', false) === true ? T('Water on') : T('Water off')), hint: TT('the shader behind the page'), keep: true },
 		// The masthead flies this flag too; the menu keeps the row for
 		// anyone who goes looking there first.
@@ -168,9 +169,14 @@ function leaveScroll(from, to) {
  * The phone's section bar. Nine tabs will not fit a thumb's reach, and
  * a row that scrolls sideways hides whatever is past the edge -- people
  * did not know the rest were there. So four sit in the bar and the last
- * slot opens a sheet with every one of them, named and counted. Where
- * the standing tab is not one of the four, that slot becomes it, so the
- * bar always says where you are.
+ * slot opens a sheet with every one of them, named and counted.
+ *
+ * The four never move. The standing tab used to take the fourth seat
+ * when it was not one of them, so the thumb went where Quests had been
+ * and opened Workshop, and the Menu's badge changed by itself as the
+ * seat changed hands. Now an odd tab lights the Menu slot, wearing its
+ * own icon and name so the bar still says where you are, and the badge
+ * sums the same sections whichever one is open.
  */
 function paintTabBar(counts) {
 	const bar = document.getElementById('tabbar');
@@ -179,17 +185,20 @@ function paintTabBar(counts) {
 		data-act="view" data-id="${t.id}" aria-current="${view === t.id}" title="${said(t.label)}">
 		<span class="tabbar-icon" aria-hidden="true">${t.icon}</span><span class="tabbar-label">${said(t.label)}</span>
 		${counts[t.id] ? `<span class="tabbar-count">${counts[t.id]}</span>` : ''}</button>`;
-	const four = THUMB_TABS.map(id => TABS.find(t => t.id === id)).filter(Boolean);
+	const seats = THUMB_TABS.map(id => TABS.find(t => t.id === id)).filter(Boolean);
 	const here = tabs().find(t => t.id === view);
-	// The standing tab always has a seat: an odd one takes the last of
-	// the four rather than hiding behind "Menu".
-	const seats = four.some(t => t.id === view) || !here ? four : [...four.slice(0, 3), here];
+	const away = here && !seats.some(t => t.id === view) ? here : null;
 	const rest = tabs().filter(t => !seats.some(s => s.id === t.id));
 	const waiting = rest.reduce((n, t) => n + (counts[t.id] || 0), 0);
+	const badge = waiting ? `<span class="tabbar-count" title="${T('{n} waiting in the other sections', { n: waiting })}">${waiting}</span>` : '';
 	const html = seats.map(t => cell(t)).join('')
-		+ `<button class="tabbar-btn all" data-act="tab-sheet" aria-haspopup="dialog" title="${T('Every section, and everything else')}">
+		+ (away
+			? `<button class="tabbar-btn all active" data-act="tab-sheet" data-id="${away.id}" aria-current="true" aria-haspopup="dialog" title="${said(away.label)} · ${T('Every section, and everything else')}">
+			<span class="tabbar-icon" aria-hidden="true">${away.icon}</span><span class="tabbar-label">${said(away.label)}</span>
+			<span class="tabbar-menu-mark" aria-hidden="true">☰</span>${badge}</button>`
+			: `<button class="tabbar-btn all" data-act="tab-sheet" aria-haspopup="dialog" title="${T('Every section, and everything else')}">
 			<span class="tabbar-icon" aria-hidden="true">☰</span><span class="tabbar-label">${T('Menu')}</span>
-			${waiting ? `<span class="tabbar-count">${waiting}</span>` : ''}</button>`;
+			${badge}</button>`);
 	// The same bar as last time is left alone: measuring it made every
 	// draw lay the page out on the spot, a stall under the sailing clock.
 	if (html === tabBarWas && bar.childElementCount) return;
@@ -251,7 +260,15 @@ function openTabSheet() {
 		: '';
 	// Two halves, so a wide screen -- whose dock already shows the
 	// sections -- can put the verbs first and the sections after.
+	// On a phone the masthead has no room for Log a trip or Help, and
+	// below eleven section tiles they were a scroll away; the sheet
+	// opens on them instead. A wide screen keeps both in the masthead.
+	const quick = isPhone() ? `<div class="sheet-quick">
+			<button class="act" data-act="trip-log">＋ ${T('Log a trip')}</button>
+			<button class="act quiet" data-act="help">? ${T('Help')}</button>
+		</div>` : '';
 	const host = openDialog(`<h2>${T('Menu')}</h2>
+		${quick}
 		<div class="sheet-sections">
 		${group('yard', T('The yard'), T('planning and making'))}
 		${group('sea', T('The sea'), T('the day itself'))}
@@ -308,13 +325,24 @@ export function render() {
 	// same cells the phone's thumb bar draws, across the top of a wide
 	// screen instead of the bottom of a narrow one -- and all of them,
 	// so nothing is past an edge.
+	// What each badge counts, said to a screen reader: a bare "10" after
+	// "Quests" means nothing heard aloud.
+	const countSaid = {
+		builds: n => T('{n} queued', { n }),
+		inventory: n => T('{n} items held', { n }),
+		workshop: n => T('{n} ready to craft or enhance', { n }),
+		get: n => T('{n} still to get', { n }),
+		quests: n => T('{n} pay in what you need', { n })
+	};
+	const badge = (id, cls) => counts[id]
+		? `<span class="${cls}" aria-hidden="true">${counts[id]}</span><span class="sr-only">, ${countSaid[id] ? countSaid[id](counts[id]) : counts[id]}</span>` : '';
 	const shown = tabs();
 	document.getElementById('tabs').innerHTML = shown.map((t, i) => `${i > 0 && shown[i - 1].group !== t.group ? '<span class="tab-gap" aria-hidden="true"></span>' : ''}
 		<button class="tab ${view === t.id ? 'active' : ''}" role="tab"
 			aria-selected="${view === t.id}" aria-controls="screen"
 			tabindex="${view === t.id ? 0 : -1}"
 			data-act="view" data-id="${t.id}" id="tab-${t.id}" title="${said(t.label)}${i < 10 ? ` (${(i + 1) % 10})` : ''}">
-			<span class="tab-icon" aria-hidden="true">${t.icon}</span><span class="tab-label">${said(t.label)}</span>${counts[t.id] ? `<span class="tab-count">${counts[t.id]}</span>` : ''}
+			<span class="tab-icon" aria-hidden="true">${t.icon}</span><span class="tab-label">${said(t.label)}</span>${badge(t.id, 'tab-count')}
 		</button>`).join('');
 	// The day's clocks and the ship, in one line, wherever the Plan's
 	// own strip is not on the page.
@@ -775,7 +803,7 @@ let systemTheme = null;   // the matchMedia for "system", once it is wanted
 
 /** What the page is painted as right now: dark or light. */
 function resolvedTheme() {
-	const t = store.getSetting('theme', 'dark');
+	const t = store.getSetting('theme', 'system');
 	if (t === 'light' || t === 'dark') return t;
 	return typeof window.matchMedia === 'function' && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
 }
@@ -784,11 +812,14 @@ function resolvedTheme() {
  * Put the chosen theme on <html>. "system" takes the attribute off and
  * lets the stylesheet's prefers-color-scheme branch decide, and keeps
  * an ear on it so the address-bar colour follows a change of scheme
- * while the page is open. The page starts dark in the HTML itself, so
- * nobody who never chose sees a flash of the other one.
+ * while the page is open. "system" is also what a player who never
+ * chose gets: the light branch was written in full and could never
+ * apply until someone found the Menu's theme row. The HTML carries no
+ * theme of its own for the same reason, so the first paint is already
+ * the system's.
  */
 function applyTheme() {
-	const t = store.getSetting('theme', 'dark');
+	const t = store.getSetting('theme', 'system');
 	const root = document.documentElement;
 	if (t === 'light' || t === 'dark') root.setAttribute('data-theme', t);
 	else root.removeAttribute('data-theme');
@@ -796,7 +827,7 @@ function applyTheme() {
 	if (meta) meta.setAttribute('content', THEME_COLOR[resolvedTheme()]);
 	if (t === 'system' && !systemTheme && typeof window.matchMedia === 'function') {
 		systemTheme = window.matchMedia('(prefers-color-scheme: light)');
-		const follow = () => { if (store.getSetting('theme', 'dark') === 'system') applyTheme(); };
+		const follow = () => { if (store.getSetting('theme', 'system') === 'system') applyTheme(); };
 		if (typeof systemTheme.addEventListener === 'function') systemTheme.addEventListener('change', follow);
 		else systemTheme.addListener(follow);
 	}
@@ -808,7 +839,7 @@ function syncThemeButton() {}
 
 /** The next theme round: dark, light, system, dark. */
 function cycleTheme() {
-	const t = store.getSetting('theme', 'dark');
+	const t = store.getSetting('theme', 'system');
 	const next = THEMES[(THEMES.indexOf(t) + 1) % THEMES.length];
 	store.setSetting('theme', next, true);
 	applyTheme();
@@ -1850,6 +1881,25 @@ function wire() {
 		if (btn) btn.focus();
 	});
 
+	// The chart panel's tabs are a tablist too, drawn afresh on each
+	// switch, so the keys are heard on the page and the new tab is
+	// looked up again after the click has redrawn the panel.
+	document.addEventListener('keydown', evt => {
+		const list = evt.target.closest && evt.target.closest('.map-tabs');
+		if (!list) return;
+		const step = { ArrowRight: 1, ArrowLeft: -1 }[evt.key];
+		if (step === undefined && evt.key !== 'Home' && evt.key !== 'End') return;
+		evt.preventDefault();
+		const row = [...list.querySelectorAll('[role="tab"]')];
+		const at = row.indexOf(evt.target);
+		const to = evt.key === 'Home' ? 0
+			: evt.key === 'End' ? row.length - 1
+			: (at + step + row.length) % row.length;
+		row[to].click();
+		const btn = document.querySelector('.map-tabs [aria-selected="true"]');
+		if (btn) btn.focus();
+	});
+
 	// Landing in a quantity field selects what is there, so typing a new
 	// number replaces it instead of appending to it.
 	document.addEventListener('focusin', evt => {
@@ -1957,7 +2007,7 @@ function openSharedSave(save) {
 	});
 	host.querySelector('[data-share-replace]').addEventListener('click', () => {
 		closeDialog();
-		store.adopt(save, T('Took a shared plan'));
+		store.adopt(save, T('Took a shared plan'), { keepAbsent: SLIM_DROP });
 		toast(T('Replaced yours with the shared plan'), true);
 	});
 }
@@ -2139,7 +2189,7 @@ function showSharedBar(save, { label = T('Looking at a shared plan — nothing y
 		bar.hidden = true;
 		document.querySelector('.shell')?.classList.remove('shared');
 		if (b.dataset.shared === 'merge') { store.merge(save, T('Merged a shared plan')); toast(T('Merged the shared plan into yours'), true); }
-		else if (b.dataset.shared === 'replace') { store.adopt(save, T('Took a shared plan')); toast(T('Replaced yours with the shared plan'), true); }
+		else if (b.dataset.shared === 'replace') { store.adopt(save, T('Took a shared plan'), { keepAbsent: SLIM_DROP }); toast(T('Replaced yours with the shared plan'), true); }
 		else toast(T('Back to your own plan'));
 	};
 }
@@ -2253,7 +2303,7 @@ function doImport() {
 			<div class="dialog-actions">
 				<button class="act quiet" data-cancel>${T('Keep what I have')}</button>
 				<button class="act quiet" data-merge>${T('Merge it in')}</button>
-				<button class="act" data-accept>${T('Replace everything')}</button>
+				<button class="act danger" data-accept>${T('Replace everything')}</button>
 			</div>
 		`);
 		host.querySelector('[data-cancel]').addEventListener('click', () => closeDialog());
@@ -2283,7 +2333,7 @@ function doReset() {
 		<p>${T('This clears your stock ({items} items), your build queue ({builds} builds), your choices and your barter profile. One Undo brings it all back — but Export first if this is a copy you may ever want again.', { items: F(items), builds: F(builds) })}</p>
 		<div class="dialog-actions">
 			<button class="act quiet" data-cancel>${T('Keep everything')}</button>
-			<button class="act" data-accept>${T('Start fresh')}</button>
+			<button class="act danger" data-accept>${T('Start fresh')}</button>
 		</div>
 	`);
 	host.querySelector('[data-cancel]').addEventListener('click', () => closeDialog());
@@ -2489,7 +2539,7 @@ function openHelp() {
 	};
 	const host = openDialog(`
 		<h2>${T('How this works')}</h2>
-		<p>${T('Thirteen minutes, in seven parts — the real app, driven and narrated. Start anywhere.')}</p>
+		<p data-film-said>${T('{n} parts — the real app, driven and narrated. Start anywhere.', { n: film.length })}</p>
 		<video class="help-film" src="docs/media/walkthrough.mp4" controls preload="metadata" playsinline>
 			<track kind="captions" srclang="en" label="English" src="docs/media/walkthrough.vtt">
 		</video>
@@ -2522,13 +2572,24 @@ function openHelp() {
 	// The chapter list is the only way into the middle of it: a browser
 	// will not surface an mp4's own chapter marks, so the offsets are
 	// kept beside the film and seeking is done by hand. Playing from a
-	// standing start is the viewer's business -- thirteen minutes is not
-	// something to begin without being asked.
+	// standing start is the viewer's business -- a quarter of an hour is
+	// not something to begin without being asked.
 	// `player`, not `film`: the chapter offsets imported above are called
 	// that, and a const here of the same name shadows them for the whole
 	// function -- including the template above, which reads them before
 	// this line runs.
 	const player = host.querySelector('video');
+	// The length is read off the film itself once its header is in: the
+	// line said "Thirteen minutes" for a film that runs eighteen, and a
+	// number typed here goes stale with every re-shoot.
+	if (player) {
+		player.addEventListener('loadedmetadata', () => {
+			const line = host.querySelector('[data-film-said]');
+			if (line && player.duration > 0 && Number.isFinite(player.duration)) {
+				line.textContent = T('{min} minutes, in {n} parts — the real app, driven and narrated. Start anywhere.', { min: Math.round(player.duration / 60), n: film.length });
+			}
+		}, { once: true });
+	}
 	if (player) {
 		for (const b of host.querySelectorAll('[data-seek]')) {
 			b.addEventListener('click', () => {

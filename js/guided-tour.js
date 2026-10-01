@@ -66,13 +66,6 @@ function goToTab(id) {
 	if (btn) btn.click();
 }
 
-/** Open an inventory tile so the detail panel has something in it. */
-function selectSampleItem() {
-	const tile = [...document.querySelectorAll('.tile')]
-		.find(t => t.title === 'Violent Wave Plywood') || document.querySelector('.tile');
-	if (tile) tile.click();
-}
-
 /**
  * The Map, with its side panel out and a given tab up.
  *
@@ -183,6 +176,8 @@ class GuidedTour {
 			onPrevClick: () => hop(-1),
 			showProgress: true,
 			showButtons: ['next', 'previous', 'close'],
+			// Dressed in the app's own tokens (tracker-recent.css).
+			popoverClass: 'sail-tour',
 			overlayOpacity: 0.55,
 			overlayColor: '#03080f',
 			stagePadding: 8,
@@ -218,11 +213,17 @@ class GuidedTour {
 		// The Community tab is only there where the server has accounts
 		// to stand on its boards; the tour says nothing about it otherwise.
 		const harbour = feature('community');
+		// On a phone each step is a sheet at the thumb; a step about the
+		// thumb bar itself puts its sheet at the top.
+		const atTop = phone ? 'sail-tour tour-top' : 'sail-tour';
+		// A dozen stops, a few lines each. It was twenty-three, some of
+		// them a hundred and twenty words, and most people closed it at
+		// "1 of 23"; what it left out is one press away on each screen.
 		const all = [
 			{
 				popover: {
 					title: T('⚓ Parts, quests, routes and the map'),
-					description: T('This tracker keeps a single record of what you own. Every build draws from it, so the same 100 planks are never promised to two ships at once.<br><br><b>The next few screens show an example so there is something to point at — your own data comes back when the tour ends.</b>'),
+					description: T('One record of what you own, and every build draws from it — the same 100 planks are never promised twice.<br><br><b>The next screens use an example; your own data comes back when the tour ends.</b>'),
 					align: 'center'
 				},
 				before: () => goToTab('plan')
@@ -232,55 +233,27 @@ class GuidedTour {
 				element: phone ? '#tabbar' : '#tabs',
 				popover: {
 					title: T('Every section, in one dock'),
-					description: T('The <b>yard</b>, where a build is planned and made: <b>Plan</b> is what every build needs, <b>Builds</b> is the queue and its priority, <b>Inventory</b> is what you own, <b>Tree</b> shows why a build needs a thing, <b>Workshop</b> is where you craft and enhance, <b>To Get</b> is the shopping list.<br><br>Then the <b>sea</b>, where the day is spent: <b>Map</b> charts the barterers and plots the loop, <b>Quests</b> is what the sea hands out for free, <b>Ship</b> is the hull\'s own numbers and the crew to fill it, and <b>Barter</b> plans a run on today\'s board.')
-						+ (harbour ? ' ' + T('And the <b>harbour</b>: <b>Community</b>, the boards every sailor who takes part is on.') : '')
-						+ (phone ? '<br><br>' + T('Four sit in the bar at your thumb; <b>Menu</b> opens the rest.') : '<br><br>' + T('The digits <b>1</b>–<b>9</b> switch between them, <b>0</b> is the tenth.')),
-					side: phone ? 'top' : 'bottom'
-				}
-			},
-			{
-				element: '.today',
-				popover: {
-					title: T('What today can do about it'),
-					description: T('The plan says what is left; this says what today can do about it — the ship you are sailing, the quests still open that pay in something on your list, how long until the dailies, the weeklies and the barter refill reset, and when <b>Vell</b> is next up on your servers.'),
-					side: 'bottom'
-				},
-				before: () => goToTab('plan')
-			},
-			{
-				element: '.stats',
-				popover: {
-					title: T('Where you stand'),
-					description: T('Overall coverage, the Crow Coins and silver still to spend, and how many recipes you could make from stock this second.'),
-					side: 'bottom'
-				},
-				before: () => goToTab('plan')
-			},
-			{
-				element: '.readybar',
-				popover: {
-					title: T('Craft it here'),
-					description: T('Anything you can make right now shows up here. One click crafts it: the ingredients leave your inventory and the product arrives.'),
-					side: 'bottom'
+					description: T('The <b>yard</b> on the left plans and makes a build; the <b>sea</b> on the right is where the day is spent.')
+						+ (harbour ? ' ' + T('<b>Community</b> is the harbour.') : '')
+						+ ' ' + (phone ? T('Four sit at your thumb; <b>Menu</b> opens the rest.') : T('The digits <b>1</b>–<b>9</b> and <b>0</b> switch between them.')),
+					side: phone ? 'top' : 'bottom',
+					popoverClass: atTop
 				}
 			},
 			{
 				element: '.row',
 				popover: {
 					title: T('Reading a material, and recording it'),
-					description: T('The bar splits three ways — <span style="color:#4ec9ae">green</span> is covered from stock, <span style="color:#3a89c9">blue</span> is still to craft, <span style="color:#e87a6d">red</span> is missing.<br><br>The <b>− number +</b> box on the right is how many you own. Change it here as you gather and every build updates at once — that is the main thing you will do day to day.'),
+					description: T('<span style="color:#4ec9ae">Green</span> is covered from stock, <span style="color:#3a89c9">blue</span> still to craft, <span style="color:#e87a6d">red</span> missing. The <b>− number +</b> box is how many you own: change it as you gather and every build updates.'),
 					side: 'top'
-				}
+				},
+				before: () => goToTab('plan')
 			},
 			{
 				element: '#pouch',
 				popover: {
 					title: T('What you are carrying'),
-					description: T('Coins, silver and enhancement stones sit above every tab, because you spend them from every tab. Type in what you have and each one tells you whether it covers your builds or how far <b>short</b> you are.')
-						+ (phone
-							? '<br><br>' + T('On a phone it is one line — what is held, and in red what is missing. Press it and <b>Carrying</b> opens with the fields in it, the numbers about you among them: total barters, barter level, Value Pack, the Corsair, draws a day, Sailing Mastery, the sailing log, the Bos\'n Jacks you have out and the region your Market prices come from.')
-							: '<br><br>' + T('Beside them, <b>The sailor</b>: your total barters, barter level, Value Pack, the Corsair, draws a day, Sailing Mastery, the sailing log, the Bos\'n Jacks you have out and the region your Market prices come from. Press it to open the fields.'))
-						+ ' ' + T('They are read by every screen, so they are set once, here — and the barter count decides which islands will deal with you at all.'),
+					description: T('Coins, silver and stones, set once and read by every screen — each says whether it covers your builds. <b>The sailor</b> beside them holds your barter count, which decides the islands that will deal with you.'),
 					side: 'bottom'
 				},
 				before: () => goToTab('plan')
@@ -289,7 +262,7 @@ class GuidedTour {
 				element: '.queue-head',
 				popover: {
 					title: T('Your build queue'),
-					description: T('Add any ship, part or material as a build. Order matters: when stock is short, the build nearest the top gets it first. Use ▲▼ to re-order, ⏸ to park one without losing it.<br><br>Each build says what is still left to pay for it, which falls as you record what you gather.<br><br>Some ships can be reached more than one way — a Caravel from a plain Epheria Sailboat or an Improved one. Queue one and it asks which, shows what each costs, and the build then says the route it is taking.'),
+					description: T('Add a ship, part or material. When stock is short the build nearest the top gets it first; ▲▼ re-order, ⏸ parks one.'),
 					side: 'bottom'
 				},
 				before: () => goToTab('builds')
@@ -298,60 +271,26 @@ class GuidedTour {
 				element: '.inv-grid',
 				popover: {
 					title: T('What you actually own'),
-					description: T('Set quantities here as you gather. The small bar on each tile shows how much is already spoken for by a build versus how much is still free.'),
+					description: T('Set quantities here, or read a storage off a screenshot. A tile\'s bar shows how much a build has spoken for; pick one to see who and why.'),
 					side: 'top'
 				},
 				before: () => goToTab('inventory')
 			},
 			{
-				element: '.detail',
-				before: () => {
-					goToTab('inventory');
-					selectSampleItem();
-				},
-				popover: {
-					title: T('Why an item is reserved'),
-					description: T('Pick a tile and this panel shows who reserved it and through which recipe, and every way of getting it priced end to end — the shop\'s number beside what making one costs once <i>its</i> ingredients are priced too. Coins and silver stay apart, and anything bartered for is named rather than counted as free.<br><br>Any item name in the app opens its <b>BDOCodex</b> page in a new tab.'),
-					side: phone ? 'top' : 'left'
-				}
-			},
-			{
-				element: '.tpanel',
-				popover: {
-					title: T('Why it needs what it needs'),
-					description: T('The Plan is one row per material, which answers "what am I short of". This is the same thing unflattened, and answers the other question: a Carrack sits over the Caravel it is made from, over the Sailboat before that, with the materials of each hanging off the step that wants them.<br><br>Enhancement chains start folded — a +10 pulling in +9 pulling in +8 is ten rows that all say the same thing.'),
-					side: 'top'
-				},
-				before: () => goToTab('tree')
-			},
-			{
 				element: '.craft-grid',
 				popover: {
 					title: T('The workshop'),
-					description: T('Every recipe you have the materials for, with exactly what it will consume.'),
+					description: T('Every recipe you have the materials for, crafted in one press — and below, every part that can go higher, with its stones, its <b>failstack</b> and Succeeded / Failed.'),
 					side: 'top'
 				},
 				before: () => goToTab('workshop')
 			},
 			{
-				element: '[data-base]',
-				popover: {
-					title: T('Enhancing'),
-					description: T('Every part you own that can go higher is listed — whether or not a build is waiting on it — with the stones the next attempt costs and a box for the <b>failstack</b> you are on.<br><br>Blue and green ship parts keep their level when an attempt fails; the yellow Falasi and Cheongun tier drops one, so its cost includes the Cron Stones that prevent it. Record <b>Succeeded</b> or <b>Failed</b> and the materials come off your stock either way.'),
-					side: 'top'
-				},
-				before: () => goToTab('workshop')
-			},
-			{
-				// Scoped to the screen: the pouch above it carries a
-				// `.summary` of its own -- the sailor's numbers, folded
-				// into their line -- and a bare '.summary' picked that
-				// instead, so the tour lit the bar while talking about
-				// the shopping list.
+				// Scoped to the screen: the pouch carries a `.summary` of its own.
 				element: '#screen .summary',
 				popover: {
 					title: T('The shopping list'),
-					description: T('Everything still missing, as its own icon and number — biggest shortfall first, tinted by the money it wants, and a press on any of them narrows the screen to that one thing. The whole list copies out as text or CSV. <b>The way to get it</b> reads the whole list at once and gives each thing one way — the quests, the Crow Coin Shop, barter, Falasi, the Market — with its reason on the line and the days it takes, following the goal you pick above it.<br><br><b>Every way</b> is the other reading: grouped by where a thing is got, each line pricing the whole quantity, with what making it instead would cost.'),
+					description: T('Everything still missing, biggest first. <b>The way to get it</b> gives each thing one way — quests, the Crow Coin Shop, barter, the Market — and the days it takes.'),
 					side: 'bottom'
 				},
 				before: () => goToTab('get')
@@ -360,7 +299,7 @@ class GuidedTour {
 				element: '.quest-clocks',
 				popover: {
 					title: T('What the sea hands out free'),
-					description: T('Every quest that pays in a ship material, grouped by how often it comes round, with the ones paying in something your plan still wants marked.<br><br>Tick what you did and <b>Finish</b> records them together: the rewards go into stock as one undoable change, and the tick wears off at the reset by itself. A set you run every day can be kept as a named <b>group</b>, or starred.'),
+					description: T('Every quest that pays in a ship material, the ones your plan wants marked. Tick several and <b>Finish</b> records them as one change; the ticks wear off at the reset.'),
 					side: 'bottom'
 				},
 				before: () => goToTab('quests')
@@ -368,60 +307,36 @@ class GuidedTour {
 			{
 				element: '.ship-card-main',
 				popover: {
-					title: T('The other half of a ship'),
-					description: T('Every hull in the game\'s own numbers — weight, slots, cannons, speed — fitted out as five slots: the four parts and the <b>sea crystal</b>. Each takes the best you hold, or one you choose. Your <b>Sailing Mastery</b> goes in beside it and counts toward speed, acceleration, turn and brake.<br><br>Below sits the crew: sailors against the hull\'s seats and cabin space, what their contracts cost, and the certificates on the shopping list.<br><br>A crew is <b>read off your own screenshots</b>: open Manage Sailors in game, drop the picture in, and the names, levels, condition and every growth come back in a table to check before a thing is written — in whichever of the sixteen languages the game is played in. <b>Auto assign</b> asks what the boat is <i>for</i> — speed, acceleration, turn, brake, cannons or all round — and on a Carrack seats the crew for that, since each seat doubles its growths; a smaller hull has cabins, not seats, so there it only chooses who comes aboard. Keep a whole fit-out as a named <b>setup</b> and switch between them here or from the Map.'),
+					title: T('Your ship'),
+					description: T('The hull in the game\'s own numbers, its four parts and crystal, and the crew — read off a screenshot of Manage Sailors and seated for what the boat is for.'),
 					side: 'bottom'
 				},
 				before: () => goToTab('crew')
 			},
 			{
-				element: '#map',
-				popover: {
-					title: T('The list, drawn on the sea'),
-					description: T('Every pin is a barterer holding something you are short of, on the game\'s own chart. Drag to pan, scroll or pinch to zoom.<br><br>The strip above the tabs — <b>On the chart</b> — is what gets drawn: barterers, monster habitats, the 58 wharf managers, guild wharves, island names, and any route you have traced.'),
-					side: phone ? 'top' : 'left'
-				},
-				before: () => goToMap('sail')
-			},
-			{
-				// The ⛰ in the zoom bar. The step describes the lean
-				// rather than performing it: standing the chart up
-				// fetches terrain, and the tour has no business pulling
-				// down a few hundred tiles to make a point.
-				element: '[data-act="map-3d"]',
-				popover: {
-					title: T('And stood up on the real ground'),
-					description: T('Overhead is the right way to read a route and the wrong way to read a coast. <b>⛰</b> leans the chart over and puts the game\'s own terrain under the sea — the same chart, the same pins and the same plotted loop, placed on the ground instead of beside it.<br><br>Shift-drag leans and turns it, an ordinary drag carries the water, and <b>Level</b> puts you back overhead facing north. <b>Ground</b> paints the islands in the colours you know; <b>Neon</b> draws contour lines over dark water instead. Where you leave it is where it opens next time.'),
-					side: phone ? 'top' : 'left'
-				},
-				before: () => goToMap('sail')
-			},
-			{
 				element: '.map-tabs',
 				popover: {
-					title: T('Five things to do with a chart'),
-					description: T('<b>Barter</b> is who has what you are short of. <b>Route</b> plots the loop through them and gives every leg its distance and its minutes, at the speed your ship actually makes — says the stop the rations run low after — then keeps it by name, in a link, or writes it into the game\'s own world map.<br><br><b>Draw</b> is for the routes a shopping list cannot express: click the sea for a stop, drag to sketch a line, or type a word straight onto the water. <b>Grounds</b> is the monsters and the community courses, and <b>Today</b> is what you have already sailed.<br><br>A run laid out on the Barter tab is sailed here too: the route on the chart, and this panel the run sheet, stop by stop.'),
+					title: T('The list, drawn on the sea'),
+					description: T('<b>Who has it</b> pins the barterers holding what you are short of; <b>Route</b> plots the loop at your ship\'s real speed; <b>Draw</b> sketches on the water; <b>Hunt</b> shows the grounds; <b>Today</b> ticks off where you have been.'),
 					side: phone ? 'top' : 'left'
 				},
-				before: () => goToMap('route')
+				before: () => goToMap('sail')
 			},
 			{
 				// The board's own panel: the strip once a board is known, the ask before.
 				element: '.board-strip, .board-ask',
 				popover: {
 					title: T('Today\'s board'),
-					description: T('The trade-goods barters are not rolled island by island: every refresh the whole sea shows one of forty fixed layouts. So this asks what <i>one</i> island is showing — tap it from that island\'s possible offers, or <b>read the window</b> off a screenshot — and the whole board follows, with all forty in the <b>layout book</b> beside it: every chain the day allows, listed by how far it reaches and what it pays.<br><br>Then say what the day is <i>for</i>, because the same board is sailed four ways. <b>Silver</b> climbs the chains you tick and sells the tops at a wharf. <b>A stock</b> sells nothing at all: say how many of every good you want at a level and the run is scored on what it banks, with the climbs stopped where the stock ends. <b>Crow Coins</b> is a climb to [Level 4], cashed in at the ten to fourteen islands on every board that pay in coins. <b>A material</b> is one route through every island dealing the thing your plan is short of.<br><br>Only the islands your <b>total barters</b> have opened are planned through: the rest sit locked under the list, with a line saying how many more barters open them. Nothing is ever routed through a barterer you cannot reach.'),
+					description: T('Every refresh the whole sea shows one of forty fixed layouts, so tell it what <i>one</i> island is showing — tap the offer or read a screenshot — and the board follows. Then pick what the day is for: <b>Silver</b>, <b>A stock</b>, <b>Crow Coins</b>, or <b>A material</b>, which reads the ship-material list on its own.'),
 					side: 'bottom'
 				},
 				before: () => goToTab('barter')
 			},
 			{
-				// The four steps of a run, which are there whatever the board says;
-				// the hold itself is on the second step, behind a tick.
 				element: '.steps',
 				popover: {
-					title: T('The hold, and the run'),
-					description: T('A run is four steps. <b>Plan</b>: the Parley, the vouchers and the home port under <i>Before you sail</i>, where the day ends on the ladder, how to sail it, and the chains to tick. <b>Load</b>: what to buy, to take from a storage or to put in your bag — a tick loads the hold for real — and the route stop by stop, to sail a stop sooner or later or skip it, with a still of every leg.<br><br><b>Sail</b>: the cockpit, one stop at a time. <b>Traded</b> writes the stop into the hold, and the <b>clock</b> waits at each island until you press it, ringing a ship\'s bell at every stop on every device signed in to your account. <b>Results</b>: what the run came to, and <b>Record the trip</b> puts the rest in the Inventory as one change, with one Undo.'),
+					title: T('A run in four steps'),
+					description: T('<b>Plan</b> where the day ends and tick the chains. <b>Load</b> packs the hold. <b>Sail</b> goes one stop at a time, the clock waiting at each island. <b>Results</b> records the trip as one change.'),
 					side: 'bottom'
 				},
 				before: () => goToTab('barter')
@@ -430,7 +345,7 @@ class GuidedTour {
 				element: '.comm-head',
 				popover: {
 					title: T('The harbour'),
-					description: T('Sixteen boards — mastery, the best ship, the best sailor, the most silver from runs, the most monsters hunted, the luckiest at the anvil — and the fleet in numbers: the hulls most sailed, the parts most fitted, the islands most plotted.<br><br>Only the sailors who take part are on it, by name or as an unnamed sailor, and you see exactly what would be shared before you agree. A place on a board opens what it is about: another sailor\'s ship, stood up on the Ship tab to look at.'),
+					description: T('The boards and the fleet in numbers. Only sailors who take part are on them, and you see what would be shared before you agree.'),
 					side: 'bottom'
 				},
 				before: () => goToTab('community')
@@ -440,10 +355,9 @@ class GuidedTour {
 				element: phone ? '#tabbar' : '.masthead-actions',
 				popover: {
 					title: T('Undo, and your data'),
-					description: T('Every change can be undone, and redone. <b>Log a trip</b> records everything you brought back as one change, <b>Help</b> plays a film of the whole app end to end and lists when each dataset was checked, and <b>Discord</b> is the sailors\' own server — the room this was written for.<br><br><b>Menu</b> (M) is the one menu the app has: every section, <b>Find</b> (Ctrl+K) for any item or tab, Profiles, Export and Import — a JSON backup, or a link carrying the whole plan — the theme, <b>What\'s new</b> and <b>Feedback</b>.')
-						+ (phone ? ' ' + T('On a phone the thumb bar\'s last slot opens it.') : '')
-						+ '<br><br>' + T('Where the deployment offers it, signing in with Discord keeps this same inventory on your phone as well; without it nothing leaves this browser at all.'),
-					side: phone ? 'top' : 'bottom'
+					description: T('Every change can be undone. <b>Help</b> plays a film of the whole app. <b>Menu</b> (M) holds every section, Find (Ctrl+K), Export and Import, the theme and What\'s new.'),
+					side: phone ? 'top' : 'bottom',
+					popoverClass: atTop
 				},
 				before: () => goToTab('plan')
 			}

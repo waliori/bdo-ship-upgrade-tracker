@@ -268,7 +268,7 @@
    first, which is what made the trip log's chooser feel like a letterbox.
    So this rule stays with the widget it was written for. */
 .picker:not(.picker-dialog) {
-  max-height: 320px;
+  max-height: min(52vh, 480px);
   overflow-y: auto;
   border: 1px solid var(--line);
   border-radius: var(--r-btn);
@@ -291,6 +291,18 @@
 }
 
 .picker-row:last-child { border-bottom: none; }
+/* Add a build's groups: a heading that stays at the top of the box
+   while its rows scroll under it. */
+.picker-group {
+  position: sticky; top: 0; z-index: 1;
+  padding: 7px 12px 5px;
+  background: var(--sheet-solid);
+  border-bottom: 1px solid var(--line);
+  font-family: var(--font-display); font-size: 11.5px; font-weight: 600;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--teal);
+}
+.picker-group-n { color: var(--ink-faint); font-weight: 400; letter-spacing: 0; margin-left: 4px; }
+.build-kinds { margin: 0 0 10px; }
 .picker-row:hover:not(:disabled) { background: rgba(var(--blue-rgb), 0.08); color: var(--ink-hi); }
 .picker-row:disabled { opacity: 0.45; cursor: default; }
 .picker-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1160,11 +1172,11 @@ button.pouch-item.sail.pets:focus-visible { outline: 2px solid var(--blue-hi); o
   border: none;
   padding: 0;
   font: inherit;
-  color: var(--blue);
+  color: var(--link);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
-.linky:hover { color: var(--blue-hi); }
+.linky:hover { color: var(--link-hi); }
 
 .detail-close {
   margin-left: auto;

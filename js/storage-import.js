@@ -134,16 +134,12 @@ export function openStorageImport(after = () => {}, handOff = null) {
 		<label><input type="radio" name="shot-mode" value="replace" data-mode${mode === 'replace' ? ' checked' : ''}> <b>${T('Replace')}</b> <span class="row-sub">${T('The screenshots are the whole storage: what is kept there and not in them goes. Add every screenshot first — Read more adds to the table — and write when you are done.')}</span></label>
 	</div>`;
 
+	// The drop zone and what the shots are of come first; how the reading
+	// works is folded under them. On a phone the explanation filled a
+	// screen and a half before the one control that mattered.
 	const pickView = () => `
 		${handOff ? `<p class="dialog-note">${said(handOff.note)}</p>` : ''}
 		${adding && rows.length ? `<p class="dialog-note shot-adding">${T('Adding to the {n} lines read so far: the new screenshots are read together with the ones before, and nothing is written until you say so.', { n: rows.length })}</p>` : ''}
-		<p class="dialog-note">${T('A screenshot of the storage window reads, and so does a shot of the whole screen with the window open — the panel is found in it. Several at a time is the point: scroll the storage, shoot each screenful, drop the lot.')}</p>
-		<ul class="shot-kinds">
-			<li>${T('<b>What is read</b> — the picture in each slot, against the icons this app already carries, and the figure written over the corner.')}</li>
-			<li>${T('<b>What is not</b> — anything the app keeps no count of. A storage is mostly that, and it is left alone.')}</li>
-			<li>${T('<b>What a ship part is read as</b> — the part itself. The game draws every level of a part with the same picture, so a +10 sail comes back as a sail; set the level on its tile afterwards, or untick it here.')}</li>
-			<li>${T('<b>How the counts are checked</b> — every line comes back with the corner of its slot beside it, as the screenshot had it, so a count is checked at a glance. One the reader is not sure of is marked ⚠ with its best reading written in; a mouse pointer lying over a figure is the usual reason.')}</li>
-		</ul>
 		${handOff ? '' : placePicker()}
 		<div class="shot-drop" data-drop tabindex="0" role="button" aria-label="${T('Choose screenshots to read')}">
 			<div class="shot-drop-mark">🏰</div>
@@ -152,8 +148,18 @@ export function openStorageImport(after = () => {}, handOff = null) {
 			<div class="row-sub quiet">${T('A shot taken with Shift+Win+S goes to the clipboard — paste it straight in, no file to save first.')}</div>
 			<input type="file" accept="image/png,image/jpeg,image/webp" multiple hidden data-files>
 		</div>
-		<p class="dialog-note quiet">${T('Up to {files} at a time, {mb} MB each, PNG, JPEG or WebP.', { files: LIMITS.files, mb: Math.round(LIMITS.bytes / 1024 / 1024) })}
-			${T('They are read in this browser and never uploaded, and a storage needs no reader fetched for it: the pictures and the figures are both read off the pixels.')}</p>
+		<details class="help-more shot-how">
+			<summary>${T('How it reads')}</summary>
+			<p class="dialog-note">${T('A screenshot of the storage window reads, and so does a shot of the whole screen with the window open — the panel is found in it. Several at a time is the point: scroll the storage, shoot each screenful, drop the lot.')}</p>
+			<ul class="shot-kinds">
+				<li>${T('<b>What is read</b> — the picture in each slot, against the icons this app already carries, and the figure written over the corner.')}</li>
+				<li>${T('<b>What is not</b> — anything the app keeps no count of. A storage is mostly that, and it is left alone.')}</li>
+				<li>${T('<b>What a ship part is read as</b> — the part itself. The game draws every level of a part with the same picture, so a +10 sail comes back as a sail; set the level on its tile afterwards, or untick it here.')}</li>
+				<li>${T('<b>How the counts are checked</b> — every line comes back with the corner of its slot beside it, as the screenshot had it, so a count is checked at a glance. One the reader is not sure of is marked ⚠ with its best reading written in; a mouse pointer lying over a figure is the usual reason.')}</li>
+			</ul>
+			<p class="dialog-note quiet">${T('Up to {files} at a time, {mb} MB each, PNG, JPEG or WebP.', { files: LIMITS.files, mb: Math.round(LIMITS.bytes / 1024 / 1024) })}
+				${T('They are read in this browser and never uploaded, and a storage needs no reader fetched for it: the pictures and the figures are both read off the pixels.')}</p>
+		</details>
 		<div class="dialog-actions">${adding && rows.length ? `<button class="act quiet" data-back>‹ ${T('Back to the table')}</button>` : ''}<button class="act quiet" data-close>${T('Close')}</button></div>`;
 
 	/* --- reading ----------------------------------------------------- */

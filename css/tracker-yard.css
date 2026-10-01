@@ -35,6 +35,9 @@
 .row-main { flex: 1 1 200px; min-width: 0; }
 .row-name { font-weight: 600; font-size: 13.5px; color: var(--ink-row); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .row-sub { font-size: 11.5px; color: var(--ink-mute); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* The plan row's reason may take two lines: cut at one, the half that
+   named the build actually short was the half that went. */
+.row-sub.plan-why { white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; }
 .row-meter { flex: 2 1 220px; min-width: 160px; }
 .row-tail { flex: 0 0 auto; display: flex; align-items: center; gap: 10px; }
 
@@ -124,6 +127,8 @@
 .build-meta { font-size: 11.5px; color: var(--ink-mute); }
 .build-meta .n { font-family: var(--font-display); color: var(--ink-dim); }
 .build-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.build-actions .build-remove { display: inline-flex; align-items: center; justify-content: center; margin-left: 10px; position: relative; }
+.build-actions .build-remove::before { content: ''; position: absolute; left: -9px; top: 20%; bottom: 20%; border-left: 1px solid var(--line-btn); }
 
 .sq-btn {
   width: 30px;
@@ -360,9 +365,14 @@
 .act.quiet { background: none; border-color: rgba(var(--line-rgb), 0.25); color: var(--ink-dim); font-weight: 600; }
 .act.quiet:hover:not(:disabled) { border-color: var(--line-btn-hi); color: var(--ink-hi); }
 
-/* For the one action in the app that cannot be undone. */
-.act.bad { background: rgba(232, 122, 109, 0.16); border-color: var(--red-edge); color: var(--red-soft); }
-.act.bad:hover:not(:disabled) { background: rgba(232, 122, 109, 0.3); }
+/* The app's buttons come in four kinds, and a new one should be one of
+   them rather than a fifth: primary (.act, .act.go for a craft or a
+   sail), secondary (.act.quiet, .ghost-btn), tertiary (.linky and
+   .link-btn, a word in the sentence) and danger (.act.danger -- also
+   spelt .act.bad -- and .ghost-btn.danger) for what clears, deletes or
+   replaces. Chips (.chip) are filters, not actions. */
+.act.bad, .act.danger { background: rgba(232, 122, 109, 0.16); border-color: var(--red-edge); color: var(--red-soft); }
+.act.bad:hover:not(:disabled), .act.danger:hover:not(:disabled) { background: rgba(232, 122, 109, 0.3); color: var(--red); }
 
 /* ---- workshop ----------------------------------------------------- */
 

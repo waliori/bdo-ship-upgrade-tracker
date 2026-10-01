@@ -83,10 +83,12 @@ export function renderPlan() {
 
 	if (!groups.length) {
 		const nothingQueued = !store.getActiveTargets().length;
-		return statHTML + readyHTML + (nothingQueued ? '' : controlsHTML(filters)) +
-			(nothingQueued
-				? startHere()
-				: `<div class="panel"><p class="empty">${T('Nothing matches that filter.')}</p></div>`);
+		// With nothing queued the four figures are four zeros, and they
+		// stood above the steps that say how to start; the steps lead,
+		// and the figures wait for something to count.
+		if (nothingQueued) return startHere() + readyHTML;
+		return statHTML + readyHTML + controlsHTML(filters)
+			+ `<div class="panel"><p class="empty">${T('Nothing matches that filter.')}</p></div>`;
 	}
 
 	const groupHTML = groups.map(g => `<div class="panel">
@@ -185,6 +187,35 @@ export function controlsHTML(filters) {
 	</div>`;
 }
 
+/**
+ * Which builds are actually short of each item, read off the build
+ * trees. The reservation list names every build an item is set aside
+ * for, so when two builds share a material and one is fully covered,
+ * "reserved for the Cannon" on a row that is short made the Plan look
+ * as if it contradicted Builds' "everything on hand". The build that
+ * is short now leads the line. Kept per snapshot, since every row of
+ * one render asks.
+ */
+let shortForOf = { targets: null, map: new Map() };
+function shortFor(item) {
+	if (shortForOf.targets !== snapshot.targets) {
+		const map = new Map();
+		for (const target of snapshot.targets || []) {
+			const walk = node => {
+				if (node.missing > 0) {
+					const set = map.get(node.item) || new Set();
+					set.add(target.item);
+					map.set(node.item, set);
+				}
+				(node.children || []).forEach(walk);
+			};
+			if (target.tree) walk(target.tree);
+		}
+		shortForOf = { targets: snapshot.targets, map };
+	}
+	return [...(shortForOf.map.get(item) || [])];
+}
+
 export function planRow(item, r, covered) {
 	const total = r.need || 1;
 	const segs = [];
@@ -199,11 +230,16 @@ export function planRow(item, r, covered) {
 
 	const enhanced = parseEnhanced(item).level > 0;
 	const who = (r.resv || []).slice(0, 2)
-		.map(v => (v.via && v.via !== item
+		.map(v => (v.via && v.via !== item && v.via !== v.targetItem
 			? T('{item}, via {via}', { item: gameName(v.targetItem), via: gameName(v.via) })
 			: gameName(v.targetItem)));
 	const src = sourceOf(item);
-	let sub = who.length ? T('reserved for {who}', { who: who.join(' · ') }) : (src ? src.label : T('intermediate craft'));
+	const short = r.short > 0 ? shortFor(item).filter(t => t !== item) : [];
+	const others = short.length ? (r.resv || []).filter(v => !short.includes(v.targetItem)) : [];
+	let sub = short.length
+		? T('short for {who}', { who: short.slice(0, 2).map(t => gameName(t)).join(' · ') })
+			+ (others.length ? ` · ${T('also reserved for {who}', { who: [...new Set(others.map(v => gameName(v.targetItem)))].slice(0, 2).join(' · ') })}` : '')
+		: who.length ? T('reserved for {who}', { who: who.join(' · ') }) : (src ? src.label : T('intermediate craft'));
 	if (enhanced) sub = T('enhanced in the Workshop');
 	// Goes first, ahead of the reservation text -- the sub line is
 	// ellipsised, and otherwise a craftable material sitting in Missing
@@ -234,7 +270,7 @@ export function planRow(item, r, covered) {
 		${img(item)}
 		<div class="row-main">
 			<div class="row-name">${codexName(item)}</div>
-			<div class="row-sub">${esc(sub)}</div>
+			<div class="row-sub plan-why" title="${esc(sub)}">${esc(sub)}</div>
 		</div>
 		<div class="row-meter">
 			<div class="bar">${segs.join('')}</div>

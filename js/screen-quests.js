@@ -128,7 +128,7 @@ function questRow(q, short, wanted, isDone) {
 	// kind of thing it is, faster than reading forty names.
 	const pic = questIcon(q);
 	return `<div class="quest ${wanted ? 'wanted' : ''}${isDone ? ' done' : ''}${selected.has(q.id) ? ' selected' : ''}${focus === q.id ? ' focus' : ''}" data-quest-id="${esc(q.id)}">
-		<input type="checkbox" class="quest-check" data-act="quest-check" data-quest="${esc(q.id)}" ${selected.has(q.id) ? 'checked' : ''} ${isDone ? 'disabled' : ''} aria-label="${T('Tick {name} to finish it with others', { name: esc(gameName(q.name)) })}">
+		<input type="checkbox" class="quest-check" data-act="quest-check" data-quest="${esc(q.id)}" ${selected.has(q.id) ? 'checked' : ''} ${isDone ? 'disabled' : ''} aria-label="${T('Tick {name} to finish it with others', { name: esc(gameName(q.name)) })}" title="${T('Tick to finish several in one go')}">
 		<button class="quest-star${fav ? ' on' : ''}" data-act="quest-fav" data-quest="${esc(q.id)}" aria-pressed="${fav}" title="${fav ? T('A favourite — click to unstar') : T('Star it: favourites have a chip of their own')}">★</button>
 		${pic ? `<img class="quest-pic" src="${esc(pic)}" alt="" loading="lazy">` : '<span class="quest-pic none" aria-hidden="true"></span>'}
 		<div class="quest-main">
@@ -304,7 +304,7 @@ export function renderQuests() {
 		<div class="pay-row">${payControl()}</div>
 		${groupsRow()}
 	</div>
-	${bulkBar(isDone)}
+	${bulkBar(isDone) || (groupsHTML ? `<p class="quest-tick-hint"><span class="quest-tick-box" aria-hidden="true"></span>${T('The box ticks a quest for a batch — tick several and finish them in one go. <b>Claimed</b> records just that one.')}</p>` : '')}
 	${groupsHTML || `<div class="panel"><p class="empty">${esc(nothing)}</p></div>`}`;
 }
 
