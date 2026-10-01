@@ -1865,14 +1865,20 @@ async function laidOut(page) {
 	await wait(200);
 	// The route is laid from what is aboard: everything on the packing
 	// list ticked, row by row, the way a sailor at the wharf does it.
-	for (let i = 0; i < 40; i++) {
+	// Each tick lays the run again, and a row can arrive only once that
+	// is done: so the list is read when the screen has stopped working,
+	// and asked twice before it is taken to be all ticked.
+	const settled = () => page.waitForFunction(() => !document.querySelector('.barter-screen [aria-busy="true"], .barter-screen[aria-busy="true"]'), { timeout: 8000 }).catch(() => {});
+	for (let i = 0, idle = 0; i < 40 && idle < 2; i++) {
+		await settled();
 		// Clicked as an element, not at a point on the screen: a row low
 		// on a long list sits under the bar pinned at the foot, and a
 		// click there presses "Back to the plan".
 		const clicked = await page.evaluate(() => { const b = document.querySelector('.pack-row:not(.on) .pack-box'); if (b) b.click(); return !!b; });
-		if (!clicked) break;
+		idle = clicked ? 0 : idle + 1;
 		await wait(150);
 	}
+	await settled();
 	await wait(200);
 }
 
@@ -2788,18 +2794,48 @@ test('the packing list ticks both ways, and what a row says is what its button m
 		store.setStockAt('[Level 2] Conch Shell Ornament', 'Iliya Island', 20, 'ashore');
 	});
 	await page.waitForFunction(() => document.querySelector('.proposal') && !document.querySelector('.proposals.working'), { timeout: 20000 });
-	// The chain that starts from what is waiting at the wharf, on its
-	// own: beside the search's picks it would be a later lot, and a later
-	// lot's goods wait in the storage for the call before it.
-	await page.evaluate(() => document.querySelectorAll('.chain.on').forEach(c => c.click())); await wait(1500);
+	// The chain that starts from what is waiting at the wharf, beside one
+	// bought ashore, in a run of one trip -- so trip 1's list has all three
+	// piles. Beside the search's picks it can be a later lot (the hold's
+	// weight cuts those runs into trips), and a later lot's goods wait in
+	// the storage for the call before it, off this list. Every pick is
+	// taken off first, one press at a time: a press redraws the list, and
+	// pressing a whole list at once left whichever picks the redraw beat,
+	// a different run each time.
+	for (let k = 0; k < 20; k++) {
+		const did = await page.evaluate(() => { const c = document.querySelector('.chain.on'); if (c) { c.click(); return true; } return false; });
+		if (!did) break;
+		await wait(700);
+	}
+	assert.equal(await count(page, '.chain.on'), 0, 'nothing ticked');
 	const ticked = await page.evaluate(() => {
-		for (const c of document.querySelectorAll('.chain:not(.on):not([disabled])')) {
-			if (/loaded before casting off/i.test(c.innerText)) { c.click(); return true; }
-		}
-		return false;
+		// The one that starts from the Conch Shell Ornaments waiting at
+		// Iliya: other chains load before casting off too, from goods
+		// bought ashore, and which of them is listed first is not fixed.
+		const chains = [...document.querySelectorAll('.chain:not(.on):not([disabled])')].filter(c => /loaded before casting off/i.test(c.innerText));
+		const pick = chains.find(c => /conch/i.test(c.innerText)) || chains[0];
+		if (pick) pick.click();
+		return !!pick;
 	});
 	assert.ok(ticked, 'a chain that loads from the harbour is on the board');
 	await wait(2500);
+	// Then a chain from goods bought ashore, the first that sails in the
+	// same trip as it.
+	const ashore = await page.$$eval('.chain:not(.on):not([disabled])[data-id^="land:"]', es => es.filter(c => /bought ashore/i.test(c.innerText)).map(c => c.dataset.id));
+	// Looked at on the wharf step without ticking anything: a tick there
+	// buys and loads for real.
+	let oneTrip = false;
+	for (const id of ashore.slice(0, 8)) {
+		await page.evaluate(i => { const c = [...document.querySelectorAll('.chain:not(.on)')].find(x => x.dataset.id === i); if (c) c.click(); }, id); await wait(2000);
+		await page.evaluate(() => [...document.querySelectorAll('[data-act="barter-step"][data-id="load"]')].find(e => e.getBoundingClientRect().width > 0).click());
+		await page.waitForSelector('.barter-screen.step-load', { timeout: 10000 });
+		await page.waitForFunction(() => !document.querySelector('.barter-screen [aria-busy="true"], .barter-screen[aria-busy="true"]'), { timeout: 8000 }).catch(() => {});
+		await wait(600);
+		if (!(await count(page, '.trip-card.later'))) { oneTrip = true; break; }
+		await toPlan(page);
+		await page.evaluate(i => { const c = [...document.querySelectorAll('.chain.on')].find(x => x.dataset.id === i); if (c) c.click(); }, id); await wait(2000);
+	}
+	assert.ok(oneTrip, 'a chain bought ashore sails in one trip with it');
 	await laidOut(page);
 	assert.equal(await count(page, '.pack-group'), 3, 'what to buy, what to fetch, what is already aboard');
 	// Every box is a button, and every one of them turns both ways: a
@@ -2814,7 +2850,8 @@ test('the packing list ticks both ways, and what a row says is what its button m
 	const conch = '[Level 2] Conch Shell Ornament';
 	const where = () => page.evaluate(async i => { const st = await import('/js/state.js'); return { iliya: st.stockAt(i, 'Iliya Island'), aboard: st.stockAt(i, '') + st.stockAt(i, st.ABOARD) }; }, conch);
 	const loaded = await where();
-	assert.ok(loaded.iliya < 20 && loaded.aboard > 0, `the ticked storage row moved its goods aboard: ${JSON.stringify(loaded)}`);
+	const rows = loaded.iliya < 20 && loaded.aboard > 0 ? '' : await page.$$eval('.pack-row', es => es.map(e => `${e.classList.contains('on') ? '[x]' : '[ ]'} ${e.innerText.replace(/\s+/g, ' ').slice(0, 90)}`).join(' | '));
+	assert.ok(loaded.iliya < 20 && loaded.aboard > 0, `the ticked storage row moved its goods aboard: ${JSON.stringify(loaded)} ${rows}`);
 	assert.match(await text(page, '.pack-group:last-child'), new RegExp(gameNameOf(conch), 'i'));
 	// A market row: its tick is goods in the hold, both ways.
 	const mk = await page.$eval('.pack-group:first-child .pack-box', e => ({ item: e.dataset.item, n: Number(e.dataset.n), on: e.classList.contains('on') }));
