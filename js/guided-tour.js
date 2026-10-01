@@ -345,7 +345,7 @@ class GuidedTour {
 				element: '.comm-head',
 				popover: {
 					title: T('The harbour'),
-					description: T('The boards and the fleet in numbers. Only sailors who take part are on them, and you see what would be shared before you agree.'),
+					description: T('The boards and the fleet in numbers. Signing in puts you on them, and one press here takes you off again. Only numbers are shared, never your stock, your notes or your traces.'),
 					side: 'bottom'
 				},
 				before: () => goToTab('community')

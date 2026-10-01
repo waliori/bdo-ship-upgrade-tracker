@@ -4375,7 +4375,6 @@
 	"recorded, nothing taken out": "kaydedildi, hiçbir şey düşülmedi",
 	"red · Rusalka Crystal, or ten Origins of Margoria · works in every sea": "kırmızı · Rusalka Kristali ya da on Margoria Kökeni · her denizde işe yarar",
 	"refill in <b data-until=\"barter\"></b>": "<b data-until=\"barter\"></b> içinde dolum",
-	"refills at {time}": "{time} saatinde dolar",
 	"refresh": "yenile",
 	"reload": "doldurma",
 	"reloads in {s} s": "{s} sn'de dolar",
@@ -5746,7 +5745,6 @@
 	"{n} ready to craft or enhance": "{n} tanesi üretilmeye ya da güçlendirilmeye hazır",
 	"{n} still to get": "{n} hâlâ alınacak",
 	"{n} waiting in the other sections": "{n} tanesi diğer bölümlerde bekliyor",
-	"<b>The harbour.</b> Signing in no longer puts you on the community boards: you are asked first. And on a weak signal the app opens from its offline copy after a few seconds instead of waiting on the network.": "<b>Liman.</b> Giriş yapmak artık seni topluluk panolarına koymuyor: önce sana soruluyor. Ve sinyal zayıfken uygulama ağı beklemek yerine birkaç saniye sonra çevrimdışı kopyasından açılıyor.",
 	"<b>Community</b> is the harbour.": "<b>Topluluk</b> limandır.",
 	"<b>Plan</b> where the day ends and tick the chains. <b>Load</b> packs the hold. <b>Sail</b> goes one stop at a time, the clock waiting at each island. <b>Results</b> records the trip as one change.": "Günün nerede biteceğini <b>Planla</b> ve zincirleri işaretle. <b>Yükle</b> ambarı doldurur. <b>Sefer</b> her seferinde bir durak gider, saat her adada bekler. <b>Bilanço</b> yolculuğu tek bir değişiklik olarak kaydeder.",
 	"<b>The barter run.</b> The five [Great Ocean] goods sell at their 25 million and the rare goods are priced at last; a [Level 5] or higher takes a bag slot each; Undo after Record gives the islands their attempts back; route edits survive a reload with many chains ticked; a 2–3 range is recorded fairly; three Crow Coin Shop prices agree everywhere; Sail and Results say what to do when there is nothing to show.": "<b>Takas seferi.</b> Beş [Okyanus] malı 25 milyonlarından satılıyor ve nadir mallar sonunda fiyatlandı; [+5] ve üstü her mal envanterde birer yuva kaplıyor; Kaydet'ten sonraki Geri Al adalara denemelerini geri veriyor; çok zincir işaretliyken rota düzenlemeleri yeniden yüklemeden sağ çıkıyor; 2–3 aralığı adilce kaydediliyor; üç Karga Parası Dükkânı fiyatı her yerde aynı; Sefer ve Bilanço gösterilecek bir şey yokken ne yapılacağını söylüyor.",
@@ -5765,7 +5763,6 @@
 	"One record of what you own, and every build draws from it — the same 100 planks are never promised twice.<br><br><b>The next screens use an example; your own data comes back when the tour ends.</b>": "Sahip olduklarının tek bir kaydı var ve her yapım ondan çeker — aynı 100 kalas asla iki kez söz verilmez.<br><br><b>Sonraki ekranlar bir örnek kullanıyor; tur bittiğinde kendi verin geri gelir.</b>",
 	"Set quantities here, or read a storage off a screenshot. A tile's bar shows how much a build has spoken for; pick one to see who and why.": "Miktarları buradan ayarla ya da bir ekran görüntüsünden bir depo oku. Bir karonun çubuğu bir yapımın ne kadarını ayırdığını gösterir; kimin ve neden ayırdığını görmek için birini seç.",
 	"The <b>yard</b> on the left plans and makes a build; the <b>sea</b> on the right is where the day is spent.": "Soldaki <b>tersane</b> bir yapımı planlar ve yapar; sağdaki <b>deniz</b> günün geçtiği yerdir.",
-	"The boards and the fleet in numbers. Only sailors who take part are on them, and you see what would be shared before you agree.": "Panolar ve sayılarla filo. Yalnızca katılan gemiciler oradadır ve kabul etmeden önce neyin paylaşılacağını görürsün.",
 	"The digits <b>1</b>–<b>9</b> and <b>0</b> switch between them.": "<b>1</b>–<b>9</b> ve <b>0</b> rakamları aralarında geçiş yapar.",
 	"The hull in the game's own numbers, its four parts and crystal, and the crew — read off a screenshot of Manage Sailors and seated for what the boat is for.": "Oyunun kendi sayılarıyla gövde, dört parçası ve kristali, ve mürettebat — Gemicileri Yönet'in bir ekran görüntüsünden okunur ve teknenin ne için olduğuna göre oturtulur.",
 	"{min} minutes, in {n} parts — the real app, driven and narrated. Start anywhere.": "{min} dakika, {n} parça hâlinde — gerçek uygulama, sürülmüş ve anlatılmış. İstediğin yerden başla.",
@@ -5785,5 +5782,8 @@
 	"Each chime is also a Discord message from the bot; press to stop them": "Her çınlama aynı zamanda bottan bir Discord mesajı; durdurmak için bas",
 	"Have the bot message you on Discord at every chime — you will need to be in the community server": "Her çınlamada bot sana Discord’dan yazsın — topluluk sunucusunda olman gerekir",
 	"That did not go through — try again": "Olmadı — yeniden dene",
-	"on Discord": "Discord’da"
+	"on Discord": "Discord’da",
+	"<b>The harbour.</b> On a weak signal the app opens from its offline copy after a few seconds instead of waiting on the network.": "<b>Liman.</b> Sinyal zayıfken uygulama ağı beklemek yerine birkaç saniye sonra çevrimdışı kopyasından açılıyor.",
+	"The boards and the fleet in numbers. Signing in puts you on them, and one press here takes you off again. Only numbers are shared, never your stock, your notes or your traces.": "Panolar ve sayılarla filo. Giriş yapmak seni onlara koyar, buradaki tek bir basış seni yeniden çıkarır. Yalnızca sayılar paylaşılır; stoğun, notların ya da izlerin asla.",
+	"refills on every Barter Refresh": "her Takas Yenileme’de dolar"
 }

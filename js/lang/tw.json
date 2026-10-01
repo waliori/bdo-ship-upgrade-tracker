@@ -4375,7 +4375,6 @@
 	"recorded, nothing taken out": "已記錄，未扣除",
 	"red · Rusalka Crystal, or ten Origins of Margoria · works in every sea": "紅色 · 露莎卡結晶，或者十個瑪戈利雅之源 · 在每片海域都有效",
 	"refill in <b data-until=\"barter\"></b>": "<b data-until=\"barter\"></b> 後補滿",
-	"refills at {time}": "於 {time} 補充",
 	"refresh": "更新",
 	"reload": "裝填",
 	"reloads in {s} s": "{s} 秒裝填",
@@ -5746,7 +5745,6 @@
 	"{n} ready to craft or enhance": "{n} 件可以製作或強化",
 	"{n} still to get": "{n} 件還要取得",
 	"{n} waiting in the other sections": "{n} 件在其他板塊中等待",
-	"<b>The harbour.</b> Signing in no longer puts you on the community boards: you are asked first. And on a weak signal the app opens from its offline copy after a few seconds instead of waiting on the network.": "<b>港口。</b>登入不再直接把你放上社區榜單：會先詢問你。而且在訊號弱時，應用會在幾秒後從離線副本開啟，而不是一直等待網路。",
 	"<b>Community</b> is the harbour.": "<b>社區</b>就是港口。",
 	"<b>Plan</b> where the day ends and tick the chains. <b>Load</b> packs the hold. <b>Sail</b> goes one stop at a time, the clock waiting at each island. <b>Results</b> records the trip as one change.": "<b>計劃</b>這一天在哪裡結束，並勾選鏈條。<b>裝貨</b>把貨艙裝好。<b>航行</b>一次一站，計時器在每座島嶼等你。<b>結算</b>把這趟行程記為一次更改。",
 	"<b>The barter run.</b> The five [Great Ocean] goods sell at their 25 million and the rare goods are priced at last; a [Level 5] or higher takes a bag slot each; Undo after Record gives the islands their attempts back; route edits survive a reload with many chains ticked; a 2–3 range is recorded fairly; three Crow Coin Shop prices agree everywhere; Sail and Results say what to do when there is nothing to show.": "<b>物品交換航次。</b>五種 [大洋] 貨物以各自的 2500 萬賣出，稀有貨物終於有了價格；[5階段] 或更高的貨物每件佔一個背包格；記錄之後復原會把嘗試次數還給島嶼；勾選很多鏈條時，航線修改在重新載入後仍會保留；2–3 的範圍會被公平地記錄；烏鴉硬幣商店的三個價格在各處一致；航行和結算在沒有內容可顯示時會說明該做什麼。",
@@ -5765,7 +5763,6 @@
 	"One record of what you own, and every build draws from it — the same 100 planks are never promised twice.<br><br><b>The next screens use an example; your own data comes back when the tour ends.</b>": "一份你持有之物的記錄，每一個建造都從它取用 — 同樣的 100 塊木板絕不會被許給兩次。<br><br><b>接下來的畫面用的是示例；導覽結束時你自己的資料會回來。</b>",
 	"Set quantities here, or read a storage off a screenshot. A tile's bar shows how much a build has spoken for; pick one to see who and why.": "在這裡設定數量，或從截圖讀取一個倉庫。方塊上的小條顯示有多少已被建造預定；選一個看看是誰、為什麼。",
 	"The <b>yard</b> on the left plans and makes a build; the <b>sea</b> on the right is where the day is spent.": "左邊的<b>船塢</b>規劃並製作建造；右邊的<b>大海</b>是度過一天的地方。",
-	"The boards and the fleet in numbers. Only sailors who take part are on them, and you see what would be shared before you agree.": "榜單以及數字裡的船隊。只有參與的船員才在上面，而你在同意之前就能看到會分享什麼。",
 	"The digits <b>1</b>–<b>9</b> and <b>0</b> switch between them.": "數字 <b>1</b>–<b>9</b> 和 <b>0</b> 在它們之間切換。",
 	"The hull in the game's own numbers, its four parts and crystal, and the crew — read off a screenshot of Manage Sailors and seated for what the boat is for.": "以遊戲自己的數字呈現的船體、它的四個部件和結晶，以及船員 — 從船員管理的截圖讀出，並按這艘船的用途安排座位。",
 	"{min} minutes, in {n} parts — the real app, driven and narrated. Start anywhere.": "{min} 分鐘，分 {n} 部分 — 真實的應用，被操作並配有解說。從任何地方開始。",
@@ -5785,5 +5782,8 @@
 	"Each chime is also a Discord message from the bot; press to stop them": "每次響鈴也會由機器人傳一則 Discord 訊息；按下可停止",
 	"Have the bot message you on Discord at every chime — you will need to be in the community server": "每次響鈴都讓機器人在 Discord 傳訊息給你 — 你需要在社群伺服器裡",
 	"That did not go through — try again": "沒有成功 — 請再試一次",
-	"on Discord": "已傳 Discord"
+	"on Discord": "已傳 Discord",
+	"<b>The harbour.</b> On a weak signal the app opens from its offline copy after a few seconds instead of waiting on the network.": "<b>港口。</b>在訊號弱時，應用會在幾秒後從離線副本開啟，而不是一直等待網路。",
+	"The boards and the fleet in numbers. Signing in puts you on them, and one press here takes you off again. Only numbers are shared, never your stock, your notes or your traces.": "榜單以及數字裡的船隊。登入就會把你放上去，在這裡按一下就能退出。只分享數字，絕不分享你的庫存、筆記或航跡。",
+	"refills on every Barter Refresh": "每次物品交換更新都會補滿"
 }

@@ -4462,7 +4462,6 @@
 	"recorded, nothing taken out": "registrada, nada retirado",
 	"red · Rusalka Crystal, or ten Origins of Margoria · works in every sea": "vermelha · Pedra do Marinheiro de Rusalka, ou dez Origens de Margoria · funciona em todo mar",
 	"refill in <b data-until=\"barter\"></b>": "recarga em <b data-until=\"barter\"></b>",
-	"refills at {time}": "recarrega às {time}",
 	"refresh": "atualizar",
 	"reload": "recarregar",
 	"reloads in {s} s": "recarrega em {s} s",
@@ -5842,7 +5841,6 @@
 	"{n} ready to craft or enhance": "{n} prontos para fabricar ou aprimorar",
 	"{n} still to get": "{n} ainda por conseguir",
 	"{n} waiting in the other sections": "{n} esperando nas outras seções",
-	"<b>The harbour.</b> Signing in no longer puts you on the community boards: you are asked first. And on a weak signal the app opens from its offline copy after a few seconds instead of waiting on the network.": "<b>O porto.</b> Entrar não coloca mais você nos quadros da comunidade: você é perguntado antes. E com sinal fraco, o app abre pela cópia offline depois de alguns segundos em vez de esperar pela rede.",
 	"<b>Community</b> is the harbour.": "<b>Comunidade</b> é o porto.",
 	"<b>Plan</b> where the day ends and tick the chains. <b>Load</b> packs the hold. <b>Sail</b> goes one stop at a time, the clock waiting at each island. <b>Results</b> records the trip as one change.": "<b>Planejar</b> onde o dia termina e marcar as cadeias. <b>Carregar</b> enche o porão. <b>Navegar</b> vai uma parada de cada vez, com o relógio esperando em cada ilha. <b>Balanço</b> registra a viagem como uma só mudança.",
 	"<b>The barter run.</b> The five [Great Ocean] goods sell at their 25 million and the rare goods are priced at last; a [Level 5] or higher takes a bag slot each; Undo after Record gives the islands their attempts back; route edits survive a reload with many chains ticked; a 2–3 range is recorded fairly; three Crow Coin Shop prices agree everywhere; Sail and Results say what to do when there is nothing to show.": "<b>A viagem de permuta.</b> As cinco mercadorias [Oceano] são vendidas pelos seus 25 milhões e as mercadorias raras enfim têm preço; cada [Nível 5] ou acima ocupa um espaço do inventário; Desfazer depois de Registrar devolve às ilhas as tentativas delas; as edições da rota sobrevivem a um recarregamento com muitas cadeias marcadas; uma faixa de 2–3 é registrada de forma justa; três preços da Loja de Moeda Corvo batem em todo lugar; Navegar e Balanço dizem o que fazer quando não há nada para mostrar.",
@@ -5861,7 +5859,6 @@
 	"One record of what you own, and every build draws from it — the same 100 planks are never promised twice.<br><br><b>The next screens use an example; your own data comes back when the tour ends.</b>": "Um único registro do que você tem, e todo projeto bebe dele — as mesmas 100 tábuas nunca são prometidas duas vezes.<br><br><b>As próximas telas usam um exemplo; seus próprios dados voltam quando o tour terminar.</b>",
 	"Set quantities here, or read a storage off a screenshot. A tile's bar shows how much a build has spoken for; pick one to see who and why.": "Ajuste as quantidades aqui, ou leia um armazém de um print. A barrinha de uma célula mostra quanto um projeto já reservou; escolha uma para ver quem e por quê.",
 	"The <b>yard</b> on the left plans and makes a build; the <b>sea</b> on the right is where the day is spent.": "O <b>estaleiro</b> à esquerda planeja e faz um projeto; o <b>mar</b> à direita é onde o dia é gasto.",
-	"The boards and the fleet in numbers. Only sailors who take part are on them, and you see what would be shared before you agree.": "Os quadros e a frota em números. Só os marinheiros que participam estão neles, e você vê o que seria compartilhado antes de concordar.",
 	"The digits <b>1</b>–<b>9</b> and <b>0</b> switch between them.": "Os dígitos <b>1</b>–<b>9</b> e <b>0</b> alternam entre elas.",
 	"The hull in the game's own numbers, its four parts and crystal, and the crew — read off a screenshot of Manage Sailors and seated for what the boat is for.": "O casco com os números do próprio jogo, suas quatro peças e a pedra do marinheiro, e a tripulação — lida de um print de Gerenciar Marinheiros e posicionada conforme para que o barco serve.",
 	"{min} minutes, in {n} parts — the real app, driven and narrated. Start anywhere.": "{min} minutos, em {n} partes — o app de verdade, sendo usado e narrado. Comece por onde quiser.",
@@ -5881,5 +5878,8 @@
 	"Each chime is also a Discord message from the bot; press to stop them": "Cada toque também é uma mensagem do bot no Discord; toque para parar",
 	"Have the bot message you on Discord at every chime — you will need to be in the community server": "O bot manda mensagem no Discord a cada toque — você precisa estar no servidor da comunidade",
 	"That did not go through — try again": "Não deu certo — tente de novo",
-	"on Discord": "no Discord"
+	"on Discord": "no Discord",
+	"<b>The harbour.</b> On a weak signal the app opens from its offline copy after a few seconds instead of waiting on the network.": "<b>O porto.</b> Com sinal fraco, o app abre pela cópia offline depois de alguns segundos em vez de esperar pela rede.",
+	"The boards and the fleet in numbers. Signing in puts you on them, and one press here takes you off again. Only numbers are shared, never your stock, your notes or your traces.": "Os quadros e a frota em números. Entrar coloca você neles, e um toque aqui tira você de novo. Só números são compartilhados, nunca seu estoque, suas notas ou seus traçados.",
+	"refills on every Barter Refresh": "recarrega a cada Atualização de Troca"
 }

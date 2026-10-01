@@ -4375,7 +4375,6 @@
 	"recorded, nothing taken out": "기록됨, 빼지 않음",
 	"red · Rusalka Crystal, or ten Origins of Margoria · works in every sea": "빨강 · 루살카 결정, 또는 마고리아의 근원 10개 · 모든 바다에서 작동",
 	"refill in <b data-until=\"barter\"></b>": "<b data-until=\"barter\"></b> 후 다시 참",
-	"refills at {time}": "{time}에 갱신",
 	"refresh": "갱신",
 	"reload": "재장전",
 	"reloads in {s} s": "재장전 {s}초",
@@ -5746,7 +5745,6 @@
 	"{n} ready to craft or enhance": "{n}개 제작·강화 가능",
 	"{n} still to get": "아직 얻어야 할 것 {n}개",
 	"{n} waiting in the other sections": "다른 섹션에서 {n}개 대기 중",
-	"<b>The harbour.</b> Signing in no longer puts you on the community boards: you are asked first. And on a weak signal the app opens from its offline copy after a few seconds instead of waiting on the network.": "<b>항구.</b> 로그인해도 더 이상 커뮤니티 게시판에 올라가지 않습니다. 먼저 묻습니다. 그리고 신호가 약하면 앱이 네트워크를 기다리지 않고 몇 초 뒤 오프라인 사본에서 열립니다.",
 	"<b>Community</b> is the harbour.": "<b>커뮤니티</b>는 항구입니다.",
 	"<b>Plan</b> where the day ends and tick the chains. <b>Load</b> packs the hold. <b>Sail</b> goes one stop at a time, the clock waiting at each island. <b>Results</b> records the trip as one change.": "<b>계획</b>에서 하루가 끝나는 곳을 정하고 연쇄를 체크하세요. <b>적재</b>가 화물칸을 채웁니다. <b>항해</b>는 한 번에 한 정박지씩 나아가고, 시계가 섬마다 기다립니다. <b>결산</b>은 항해를 하나의 변경으로 기록합니다.",
 	"<b>The barter run.</b> The five [Great Ocean] goods sell at their 25 million and the rare goods are priced at last; a [Level 5] or higher takes a bag slot each; Undo after Record gives the islands their attempts back; route edits survive a reload with many chains ticked; a 2–3 range is recorded fairly; three Crow Coin Shop prices agree everywhere; Sail and Results say what to do when there is nothing to show.": "<b>물물교환 항해.</b> [대양] 교역품 다섯 가지가 2,500만에 팔리고, 희귀품에도 마침내 값이 매겨졌습니다. [레벨 5] 이상은 각각 가방 칸 하나를 차지합니다. 기록 후 되돌리기가 섬들의 교환 횟수를 돌려줍니다. 연쇄를 많이 체크해도 항로 편집이 새로고침 후에도 남습니다. 2~3 범위가 공정하게 기록됩니다. 까마귀 주화 상점 가격 세 개가 어디서나 일치합니다. 항해와 결산은 보여 줄 것이 없을 때 무엇을 해야 하는지 알려 줍니다.",
@@ -5765,7 +5763,6 @@
 	"One record of what you own, and every build draws from it — the same 100 planks are never promised twice.<br><br><b>The next screens use an example; your own data comes back when the tour ends.</b>": "보유한 것에 대한 하나의 기록, 모든 건조가 거기서 가져다 씁니다 — 같은 판자 100개가 두 번 약속되는 일은 없습니다.<br><br><b>다음 화면들은 예시를 씁니다. 투어가 끝나면 당신의 데이터가 돌아옵니다.</b>",
 	"Set quantities here, or read a storage off a screenshot. A tile's bar shows how much a build has spoken for; pick one to see who and why.": "여기서 수량을 정하거나 스크린샷에서 창고를 읽으세요. 타일의 바는 건조에 배정된 양을 보여 주고, 하나를 고르면 누가 왜 배정했는지 보입니다.",
 	"The <b>yard</b> on the left plans and makes a build; the <b>sea</b> on the right is where the day is spent.": "왼쪽의 <b>공방</b>은 건조를 계획하고 만드는 곳, 오른쪽의 <b>바다</b>는 하루를 보내는 곳입니다.",
-	"The boards and the fleet in numbers. Only sailors who take part are on them, and you see what would be shared before you agree.": "게시판과 숫자로 보는 선단. 참여하는 선원만 올라가며, 무엇이 공유될지는 동의하기 전에 보여 줍니다.",
 	"The digits <b>1</b>–<b>9</b> and <b>0</b> switch between them.": "숫자 <b>1</b>–<b>9</b>와 <b>0</b>이 그 사이를 전환합니다.",
 	"The hull in the game's own numbers, its four parts and crystal, and the crew — read off a screenshot of Manage Sailors and seated for what the boat is for.": "게임 자체의 수치로 본 선체, 부품 네 개와 결정, 그리고 선원단 — 선원 관리 스크린샷에서 읽어 내고 배의 용도에 맞춰 배치합니다.",
 	"{min} minutes, in {n} parts — the real app, driven and narrated. Start anywhere.": "{min}분을 {n}개 부분으로 — 실제 앱을 조작하고 해설했습니다. 어디서든 시작하세요.",
@@ -5785,5 +5782,8 @@
 	"Each chime is also a Discord message from the bot; press to stop them": "알림마다 봇이 Discord 메시지도 보냅니다; 누르면 중지됩니다",
 	"Have the bot message you on Discord at every chime — you will need to be in the community server": "알림마다 봇이 Discord로 메시지를 보냅니다 — 커뮤니티 서버에 들어가 있어야 합니다",
 	"That did not go through — try again": "전달되지 않았습니다 — 다시 시도하세요",
-	"on Discord": "Discord로"
+	"on Discord": "Discord로",
+	"<b>The harbour.</b> On a weak signal the app opens from its offline copy after a few seconds instead of waiting on the network.": "<b>항구.</b> 신호가 약하면 앱이 네트워크를 기다리지 않고 몇 초 뒤 오프라인 사본에서 열립니다.",
+	"The boards and the fleet in numbers. Signing in puts you on them, and one press here takes you off again. Only numbers are shared, never your stock, your notes or your traces.": "게시판과 숫자로 보는 선단. 로그인하면 올라가고, 여기서 한 번 누르면 다시 빠집니다. 숫자만 공유되며, 재고나 메모, 항적은 절대 공유되지 않습니다.",
+	"refills on every Barter Refresh": "물물교환 갱신마다 가득 참"
 }

@@ -6,7 +6,6 @@ import { T, said, gameName } from '../i18n.js';
 import * as store from '../state.js';
 import { img, amountInput } from '../ui-bits.js';
 import { barterData, SILVER, snapshot } from '../ui-state.js';
-import { currentPlan } from '../clock.js';
 import { currentShip } from '../ship.js';
 import { BREEZY_EVERY } from '../rations.js';
 import { npcById, ports, isleOf, isleShort } from '../barter_npcs.js';
@@ -726,15 +725,13 @@ export function parleyLine(prof) {
 export function parleyHTML(prof) {
 	const o = ordersNow();
 	const day = dailyCapacity(prof);
-	const clock = currentPlan();
-	const refill = `${String(clock.barter).padStart(2, '0')}:00 ${clock.zone === 'UTC' ? 'UTC' : clock.zone}`;
 	const guessed = parleyGuessed(prof);
 	const held = guessed ? 0 : Math.min(PARLEY.max, prof.parleyHeld);
 	const pct = ((guessed ? PARLEY.max : held) / PARLEY.max) * 100;
 	return `<div class="parley-plan">
 		<div class="parley-fields">
 			<div class="parley-field"><label class="parley-field-in"><span class="summary-k">${T('Parley in the bar now')}</span><input class="purse-inline wide" type="text" inputmode="numeric" value="${held ? F(held) : ''}" placeholder="${F(PARLEY.max)}" data-act="parley-held" aria-label="${T('Parley in the bar right now')}"><em>${T('as the barter window’s head reads it')}</em></label>
-			<div class="parley-gauge${guessed ? ' guess' : ''}"><div class="run-bar parley"><i style="width:${pct.toFixed(1)}%"></i></div><div class="parley-gauge-k"><span>${guessed ? T('a full bar, taken as read — type yours above, or') : T('{n} of {max}', { n: F(held), max: F(PARLEY.max) })}</span>${guessed ? `<button class="chip tiny" data-act="barter-parley-full">${T('it really is full')}</button>` : ''}<span class="panel-spacer"></span><span>${T('{n} trades a refill', { n: F(day.tradesPerBar) })} · ${T('{each} a trade', { each: F(parleyOf(prof).perTrade) })} · ${T('refills at {time}', { time: esc(refill) })}</span></div></div></div>
+			<div class="parley-gauge${guessed ? ' guess' : ''}"><div class="run-bar parley"><i style="width:${pct.toFixed(1)}%"></i></div><div class="parley-gauge-k"><span>${guessed ? T('a full bar, taken as read — type yours above, or') : T('{n} of {max}', { n: F(held), max: F(PARLEY.max) })}</span>${guessed ? `<button class="chip tiny" data-act="barter-parley-full">${T('it really is full')}</button>` : ''}<span class="panel-spacer"></span><span>${T('{n} trades a refill', { n: F(day.tradesPerBar) })} · ${T('{each} a trade', { each: F(parleyOf(prof).perTrade) })} · ${T('refills on every Barter Refresh')}</span></div></div></div>
 			<label class="parley-field"><span class="summary-k">${img(VOUCHER, 'row-icon xs')} ${T('Vouchers carried')}</span><input class="purse-inline" type="text" inputmode="numeric" value="${prof.vouchers ? F(prof.vouchers) : ''}" placeholder="0" data-act="vouchers" aria-label="${T('{name}s you carry', { name: gameName(VOUCHER) })}"><em>${T('each puts {n} back, on a two-hour cooldown', { n: F(PARLEY.voucher) })}</em></label>
 		</div>
 		<div class="order-rows plain">${orderRow('barter-port', T('Your home port'), V.port, [[0, T('the first stop')], ...ports.map(p => [p.id, gameName(p.name)])], T('Where the run leaves from and comes back to, and whose storage it loads from'))}

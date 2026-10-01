@@ -4375,7 +4375,6 @@
 	"recorded, nothing taken out": "記録、差し引きなし",
 	"red · Rusalka Crystal, or ten Origins of Margoria · works in every sea": "赤 · ルサールカ結晶、またはマゴリアの起源10個 · どの海域でも効きます",
 	"refill in <b data-until=\"barter\"></b>": "補充まで <b data-until=\"barter\"></b>",
-	"refills at {time}": "{time} に補充",
 	"refresh": "更新",
 	"reload": "再装填",
 	"reloads in {s} s": "装填 {s} 秒",
@@ -5746,7 +5745,6 @@
 	"{n} ready to craft or enhance": "{n}件が製作・強化可能",
 	"{n} still to get": "これから入手{n}件",
 	"{n} waiting in the other sections": "ほかのセクションで{n}件待機中",
-	"<b>The harbour.</b> Signing in no longer puts you on the community boards: you are asked first. And on a weak signal the app opens from its offline copy after a few seconds instead of waiting on the network.": "<b>港。</b> ログインしてもコミュニティ掲示板に載らなくなりました。先に確認されます。また、電波が弱いときは、ネットワークを待たずに数秒後にオフラインのコピーからアプリが開きます。",
 	"<b>Community</b> is the harbour.": "<b>コミュニティ</b>は港です。",
 	"<b>Plan</b> where the day ends and tick the chains. <b>Load</b> packs the hold. <b>Sail</b> goes one stop at a time, the clock waiting at each island. <b>Results</b> records the trip as one change.": "<b>計画</b>でその日の終わる位置を決め、連鎖にチェックを入れます。<b>積み込み</b>で船倉に積みます。<b>航海</b>は寄港地をひとつずつ進み、時計が島ごとに待ちます。<b>収支</b>は航海をひとつの変更として記録します。",
 	"<b>The barter run.</b> The five [Great Ocean] goods sell at their 25 million and the rare goods are priced at last; a [Level 5] or higher takes a bag slot each; Undo after Record gives the islands their attempts back; route edits survive a reload with many chains ticked; a 2–3 range is recorded fairly; three Crow Coin Shop prices agree everywhere; Sail and Results say what to do when there is nothing to show.": "<b>物々交換の航海。</b>5つの[大洋]交易品は2,500万で売れ、希少品にもようやく値が付きました。[レベル5]以上はそれぞれバッグの枠を1つ使います。記録の後の「元に戻す」で島の交換回数が戻ります。多くの連鎖にチェックを入れていても、航路の編集が再読み込み後も残ります。2〜3の幅が公平に記録されます。カラスコイン商店の3つの価格がどこでも一致します。航海と収支は、表示するものがないときに何をすればよいかを示します。",
@@ -5765,7 +5763,6 @@
 	"One record of what you own, and every build draws from it — the same 100 planks are never promised twice.<br><br><b>The next screens use an example; your own data comes back when the tour ends.</b>": "持っているものの記録は1つだけで、すべての建造がそこから引きます — 同じ板100枚が二度約束されることはありません。<br><br><b>次の画面では例を使います。ツアーが終われば自分のデータが戻ります。</b>",
 	"Set quantities here, or read a storage off a screenshot. A tile's bar shows how much a build has spoken for; pick one to see who and why.": "ここで個数を入力するか、スクリーンショットから倉庫を読み取ります。タイルのバーは建造に確保されている量を示し、選ぶと誰がなぜ確保しているかが分かります。",
 	"The <b>yard</b> on the left plans and makes a build; the <b>sea</b> on the right is where the day is spent.": "左の<b>造船所</b>で建造を計画して仕上げ、右の<b>海</b>で一日を過ごします。",
-	"The boards and the fleet in numbers. Only sailors who take part are on them, and you see what would be shared before you agree.": "ランキングと、数字で見る艦隊。載るのは参加した船乗りだけで、共有される内容は同意の前に確認できます。",
 	"The digits <b>1</b>–<b>9</b> and <b>0</b> switch between them.": "数字キーの<b>1</b>〜<b>9</b>と<b>0</b>で切り替えます。",
 	"The hull in the game's own numbers, its four parts and crystal, and the crew — read off a screenshot of Manage Sailors and seated for what the boat is for.": "ゲーム自身の数値による船体、4つの部品と海原石、そして乗組員 — 船員管理のスクリーンショットから読み取り、船の用途に合わせて配置します。",
 	"{min} minutes, in {n} parts — the real app, driven and narrated. Start anywhere.": "{min}分を{n}つの章に — 実際のアプリを動かし、ナレーションを付けたものです。どこから見ても構いません。",
@@ -5785,5 +5782,8 @@
 	"Each chime is also a Discord message from the bot; press to stop them": "通知のたびにボットからDiscordメッセージも届きます。押すと止まります",
 	"Have the bot message you on Discord at every chime — you will need to be in the community server": "通知のたびにボットがDiscordでメッセージを送ります。コミュニティサーバーへの参加が必要です",
 	"That did not go through — try again": "うまくいきませんでした。もう一度お試しください",
-	"on Discord": "Discordにも通知中"
+	"on Discord": "Discordにも通知中",
+	"<b>The harbour.</b> On a weak signal the app opens from its offline copy after a few seconds instead of waiting on the network.": "<b>港。</b> 電波が弱いときは、ネットワークを待たずに数秒後にオフラインのコピーからアプリが開きます。",
+	"The boards and the fleet in numbers. Signing in puts you on them, and one press here takes you off again. Only numbers are shared, never your stock, your notes or your traces.": "ランキングと、数字で見る艦隊。ログインすると載り、ここを一度押せば外れます。共有されるのは数字だけで、在庫やメモ、航跡は決して共有されません。",
+	"refills on every Barter Refresh": "物々交換リストの更新のたびに満タンに戻る"
 }

@@ -4411,7 +4411,6 @@
 	"recorded, nothing taken out": "eingetragen, nichts abgezogen",
 	"red · Rusalka Crystal, or ten Origins of Margoria · works in every sea": "rot · Rusalkameerkristall oder zehn Ursprünge von Margoria · wirkt in jedem Meer",
 	"refill in <b data-until=\"barter\"></b>": "füllt sich wieder auf in <b data-until=\"barter\"></b>",
-	"refills at {time}": "füllt sich um {time} auf",
 	"refresh": "auffrischen",
 	"reload": "Nachladen",
 	"reloads in {s} s": "lädt in {s} s nach",
@@ -5785,7 +5784,6 @@
 	"{n} ready to craft or enhance": "{n} bereit zum Herstellen oder Verstärken",
 	"{n} still to get": "{n} noch zu besorgen",
 	"{n} waiting in the other sections": "{n} warten in den anderen Abschnitten",
-	"<b>The harbour.</b> Signing in no longer puts you on the community boards: you are asked first. And on a weak signal the app opens from its offline copy after a few seconds instead of waiting on the network.": "<b>Der Hafen.</b> Die Anmeldung setzt dich nicht mehr auf die Community-Ranglisten: Du wirst zuerst gefragt. Und bei schwachem Empfang öffnet sich die App nach ein paar Sekunden aus ihrer Offline-Kopie, statt auf das Netz zu warten.",
 	"<b>Community</b> is the harbour.": "<b>Community</b> ist der Hafen.",
 	"<b>Plan</b> where the day ends and tick the chains. <b>Load</b> packs the hold. <b>Sail</b> goes one stop at a time, the clock waiting at each island. <b>Results</b> records the trip as one change.": "<b>Planen</b>: wo der Tag endet, und die Ketten abhaken. <b>Laden</b> packt den Laderaum. <b>Segeln</b> geht einen Stopp nach dem anderen, die Uhr wartet an jeder Insel. <b>Bilanz</b> trägt die Fahrt als eine Änderung ein.",
 	"<b>The barter run.</b> The five [Great Ocean] goods sell at their 25 million and the rare goods are priced at last; a [Level 5] or higher takes a bag slot each; Undo after Record gives the islands their attempts back; route edits survive a reload with many chains ticked; a 2–3 range is recorded fairly; three Crow Coin Shop prices agree everywhere; Sail and Results say what to do when there is nothing to show.": "<b>Die Tauschfahrt.</b> Die fünf [Großer Ozean]-Waren verkaufen sich zu ihren 25 Millionen, und die seltenen Waren haben endlich einen Preis; jede Ware ab [Stufe 5] belegt einen eigenen Inventarplatz; Rückgängig nach dem Erfassen gibt den Inseln ihre Versuche zurück; Änderungen an der Route überstehen ein Neuladen auch mit vielen abgehakten Ketten; eine Spanne von 2–3 wird fair eingetragen; drei Preise im Krähenfuß-Shop stimmen überall überein; Segeln und Bilanz sagen, was zu tun ist, wenn es nichts zu zeigen gibt.",
@@ -5804,7 +5802,6 @@
 	"One record of what you own, and every build draws from it — the same 100 planks are never promised twice.<br><br><b>The next screens use an example; your own data comes back when the tour ends.</b>": "Ein einziger Bestand dessen, was du besitzt, und jedes Vorhaben zieht daraus — dieselben 100 Planken werden nie zweimal versprochen.<br><br><b>Die nächsten Bildschirme zeigen ein Beispiel; deine eigenen Daten kommen zurück, wenn der Rundgang endet.</b>",
 	"Set quantities here, or read a storage off a screenshot. A tile's bar shows how much a build has spoken for; pick one to see who and why.": "Trag die Mengen hier ein oder lies ein Lager von einem Bildschirmfoto. Die Leiste einer Kachel zeigt, wie viel ein Vorhaben schon beansprucht; wähle eine, um zu sehen, wer und warum.",
 	"The <b>yard</b> on the left plans and makes a build; the <b>sea</b> on the right is where the day is spent.": "Die <b>Werft</b> links plant und baut ein Vorhaben; die <b>See</b> rechts ist, wo der Tag vergeht.",
-	"The boards and the fleet in numbers. Only sailors who take part are on them, and you see what would be shared before you agree.": "Die Ranglisten und die Flotte in Zahlen. Darauf stehen nur Seefahrer, die mitmachen, und du siehst, was geteilt würde, bevor du zustimmst.",
 	"The digits <b>1</b>–<b>9</b> and <b>0</b> switch between them.": "Die Ziffern <b>1</b>–<b>9</b> und <b>0</b> wechseln zwischen ihnen.",
 	"The hull in the game's own numbers, its four parts and crystal, and the crew — read off a screenshot of Manage Sailors and seated for what the boat is for.": "Der Rumpf in den Zahlen des Spiels, seine vier Teile und der Kristall, und die Mannschaft — von einem Bildschirmfoto von „Seefahrer verwalten“ gelesen und danach besetzt, wofür das Boot da ist.",
 	"{min} minutes, in {n} parts — the real app, driven and narrated. Start anywhere.": "{min} Minuten in {n} Teilen — die echte App, bedient und erklärt. Fang an, wo du willst.",
@@ -5824,5 +5821,8 @@
 	"Each chime is also a Discord message from the bot; press to stop them": "Jedes Klingeln ist auch eine Discord-Nachricht vom Bot; drücken, um sie zu stoppen",
 	"Have the bot message you on Discord at every chime — you will need to be in the community server": "Lass dir bei jedem Klingeln vom Bot auf Discord schreiben – dafür musst du auf dem Community-Server sein",
 	"That did not go through — try again": "Das hat nicht geklappt – versuch es noch einmal",
-	"on Discord": "auf Discord"
+	"on Discord": "auf Discord",
+	"<b>The harbour.</b> On a weak signal the app opens from its offline copy after a few seconds instead of waiting on the network.": "<b>Der Hafen.</b> Bei schwachem Empfang öffnet sich die App nach ein paar Sekunden aus ihrer Offline-Kopie, statt auf das Netz zu warten.",
+	"The boards and the fleet in numbers. Signing in puts you on them, and one press here takes you off again. Only numbers are shared, never your stock, your notes or your traces.": "Die Ranglisten und die Flotte in Zahlen. Die Anmeldung setzt dich darauf, und ein Druck hier nimmt dich wieder herunter. Geteilt werden nur Zahlen, nie dein Bestand, deine Notizen oder deine Spuren.",
+	"refills on every Barter Refresh": "füllt sich bei jeder Warentausch-Aktualisierung auf"
 }

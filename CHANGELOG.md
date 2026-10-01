@@ -113,7 +113,7 @@ A last sweep before the release, through saves, the clock, the Ship tab and the 
 - **The clock.** Resets hold across a clock change in a zone of your own; *the whole run* chime rings, and the end bell rings once; the stop count follows a run laid again under way.
 - **The ship.** The Fleet list reads the ship as it sails — the Corsair point and the parts you own included; a crafting route no longer switches a thing from bought to crafted; auto-arrange leaves sick sailors ashore; a pool you watched is used by the barter routes too, ship by ship.
 - **The Map.** Its tools fit a phone and have names, its tabs are *Who has it*, *Route*, *Draw*, *Hunt* and *Today*, the chart starts higher, and its labels keep their colours in the light theme.
-- **The harbour.** Signing in no longer puts you on the community boards: you are asked first. And on a weak signal the app opens from its offline copy after a few seconds instead of waiting on the network.
+- **The harbour.** On a weak signal the app opens from its offline copy after a few seconds instead of waiting on the network.
 - **Around the app.** A first visit follows the system’s light or dark; a phone’s bar holds Plan, Inventory, Map and Barter for good; taps on a phone have room; the quests’ box says what it is for.
 
 ## 1.4 — The screenshots you already took

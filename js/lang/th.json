@@ -4375,7 +4375,6 @@
 	"recorded, nothing taken out": "บันทึกแล้ว ไม่หักอะไร",
 	"red · Rusalka Crystal, or ten Origins of Margoria · works in every sea": "แดง · คริสตัลรูซัลกา หรือต้นกำเนิดมาร์โกเรียสิบชิ้น · ใช้ได้ในทุกทะเล",
 	"refill in <b data-until=\"barter\"></b>": "เติมใน <b data-until=\"barter\"></b>",
-	"refills at {time}": "เติมเวลา {time}",
 	"refresh": "รีเฟรช",
 	"reload": "บรรจุกระสุน",
 	"reloads in {s} s": "บรรจุใหม่ {s} วิ",
@@ -5746,7 +5745,6 @@
 	"{n} ready to craft or enhance": "{n} รายการพร้อมสร้างหรือตีบวก",
 	"{n} still to get": "{n} รายการยังต้องหา",
 	"{n} waiting in the other sections": "{n} รายการรออยู่ในส่วนอื่น",
-	"<b>The harbour.</b> Signing in no longer puts you on the community boards: you are asked first. And on a weak signal the app opens from its offline copy after a few seconds instead of waiting on the network.": "<b>ท่าเรือ</b> การเข้าสู่ระบบไม่พาคุณขึ้นกระดานชุมชนอีกต่อไป: จะถามคุณก่อน และเมื่อสัญญาณอ่อน แอปจะเปิดจากสำเนาออฟไลน์ของมันหลังผ่านไปไม่กี่วินาที แทนที่จะรอเครือข่าย",
 	"<b>Community</b> is the harbour.": "<b>ชุมชน</b>คือท่าเรือ",
 	"<b>Plan</b> where the day ends and tick the chains. <b>Load</b> packs the hold. <b>Sail</b> goes one stop at a time, the clock waiting at each island. <b>Results</b> records the trip as one change.": "<b>วางแผน</b>ว่าวันนั้นจบตรงไหนแล้วติ๊กสาย <b>บรรทุก</b>บรรจุของลงห้องเก็บสินค้า <b>แล่น</b>ไปทีละจุดแวะ โดยนาฬิการอที่ทุกเกาะ <b>ผลสรุป</b>บันทึกการเดินทางเป็นการเปลี่ยนแปลงเดียว",
 	"<b>The barter run.</b> The five [Great Ocean] goods sell at their 25 million and the rare goods are priced at last; a [Level 5] or higher takes a bag slot each; Undo after Record gives the islands their attempts back; route edits survive a reload with many chains ticked; a 2–3 range is recorded fairly; three Crow Coin Shop prices agree everywhere; Sail and Results say what to do when there is nothing to show.": "<b>การออกเรือแลกเปลี่ยน</b> สินค้า [มหาสมุทร] ทั้งห้าอย่างขายที่ 25 ล้านของมัน และสินค้าหายากมีราคาเสียที ของ [ระดับ 5] ขึ้นไปใช้ช่องกระเป๋าชิ้นละช่อง ย้อนกลับหลังบันทึกคืนจำนวนครั้งให้เกาะ การแก้เส้นทางอยู่รอดหลังโหลดใหม่แม้ติ๊กหลายสาย ช่วง 2–3 ถูกบันทึกอย่างยุติธรรม ราคาร้านเหรียญตราอีกาดำสามรายการตรงกันทุกที่ แล่นและผลสรุปบอกว่าต้องทำอะไรเมื่อไม่มีอะไรให้แสดง",
@@ -5765,7 +5763,6 @@
 	"One record of what you own, and every build draws from it — the same 100 planks are never promised twice.<br><br><b>The next screens use an example; your own data comes back when the tour ends.</b>": "บันทึกเดียวของสิ่งที่คุณมี และการต่อทุกอันดึงจากมัน — ไม้กระดาน 100 แผ่นเดียวกันไม่เคยถูกสัญญาสองครั้ง<br><br><b>หน้าจอถัดไปใช้ตัวอย่าง ข้อมูลของคุณเองกลับมาเมื่อทัวร์จบ</b>",
 	"Set quantities here, or read a storage off a screenshot. A tile's bar shows how much a build has spoken for; pick one to see who and why.": "ตั้งจำนวนที่นี่ หรืออ่านคลังจากภาพหน้าจอ แถบของช่องแสดงว่าการต่อจองไว้เท่าไร เลือกช่องหนึ่งเพื่อดูว่าใครและทำไม",
 	"The <b>yard</b> on the left plans and makes a build; the <b>sea</b> on the right is where the day is spent.": "<b>อู่ต่อเรือ</b>ทางซ้ายวางแผนและทำการต่อ <b>ทะเล</b>ทางขวาคือที่ที่วันหนึ่งถูกใช้ไป",
-	"The boards and the fleet in numbers. Only sailors who take part are on them, and you see what would be shared before you agree.": "กระดานและกองเรือเป็นตัวเลข มีเฉพาะลูกเรือที่เข้าร่วมอยู่บนนั้น และคุณเห็นว่าอะไรจะถูกแบ่งปันก่อนที่คุณจะตกลง",
 	"The digits <b>1</b>–<b>9</b> and <b>0</b> switch between them.": "เลข <b>1</b>–<b>9</b> และ <b>0</b> สลับระหว่างพวกมัน",
 	"The hull in the game's own numbers, its four parts and crystal, and the crew — read off a screenshot of Manage Sailors and seated for what the boat is for.": "ตัวเรือด้วยตัวเลขของเกมเอง สี่ชิ้นส่วนและคริสตัลของมัน และลูกเรือ — อ่านจากภาพหน้าจอของจัดการลูกเรือ และจัดที่นั่งตามที่เรือมีไว้ใช้",
 	"{min} minutes, in {n} parts — the real app, driven and narrated. Start anywhere.": "{min} นาที เป็น {n} ส่วน — แอปจริง ที่ถูกใช้งานและมีเสียงบรรยาย เริ่มที่ไหนก็ได้",
@@ -5785,5 +5782,8 @@
 	"Each chime is also a Discord message from the bot; press to stop them": "ทุกครั้งที่ดังจะมีข้อความ Discord จากบอทด้วย; กดเพื่อหยุด",
 	"Have the bot message you on Discord at every chime — you will need to be in the community server": "ให้บอทส่งข้อความหาคุณใน Discord ทุกครั้งที่ดัง — คุณต้องอยู่ในเซิร์ฟเวอร์ชุมชน",
 	"That did not go through — try again": "ไม่สำเร็จ — ลองอีกครั้ง",
-	"on Discord": "ใน Discord"
+	"on Discord": "ใน Discord",
+	"<b>The harbour.</b> On a weak signal the app opens from its offline copy after a few seconds instead of waiting on the network.": "<b>ท่าเรือ</b> เมื่อสัญญาณอ่อน แอปจะเปิดจากสำเนาออฟไลน์ของมันหลังผ่านไปไม่กี่วินาที แทนที่จะรอเครือข่าย",
+	"The boards and the fleet in numbers. Signing in puts you on them, and one press here takes you off again. Only numbers are shared, never your stock, your notes or your traces.": "กระดานและกองเรือเป็นตัวเลข การเข้าสู่ระบบจะพาคุณขึ้นไป และกดที่นี่ครั้งเดียวก็ออกได้อีก แบ่งปันเฉพาะตัวเลข ไม่เคยแบ่งปันของสะสม บันทึก หรือเส้นทางของคุณ",
+	"refills on every Barter Refresh": "เติมเต็มทุกครั้งที่รีเฟรชรายการแลกเปลี่ยน"
 }

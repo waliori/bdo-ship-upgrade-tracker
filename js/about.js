@@ -181,7 +181,7 @@ export const RELEASES = [
 					TT('<b>The clock.</b> Resets hold across a clock change in a zone of your own; <i>the whole run</i> chime rings, and the end bell rings once; the stop count follows a run laid again under way.'),
 					TT('<b>The ship.</b> The Fleet list reads the ship as it sails — the Corsair point and the parts you own included; a crafting route no longer switches a thing from bought to crafted; auto-arrange leaves sick sailors ashore; a pool you watched is used by the barter routes too, ship by ship.'),
 					TT('<b>The Map.</b> Its tools fit a phone and have names, its tabs are <i>Who has it</i>, <i>Route</i>, <i>Draw</i>, <i>Hunt</i> and <i>Today</i>, the chart starts higher, and its labels keep their colours in the light theme.'),
-					TT('<b>The harbour.</b> Signing in no longer puts you on the community boards: you are asked first. And on a weak signal the app opens from its offline copy after a few seconds instead of waiting on the network.'),
+					TT('<b>The harbour.</b> On a weak signal the app opens from its offline copy after a few seconds instead of waiting on the network.'),
 					TT('<b>Around the app.</b> A first visit follows the system’s light or dark; a phone’s bar holds Plan, Inventory, Map and Barter for good; taps on a phone have room; the quests’ box says what it is for.')
 				]
 			}
