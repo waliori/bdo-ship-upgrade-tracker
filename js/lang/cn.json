@@ -5778,5 +5778,12 @@
 	"Got it": "明白了",
 	"Only the numbers below are shared — never your stock, your notes or your traces.": "只有下面这些数字会被分享 — 绝不包括你的存货、你的注记或你的航迹。",
 	"Signing in put you on the boards by name.": "登录让你以名字上了榜。",
-	"Signing in put you on the boards.": "登录让你上了榜。"
+	"Signing in put you on the boards.": "登录让你上了榜。",
+	"A message just reached you on Discord — each chime will come there too": "刚有一条消息发到你的 Discord — 之后每次响铃也会发到那里",
+	"Chimes stay out of Discord now": "响铃不再发到 Discord",
+	"Discord too": "也发 Discord",
+	"Each chime is also a Discord message from the bot; press to stop them": "每次响铃也会由机器人发一条 Discord 消息；按下可停止",
+	"Have the bot message you on Discord at every chime — you will need to be in the community server": "每次响铃都让机器人在 Discord 给你发消息 — 你需要在社区服务器里",
+	"That did not go through — try again": "没有成功 — 请再试一次",
+	"on Discord": "已发 Discord"
 }

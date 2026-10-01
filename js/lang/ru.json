@@ -7903,5 +7903,12 @@
 	"Got it": "Понятно",
 	"Only the numbers below are shared — never your stock, your notes or your traces.": "Делятся только числа ниже — никогда ваши запасы, заметки или следы.",
 	"Signing in put you on the boards by name.": "Вход поставил вас в рейтинги под именем.",
-	"Signing in put you on the boards.": "Вход поставил вас в рейтинги."
+	"Signing in put you on the boards.": "Вход поставил вас в рейтинги.",
+	"A message just reached you on Discord — each chime will come there too": "Вам только что пришло сообщение в Discord — каждый сигнал теперь придёт и туда",
+	"Chimes stay out of Discord now": "Сигналы больше не приходят в Discord",
+	"Discord too": "и в Discord",
+	"Each chime is also a Discord message from the bot; press to stop them": "Каждый сигнал — ещё и сообщение от бота в Discord; нажмите, чтобы отключить",
+	"Have the bot message you on Discord at every chime — you will need to be in the community server": "Бот будет писать вам в Discord при каждом сигнале — для этого нужно быть на сервере сообщества",
+	"That did not go through — try again": "Не получилось — попробуйте ещё раз",
+	"on Discord": "в Discord"
 }

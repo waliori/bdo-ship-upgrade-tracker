@@ -5874,5 +5874,12 @@
 	"Got it": "Entendi",
 	"Only the numbers below are shared — never your stock, your notes or your traces.": "Só os números abaixo são compartilhados — nunca seu estoque, suas notas ou seus traços.",
 	"Signing in put you on the boards by name.": "Entrar colocou você nos quadros com o seu nome.",
-	"Signing in put you on the boards.": "Entrar colocou você nos quadros."
+	"Signing in put you on the boards.": "Entrar colocou você nos quadros.",
+	"A message just reached you on Discord — each chime will come there too": "Uma mensagem acabou de chegar no Discord — cada toque vai chegar lá também",
+	"Chimes stay out of Discord now": "Os toques não vão mais para o Discord",
+	"Discord too": "Discord também",
+	"Each chime is also a Discord message from the bot; press to stop them": "Cada toque também é uma mensagem do bot no Discord; toque para parar",
+	"Have the bot message you on Discord at every chime — you will need to be in the community server": "O bot manda mensagem no Discord a cada toque — você precisa estar no servidor da comunidade",
+	"That did not go through — try again": "Não deu certo — tente de novo",
+	"on Discord": "no Discord"
 }

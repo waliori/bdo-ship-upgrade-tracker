@@ -5778,5 +5778,12 @@
 	"Got it": "확인",
 	"Only the numbers below are shared — never your stock, your notes or your traces.": "아래 숫자만 공유됩니다 — 재고, 메모, 항적은 결코 아닙니다.",
 	"Signing in put you on the boards by name.": "로그인하여 이름으로 게시판에 올랐습니다.",
-	"Signing in put you on the boards.": "로그인하여 게시판에 올랐습니다."
+	"Signing in put you on the boards.": "로그인하여 게시판에 올랐습니다.",
+	"A message just reached you on Discord — each chime will come there too": "방금 Discord로 메시지가 도착했습니다 — 이제 모든 알림이 그곳으로도 갑니다",
+	"Chimes stay out of Discord now": "이제 알림이 Discord로 가지 않습니다",
+	"Discord too": "Discord도",
+	"Each chime is also a Discord message from the bot; press to stop them": "알림마다 봇이 Discord 메시지도 보냅니다; 누르면 중지됩니다",
+	"Have the bot message you on Discord at every chime — you will need to be in the community server": "알림마다 봇이 Discord로 메시지를 보냅니다 — 커뮤니티 서버에 들어가 있어야 합니다",
+	"That did not go through — try again": "전달되지 않았습니다 — 다시 시도하세요",
+	"on Discord": "Discord로"
 }

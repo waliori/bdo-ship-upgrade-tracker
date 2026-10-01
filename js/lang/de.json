@@ -5817,5 +5817,12 @@
 	"Got it": "Verstanden",
 	"Only the numbers below are shared — never your stock, your notes or your traces.": "Nur die Zahlen unten werden geteilt — nie dein Bestand, deine Notizen oder deine Spuren.",
 	"Signing in put you on the boards by name.": "Die Anmeldung hat dich mit Namen auf die Ranglisten gesetzt.",
-	"Signing in put you on the boards.": "Die Anmeldung hat dich auf die Ranglisten gesetzt."
+	"Signing in put you on the boards.": "Die Anmeldung hat dich auf die Ranglisten gesetzt.",
+	"A message just reached you on Discord — each chime will come there too": "Gerade kam eine Nachricht auf Discord an – jedes Klingeln kommt jetzt auch dort an",
+	"Chimes stay out of Discord now": "Das Klingeln bleibt jetzt aus Discord heraus",
+	"Discord too": "auch Discord",
+	"Each chime is also a Discord message from the bot; press to stop them": "Jedes Klingeln ist auch eine Discord-Nachricht vom Bot; drücken, um sie zu stoppen",
+	"Have the bot message you on Discord at every chime — you will need to be in the community server": "Lass dir bei jedem Klingeln vom Bot auf Discord schreiben – dafür musst du auf dem Community-Server sein",
+	"That did not go through — try again": "Das hat nicht geklappt – versuch es noch einmal",
+	"on Discord": "auf Discord"
 }

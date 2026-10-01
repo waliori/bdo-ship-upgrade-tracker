@@ -348,7 +348,7 @@ export async function toggleDiscord() {
 	}
 	const on = await setDiscordDm(true);
 	if (!on.ok) {
-		toast(on.error ? T(on.error) : T('That did not go through — try again'), true);
+		toast(on.error ? said(on.error) : T('That did not go through — try again'), true);
 		return false;
 	}
 	sendSchedule();

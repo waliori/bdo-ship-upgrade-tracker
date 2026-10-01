@@ -5778,5 +5778,12 @@
 	"Got it": "了解",
 	"Only the numbers below are shared — never your stock, your notes or your traces.": "共有されるのは下の数字だけです — 在庫、メモ、軌跡が共有されることはありません。",
 	"Signing in put you on the boards by name.": "ログインしたので、名前付きでランキングに載りました。",
-	"Signing in put you on the boards.": "ログインしたので、ランキングに載りました。"
+	"Signing in put you on the boards.": "ログインしたので、ランキングに載りました。",
+	"A message just reached you on Discord — each chime will come there too": "Discordにメッセージが届きました。通知はすべてそちらにも届きます",
+	"Chimes stay out of Discord now": "通知はもうDiscordに送られません",
+	"Discord too": "Discordにも",
+	"Each chime is also a Discord message from the bot; press to stop them": "通知のたびにボットからDiscordメッセージも届きます。押すと止まります",
+	"Have the bot message you on Discord at every chime — you will need to be in the community server": "通知のたびにボットがDiscordでメッセージを送ります。コミュニティサーバーへの参加が必要です",
+	"That did not go through — try again": "うまくいきませんでした。もう一度お試しください",
+	"on Discord": "Discordにも通知中"
 }

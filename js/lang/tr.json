@@ -5778,5 +5778,12 @@
 	"Got it": "Anlaşıldı",
 	"Only the numbers below are shared — never your stock, your notes or your traces.": "Yalnızca aşağıdaki sayılar paylaşılır — asla stokun, notların ya da izlerin değil.",
 	"Signing in put you on the boards by name.": "Giriş yapmak seni panolara adınla koydu.",
-	"Signing in put you on the boards.": "Giriş yapmak seni panolara koydu."
+	"Signing in put you on the boards.": "Giriş yapmak seni panolara koydu.",
+	"A message just reached you on Discord — each chime will come there too": "Discord’da sana bir mesaj geldi — her çınlama artık oraya da gelecek",
+	"Chimes stay out of Discord now": "Çınlamalar artık Discord’a gitmiyor",
+	"Discord too": "Discord’a da",
+	"Each chime is also a Discord message from the bot; press to stop them": "Her çınlama aynı zamanda bottan bir Discord mesajı; durdurmak için bas",
+	"Have the bot message you on Discord at every chime — you will need to be in the community server": "Her çınlamada bot sana Discord’dan yazsın — topluluk sunucusunda olman gerekir",
+	"That did not go through — try again": "Olmadı — yeniden dene",
+	"on Discord": "Discord’da"
 }

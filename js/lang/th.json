@@ -5778,5 +5778,12 @@
 	"Got it": "เข้าใจแล้ว",
 	"Only the numbers below are shared — never your stock, your notes or your traces.": "เฉพาะตัวเลขข้างล่างที่ถูกแบ่ง — ไม่เคยเป็นของสะสม บันทึก หรือเส้นวาดของคุณ",
 	"Signing in put you on the boards by name.": "การเข้าสู่ระบบพาคุณขึ้นกระดานด้วยชื่อ",
-	"Signing in put you on the boards.": "การเข้าสู่ระบบพาคุณขึ้นกระดาน"
+	"Signing in put you on the boards.": "การเข้าสู่ระบบพาคุณขึ้นกระดาน",
+	"A message just reached you on Discord — each chime will come there too": "เพิ่งมีข้อความถึงคุณใน Discord — ทุกครั้งที่ดังจะส่งไปที่นั่นด้วย",
+	"Chimes stay out of Discord now": "การแจ้งเตือนจะไม่ส่งไป Discord แล้ว",
+	"Discord too": "Discord ด้วย",
+	"Each chime is also a Discord message from the bot; press to stop them": "ทุกครั้งที่ดังจะมีข้อความ Discord จากบอทด้วย; กดเพื่อหยุด",
+	"Have the bot message you on Discord at every chime — you will need to be in the community server": "ให้บอทส่งข้อความหาคุณใน Discord ทุกครั้งที่ดัง — คุณต้องอยู่ในเซิร์ฟเวอร์ชุมชน",
+	"That did not go through — try again": "ไม่สำเร็จ — ลองอีกครั้ง",
+	"on Discord": "ใน Discord"
 }

@@ -5901,5 +5901,12 @@
 	"Got it": "Compris",
 	"Only the numbers below are shared — never your stock, your notes or your traces.": "Seuls les chiffres ci-dessous sont partagés — jamais votre stock, vos notes ou vos tracés.",
 	"Signing in put you on the boards by name.": "Se connecter vous a placé dans les classements sous votre nom.",
-	"Signing in put you on the boards.": "Se connecter vous a placé dans les classements."
+	"Signing in put you on the boards.": "Se connecter vous a placé dans les classements.",
+	"A message just reached you on Discord — each chime will come there too": "Un message vient de vous parvenir sur Discord — chaque sonnerie y arrivera aussi",
+	"Chimes stay out of Discord now": "Les sonneries ne passent plus par Discord",
+	"Discord too": "Discord aussi",
+	"Each chime is also a Discord message from the bot; press to stop them": "Chaque sonnerie est aussi un message Discord du bot ; appuyez pour les arrêter",
+	"Have the bot message you on Discord at every chime — you will need to be in the community server": "Le bot vous écrit sur Discord à chaque sonnerie — il faut être sur le serveur de la communauté",
+	"That did not go through — try again": "Cela n’a pas abouti — réessayez",
+	"on Discord": "sur Discord"
 }
