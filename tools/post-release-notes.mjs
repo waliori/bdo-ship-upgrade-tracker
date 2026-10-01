@@ -1,11 +1,11 @@
 // Posts release notes from js/about.js to a Discord channel through a webhook.
 //
 //   DISCORD_RELEASES_WEBHOOK=<url> node tools/post-release-notes.mjs 1.5
-//   node tools/post-release-notes.mjs --all --dry     # show what would be sent
+//   node tools/post-release-notes.mjs --all --skip=1.5 --dry
 //
-// One header message per release (summary, blurb, who asked for it), then one
-// message per section with its clip attached. Releases go oldest first so the
-// channel reads as a log with the newest at the bottom.
+// One message per release, with its clips attached.
+//
+// Releases go oldest first so the newest ends at the bottom.
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -35,48 +35,51 @@ const md = html => html
 	.replace(/<kbd>(.*?)<\/kbd>/g, '`$1`');
 const cut = (s, n) => (s.length <= n ? s : s.slice(0, n - 1).trimEnd() + '…');
 
+// One message per release: a text embed (title, date, blurb, who asked for
+// it, the changes), then one image-only embed per clip. Discord caps the
+// text of a message's embeds at 6000 characters, so each change is cut to
+// its opening words to fit; the full notes are in the app.
 function messages(r) {
-	const out = [];
+	const LIMIT = 5800;
 	const head = {
 		title: cut(`Sailor's Log ${r.id} — ${r.name}`, 256),
 		url: SITE,
 		color: COLOR,
-		description: cut(`*${md(r.sum)}*\n\n${md(r.blurb)}`, 4000),
-		footer: { text: `Released ${r.date} · also under Menu → What's new` },
+		description: cut(`**${r.date}** · ${md(r.sum)}\n\n${md(r.blurb)}`, 900),
+		footer: { text: 'Full notes under Menu → What\'s new' },
 	};
 	const t = r.thanks;
+	const fields = [];
 	if (t && t.who && t.who.length) {
-		head.fields = [{
+		fields.push({
 			name: 'Asked for by you',
-			value: cut(t.who.map(w => `**${w.name}** — ${w.said ? `*“${md(w.said)}”* ` : ''}${md(w.did)}`).join('\n')
-				+ (t.also && t.also.length ? `\n\nBugs reported and runs tested by ${t.also.map(n => `**${n}**`).join(', ')}.` : ''), 1024),
-		}];
+			value: cut(t.who.map(w => `**${w.name}** — ${md(w.did)}`).join('\n')
+				+ (t.also && t.also.length ? `\n\nAlso reported and tested: ${t.also.join(', ')}.` : ''), 900),
+		});
 	}
-	out.push({ payload: { embeds: [head] } });
-
-	for (const s of r.sections) {
-		const parts = [];
-		if (s.text) parts.push(md(s.text));
-		if (s.points) parts.push(s.points.map(p => `• ${md(p)}`).join('\n'));
-		const embed = { title: cut(md(s.title).replace(/\*/g, ''), 256), color: COLOR, description: cut(parts.join('\n\n'), 4000) };
-		let file = null;
-		if (s.media) {
-			const name = path.basename(s.media);
-			file = { name, data: fs.readFileSync(path.join(root, s.media)) };
-			embed.image = { url: `attachment://${name}` };
-		}
-		out.push({ payload: { embeds: [embed] }, file });
+	const used = head.title.length + head.description.length + head.footer.text.length
+		+ fields.reduce((n, f) => n + f.name.length + f.value.length, 0);
+	const n = r.sections.length;
+	const each = Math.min(1000, Math.floor((LIMIT - used) / n) - 40);
+	const files = [];
+	for (const sec of r.sections) {
+		const title = md(sec.title).replace(/\*/g, '');
+		const first = md(sec.text || (sec.points || [])[0] || '');
+		fields.push({ name: cut(title, 256), value: cut(first, Math.max(each - title.length, 50)) || '—' });
+		if (sec.media) files.push({ name: path.basename(sec.media), data: fs.readFileSync(path.join(root, sec.media)) });
 	}
-	return out;
+	head.fields = fields.slice(0, 25);
+	const embeds = [head, ...files.slice(0, 9).map(f => ({ url: SITE, image: { url: `attachment://${f.name}` } }))];
+	return [{ payload: { embeds }, files: files.slice(0, 9) }];
 }
 
-async function send({ payload, file }) {
+async function send({ payload, files }) {
 	for (;;) {
 		let init;
-		if (file) {
+		if (files.length) {
 			const form = new FormData();
-			form.append('payload_json', JSON.stringify({ ...payload, allowed_mentions: { parse: [] }, attachments: [{ id: 0, filename: file.name }] }));
-			form.append('files[0]', new Blob([file.data]), file.name);
+			form.append('payload_json', JSON.stringify({ ...payload, allowed_mentions: { parse: [] }, attachments: files.map((f, i) => ({ id: i, filename: f.name })) }));
+			files.forEach((f, i) => form.append(`files[${i}]`, new Blob([f.data]), f.name));
 			init = { method: 'POST', body: form };
 		} else {
 			init = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...payload, allowed_mentions: { parse: [] } }) };
@@ -92,7 +95,8 @@ async function send({ payload, file }) {
 	}
 }
 
-const picked = RELEASES.filter(r => args.includes('--all') || ids.includes(r.id)).reverse();
+const skip = args.filter(a => a.startsWith('--skip=')).map(a => a.slice(7));
+const picked = RELEASES.filter(r => (args.includes('--all') || ids.includes(r.id)) && !skip.includes(r.id)).reverse();
 if (!picked.length) {
 	console.error('No such release.');
 	process.exit(1);
