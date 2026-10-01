@@ -102,6 +102,10 @@ The diary of 14 September said **Total Barters adds a percent to every exchange*
 - A held count can be typed in place on the Builds blockers and every To Get row; crafting a build’s own item asks whether the build is done.
 - The two Barter Goods Support dailies ask which [Level 1] good went.
 - On a phone the sailing bar is half as tall.
+- A [Level 5], [Level 6], [Level 7] or [Great Ocean] good takes a slot each — only the lower levels stack — so a run keeps to the hull’s slots as well as its weight, and the hold shows its slots beside its LT.
+- [Great Ocean] goods rank between a [Level 5] and a [Level 6] wherever goods are sorted, sold or kept.
+- One button style across the app, and a button that deletes or abandons something looks like it.
+- A lighter first load — the parts you have not opened yet arrive when you do — and a thin loading thread wherever the app is waiting.
 - **The Vell timer is gone**: its countdown on the Plan and the Map, its own times and its reminder.
 
 ### Fixes, and a Map that fits a phone
