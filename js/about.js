@@ -171,6 +171,7 @@ export const RELEASES = [
 					TT('On a phone the sailing bar is half as tall.'),
 					TT('A [Level 5], [Level 6], [Level 7] or [Great Ocean] good takes a slot each — only the lower levels stack — so a run keeps to the hull’s slots as well as its weight, and the hold shows its slots beside its LT.'),
 					TT('[Great Ocean] goods rank between a [Level 5] and a [Level 6] wherever goods are sorted, sold or kept.'),
+					TT('The hold takes no more goods than the hull has slots for: a press loads what fits and says what did not.'),
 					TT('One button style across the app, and a button that deletes or abandons something looks like it.'),
 					TT('A lighter first load — the parts you have not opened yet arrive when you do — and a thin loading thread wherever the app is waiting.'),
 					TT('<b>The Vell timer is gone</b>: its countdown on the Plan and the Map, its own times and its reminder.')

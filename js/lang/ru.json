@@ -7947,7 +7947,6 @@
 	"Telling the fleet…": "Сообщаем флоту…",
 	"That could not load — check your connection and try again": "Не удалось загрузить — проверьте соединение и попробуйте снова",
 	"The boards could not load — check your connection and try again": "Доски не загрузились — проверьте соединение и попробуйте снова",
-	"The hold is at {text}: more goods than the hull has slots for. The game will not load them all — untick some, or leave them for a later trip.": "Трюм заполнен на {text}: товаров больше, чем ячеек у корпуса. Игра не загрузит их все — снимите отметку с некоторых или оставьте их на следующий рейс.",
 	"The layout book could not load — check your connection and try again": "Книга раскладок не загрузилась — проверьте соединение и попробуйте снова",
 	"The list could not load — check your connection and try again": "Список не загрузился — проверьте соединение и попробуйте снова",
 	"The notes could not load — check your connection and try again": "Заметки не загрузились — проверьте соединение и попробуйте снова",
@@ -7988,5 +7987,11 @@
 		"other": "{n} ячеек, по одной на штуку"
 	},
 	"{n} — a [Level 5] and up takes one each": "{n} — [5 ур.] и выше занимает по одной на штуку",
-	"{used} / {cap} slots": "{used} / {cap} ячеек"
+	"{used} / {cap} slots": "{used} / {cap} ячеек",
+	"Loaded what fits: the hold had {free} of its {slots} slots free, and {what} did not go aboard. A [Level 5] and up takes a slot each.": "Загружено то, что поместилось: в трюме было свободно {free} из {slots} ячеек, и {what} не попало на борт. [5 ур.] и выше занимает по ячейке на штуку.",
+	"The goods aboard take {used} slots and this hull has {slots}: nothing was taken off, so put some ashore before casting off.": "Товары на борту занимают ячеек: {used}, а у этого корпуса их {slots}. Ничего не снято, поэтому перед отплытием выгрузите часть на берег.",
+	"The hold has {free} of its {slots} slots free: {what} did not go aboard. A [Level 5] and up takes a slot each.": "В трюме свободно {free} из {slots} ячеек: {what} не попало на борт. [5 ур.] и выше занимает по ячейке на штуку.",
+	"The hold takes no more goods than the hull has slots for: a press loads what fits and says what did not.": "Трюм не берёт больше товаров, чем у корпуса ячеек: нажатие грузит то, что помещается, и говорит, что не поместилось.",
+	"The hold's {slots} slots are full: {what} did not go aboard. A [Level 5] and up takes a slot each — put something ashore first.": "Все ячейки трюма ({slots}) заняты: {what} не попало на борт. [5 ур.] и выше занимает по ячейке на штуку — сначала выгрузите что-нибудь на берег.",
+	"Written as read, this puts the ship's hold at {text}: more than the hull has. Nothing is left out, and the hold shows over until some of it goes ashore — check the counts against the shots.": "Если записать как прочитано, трюм корабля будет заполнен на {text}: больше, чем есть у корпуса. Ничего не отбрасывается, и трюм показывает перегруз, пока часть не уйдёт на берег — сверьте количества со снимками."
 }

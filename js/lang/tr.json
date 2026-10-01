@@ -5822,7 +5822,6 @@
 	"Telling the fleet…": "Filoya anlatılıyor…",
 	"That could not load — check your connection and try again": "Yüklenemedi — bağlantını denetle ve yeniden dene",
 	"The boards could not load — check your connection and try again": "Panolar yüklenemedi — bağlantını denetle ve yeniden dene",
-	"The hold is at {text}: more goods than the hull has slots for. The game will not load them all — untick some, or leave them for a later trip.": "Ambar {text} durumunda: gövdenin slotlarından fazla mal var. Oyun hepsini yüklemez — bazılarının işaretini kaldır ya da sonraki bir sefere bırak.",
 	"The layout book could not load — check your connection and try again": "Düzen kitabı yüklenemedi — bağlantını denetle ve yeniden dene",
 	"The list could not load — check your connection and try again": "Liste yüklenemedi — bağlantını denetle ve yeniden dene",
 	"The notes could not load — check your connection and try again": "Notlar yüklenemedi — bağlantını denetle ve yeniden dene",
@@ -5843,5 +5842,11 @@
 	"{n} slots in the storage": "depoda {n} slot",
 	"{n} slots, one each": "{n} slot, tanesi bir",
 	"{n} — a [Level 5] and up takes one each": "{n} — [+5] ve üstü tanesi bir slot kaplar",
-	"{used} / {cap} slots": "{used} / {cap} slot"
+	"{used} / {cap} slots": "{used} / {cap} slot",
+	"Loaded what fits: the hold had {free} of its {slots} slots free, and {what} did not go aboard. A [Level 5] and up takes a slot each.": "Sığan yüklendi: ambarın {slots} slotundan {free} tanesi boştu ve {what} gemiye alınamadı. [+5] ve üstü tanesi bir slot kaplar.",
+	"The goods aboard take {used} slots and this hull has {slots}: nothing was taken off, so put some ashore before casting off.": "Gemideki mallar {used} slot kaplıyor ve bu gövdenin {slots} slotu var: hiçbir şey indirilmedi, o yüzden demir almadan önce bir kısmını karaya çıkar.",
+	"The hold has {free} of its {slots} slots free: {what} did not go aboard. A [Level 5] and up takes a slot each.": "Ambarın {slots} slotundan {free} tanesi boş: {what} gemiye alınamadı. [+5] ve üstü tanesi bir slot kaplar.",
+	"The hold takes no more goods than the hull has slots for: a press loads what fits and says what did not.": "Ambar, gövdenin slotlarından fazla mal almaz: bir basış sığanı yükler ve sığmayanı söyler.",
+	"The hold's {slots} slots are full: {what} did not go aboard. A [Level 5] and up takes a slot each — put something ashore first.": "Ambarın {slots} slotu dolu: {what} gemiye alınamadı. [+5] ve üstü tanesi bir slot kaplar — önce bir şeyleri karaya çıkar.",
+	"Written as read, this puts the ship's hold at {text}: more than the hull has. Nothing is left out, and the hold shows over until some of it goes ashore — check the counts against the shots.": "Okunduğu gibi yazılırsa geminin ambarı {text} olur: gövdenin taşıyabileceğinden fazla. Hiçbir şey dışarıda bırakılmaz ve bir kısmı karaya çıkana dek ambar aşımda görünür — sayıları ekran görüntüleriyle karşılaştır."
 }

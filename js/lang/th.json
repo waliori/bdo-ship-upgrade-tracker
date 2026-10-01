@@ -5822,7 +5822,6 @@
 	"Telling the fleet…": "กำลังแจ้งกองเรือ…",
 	"That could not load — check your connection and try again": "โหลดไม่ได้ — ตรวจการเชื่อมต่อของคุณแล้วลองอีกครั้ง",
 	"The boards could not load — check your connection and try again": "กระดานโหลดไม่ได้ — ตรวจการเชื่อมต่อของคุณแล้วลองอีกครั้ง",
-	"The hold is at {text}: more goods than the hull has slots for. The game will not load them all — untick some, or leave them for a later trip.": "ระวางอยู่ที่ {text}: ของมากกว่าช่องที่ตัวเรือมี เกมจะไม่บรรทุกทั้งหมด — เอาติ๊กออกบางอย่าง หรือเก็บไว้เที่ยวหลัง",
 	"The layout book could not load — check your connection and try again": "สมุดรูปแบบโหลดไม่ได้ — ตรวจการเชื่อมต่อของคุณแล้วลองอีกครั้ง",
 	"The list could not load — check your connection and try again": "รายการโหลดไม่ได้ — ตรวจการเชื่อมต่อของคุณแล้วลองอีกครั้ง",
 	"The notes could not load — check your connection and try again": "บันทึกโหลดไม่ได้ — ตรวจการเชื่อมต่อของคุณแล้วลองอีกครั้ง",
@@ -5843,5 +5842,11 @@
 	"{n} slots in the storage": "{n} ช่องในคลัง",
 	"{n} slots, one each": "{n} ช่อง ชิ้นละหนึ่ง",
 	"{n} — a [Level 5] and up takes one each": "{n} — [ระดับ 5] ขึ้นไปกินชิ้นละหนึ่งช่อง",
-	"{used} / {cap} slots": "{used} / {cap} ช่อง"
+	"{used} / {cap} slots": "{used} / {cap} ช่อง",
+	"Loaded what fits: the hold had {free} of its {slots} slots free, and {what} did not go aboard. A [Level 5] and up takes a slot each.": "บรรทุกเท่าที่ลง: ระวางมีช่องว่าง {free} จาก {slots} ช่อง และ {what} ขึ้นเรือไม่ได้ [ระดับ 5] ขึ้นไปกินชิ้นละหนึ่งช่อง",
+	"The goods aboard take {used} slots and this hull has {slots}: nothing was taken off, so put some ashore before casting off.": "ของบนเรือกิน {used} ช่อง แต่ตัวเรือนี้มี {slots} ช่อง: ไม่มีอะไรถูกเอาลง จึงเอาบางส่วนขึ้นฝั่งก่อนออกเรือ",
+	"The hold has {free} of its {slots} slots free: {what} did not go aboard. A [Level 5] and up takes a slot each.": "ระวางมีช่องว่าง {free} จาก {slots} ช่อง: {what} ขึ้นเรือไม่ได้ [ระดับ 5] ขึ้นไปกินชิ้นละหนึ่งช่อง",
+	"The hold takes no more goods than the hull has slots for: a press loads what fits and says what did not.": "ระวางรับของไม่เกินจำนวนช่องที่ตัวเรือมี: กดหนึ่งครั้งบรรทุกเท่าที่ลง และบอกว่าอะไรไม่ลง",
+	"The hold's {slots} slots are full: {what} did not go aboard. A [Level 5] and up takes a slot each — put something ashore first.": "ระวาง {slots} ช่องเต็มแล้ว: {what} ขึ้นเรือไม่ได้ [ระดับ 5] ขึ้นไปกินชิ้นละหนึ่งช่อง — เอาบางอย่างขึ้นฝั่งก่อน",
+	"Written as read, this puts the ship's hold at {text}: more than the hull has. Nothing is left out, and the hold shows over until some of it goes ashore — check the counts against the shots.": "ถ้าเขียนตามที่อ่านได้ ระวางของเรือจะอยู่ที่ {text}: มากกว่าที่ตัวเรือมี ไม่มีอะไรถูกตัดออก และระวางจะแสดงว่าเกินจนกว่าบางส่วนจะขึ้นฝั่ง — ตรวจจำนวนกับภาพหน้าจอ"
 }

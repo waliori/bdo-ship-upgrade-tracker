@@ -5918,7 +5918,6 @@
 	"Telling the fleet…": "Avisando a frota…",
 	"That could not load — check your connection and try again": "Isso não carregou — verifique sua conexão e tente de novo",
 	"The boards could not load — check your connection and try again": "Os quadros não carregaram — verifique sua conexão e tente de novo",
-	"The hold is at {text}: more goods than the hull has slots for. The game will not load them all — untick some, or leave them for a later trip.": "O porão está em {text}: mais mercadorias do que o casco tem espaços. O jogo não vai carregar todas — desmarque algumas, ou deixe-as para uma viagem posterior.",
 	"The layout book could not load — check your connection and try again": "O livro de arranjos não carregou — verifique sua conexão e tente de novo",
 	"The list could not load — check your connection and try again": "A lista não carregou — verifique sua conexão e tente de novo",
 	"The notes could not load — check your connection and try again": "As notas não carregaram — verifique sua conexão e tente de novo",
@@ -5939,5 +5938,11 @@
 	"{n} slots in the storage": "{n} espaços no armazém",
 	"{n} slots, one each": "{n} espaços, um por unidade",
 	"{n} — a [Level 5] and up takes one each": "{n} — um [Nível 5] ou acima ocupa um por unidade",
-	"{used} / {cap} slots": "{used} / {cap} espaços"
+	"{used} / {cap} slots": "{used} / {cap} espaços",
+	"Loaded what fits: the hold had {free} of its {slots} slots free, and {what} did not go aboard. A [Level 5] and up takes a slot each.": "Carregado o que cabe: o porão tinha {free} de seus {slots} espaços livres, e {what} não subiu a bordo. Um [Nível 5] ou acima ocupa um espaço por unidade.",
+	"The goods aboard take {used} slots and this hull has {slots}: nothing was taken off, so put some ashore before casting off.": "As mercadorias a bordo ocupam {used} espaços e este casco tem {slots}: nada foi retirado, então desembarque algumas antes de zarpar.",
+	"The hold has {free} of its {slots} slots free: {what} did not go aboard. A [Level 5] and up takes a slot each.": "O porão tem {free} de seus {slots} espaços livres: {what} não subiu a bordo. Um [Nível 5] ou acima ocupa um espaço por unidade.",
+	"The hold takes no more goods than the hull has slots for: a press loads what fits and says what did not.": "O porão não aceita mais mercadorias do que o casco tem espaços: um toque carrega o que cabe e diz o que não coube.",
+	"The hold's {slots} slots are full: {what} did not go aboard. A [Level 5] and up takes a slot each — put something ashore first.": "Os {slots} espaços do porão estão cheios: {what} não subiu a bordo. Um [Nível 5] ou acima ocupa um espaço por unidade — desembarque algo primeiro.",
+	"Written as read, this puts the ship's hold at {text}: more than the hull has. Nothing is left out, and the hold shows over until some of it goes ashore — check the counts against the shots.": "Gravado como foi lido, isto deixa o porão do navio em {text}: mais do que o casco tem. Nada fica de fora, e o porão aparece acima do limite até que parte disso desembarque — confira as quantidades com os prints."
 }

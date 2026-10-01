@@ -5822,7 +5822,6 @@
 	"Telling the fleet…": "正在通知船隊…",
 	"That could not load — check your connection and try again": "無法載入 — 請檢查你的連接並重試",
 	"The boards could not load — check your connection and try again": "榜單無法載入 — 請檢查你的連接並重試",
-	"The hold is at {text}: more goods than the hull has slots for. The game will not load them all — untick some, or leave them for a later trip.": "船艙已達 {text}：貨物比船體的格數還多。遊戲不會把它們全部裝上 — 取消勾選一些，或者留給之後的航行。",
 	"The layout book could not load — check your connection and try again": "布局圖鑑無法載入 — 請檢查你的連接並重試",
 	"The list could not load — check your connection and try again": "清單無法載入 — 請檢查你的連接並重試",
 	"The notes could not load — check your connection and try again": "說明無法載入 — 請檢查你的連接並重試",
@@ -5843,5 +5842,11 @@
 	"{n} slots in the storage": "倉庫裡 {n} 格",
 	"{n} slots, one each": "{n} 格，每件一格",
 	"{n} — a [Level 5] and up takes one each": "{n} — [5階段] 及以上每件佔一格",
-	"{used} / {cap} slots": "{used} / {cap} 格"
+	"{used} / {cap} slots": "{used} / {cap} 格",
+	"Loaded what fits: the hold had {free} of its {slots} slots free, and {what} did not go aboard. A [Level 5] and up takes a slot each.": "已裝上能裝下的：船艙 {slots} 格中空著 {free} 格，{what} 沒能上船。[5階段] 及以上每件各佔一格。",
+	"The goods aboard take {used} slots and this hull has {slots}: nothing was taken off, so put some ashore before casting off.": "船上的貨物佔了 {used} 格，而這艘船體只有 {slots} 格：什麼都沒卸下，所以起航之前請把一些放上岸。",
+	"The hold has {free} of its {slots} slots free: {what} did not go aboard. A [Level 5] and up takes a slot each.": "船艙 {slots} 格中空著 {free} 格：{what} 沒能上船。[5階段] 及以上每件各佔一格。",
+	"The hold takes no more goods than the hull has slots for: a press loads what fits and says what did not.": "船艙裝的貨物不會超過船體的格數：按一下會裝上能裝下的，並說明哪些沒裝上。",
+	"The hold's {slots} slots are full: {what} did not go aboard. A [Level 5] and up takes a slot each — put something ashore first.": "船艙的 {slots} 格已滿：{what} 沒能上船。[5階段] 及以上每件各佔一格 — 請先把一些東西放上岸。",
+	"Written as read, this puts the ship's hold at {text}: more than the hull has. Nothing is left out, and the hold shows over until some of it goes ashore — check the counts against the shots.": "照讀到的寫入，船艙會達到 {text}：超過了船體的容量。不會漏掉任何東西，在一部分上岸之前船艙會顯示超載 — 請對照截圖核對數量。"
 }

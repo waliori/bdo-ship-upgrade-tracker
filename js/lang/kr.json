@@ -5822,7 +5822,6 @@
 	"Telling the fleet…": "선단에 알리는 중…",
 	"That could not load — check your connection and try again": "불러오지 못했습니다 — 연결을 확인하고 다시 시도하세요",
 	"The boards could not load — check your connection and try again": "게시판을 불러오지 못했습니다 — 연결을 확인하고 다시 시도하세요",
-	"The hold is at {text}: more goods than the hull has slots for. The game will not load them all — untick some, or leave them for a later trip.": "화물칸이 {text}입니다: 선체의 슬롯보다 물품이 많습니다. 게임은 전부 싣지 않습니다 — 일부를 선택 해제하거나 다음 항해로 미루세요.",
 	"The layout book could not load — check your connection and try again": "배치 도감을 불러오지 못했습니다 — 연결을 확인하고 다시 시도하세요",
 	"The list could not load — check your connection and try again": "목록을 불러오지 못했습니다 — 연결을 확인하고 다시 시도하세요",
 	"The notes could not load — check your connection and try again": "노트를 불러오지 못했습니다 — 연결을 확인하고 다시 시도하세요",
@@ -5843,5 +5842,11 @@
 	"{n} slots in the storage": "창고에 {n}슬롯",
 	"{n} slots, one each": "{n}슬롯, 하나씩",
 	"{n} — a [Level 5] and up takes one each": "{n} — [레벨 5] 이상은 하나에 한 슬롯",
-	"{used} / {cap} slots": "{used} / {cap} 슬롯"
+	"{used} / {cap} slots": "{used} / {cap} 슬롯",
+	"Loaded what fits: the hold had {free} of its {slots} slots free, and {what} did not go aboard. A [Level 5] and up takes a slot each.": "들어가는 만큼 실었습니다: 화물칸 {slots}슬롯 중 {free}슬롯이 비어 있었고, {what}은(는) 싣지 못했습니다. [레벨 5] 이상은 하나에 한 슬롯을 차지합니다.",
+	"The goods aboard take {used} slots and this hull has {slots}: nothing was taken off, so put some ashore before casting off.": "실린 물품이 {used}슬롯을 차지하는데 이 선체는 {slots}슬롯입니다: 아무것도 내리지 않았으니 출항 전에 일부를 내려놓으세요.",
+	"The hold has {free} of its {slots} slots free: {what} did not go aboard. A [Level 5] and up takes a slot each.": "화물칸 {slots}슬롯 중 {free}슬롯이 비어 있습니다: {what}은(는) 싣지 못했습니다. [레벨 5] 이상은 하나에 한 슬롯을 차지합니다.",
+	"The hold takes no more goods than the hull has slots for: a press loads what fits and says what did not.": "화물칸은 선체의 슬롯보다 많은 물품을 싣지 않습니다: 누르면 들어가는 만큼 싣고, 못 실은 것을 알려 줍니다.",
+	"The hold's {slots} slots are full: {what} did not go aboard. A [Level 5] and up takes a slot each — put something ashore first.": "화물칸 {slots}슬롯이 가득 찼습니다: {what}은(는) 싣지 못했습니다. [레벨 5] 이상은 하나에 한 슬롯을 차지합니다 — 먼저 무언가를 내려놓으세요.",
+	"Written as read, this puts the ship's hold at {text}: more than the hull has. Nothing is left out, and the hold shows over until some of it goes ashore — check the counts against the shots.": "읽은 그대로 기록하면 배의 화물칸이 {text}이 됩니다: 선체가 가진 것보다 많습니다. 빠지는 것은 없고, 일부를 육지에 내려놓을 때까지 화물칸은 초과로 표시됩니다 — 수량을 스크린샷과 대조해 보세요."
 }

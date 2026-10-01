@@ -5840,7 +5840,6 @@
 	"Telling the fleet…": "Avisando a la flota…",
 	"That could not load — check your connection and try again": "Eso no se pudo cargar: revisa tu conexión e inténtalo de nuevo",
 	"The boards could not load — check your connection and try again": "Las tablas no se pudieron cargar: revisa tu conexión e inténtalo de nuevo",
-	"The hold is at {text}: more goods than the hull has slots for. The game will not load them all — untick some, or leave them for a later trip.": "La bodega está en {text}: más mercancías que casillas tiene el casco. El juego no las cargará todas — desmarca algunas, o déjalas para un viaje posterior.",
 	"The layout book could not load — check your connection and try again": "El libro de distribuciones no se pudo cargar: revisa tu conexión e inténtalo de nuevo",
 	"The list could not load — check your connection and try again": "La lista no se pudo cargar: revisa tu conexión e inténtalo de nuevo",
 	"The notes could not load — check your connection and try again": "Las notas no se pudieron cargar: revisa tu conexión e inténtalo de nuevo",
@@ -5861,5 +5860,11 @@
 	"{n} slots in the storage": "{n} casillas en el almacén",
 	"{n} slots, one each": "{n} casillas, una por unidad",
 	"{n} — a [Level 5] and up takes one each": "{n} — un [Nv.5] o superior ocupa una por unidad",
-	"{used} / {cap} slots": "{used} / {cap} casillas"
+	"{used} / {cap} slots": "{used} / {cap} casillas",
+	"Loaded what fits: the hold had {free} of its {slots} slots free, and {what} did not go aboard. A [Level 5] and up takes a slot each.": "Se cargó lo que cabe: la bodega tenía {free} de sus {slots} casillas libres, y {what} no subió a bordo. Un [Nv.5] o superior ocupa una casilla por unidad.",
+	"The goods aboard take {used} slots and this hull has {slots}: nothing was taken off, so put some ashore before casting off.": "Las mercancías a bordo ocupan {used} casillas y este casco tiene {slots}: no se quitó nada, así que deja algunas en tierra antes de zarpar.",
+	"The hold has {free} of its {slots} slots free: {what} did not go aboard. A [Level 5] and up takes a slot each.": "La bodega tiene {free} de sus {slots} casillas libres: {what} no subió a bordo. Un [Nv.5] o superior ocupa una casilla por unidad.",
+	"The hold takes no more goods than the hull has slots for: a press loads what fits and says what did not.": "La bodega no acepta más mercancías que casillas tiene el casco: un toque carga lo que cabe y dice lo que no.",
+	"The hold's {slots} slots are full: {what} did not go aboard. A [Level 5] and up takes a slot each — put something ashore first.": "Las {slots} casillas de la bodega están llenas: {what} no subió a bordo. Un [Nv.5] o superior ocupa una casilla por unidad — deja algo en tierra primero.",
+	"Written as read, this puts the ship's hold at {text}: more than the hull has. Nothing is left out, and the hold shows over until some of it goes ashore — check the counts against the shots.": "Escrito tal como se leyó, esto pone la bodega del barco en {text}: más de lo que tiene el casco. No se deja nada fuera, y la bodega se ve excedida hasta que algo baje a tierra — compara las cantidades con las capturas."
 }
