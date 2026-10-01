@@ -16,6 +16,7 @@
 import * as store from './state.js';
 import { esc } from './fmt.js';
 import { T, TT, said } from './i18n.js';
+import { loading, whileLoading } from './loading.js';
 
 const REV_KEY = 'sync.rev';
 const DEVICE_KEY = 'sync.device';
@@ -179,7 +180,7 @@ export function canKeepLink() {
 /** Keep `data` under a short id. `kind` is plan, ship, trace or
  *  route. Resolves to the id; throws when the server would not. */
 export async function keepLink(kind, data) {
-	const res = await api('POST', '/api/links', { kind, data });
+	const res = await whileLoading(api('POST', '/api/links', { kind, data }), T('Keeping the link…'));
 	if (!res.ok || !res.body || typeof res.body.id !== 'string') throw new Error((res.body && res.body.error) || 'not kept');
 	return res.body.id;
 }
@@ -187,7 +188,7 @@ export async function keepLink(kind, data) {
 /** What a short link carries: { kind, data }, or null when there is
  *  no such link. Throws when the server could not be reached. */
 export async function fetchLink(id) {
-	const res = await api('GET', `/api/links/${encodeURIComponent(id)}`);
+	const res = await whileLoading(api('GET', `/api/links/${encodeURIComponent(id)}`), T('Opening the shared link…'));
 	if (res.status === 404) return null;
 	if (!res.ok || !res.body || !res.body.data) throw new Error((res.body && res.body.error) || 'not read');
 	return { kind: res.body.kind, data: res.body.data };
@@ -223,14 +224,19 @@ function landed() {
 	}
 }
 
-/** A call on the API for another module, with the session cookie along. */
-export function call(method, path, body) {
-	return api(method, path, body);
+/** A call on the API for another module, with the session cookie along.
+ *  `wait` -- a label, or { label, at, by } -- is for a call a player is
+ *  waiting on: the page's loading thread runs while it is out (see
+ *  js/loading.js). Background calls leave it out and stay quiet. */
+export function call(method, path, body, wait = null) {
+	if (!wait) return api(method, path, body);
+	const { label = '', ...where } = typeof wait === 'string' ? { label: wait } : wait;
+	return whileLoading(api(method, path, body), label, where);
 }
 
 /** Take part in the community boards, change how you are shown, or leave. */
 export async function setShare(share) {
-	const res = await api('PUT', '/api/community/share', { share });
+	const res = await whileLoading(api('PUT', '/api/community/share', { share }), T('Updating the boards…'));
 	if (!res.ok) throw new Error((res.body && res.body.error) || T('The boards did not answer.'));
 	if (account) account = { ...account, share: res.body.share };
 	tell();
@@ -258,7 +264,7 @@ async function firstPull() {
 	// sync for the whole session over a bad first second.
 	let got;
 	try {
-		got = await api('GET', '/api/state');
+		got = await whileLoading(api('GET', '/api/state'), T('Fetching your save…'));
 	} catch {
 		got = { ok: false };
 	}
@@ -606,7 +612,7 @@ function openAccountDialog() {
 		<p>${T('Your inventory is saved to your Discord account, so the same one follows you between machines.')} ${esc(said(detail) || (NOTE[status] ? NOTE[status]() : ''))}.</p>
 		${feature('community') ? `<p class="dialog-copy">${account.share === 'named' ? T('You are on the <b>community boards</b> by name.') : account.share === 'anon' ? T('You are on the <b>community boards</b> as an unnamed sailor.') : T('You are not on the <b>community boards</b>; nothing about your save is shown to anyone.')} <a href="#community" data-act="view" data-id="community">${T('Open the boards')}</a></p>` : ''}
 		<div class="dialog-actions">
-			<button class="act quiet" data-forget>${T('Delete my saved data')}</button>
+			<button class="act danger" data-forget>${T('Delete my saved data')}</button>
 			<button class="act quiet" data-signout>${T('Sign out')}</button>
 			<button class="act" data-now>${T('Sync now')}</button>
 		</div>
@@ -614,12 +620,17 @@ function openAccountDialog() {
 
 	host.querySelector('[data-now]').addEventListener('click', async () => {
 		hooks.closeDialog();
-		await pull();
-		await push(true);
+		const stop = loading(T('Syncing…'));
+		try {
+			await pull();
+			await push(true);
+		} finally {
+			stop();
+		}
 	});
 
 	host.querySelector('[data-signout]').addEventListener('click', async () => {
-		try { await api('POST', '/auth/logout'); } catch { /* signed out locally all the same */ }
+		try { await whileLoading(api('POST', '/auth/logout'), T('Signing out…'), { by: host.querySelector('[data-signout]') }); } catch { /* signed out locally all the same */ }
 		account = null;
 		hooks.closeDialog();
 		say('out');
@@ -645,7 +656,7 @@ function confirmDelete() {
 		</div>
 	`);
 	host.querySelector('[data-yes]').addEventListener('click', async () => {
-		const res = await api('DELETE', '/api/account');
+		const res = await whileLoading(api('DELETE', '/api/account'), T('Deleting your saved data…'), { by: host.querySelector('[data-yes]') });
 		hooks.closeDialog();
 		if (!res.ok) return hooks.toast && hooks.toast(T('That could not be deleted.'));
 		account = null;
@@ -702,7 +713,10 @@ export function signIn() {
 		</div>
 	`);
 	host.querySelector('[data-cancel]').addEventListener('click', () => hooks.closeDialog());
-	host.querySelector('[data-go]').addEventListener('click', () => {
+	host.querySelector('[data-go]').addEventListener('click', evt => {
+		// The page is leaving for discord.com; until it has gone, it says
+		// it is on its way. The navigation ends the wait with the page.
+		loading(T('Signing in…'), { by: evt.currentTarget });
 		location.href = `/auth/discord?to=${encodeURIComponent(location.pathname + location.search)}`;
 	});
 }

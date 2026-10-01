@@ -607,7 +607,7 @@ button.pouch-group:hover { color: var(--ink); }
 /* The press leaves the focus here, so the ring has to be the app's own
    rather than the browser's white box -- and only for the keyboard. */
 button.pouch-group:focus { outline: none; }
-button.pouch-group:focus-visible { outline: 2px solid var(--blue-hi); outline-offset: 3px; border-radius: 4px; }
+button.pouch-group:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; border-radius: 4px; }
 button.pouch-group i { font-style: normal; font-size: 9px; }
 
 /* A Value Pack is a thing you have or have not: a switch that says
@@ -702,7 +702,7 @@ button.pouch-item.sail.pets {
 }
 button.pouch-item.sail.pets:hover { border-color: rgba(var(--line-rgb), 0.28); }
 button.pouch-item.sail.pets:focus { outline: none; }
-button.pouch-item.sail.pets:focus-visible { outline: 2px solid var(--blue-hi); outline-offset: 3px; }
+button.pouch-item.sail.pets:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
 
 /* ---- the editor ------------------------------------------------------ *
    Five slots down the side, the six tiers across, every cell one press:
@@ -759,7 +759,7 @@ button.pouch-item.sail.pets:focus-visible { outline: 2px solid var(--blue-hi); o
 
 .pet-cell:hover { border-color: var(--tier); color: var(--ink-hi); background: rgba(var(--blue-rgb), 0.1); }
 .pet-cell:focus { outline: none; }
-.pet-cell:focus-visible { outline: 2px solid var(--blue-hi); outline-offset: 2px; }
+.pet-cell:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 
 /* The chosen cell wears its grade, which is the same colour the bird in
    that slot is framed in -- the two halves of the dialog say the same
@@ -883,7 +883,7 @@ button.pouch-item.sail.pets:focus-visible { outline: 2px solid var(--blue-hi); o
   cursor: pointer;
 }
 .pouch-peek:focus { outline: none; }
-.pouch-peek:focus-visible { outline: 2px solid var(--blue-hi); outline-offset: 3px; border-radius: 6px; }
+.pouch-peek:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; border-radius: 6px; }
 
 /* The purses keep their width -- what is short is the whole point of
    the line -- and the sailor's count gives way first if a screen is
@@ -1166,32 +1166,18 @@ button.pouch-item.sail.pets:focus-visible { outline: 2px solid var(--blue-hi); o
   .trow-own { display: none; }
 }
 
-/* An inline "change" that reads as part of the sentence around it. */
-.linky {
-  background: none;
-  border: none;
-  padding: 0;
-  font: inherit;
-  color: var(--link);
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-.linky:hover { color: var(--link-hi); }
+/* .linky, an inline "change" that reads as part of the sentence around
+   it, is drawn in tracker-base.css. */
 
+/* A framed icon button (tracker-base.css) with no frame until hovered. */
 .detail-close {
   margin-left: auto;
   align-self: flex-start;
-  width: 26px;
-  height: 26px;
   flex: none;
-  border-radius: var(--r-sm);
-  border: 1px solid transparent;
-  background: none;
+  border-color: transparent;
   color: var(--ink-mute);
   font-size: 17px;
-  line-height: 1;
 }
-.detail-close:hover { color: var(--ink-hi); border-color: var(--line-btn-hi); }
 
 /* ---- the header on a phone ------------------------------------------ */
 /* The masthead keeps Undo, the account and the menu on a phone; the

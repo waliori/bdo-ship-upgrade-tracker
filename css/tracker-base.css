@@ -132,6 +132,41 @@
   --panel-sunk: var(--track);
   --r-sm: 7px;
   --r-icon: 6px;
+
+  /* Buttons, every kind: one corner, three sizes, one ring. The kinds
+     and the classes that wear them are under "buttons" at the foot of
+     this sheet. Most are poured from the channels above, so the light
+     theme turns them round by itself; the few it has to set again are
+     in its list below. */
+  --btn-r: var(--r-btn);
+  --btn-pad-sm: 3px 9px;
+  --btn-pad-md: 7px 14px;
+  --btn-pad-lg: 9px 18px;
+  --btn-fs-sm: 11px;
+  --btn-fs-md: 12px;
+  --btn-fs-lg: 13px;
+  --btn-icon-sm: 24px;
+  --btn-icon-md: 32px;
+  --btn-icon-lg: 40px;
+  --btn-edge: var(--line-btn);
+  --btn-edge-hi: var(--line-btn-hi);
+  --btn-ink: var(--ink-dim);
+  --btn-ink-hi: var(--ink-hi);
+  --btn-wash: rgba(var(--line-rgb), 0.07);
+  --btn-pri-bg: rgba(var(--blue-rgb), 0.15);
+  --btn-pri-bg-hi: rgba(var(--blue-rgb), 0.3);
+  --btn-pri-edge: rgba(var(--blue-rgb), 0.45);
+  --btn-pri-ink: var(--blue-hi);
+  --btn-on-bg: rgba(var(--blue-rgb), 0.2);
+  --btn-on-edge: rgba(var(--blue-rgb), 0.6);
+  --btn-on-ink: var(--blue-hi);
+  --btn-bad-bg: color-mix(in srgb, var(--red) 16%, transparent);
+  --btn-bad-bg-hi: color-mix(in srgb, var(--red) 30%, transparent);
+  --btn-bad-edge: var(--red-edge);
+  --btn-bad-ink: var(--red-soft);
+  --btn-bad-ink-hi: var(--red);
+  --btn-off: 0.4;
+  --focus: var(--blue);
 }
 
 /* ---- the light theme ------------------------------------------------- *
@@ -209,6 +244,13 @@
   --bad-bg: #f6dcd8;
   --on-tint: #ffffff;
   --star: #b07f0a;
+
+  --btn-edge: rgba(var(--line-rgb), 0.3);
+  --btn-pri-bg: rgba(var(--blue-rgb), 0.12);
+  --btn-pri-bg-hi: rgba(var(--blue-rgb), 0.22);
+  --btn-on-bg: rgba(var(--blue-rgb), 0.16);
+  --btn-bad-bg: color-mix(in srgb, var(--red) 10%, transparent);
+  --btn-bad-bg-hi: color-mix(in srgb, var(--red) 20%, transparent);
 }
 
 /* The same, when the browser prefers light and nothing was chosen by hand. */
@@ -280,6 +322,13 @@
     --bad-bg: #f6dcd8;
     --on-tint: #ffffff;
     --star: #b07f0a;
+
+    --btn-edge: rgba(var(--line-rgb), 0.3);
+    --btn-pri-bg: rgba(var(--blue-rgb), 0.12);
+    --btn-pri-bg-hi: rgba(var(--blue-rgb), 0.22);
+    --btn-on-bg: rgba(var(--blue-rgb), 0.16);
+    --btn-bad-bg: color-mix(in srgb, var(--red) 10%, transparent);
+    --btn-bad-bg-hi: color-mix(in srgb, var(--red) 20%, transparent);
   }
 }
 
@@ -350,8 +399,8 @@ a:hover { color: var(--link-hi); }
 
 input, select, textarea { outline: none; font-family: inherit; }
 button { cursor: pointer; font-family: inherit; }
-button:disabled { cursor: not-allowed; opacity: 0.4; }
-:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+button:disabled { cursor: not-allowed; opacity: var(--btn-off); }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 
 /* Only where a scrollbar is furniture. Styling it at all turns a
    phone's overlay scrollbar into a permanent one, which took a pale
@@ -377,3 +426,113 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
 
 /* Words for a screen reader alone. */
 .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+/* ---- buttons ----------------------------------------------------------- *
+   Every button in the app is one of six kinds, in one of three sizes,
+   and a new one should be one of them rather than a seventh:
+
+     primary    the action the panel is for: .act (.act.go, the craft
+                or the sail, is the same button), .pill-btn, .mini-btn,
+                .chip.primary
+     secondary  everything beside it: .ghost-btn, .act.quiet, .qty-btn,
+                and a .chip that is not pressed
+     quiet      a word in the sentence: .linky, .link-btn
+     danger     what clears, deletes, abandons or replaces: .danger (or
+                .bad) on any of the above
+     toggle     a chip that stays pressed: .chip / .seg / .way-opt /
+                .ghost-btn with .active, .on or aria-pressed
+     icon       a glyph and no word: .sq-btn, .detail-close in a frame,
+                .map-x and .map-side-close bare
+
+   Sizes: small (.chip.tiny, .ghost-btn.tiny), medium (the rest), large
+   (.act, and every button in a dialog's row of actions). Corners are
+   --btn-r, the ring is the one :focus-visible draws above, a press sinks
+   a pixel and a disabled button fades to --btn-off. On a touch screen
+   tracker-sea.css's "a finger, not a pointer" still gives every one of
+   them its forty-odd pixels, mostly as an invisible halo.
+
+   The sheets after this one only place and size these (flex, a width in
+   a dock, a tighter row); colour, corners and state belong here. */
+
+.act, .ghost-btn, .chip, .seg, .way-opt, .pill-btn, .mini-btn, .qty-btn, .sq-btn, .detail-close {
+  border: 1px solid var(--btn-edge);
+  border-radius: var(--btn-r);
+  background: none;
+  color: var(--btn-ink);
+  padding: var(--btn-pad-md);
+  font-size: var(--btn-fs-md);
+  font-weight: 600;
+  transition: background-color 0.12s, border-color 0.12s, color 0.12s;
+}
+
+/* secondary, and the hover every framed kind shares */
+.ghost-btn:hover:not(:disabled), .act.quiet:hover:not(:disabled), .chip:hover:not(:disabled),
+.seg:hover:not(:disabled), .way-opt:hover:not(:disabled), .qty-btn:hover:not(:disabled),
+.sq-btn:hover:not(:disabled), .detail-close:hover:not(:disabled) {
+  border-color: var(--btn-edge-hi);
+  color: var(--btn-ink-hi);
+  background-color: var(--btn-wash);
+}
+
+/* primary */
+.act { flex: 1; padding: var(--btn-pad-lg); font-size: var(--btn-fs-lg); font-weight: 700; }
+.act, .pill-btn, .mini-btn, .chip.primary { background: var(--btn-pri-bg); border-color: var(--btn-pri-edge); color: var(--btn-pri-ink); }
+.act:hover:not(:disabled), .pill-btn:hover:not(:disabled), .mini-btn:hover:not(:disabled), .chip.primary:hover:not(:disabled) {
+  background: var(--btn-pri-bg-hi);
+  border-color: var(--btn-pri-edge);
+  color: var(--btn-pri-ink);
+}
+.act.quiet { background: none; border-color: var(--btn-edge); color: var(--btn-ink); font-weight: 600; }
+
+/* danger: one red, on whichever kind it sits */
+.act.danger, .act.bad, .ghost-btn.danger, .sq-btn.danger, .pill-btn.bad, .chip.danger {
+  background: var(--btn-bad-bg);
+  border-color: var(--btn-bad-edge);
+  color: var(--btn-bad-ink);
+}
+.act.danger:hover:not(:disabled), .act.bad:hover:not(:disabled), .ghost-btn.danger:hover:not(:disabled),
+.sq-btn.danger:hover:not(:disabled), .pill-btn.bad:hover:not(:disabled), .chip.danger:hover:not(:disabled) {
+  background: var(--btn-bad-bg-hi);
+  border-color: var(--btn-bad-edge);
+  color: var(--btn-bad-ink-hi);
+}
+
+/* toggle: pressed reads as pressed, hovered or not */
+.chip.active, .chip.on, .chip[aria-pressed="true"], .seg.on, .way-opt.on,
+.ghost-btn.on, .ghost-btn[aria-pressed="true"], .map-kind-chip.on, .map-chip.on, .map-tilt-btn[aria-pressed="true"],
+.chip.active:hover, .chip.on:hover, .chip[aria-pressed="true"]:hover, .seg.on:hover, .way-opt.on:hover,
+.ghost-btn.on:hover, .ghost-btn[aria-pressed="true"]:hover {
+  background: var(--btn-on-bg);
+  border-color: var(--btn-on-edge);
+  color: var(--btn-on-ink);
+}
+
+/* sizes */
+.chip.tiny, .ghost-btn.tiny { padding: var(--btn-pad-sm); font-size: var(--btn-fs-sm); }
+.act.small, .act.go { padding: var(--btn-pad-md); font-size: var(--btn-fs-md); }
+.dialog-actions .ghost-btn { padding: var(--btn-pad-lg); font-size: var(--btn-fs-lg); }
+
+/* icon: a square the glyph sits in the middle of */
+.sq-btn, .detail-close { width: var(--btn-icon-md); height: var(--btn-icon-md); padding: 0; display: grid; place-items: center; line-height: 1; }
+.map-x, .map-side-close { border-radius: var(--btn-r); }
+.map-x:hover, .map-side-close:hover { background-color: var(--btn-wash); }
+
+/* quiet: underlined, so it reads as something to press inside prose */
+.linky, .link-btn {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: var(--link);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, currentColor 50%, transparent);
+  text-underline-offset: 2px;
+}
+.linky:hover, .link-btn:hover { color: var(--link-hi); text-decoration-color: currentColor; }
+.linky.danger { color: var(--btn-bad-ink); }
+.linky.danger:hover { color: var(--btn-bad-ink-hi); }
+
+/* a press sinks a pixel; nothing around it moves */
+.act:active:not(:disabled), .ghost-btn:active:not(:disabled), .chip:active:not(:disabled),
+.seg:active:not(:disabled), .way-opt:active:not(:disabled), .pill-btn:active:not(:disabled),
+.mini-btn:active:not(:disabled), .qty-btn:active:not(:disabled), .sq-btn:active:not(:disabled) { transform: translateY(1px); }

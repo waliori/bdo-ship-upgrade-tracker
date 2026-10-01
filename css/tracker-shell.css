@@ -45,18 +45,7 @@
 
 .masthead-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
-.ghost-btn {
-  background: none;
-  border: 1px solid var(--line-btn);
-  color: var(--ink-dim);
-  border-radius: var(--r-btn);
-  padding: 7px 15px;
-  font-size: 12.5px;
-  font-weight: 600;
-}
-
-.ghost-btn:hover:not(:disabled) { color: var(--ink-hi); border-color: var(--line-btn-hi); }
-.ghost-btn.on { color: var(--teal); }
+/* .ghost-btn, the secondary button, is drawn in tracker-base.css. */
 
 /* The language, which wears its flag and no word: a square to press on
    a wide screen as on a phone, since the glyph is the label. */
@@ -78,7 +67,7 @@ a.ghost-btn { display: inline-flex; align-items: center; gap: 7px; text-decorati
   border-color: rgba(88, 101, 242, 0.42);
 }
 
-.discord-btn:hover {
+.discord-btn:hover:not(:disabled) {
   color: var(--discord-ink-hi);
   border-color: rgba(88, 101, 242, 0.85);
   background: rgba(88, 101, 242, 0.12);
@@ -438,18 +427,7 @@ a.ghost-btn { display: inline-flex; align-items: center; gap: 7px; text-decorati
 
 .chips { display: flex; gap: 6px; flex-wrap: wrap; }
 
-.chip {
-  background: transparent;
-  border: 1px solid rgba(var(--line-rgb), 0.2);
-  color: var(--ink-off);
-  border-radius: 18px;
-  padding: 6px 14px;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.chip:hover { color: var(--ink-hi); }
-.chip.active { background: rgba(var(--blue-rgb), 0.18); border-color: rgba(var(--blue-rgb), 0.55); color: var(--blue-hi); }
+/* .chip, a toggle (or a small secondary button), is drawn in tracker-base.css. */
 
 .select {
   background: var(--panel-solid);

@@ -123,16 +123,11 @@
   color: var(--ink-dim);
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 6px;
+  border-radius: var(--btn-r);
   padding: 3px 8px;
   cursor: pointer;
 }
 .map-tilt-btn:hover { color: var(--ink-hi); }
-.map-tilt-btn[aria-pressed="true"] {
-  color: var(--ink-hi);
-  border-color: rgba(var(--line-rgb), 0.28);
-  background: rgba(var(--line-rgb), 0.12);
-}
 .map-tilt-hint { font-size: 10.5px; color: var(--ink-faint); letter-spacing: 0.03em; padding-right: 4px; }
 @media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
   /* A phone leans the chart with two fingers, not with shift. */
@@ -536,7 +531,6 @@
 .map-side-btns { display: flex; gap: 6px; margin-top: 8px; }
 .map-side-btns .ghost-btn { flex: 1; }
 .ghost-btn.wide { width: 100%; margin: 2px 0 8px; }
-.ghost-btn.danger { color: var(--red-soft); border-color: var(--red-edge); }
 
 .map-side-pill {
   position: absolute;
@@ -1005,7 +999,6 @@
   font-size: 12px;
   cursor: pointer;
 }
-.map-kind-chip.on { color: var(--teal-hi); border-color: var(--teal-edge); background: var(--teal-glow); }
 
 .map-kind-tag {
   display: inline-block;

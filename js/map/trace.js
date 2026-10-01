@@ -367,7 +367,7 @@ export function traceHTML() {
 		</div>
 		<div class="map-side-btns">
 			<button class="ghost-btn" data-act="trace-undo" ${has ? '' : 'disabled'} title="${T('Take back the last mark, whatever kind it was')}">↶ ${T('Undo')}</button>
-			<button class="ghost-btn" data-act="trace-clear" ${has ? '' : 'disabled'}>${T('Clear')}</button>
+			<button class="ghost-btn danger" data-act="trace-clear" ${has ? '' : 'disabled'}>${T('Clear')}</button>
 			<button class="ghost-btn${mv.tracesOn ? ' on' : ''}" data-act="map-traces" aria-pressed="${mv.tracesOn}" title="${T('Show or hide everything traced, without losing any of it')}">${mv.tracesOn ? `◉ ${T('Shown')}` : `○ ${T('Hidden')}`}</button>
 			<button class="ghost-btn${mv.hugWater ? ' on' : ''}" data-act="trace-hug" aria-pressed="${mv.hugWater}" title="${T('Bend each leg round the land between its stops, the way the barter route is drawn')}">${mv.hugWater ? `⛵ ${T('Round the land')}` : `↗ ${T('Straight legs')}`}</button>
 		</div>

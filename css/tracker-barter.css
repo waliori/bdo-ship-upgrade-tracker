@@ -140,8 +140,8 @@
 
 /* the board bar */
 .segs { display: inline-flex; gap: 4px; background: var(--panel-inset); border: 1px solid var(--line-btn); border-radius: 9px; padding: 3px; }
-.seg { background: transparent; border: 1px solid transparent; color: var(--ink-mute); border-radius: 7px; padding: 5px 13px; font-size: 12px; font-weight: 600; cursor: pointer; }
-.seg.on { background: rgba(var(--blue-rgb), 0.18); border-color: rgba(var(--blue-rgb), 0.55); color: var(--blue-hi); }
+/* A toggle (tracker-base.css) whose frame is the .segs around it. */
+.seg { border-color: transparent; color: var(--ink-mute); padding: 5px 13px; }
 
 /* the hold */
 .barter-hold .panel-head { flex-wrap: wrap; }
@@ -361,6 +361,7 @@
 .run-sell { margin-top: 7px; display: inline-flex; align-items: center; gap: 7px; background: rgba(232, 144, 93, 0.12); border: 1px solid rgba(232, 144, 93, 0.35); border-radius: 7px; padding: 4px 11px; font-size: 12px; font-weight: 600; color: var(--tier-7); }
 .run-hold { width: 118px; flex: none; padding-top: 10px; }
 .run-hold > div:first-child { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
+.run-hold > div.run-slots { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; margin-top: 1px; }
 .run-hold span { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
 .run-hold b { font-family: var(--font-display); font-size: 12px; font-weight: 600; color: var(--ink-mute); }
 .run-hold b.amber { color: var(--amber); }
@@ -375,6 +376,10 @@
   .run-main { order: 1; flex: 1 1 0; padding-bottom: 6px; }
   .run-hold { order: 2; flex: 1 1 100%; width: auto; margin-left: 38px; padding: 0 0 12px; display: flex; align-items: center; gap: 10px; }
   .run-hold > div:first-child { flex: none; gap: 8px; }
+  .run-hold > div.run-slots { flex: none; gap: 8px; margin-top: 0; }
+  /* With the slots beside the LT the bar goes under them rather than to a sliver. */
+  .run-hold:has(.run-slots) { flex-wrap: wrap; row-gap: 4px; }
+  .run-hold:has(.run-slots) .run-bar { flex-basis: 100%; }
   .run-hold .run-bar { flex: 1 1 auto; margin-top: 0; }
   .run-stop.last .run-hold { padding-bottom: 4px; }
   .run-quest { width: 100%; }
@@ -455,9 +460,7 @@
 .chip.board-seen { display: inline-flex; align-items: center; gap: 5px; padding-left: 5px; }
 .chip.board-seen .row-icon.xs { width: 15px; height: 15px; }
 /* The one question that moves the board on reads as the thing to press. */
-.chip.primary { background: rgba(var(--blue-rgb), 0.14); border-color: rgba(var(--blue-rgb), 0.5); color: var(--ink-hi); }
 .chip.primary b { color: var(--blue-hi); font-weight: 700; }
-.chip.primary:hover { background: rgba(var(--blue-rgb), 0.22); }
 
 /* the run's choices */
 .run-pick-k { display: block; margin-bottom: 4px; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint); }
@@ -662,7 +665,6 @@
  * record beside them, and one board opened out island by island.      */
 .dialog-box.lb-box { max-width: 1080px; }
 .lb-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 12px; }
-.lb-bar .chip.on { background: rgba(var(--blue-rgb), 0.18); border-color: rgba(var(--blue-rgb), 0.55); color: var(--blue-hi); }
 .lb-search { flex: 1 1 220px; min-width: 0; padding: 6px 10px; font: inherit; font-size: 12.5px; color: var(--ink); background: var(--panel-inset); border: 1px solid var(--line-btn); border-radius: var(--r-btn); }
 .lb-search:focus { outline: none; border-color: var(--blue-edge); }
 .lb-h { margin: 16px 0 4px; font-family: var(--font-display); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-hi); }
@@ -671,7 +673,7 @@
 
 .lb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(232px, 1fr)); gap: 8px; }
 .lb-card { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; text-align: left; font: inherit; color: var(--ink); cursor: pointer; background: var(--panel-inset); border: 1px solid var(--line); border-radius: var(--r-panel, 10px); transition: border-color 0.12s, background 0.12s, transform 0.12s; }
-.lb-card:hover, .lb-card:focus-visible { border-color: var(--blue-edge); background: rgba(var(--blue-rgb), 0.07); outline: none; transform: translateY(-1px); }
+.lb-card:hover, .lb-card:focus-visible { border-color: var(--blue-edge); background: rgba(var(--blue-rgb), 0.07); transform: translateY(-1px); }
 .lb-card.today { border-color: var(--teal-edge); background: var(--teal-glow); }
 .lb-card.out { opacity: 0.5; }
 .lb-card.out:hover { opacity: 0.85; }
@@ -1089,6 +1091,12 @@ button.rung-fate { cursor: pointer; }
 .cockpit-fig-v > b { font-size: 24px; color: var(--ink-hi); }
 .cockpit-fig-v > b.warn { color: var(--red); }
 .cockpit-fig-v > b.amber { color: var(--amber); }
+/* The hold's slots under its LT: the second figure, smaller. */
+.cockpit-fig-v.slots { margin-top: -5px; }
+.cockpit-fig-v.slots > span { font-size: 13px; }
+.cockpit-fig-v.slots > b { font-size: 16px; color: var(--ink-mute); }
+.cockpit-fig-v.slots > b.warn { color: var(--red); }
+.cockpit-fig-v.slots > b.amber { color: var(--amber); }
 .cockpit-ask { margin: 0; font-size: 12.5px; color: var(--ink-mute); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .cockpit-ask .guess { color: var(--amber); border-bottom: 1px dashed var(--amber); }
 .cockpit-ask .teal { color: var(--teal); }
@@ -1245,7 +1253,6 @@ button.rung-fate { cursor: pointer; }
 .receipt-net > b.warn { color: var(--red); }
 .receipt-acts { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
 .receipt-acts .panel-sub { flex: 1 1 180px; }
-.linky.danger { color: var(--red); }
 
 /* ---- a phone: one thing at a time, and nothing spent on chrome ----
    Four step cards, a board of pills and an eight-rung ladder are a
@@ -1403,7 +1410,7 @@ body.sail-scene-hold .sail-scene canvas { visibility: hidden; }
 /* The hold as the game's window draws it: a grid of slots, eleven across. */
 .hold-slots { margin-top: 14px; border: 1px solid var(--line); border-radius: 10px; background: rgba(0, 0, 0, .18); }
 .hold-slots-head { all: unset; box-sizing: border-box; width: 100%; display: flex; align-items: baseline; gap: 10px; padding: 9px 12px; cursor: pointer; }
-.hold-slots-head:focus-visible { outline: 2px solid var(--teal); outline-offset: -2px; border-radius: 10px; }
+.hold-slots-head:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; border-radius: 10px; }
 .hold-slots-k { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--teal); }
 .hold-slots-sub { font-size: 12px; color: var(--ink-faint); }
 .hold-slots.full .hold-slots-sub { color: var(--warn, #e07a6a); }
@@ -1454,7 +1461,6 @@ body.sail-scene-hold .sail-scene canvas { visibility: hidden; }
 .trip-card.later .trip-k { color: var(--ink-faint); }
 .trip-head .trip-drop { margin-left: 4px; }
 .trip-move { display: inline-flex; gap: 4px; margin-left: 6px; }
-.trip-move .chip[disabled] { opacity: .35; }
 .trip-head > b { color: var(--ink-hi); }
 .trip-line { font-size: 12px; color: var(--ink-faint); }
 .trip-state { font-size: 12px; color: var(--ink-faint); white-space: nowrap; }
@@ -1497,7 +1503,6 @@ body.sail-scene-hold .sail-scene canvas { visibility: hidden; }
 .st-list { display: grid; gap: 6px; margin-top: 8px; }
 .st-row { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; align-items: center; gap: 10px; width: 100%; text-align: left; font: inherit; color: inherit; background: var(--panel-inset); border: 1px solid var(--line-btn); border-radius: 10px; padding: 8px 12px; cursor: pointer; }
 .st-row:hover:not([disabled]) { border-color: var(--teal-edge); }
-.st-row:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
 .st-row.off { cursor: default; opacity: .62; }
 .st-row.maybe { border-style: dashed; opacity: .78; }
 .st-row.grows { border-left: 3px solid var(--teal-edge); }

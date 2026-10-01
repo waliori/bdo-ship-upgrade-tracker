@@ -65,17 +65,7 @@
 .badge.red { color: var(--red); }
 .badge.blue { color: var(--blue); }
 
-.mini-btn {
-  background: var(--blue-glow);
-  border: 1px solid var(--blue-edge);
-  color: var(--blue);
-  border-radius: var(--r-sm);
-  padding: 5px 13px;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.mini-btn:hover:not(:disabled) { background: rgba(var(--blue-rgb), 0.25); }
+/* .mini-btn is a primary button, drawn in tracker-base.css. */
 
 /* ---- builds ------------------------------------------------------- */
 
@@ -130,21 +120,8 @@
 .build-actions .build-remove { display: inline-flex; align-items: center; justify-content: center; margin-left: 10px; position: relative; }
 .build-actions .build-remove::before { content: ''; position: absolute; left: -9px; top: 20%; bottom: 20%; border-left: 1px solid var(--line-btn); }
 
-.sq-btn {
-  width: 30px;
-  height: 30px;
-  background: none;
-  border: 1px solid rgba(var(--line-rgb), 0.2);
-  color: var(--ink-dim);
-  border-radius: var(--r-sm);
-  font-size: 11px;
-  display: grid;
-  place-items: center;
-}
-
-.sq-btn:hover:not(:disabled) { border-color: var(--line-btn-hi); color: var(--ink-hi); }
-.sq-btn.danger { border-color: rgba(232, 122, 109, 0.25); color: var(--red-soft); }
-.sq-btn.danger:hover { border-color: rgba(232, 122, 109, 0.6); color: var(--red); }
+/* .sq-btn, the framed icon button, is drawn in tracker-base.css. */
+.sq-btn { font-size: 11px; }
 
 .stepper {
   display: flex;
@@ -232,20 +209,14 @@
 
 .qty-row { display: flex; align-items: center; gap: 6px; margin-bottom: 18px; }
 
+/* A secondary button (tracker-base.css) cut to the stepper's height. */
 .qty-btn {
   height: 32px;
   min-width: 32px;
   padding: 0 10px;
-  background: none;
-  border: 1px solid rgba(var(--line-rgb), 0.25);
-  color: var(--ink-dim);
-  border-radius: var(--r-sm);
   font-size: 12px;
-  font-weight: 600;
 }
 .qty-btn.sm { min-width: 34px; padding: 3px 6px; font-size: 11.5px; }
-
-.qty-btn:hover { color: var(--ink-hi); border-color: var(--line-btn-hi); }
 /* Six steps round the figure: the buttons give up their padding so the
    figure keeps room for four digits. */
 .qty-row.wide { gap: 4px; }
@@ -350,29 +321,8 @@
 
 .detail-actions { display: flex; gap: 8px; }
 
-.act {
-  flex: 1;
-  background: rgba(var(--blue-rgb), 0.15);
-  border: 1px solid rgba(var(--blue-rgb), 0.45);
-  color: var(--blue-hi);
-  border-radius: var(--r-btn);
-  padding: 9px 0;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.act:hover:not(:disabled) { background: rgba(var(--blue-rgb), 0.3); }
-.act.quiet { background: none; border-color: rgba(var(--line-rgb), 0.25); color: var(--ink-dim); font-weight: 600; }
-.act.quiet:hover:not(:disabled) { border-color: var(--line-btn-hi); color: var(--ink-hi); }
-
-/* The app's buttons come in four kinds, and a new one should be one of
-   them rather than a fifth: primary (.act, .act.go for a craft or a
-   sail), secondary (.act.quiet, .ghost-btn), tertiary (.linky and
-   .link-btn, a word in the sentence) and danger (.act.danger -- also
-   spelt .act.bad -- and .ghost-btn.danger) for what clears, deletes or
-   replaces. Chips (.chip) are filters, not actions. */
-.act.bad, .act.danger { background: rgba(232, 122, 109, 0.16); border-color: var(--red-edge); color: var(--red-soft); }
-.act.bad:hover:not(:disabled), .act.danger:hover:not(:disabled) { background: rgba(232, 122, 109, 0.3); color: var(--red); }
+/* .act, the primary button, and its quiet, danger and go spellings are
+   drawn with every other kind under "buttons" in tracker-base.css. */
 
 /* ---- workshop ----------------------------------------------------- */
 
@@ -422,34 +372,15 @@
   color: var(--ink-hi);
 }
 
-.act.go {
-  background: rgba(78, 201, 174, 0.14);
-  border-color: var(--teal-edge);
-  color: var(--teal-hi);
-  padding: 7px 0;
-  font-size: 12.5px;
-}
-
-.act.go:hover:not(:disabled) { background: rgba(78, 201, 174, 0.28); }
+/* Craft and All sit beside the count field, at its height. */
+.craft-actions .act { padding: var(--btn-pad-md); font-size: var(--btn-fs-md); }
 
 .enh-level { font-family: var(--font-display); font-size: 13px; color: var(--ink-dim); flex-shrink: 0; }
 .enh-cost { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--ink-mute); flex-shrink: 0; min-width: 70px; }
 .enh-cost img { width: 18px; height: 18px; border-radius: 3px; object-fit: contain; }
 .enh-actions { display: flex; gap: 7px; flex-shrink: 0; }
 
-.pill-btn {
-  border-radius: var(--r-sm);
-  padding: 6px 14px;
-  font-size: 12px;
-  font-weight: 700;
-  background: var(--teal-glow);
-  border: 1px solid var(--teal-edge);
-  color: var(--teal-hi);
-}
-
-.pill-btn:hover:not(:disabled) { background: rgba(78, 201, 174, 0.26); }
-.pill-btn.bad { background: rgba(232, 122, 109, 0.08); border-color: var(--red-edge); color: var(--red-soft); }
-.pill-btn.bad:hover:not(:disabled) { background: rgba(232, 122, 109, 0.2); }
+/* .pill-btn (and .pill-btn.bad) are drawn in tracker-base.css. */
 
 /* ---- to get ------------------------------------------------------- */
 
@@ -511,7 +442,7 @@
    something", and two lines cut every one of them at the same word. */
 .want-name { font-size: 10px; color: var(--ink-soft); line-height: 1.2; max-height: 36px; overflow: hidden; }
 .want-of { font-size: 9.5px; color: var(--ink-faint); }
-.want-more { align-self: center; padding: 0 8px; }
+.want-more { align-self: center; }
 
 /* A save that is not reaching the disk: said in red under the header
    for as long as it lasts, with Export in reach. */
@@ -610,3 +541,9 @@
 @media (max-width: 720px) { .get-blocked-row { grid-template-columns: 1fr; } }
 
 .est-badge { display: inline-flex; align-items: center; margin-left: 6px; padding: 0 7px; border-radius: 999px; border: 1px dashed color-mix(in srgb, var(--amber) 55%, transparent); color: var(--amber); font-size: 10.5px; font-weight: 600; letter-spacing: 0.02em; vertical-align: 2px; }
+/* The slots the goods take, storage by storage (Inventory). */
+.inv-slots { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin: 6px 0 2px; font-size: 12px; color: var(--ink-mute); }
+.inv-slots-k { font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
+.inv-slot-at { display: inline-flex; gap: 5px; align-items: baseline; }
+.inv-slot-at > b { font-family: var(--font-display); color: var(--ink-mid); }
+.inv-slot-at.warn > b { color: var(--red); }
