@@ -112,7 +112,9 @@ export function resultsHTML() {
 			${recordedGoodsTile(V.lastTrip)}
 			${V.lastTrip.coins ? `<div><div class="summary-k">${img(COIN, 'tile-icon')}${T('Crow Coins')}</div><div class="summary-v gold">+${F(V.lastTrip.coins)}</div><div class="summary-sub"></div></div>` : ''}
 			<div><div class="summary-k">◈ ${T('Parley spent')}</div><div class="summary-v teal">${F(V.lastTrip.parley)}</div><div class="summary-sub">${V.lastTrip.vouchers ? (V.lastTrip.vouchers === 1 ? T('{n} voucher drawn on', { n: V.lastTrip.vouchers }) : T('{n} vouchers drawn on', { n: V.lastTrip.vouchers })) : ''}</div></div>
-		</div>${exchangeHTML(V.lastTrip.gave, V.lastTrip.got, { spent: V.lastTrip.spent, silver: V.lastTrip.silver, coins: V.lastTrip.coins, parley: V.lastTrip.parley, vouchers: V.lastTrip.vouchers })}<p class="recorded-line">${T('The whole of it is under Past runs below.')}</p></div></section>` : `<p class="empty step-empty">${T('No run under way. Its figures appear here as soon as one is cast off, complete or not; the runs before it are below.')}</p>`;
+		</div>${exchangeHTML(V.lastTrip.gave, V.lastTrip.got, { spent: V.lastTrip.spent, silver: V.lastTrip.silver, coins: V.lastTrip.coins, parley: V.lastTrip.parley, vouchers: V.lastTrip.vouchers })}<p class="recorded-line">${T('The whole of it is under Past runs below.')}</p></div></section>` : (store.getProfile('runs', []) || []).length
+			? `<p class="empty step-empty">${T('No run under way. Its figures appear here as soon as one is cast off, complete or not; the runs before it are below.')}</p>`
+			: `<p class="empty step-empty">${T('No runs recorded yet. Plan a run, load at the wharf and cast off: what it did shows here, and every run after it is kept under Past runs.')}</p><div class="step-empty-act"><button class="act" data-act="barter-step" data-id="plan">‹ ${T('Back to the plan')}</button></div>`;
 		return `${was}${logs}`;
 	}
 	const stops = plan.stops;

@@ -97,6 +97,12 @@ export function stopNames(s) {
 	};
 }
 
+/** Why the Sail step has nothing to show, with what to do next: the
+ *  plan has no stops yet, or the run is planned and not cast off. */
+export const sailLocked = stops => (stops
+	? T('Nothing is under way yet: cast off from the Load step and the cockpit opens here')
+	: T('Tick a chain in Plan first: there is nothing to sail yet'));
+
 /** The four steps across the head of the page, each saying where it is. */
 export function stepperHTML(parts, now) {
 	const on = sailing();
@@ -108,11 +114,14 @@ export function stepperHTML(parts, now) {
 	// can keep the numbers and drop the names from the steps you are not
 	// on: four cards with their titles is a screenful of furniture
 	// before the page begins.
-	const cell = (id, n, k, title, sub) => `<button class="step${now === id ? ' on' : ''}${order.indexOf(id) < order.indexOf(now) ? ' past' : ''}" data-act="barter-step" data-id="${id}" aria-current="${now === id ? 'step' : 'false'}"><span class="step-k"><i>${n}</i><em>${k}</em></span><b>${title}</b><span class="step-sub">${sub}</span></button>`;
+	// A step with nothing on it yet is drawn faint and says why: pressed,
+	// it says so again rather than leaving the sailor where they were.
+	const cell = (id, n, k, title, sub, locked = '') => `<button class="step${now === id ? ' on' : ''}${order.indexOf(id) < order.indexOf(now) ? ' past' : ''}${locked && now !== id ? ' locked' : ''}" data-act="barter-step" data-id="${id}" aria-current="${now === id ? 'step' : 'false'}"${locked ? ` title="${esc(locked)}"` : ''}><span class="step-k"><i>${n}</i><em>${k}</em></span><b>${title}</b><span class="step-sub">${sub}</span></button>`;
+	const sailLock = plan ? '' : sailLocked(parts.stops);
 	return `<nav class="steps" aria-label="${T('The steps of a run')}">
 		${cell('plan', 1, T('Plan'), T('What is today for?'), parts.secs[0][2])}
-		${cell('load', 2, T('Load'), T('Pack at the wharf'), parts.stops ? (parts.things.later ? T('{n} to have aboard now · {m} picked up on the way', { n: parts.things.all, m: parts.things.later }) : parts.things.all === 1 ? T('{n} thing to have aboard', { n: parts.things.all }) : T('{n} things to have aboard', { n: parts.things.all })) : T('tick a chain first'))}
-		${cell('sail', 3, T('step|Sail'), T('One stop at a time'), plan ? (at >= 0 ? T('stop {n} of {of}', { n: at + 1, of: plan.stops.length }) : T('every stop ticked')) : parts.stops ? `${parts.stops === 1 ? T('{n} stop', { n: parts.stops }) : T('{n} stops', { n: parts.stops })}${parts.time ? ` · ≈ ${esc(parts.time)}` : ''}` : T('nothing planned yet'))}
+		${cell('load', 2, T('Load'), T('Pack at the wharf'), parts.stops ? (parts.things.later ? T('{n} to have aboard now · {m} picked up on the way', { n: parts.things.all, m: parts.things.later }) : parts.things.all === 1 ? T('{n} thing to have aboard', { n: parts.things.all }) : T('{n} things to have aboard', { n: parts.things.all })) : T('tick a chain first'), parts.stops || plan ? '' : T('Tick a chain in Plan first: there is nothing to pack yet'))}
+		${cell('sail', 3, T('step|Sail'), T('One stop at a time'), plan ? (at >= 0 ? T('stop {n} of {of}', { n: at + 1, of: plan.stops.length }) : T('every stop ticked')) : parts.stops ? `${parts.stops === 1 ? T('{n} stop', { n: parts.stops }) : T('{n} stops', { n: parts.stops })}${parts.time ? ` · ≈ ${esc(parts.time)}` : ''}` : T('nothing planned yet'), sailLock)}
 		${cell('results', 4, T('Results'), T('What the run did'), plan ? T('{n} of {of} stops done', { n: doneN, of: plan.stops.length }) : V.lastTrip ? T('recorded') : T('past runs'))}
 	</nav>`;
 }

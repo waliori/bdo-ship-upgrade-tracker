@@ -22,13 +22,11 @@ import { TIER } from './route.js';
 /**
  * What a run's coins really come to.
  *
- * Two things sit between the table and the purse. The table states a
- * range -- the exchange window in the game names one number out of it,
- * and which number is the board's business, not ours -- so the run is
- * worth a range and not the bottom of one. And the total barter count
- * adds a percent to it (TRADE_COUNT_BONUS in barter.js, read out of the
- * client), which the app knew nothing about until now: a sailor past
- * 2,500 barters takes a third more than every figure here used to say.
+ * The table states a range -- the exchange window in the game names one
+ * number out of it, and which number is the board's business, not ours
+ * -- so the run is worth a range and not the bottom of one. (The client
+ * has a table of percents by Total Barters, but the coins are not what
+ * it scales: it was tried and taken out on 2026-09-28.)
  *
  * `base` is what the islands state, `min`/`max` what lands.
  */

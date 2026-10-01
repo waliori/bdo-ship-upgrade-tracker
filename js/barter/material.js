@@ -31,7 +31,7 @@ import { runDockHTML } from './parts.js';
 import { chartButton, parleyLine, parleyHTML, parleyOf, orderRow, ordersNow, breezyRow } from './plan.js';
 import { stashes, withWaits, withRations, rationsLine, legsOf, questPlan, questsLine, questsPanels, TIER, ledgerOf, runTime, stopRows, routeEditBar } from './route.js';
 import { packingHTML, packingCount, leaveHomeHTML, afterShelfHTML } from './packing.js';
-import { sailing, ticked } from './sail.js';
+import { sailing, ticked, digest } from './sail.js';
 import { coinWorth } from './search.js';
 import { persist, editsBy, redrawTab } from './view.js';
 import { fleetRolls } from './fleet.js';
@@ -73,7 +73,7 @@ export function matBoardNow() {
  *  the game's tables are loaded. */
 function matBookNow() {
 	const game = materialPages();
-	if (!V.matBookMemo || V.matBookMemo.game !== game.length) V.matBookMemo = { game: game.length, pages: game.length ? bookFromGame(game, []) : [] };
+	if (!V.matBookMemo || V.matBookMemo.game !== game.length) V.matBookMemo = { game: game.length, pages: game.length ? bookFromGame(game) : [] };
 	return V.matBookMemo;
 }
 
@@ -533,7 +533,7 @@ export function materialParts(me, data) {
 	const showing = matBoardNow().answers;
 	// The sailor's own changes to the route -- an island skipped, a stop
 	// moved -- belong to today's list and the materials sailed for.
-	const editKey = `mat|${matBoardNow().day}|${mats.map(m => m.it).sort().join(',')}`;
+	const editKey = digest(`mat|${matBoardNow().day}|${mats.map(m => m.it).sort().join(',')}`);
 	if (V.routeEdit.key !== editKey) {
 		if (V.routeEdit.key && (V.routeEdit.skip.length || Object.keys(V.routeEdit.nudge).length)) {
 			editsBy.delete(V.routeEdit.key);

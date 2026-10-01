@@ -13,7 +13,7 @@ import { npcById, ports, isleOf, whoOf, isleShort, TILES, TILE, MAX_ZOOM } from 
 import { seaRoute, seaLeg } from '../searoute.js';
 import { tileSrc } from '../map.js';
 import { pathLength, legLengths, sailRange, fmtRange, fmtDistance, METRES_PER_PX } from '../sailing.js';
-import { rationsOver, RATION_RESERVE, fmtRations } from '../rations.js';
+import { drainOver, RATION_RESERVE, fmtRations } from '../rations.js';
 import { quests, cadenceOf } from '../quests.js';
 import { questDone, wantedQuests } from '../screen-quests.js';
 import { layQuests } from '../quest-places.js';
@@ -106,7 +106,7 @@ const legInto = (legs, k) => (legs.from ? legs.legs[k] : k > 0 ? legs.legs[k - 1
  *
  * The pool leaves the harbour full and falls leg by leg -- a tick of
  * the hull's take and the crew's appetite every seven seconds, and a
- * BreezySail's 8,150 every twenty when the sailor keeps it going and
+ * BreezySail's 8,150 every fifty when the sailor keeps it going and
  * the hold is under its limit. Every wharf the run calls at anyway fills
  * it again. Where it would fall under the reserve before the next stop,
  * a call is put in at a sea wharf: of the legs since it was last full,
@@ -122,7 +122,7 @@ export function withRations(stops, weightStart = 0) {
 	if (!(full > 0) || !stops.length) return stops;
 	const drain = rationDrain(me);
 	const floor = full * RATION_RESERVE;
-	const eat = (secs, weight) => rationsOver(secs, { tick: drain.tick, breezy: weight <= me.hold.free ? drain.breezy : 0 });
+	const eat = (secs, weight) => drainOver(secs, drain, { overweight: weight > me.hold.free });
 	const weightInto = (list, k) => (k > 0 ? Number(list[k - 1].weightAfter) || 0 : weightStart);
 	// A plan kept between redraws comes back with the calls put in last
 	// time: laid again from without them.
@@ -203,7 +203,7 @@ export function rationMarks(stops, weightStart = 0) {
 	return stops.map((s, k) => {
 		const m = legInto(legs, k);
 		const weight = k > 0 ? Number(stops[k - 1].weightAfter) || 0 : weightStart;
-		const use = m != null && legs.secondsOf ? rationsOver(legs.secondsOf(m), { tick: drain.tick, breezy: weight <= me.hold.free ? drain.breezy : 0 }) : 0;
+		const use = m != null && legs.secondsOf ? drainOver(legs.secondsOf(m), drain, { overweight: weight > me.hold.free }) : 0;
 		pool = Math.max(0, pool - use);
 		const mark = { left: Math.round(pool), full, take: s.wharf ? Math.round(full - pool) : 0, short: pool <= 0 };
 		if (s.wharf) pool = full;

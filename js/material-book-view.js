@@ -22,10 +22,10 @@ const plain = name => String(name).replace(/^\[[^\]]*\]\s*/, '');
 
 /** A layout's name, as the bar and the book say it. */
 export function pageName(page) {
-	return T('board {id}', { id: esc(page.id) });
+	return T('layout {id}', { id: esc(page.id) });
 }
 
-/** What a board pays, as a row of icons with the island count on each. */
+/** What a layout pays, as a row of icons with the island count on each. */
 function tallyRow(tally, n = 9) {
 	const rows = [...tally].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
 	return `<span class="lb-face-row mb-tally">${rows.slice(0, n).map(([name, k]) => `<span class="mb-tally-one" title="${esc(gameName(name))}: ${esc(islands(k))}">${img(name, 'lb-face')}${k > 1 ? `<b>${k}</b>` : ''}</span>`).join('')}${rows.length > n ? `<span class="lb-more">+${rows.length - n}</span>` : ''}</span>`;
@@ -80,13 +80,13 @@ export function openMaterialBook({ pages = [], answers = [], ticked = [], onTake
 	};
 	const grid = () => {
 		const shown = pages.filter(matches);
-		return shown.length ? `<div class="lb-grid">${shown.map(card).join('')}</div>` : `<p class="lb-sub">${query ? T('No board on file deals “{q}”.', { q: esc(query) }) : T('None.')}</p>`;
+		return shown.length ? `<div class="lb-grid">${shown.map(card).join('')}</div>` : `<p class="lb-sub">${query ? T('No layout deals “{q}”.', { q: esc(query) }) : T('None.')}</p>`;
 	};
 
 	const shelfHTML = () => `<h2>${T('The material book')}</h2>
 		<p class="dialog-note">${T('The material list has <b>{n}</b> layouts, taken from the game’s own files. Read one page of the window and the one it is shows here.', { n: F(pages.length) })}</p>
 		<div class="lb-bar">
-			<input class="lb-search" type="search" data-mb-q placeholder="${T('an island or a material…')}" value="${esc(query)}" aria-label="${T('Search the material boards')}">
+			<input class="lb-search" type="search" data-mb-q placeholder="${T('an island or a material…')}" value="${esc(query)}" aria-label="${T('Search the material layouts')}">
 		</div>
 		<div data-mb-grid>${grid()}</div>
 		<div class="dialog-actions"><button class="act quiet" data-close>${T('Close')}</button></div>`;
@@ -117,13 +117,13 @@ export function openMaterialBook({ pages = [], answers = [], ticked = [], onTake
 		const parted = [...page.offers].filter(([npcId, o]) => { const a = mine.get(npcId); return a && (a.give !== o.give || a.recv !== o.recv); });
 		const unanswered = [...page.offers.keys()].filter(npcId => !mine.has(npcId) && !onList.has(npcId)).length;
 		return `<div class="lb-head"><button class="ghost-btn sm" data-mb-back>← ${T('the book')}</button>
-			<h2>${T('Material board {id}', { id: esc(page.id) })} ${badge(st)}</h2></div>
+			<h2>${T('Material layout {id}', { id: esc(page.id) })} ${badge(st)}</h2></div>
 		<div class="lb-facts">
 			<span>${T('<b>{n}</b> islands', { n: F(page.offers.size) })}</span>
 			<span>${T('from the game’s own files')}</span>
 			${answers.length ? `<span class="${parted.length ? 'no' : 'ok'}">${T('{n} as you saw', { n: agreed })}${parted.length ? ` · ${T('<b>{n}</b> not', { n: parted.length })}` : ''}</span>` : ''}
 		</div>
-		${onTake && unanswered ? `<div class="lb-bar"><button class="chip${st === 'today' ? ' primary' : ''}" data-mb-take="${esc(page.id)}" title="${T('Tick its islands on today’s material list, as taken from this board rather than read')}">${T('Take its other {islands} onto today’s list', { islands: islands(unanswered) })}</button></div>` : ''}
+		${onTake && unanswered ? `<div class="lb-bar"><button class="chip${st === 'today' ? ' primary' : ''}" data-mb-take="${esc(page.id)}" title="${T('Tick its islands on today’s material list, as taken from this layout rather than read')}">${T('Take its other {islands} onto today’s list', { islands: islands(unanswered) })}</button></div>` : ''}
 		${parted.length ? `<h4 class="lb-lvh no">${T('Where it parts from what you saw today')} <span class="quiet">· ${islands(parted.length)}</span></h4>
 			<div class="lb-tiles">${parted.map(([npcId, o]) => tile(npcId, o, mine)).join('')}</div>` : ''}
 		${order.map(([recv, rows]) => `<h4 class="lb-lvh mb-lvh">${img(recv, 'lb-face')} ${esc(gameName(recv))} <span class="quiet">· ${islands(rows.length)}</span></h4>

@@ -9,8 +9,8 @@
 // chains from the shore to a [Level 7] are listed, the sailor ticks
 // the ones to sail, and the run follows them with the goods no rung
 // ahead takes left at a wharf when the hull needs the room. The run
-// for a material reads the whole table until the board is known, and
-// the material islands always, since those roll on their own.
+// for a material reads the material list, one of the game's forty-one
+// material layouts, as the trade board is one of its forty.
 
 import { T } from './i18n.js';
 import * as store from './state.js';

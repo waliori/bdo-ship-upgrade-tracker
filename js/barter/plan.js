@@ -244,10 +244,15 @@ function roughHours(c, from) {
  * way, and came out above the most. Laid once more, so kept until the
  * run's inputs change.
  */
-export function payRangeHTML(plan, opts, chosen, edits, seen, coining, stocking) {
+export function payRangeHTML(plan, opts, chosen, edits, seen, coining, stocking, base = '') {
 	const open = plan.stops.filter(s => s.npcId && (s.rangeMax ?? s.recvMax) > (s.rangeMin ?? s.recvMin) && !(seen[s.npcId] > 0));
 	if (!open.length || stocking) return '';
-	const key = JSON.stringify([chosen.map(c => c.id), edits, seen, opts.orders, opts.pace, opts.hold, opts.stock, opts.dock, opts.parley, [...(opts.loadCap || [])], [...(opts.landCap || [])], [...(opts.bought || [])]]);
+	// Keyed on the main search's own key -- the harbour, the stash, the
+	// prices, the bag, the aim -- and on what this laying adds to it: the
+	// chains as the recorded runs left them, the edits, the caps. A key
+	// written out by hand fell behind, and a new harbour kept the old
+	// one's three figures.
+	const key = JSON.stringify([base, chosen.map(c => [c.id, (c.rungs || []).map(r => r.tries)]), edits, seen, opts.start, opts.prefer, opts.orders, opts.pace, opts.hold, opts.stock, opts.dock, opts.parley, opts.bag, [...(opts.loadCap || [])], [...(opts.landCap || [])], [...(opts.bought || [])]]);
 	if (V.payMemo.key === key) return V.payMemo.html;
 	const at = pick => {
 		const s2 = { ...seen };

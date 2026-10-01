@@ -12,7 +12,7 @@ import { fmtRange } from '../sailing.js';
 import { propose } from '../barter-optimizer.js';
 import { coins as coinShop } from '../sea_coins.js';
 import { landPrices } from '../land-cost.js';
-import { marketSilver } from '../market.js';
+import { marketSilver, marketStatus } from '../market.js';
 import { chains } from '../barter-chains.js';
 import { V } from './state.js';
 import { shutNow, fromPort, sailCal } from './board.js';
@@ -195,7 +195,12 @@ export function expectedBest(me, b, prof) {
 	const stock = aboardStock(), dock = dockStock();
 	const made = store.getProfile('homemade', []) || [];
 	const ship = { speed: me.speed.sea, cal: sailCal() };
-	const key = JSON.stringify([V.board.day, b.standing.map(c => c.id), stock, dock, o, V.port, V.stash, bagNow(), made, me.hold, ship, Object.keys(marketSilver()).length, prof.barterCount]);
+	// Every input expectedNow lays the runs from: the Parley and the
+	// vouchers, the offers said shut, the answers typed, and when the
+	// market's prices were read -- a count of them stood still while they
+	// moved.
+	const market = marketStatus();
+	const key = JSON.stringify([V.board.day, b.standing.map(c => c.id), V.board.answers, stock, dock, o, V.port, V.stash, bagNow(), made, me.hold, ship, market.at, market.region, prof.barterCount, parleyOf(prof), shutNow(prof)]);
 	if (V.expected.key === key) return V.expected.value;
 	// Worked out after the tab is on the screen, not before: a search for
 	// every layout still standing held the first draw for a second or
@@ -243,13 +248,15 @@ function expectedNow(me, b, prof, key) {
 		return { combo, args: { chains: all, opts, ship, timeCap: o.hours, width: 1, depth: 6 } };
 	});
 	let sum = 0, weight = 0, min = Infinity, max = -Infinity, best = null, left = asks.length;
-	const take = (combo, top) => {
+	// A layout the worker failed on is left out of the figure, not
+	// counted as a run that pays nothing: that pulled the mean down.
+	const take = (combo, top, failed = false) => {
 		const v = top ? top.value : 0;
-		const w = Math.max(1, combo.seen || 1);
+		const w = failed ? 0 : Math.max(1, combo.seen || 1);
 		sum += v * w;
 		weight += w;
-		if (v < min) min = v;
-		if (v > max) { max = v; best = top ? { id: combo.id, what: `${top.ids.length === 1 ? T('{n} chain, {silver}', { n: top.ids.length, silver: FC(Math.round(top.value)) }) : T('{n} chains, {silver}', { n: top.ids.length, silver: FC(Math.round(top.value)) })}${top.hours ? ` ${T('in ≈ {time}', { time: fmtRange(top.hours * 3600 * 0.9, top.hours * 3600 * 1.1) })}` : ''}` } : null; }
+		if (!failed && v < min) min = v;
+		if (!failed && v > max) { max = v; best = top ? { id: combo.id, what: `${top.ids.length === 1 ? T('{n} chain, {silver}', { n: top.ids.length, silver: FC(Math.round(top.value)) }) : T('{n} chains, {silver}', { n: top.ids.length, silver: FC(Math.round(top.value)) })}${top.hours ? ` ${T('in ≈ {time}', { time: fmtRange(top.hours * 3600 * 0.9, top.hours * 3600 * 1.1) })}` : ''}` } : null; }
 		if (--left > 0 || V.expected.pending !== key) return;
 		V.expected = { key, pending: '', value: { n: b.standing.length, mean: weight ? sum / weight : 0, min: min === Infinity ? 0 : min, max: max === -Infinity ? 0 : max, best } };
 		redrawSoon();
@@ -268,10 +275,10 @@ function expectedNow(me, b, prof, key) {
 		try { w.postMessage({ id: `${seq}:${next}`, ...asks[next].args, budgetMs: 4000 }); } catch { here(next); next = asks.length; }
 	};
 	w.onmessage = evt => {
-		const { id, result } = evt.data || {};
+		const { id, result, error } = evt.data || {};
 		const [sq, i] = String(id).split(':').map(Number);
 		if (sq !== V.expectSeq) return;
-		take(asks[i].combo, result ? result.best : null);
+		take(asks[i].combo, result ? result.best : null, !!error || !result);
 		next = i + 1;
 		send();
 	};

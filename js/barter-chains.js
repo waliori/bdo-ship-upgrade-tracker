@@ -18,7 +18,7 @@
 // table; the screen bends the legs round the land the same way.
 
 import { levelOf, npcGate, COIN, PARLEY } from './barter.js';
-import { exchanges, goodsHeld, weightHeld, weightOf, sellOf } from './barter-plan.js';
+import { exchanges, goodsHeld, weightHeld, weightOf, sellOf, stacks, bagSlotsOf } from './barter-plan.js';
 import { sellable, floorOf, PLAIN_ORDERS } from './barter-orders.js';
 import { seaDist, routeLength, orderLadders, orderBlocks, improveLots, growLots } from './barter-route.js';
 import { speedMs, METRES_PER_PX } from './sailing.js';
@@ -414,8 +414,8 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 	const climbs = chosen.filter(c => !chosen.some(d => d !== c && tailOf(d, c)));
 	const way = orders.way === 'sea' || orders.way === 'chain' ? orders.way : 'chain';
 	// The ceiling a full run barters under. 'full' takes the game's:
-	// an exchange may start anywhere under the barter ceiling, a
-	// quarter over the limit, and the hull sails slower for it.
+	// an exchange may start anywhere under the barter ceiling, at
+	// 170% of the limit (BARTER_OVER), and the hull sails slower for it.
 	// 'steady' is every attempt too, but never past the limit itself,
 	// so it never slows -- it calls at a wharf sooner and oftener to
 	// leave the surplus. 'fast' is the limit with no calls at all.
@@ -423,6 +423,9 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 	// The bag: what it takes, and the wharves goods go in and out of it at.
 	// A bag with no slot left takes nothing, whatever weight it has spare.
 	const bagSlots = bag && Number.isFinite(bag.slots) && bag.slots >= 0 ? bag.slots : Infinity;
+	// The slots goods take in it: [Level 1] to [Level 4] of one name stack
+	// in one slot, but a [Level 5] and up does not stack at all -- each
+	// one is a slot of its own (bagSlotsOf in barter-plan.js).
 	const room = bag && bag.free > 0 && bagSlots >= 1 ? bag.free : 0;
 	const swaps = room ? (docks && docks.length ? docks : stashes) : [];
 
@@ -552,14 +555,17 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 	// The run's length sailed a cut: lot after lot, each from where the
 	// last left the ship. What a run of lots comes to is kept by the
 	// lots so far, since the cuts the search weighs mostly differ in
-	// their last lot or two.
+	// their last lot or two. A lot that is not the last ends at the
+	// harbour when the next lot's goods wait there, so whether they do
+	// is part of its key: the same lot followed by another kind of lot
+	// is another leg home.
 	const lotKey = lot => lot.map(c => c.id).join('+');
 	const lengths = new Map();
 	const lengthOf = (cut, eff) => {
 		const ladders = laddersOf(cut), bounds = boundsOf(cut);
 		let total = 0, pos = null, prefix = `#${eff}`;
 		for (let l = 0; l < cut.length; l++) {
-			prefix += `|${lotKey(cut[l])}${l === cut.length - 1 ? '$' : ''}`;
+			prefix += `|${lotKey(cut[l])}${l === cut.length - 1 ? '$' : waits(cut[l + 1]) ? '>h' : ''}`;
 			let m = lengths.get(prefix);
 			if (!m) {
 				const rs = ladders[l].filter(x => x.length);
@@ -776,11 +782,12 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 			if (lot > 0) later.set(lot, [...(later.get(lot) || []), { ...l }]);
 		}
 		let inBag = 0;
-		const kinds = new Set();
+		const inBagN = new Map();
+		const slotsWith = ls => { const m = new Map(inBagN); for (const l of ls) m.set(l.item, (m.get(l.item) || 0) + l.n); return bagSlotsOf(m); };
 		for (const [lot, ls] of [...later].sort((a, b) => a[0] - b[0])) {
 			const w = ls.reduce((a, l) => a + l.n * weightOf(l.item), 0);
-			const toBag = room > 0 && inBag + w <= room + 1e-6 && new Set([...kinds, ...ls.map(l => l.item)]).size <= bagSlots;
-			if (toBag) for (const l of ls) kinds.add(l.item);
+			const toBag = room > 0 && inBag + w <= room + 1e-6 && slotsWith(ls) <= bagSlots;
+			if (toBag) for (const l of ls) inBagN.set(l.item, (inBagN.get(l.item) || 0) + l.n);
 			else if (room > 0) bagShort = true;
 			if (!toBag && !homeWharf) continue;
 			for (const l of ls) {
@@ -1078,17 +1085,19 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 			first.set(x.r.give, { q, chain: x.chain });
 		}
 		let free = room - weightHeld(baggedMax), got = 0;
-		let slots = bagSlots - [...baggedMax].filter(([, n]) => n > 1e-9).length;
+		let slots = bagSlots - bagSlotsOf(baggedMax);
 		const out = [];
 		const list = [...goods].filter(([name, n]) => n >= 1 - 1e-9 && !skip.has(name) && first.has(name) && first.get(name).chain !== chain && weightOf(name) > 0)
 			.sort((a, b) => first.get(b[0]).q - first.get(a[0]).q);
 		for (const [name, n] of list) {
 			if (got >= upTo) break;
 			const each = weightOf(name);
-			const k = Math.min(Math.floor(n + 1e-9), Math.floor(free / each + 1e-9), Math.ceil((upTo - got) / each - 1e-9));
+			const loose = !stacks(name);
+			const k = Math.min(Math.floor(n + 1e-9), Math.floor(free / each + 1e-9), Math.ceil((upTo - got) / each - 1e-9), loose ? Math.max(0, slots) : Infinity);
 			const fresh = !((baggedMax.get(name) || 0) > 1e-9);
 			if (k < 1 || (fresh && slots < 1)) continue;
-			if (fresh) slots--;
+			if (loose) slots -= k;
+			else if (fresh) slots--;
 			out.push([name, k]);
 			free -= k * each;
 			got += k * each;

@@ -6,7 +6,7 @@ import { T, said, gameName } from '../i18n.js';
 import * as store from '../state.js';
 import { img } from '../ui-bits.js';
 import { barterProfile, snapshot } from '../ui-state.js';
-import { shownHold, aboardWhat } from '../ship.js';
+import { shownHold, aboardWhat, rationDrain } from '../ship.js';
 import { npcById, ports, isleOf, isleShort } from '../barter_npcs.js';
 import { fmtRange, fmtDistance } from '../sailing.js';
 import { PARLEY_UNIT, NOTHING, SAIL_PRESETS, sailPresetOf, stockOrders, yardsticks } from '../barter-orders.js';
@@ -24,7 +24,7 @@ import { heldOf } from './material.js';
 import { packedNow, sparesOf, packingOf, packingLT, packingCount, tripsOf, stagedRun, tripsHTML, leaveHomeHTML, packingHTML, afterShelfHTML } from './packing.js';
 import { chartButton, parleyGuessed, parleyOf, stashAt, ordersNow, payRangeHTML, perUnitText, perHourText, stockGains, aheadHTML, goalLine, ladderHTML, howLine, howHTML, parleyLine, parleyHTML, marketDead, chainRow, soloRun } from './plan.js';
 import { docks, bagNow, stashes, withWaits, withRations, rationsLine, legsOf, questPlan, questsLine, questsPanels, n1, TIER, ledgerOf, runTime, routeEditBar, castOffRow, stopRows, cutsHTML } from './route.js';
-import { sailing, planSeen, syncSail, castOffCaps, castOffLand } from './sail.js';
+import { sailing, planSeen, syncSail, castOffCaps, castOffLand, digest } from './sail.js';
 import { SEARCH_BUDGET_MS, presetSearch, proposeAsync, searching, redrawSoon, expectedBest } from './search.js';
 import { coinsOf, coinRange, bonusNote, coinPurseHTML, shortSummary, shortHTML, canAppearHTML } from './short.js';
 import { takenNote } from './today.js';
@@ -189,7 +189,13 @@ export function silverParts(me, b) {
 	// The answers are part of it too: a pool or a roll said changes which
 	// chains the board has, and a search kept across that answers for
 	// chains that are gone and has no run for the new ones.
-	const pkey = JSON.stringify([V.board.day, b.combo.id, V.board.answers, stock, dock, owned, [...land], o, V.port, V.stash, opts.bag, Object.values(prices).map(x => x.each), me.hold, ship, opts.parley, opts.seen, V.reach, prof.barterCount, aim, ceiling, b.shut]);
+	// So are the attempts the recorded runs spent and the rolls assumed
+	// for the slots nobody said: both change the rungs a chain has. And
+	// the rations: a rate watched on the Map ("watched the pool?") or
+	// BreezySail switched moves the calls for supplies, and a run kept
+	// across it kept the old calls until something else changed.
+	const drain = rationDrain(me);
+	const pkey = JSON.stringify([V.board.day, b.combo.id, V.board.answers, stock, dock, owned, [...land], o, V.port, V.stash, opts.bag, Object.values(prices).map(x => x.each), me.hold, ship, opts.parley, opts.seen, V.reach, prof.barterCount, aim, ceiling, b.shut, b.rolled || [], V.board.usedFor === b.combo.id ? V.board.used || {} : {}, drain.cal, drain.breezy]);
 	const search = { chains: all, opts, ship, timeCap: o.hours, aim };
 	// The search goes to the worker and the page draws meanwhile; asked
 	// again when the inputs change, or when an answer is owed and no
@@ -451,7 +457,9 @@ export function silverParts(me, b) {
 
 	// The sailor's own changes to the route belong to this set of chains
 	// on this board: a new board or a new tick starts from the planner's.
-	const editKey = `${V.routes.key}|${V.routes.ids.slice().sort().join(',')}|${o.way}`;
+	// Three chain ids already run past the length the profile keeps a
+	// string at, so the key is a digest, as the checklist's is.
+	const editKey = digest(`${V.routes.key}|${V.routes.ids.slice().sort().join(',')}|${o.way}`);
 	// Edits belong to the set of chains they were made on. Another set
 	// starts clean; going back to one -- a chain ticked and unticked --
 	// finds its edits where they were left.
@@ -480,7 +488,7 @@ export function silverParts(me, b) {
 	const laid = pin ? { ...opts, loadCap: pin, ...(bought ? { landCap: bought, bought } : {}) } : opts;
 	const plan = laidOnce(JSON.stringify([pkey, marketStatus().at, chosen.map(c => c.id), edits, spares, pin && [...pin], bought && [...bought]]), () => chainRun({ ...laid, chosen, ...edits }));
 	plan.spares = spares;
-	const payRange = payRangeHTML(plan, laid, chosen, edits, seen, coining, stocking);
+	const payRange = payRangeHTML(plan, laid, chosen, edits, seen, coining, stocking, pkey);
 	// Two chains ticked on one pile: the Golden Fish Scales at Iliya start
 	// the Arehaza climb and the Starry Midnight Port one alike, and there
 	// were five. The run gives them to whichever gets there first, and
@@ -656,6 +664,16 @@ export function silverParts(me, b) {
 			return `<div class="run-trip-head"><b>${T('Trip {n} begins', { n: t.n })}</b><span>${T('load {goods}', { goods: t.loads.map(l => `${n1(l.n)}× ${esc(gameName(l.item))}`).join(', ') })}${l7 ? ` · ${T('sell {n} [Level 7]', { n: n1(l7) })}` : ''}</span></div>`;
 		};
 		const oneRoute = o.way === 'sea' && plan.order.length > 1;
+		// What each chain sold. The sale at the end of the run is filed
+		// under the last chain, so every earlier one read "nothing sold":
+		// a good is credited to the chains it is the top of instead,
+		// shared where two chains climb to the same one.
+		const soldBy = plan.order.map(() => 0);
+		for (const x of plan.sold) {
+			const tops = plan.order.map((c, k) => (c.rungs.length && c.rungs[c.rungs.length - 1].item === x.item ? k : -1)).filter(k => k >= 0);
+			if (tops.length) for (const k of tops) soldBy[k] += x.total / tops.length;
+			else if (x.chain in soldBy) soldBy[x.chain] += x.total;
+		}
 		const segs = oneRoute ? (plan.stops.length ? `<section class="panel run-seg run-seg-all" style="--tier:${TIER(Math.max(...plan.order.map(c => c.top)))}">
 				<div class="run-seg-head"><i></i><b>${plan.lots.length > 1 ? T('One route, {n} lots', { n: plan.lots.length }) : T('One route, every chain at once')}</b><span>${islands === 1 ? T('{n} island', { n: islands }) : T('{n} islands', { n: islands })}${wharfs ? `, ${wharfs === 1 ? T('{n} wharf call', { n: wharfs }) : T('{n} wharf calls', { n: wharfs })}` : ''}${supplyN ? `, ${supplyN === 1 ? T('{n} call for supplies', { n: supplyN }) : T('{n} calls for supplies', { n: supplyN })}` : ''} · ${T('the nearest rung the ship holds the give for, whatever its chain')}${plan.lots.length > 1 ? ` · ${T('as many chains at once as the hold carries, the tops sold before the next lot')}` : ''}</span></div>
 				<div class="run-seg-chains">${plan.lots.map(lot => lot.map(k => {
@@ -671,7 +689,7 @@ export function silverParts(me, b) {
 			</section>` : '') : plan.order.map((c, k) => {
 			const first = plan.stops.findIndex(s => s.chain === k);
 			const mine = plan.stops.filter(s => s.chain === k);
-			const soldHere = plan.sold.filter(s => s.chain === k).reduce((a, s) => a + s.total, 0);
+			const soldHere = soldBy[k] || 0;
 			const leftHere = plan.stashed.filter(s => s.chain === k).reduce((a, s) => a + s.total, 0);
 			return `<section class="panel run-seg" style="--tier:${TIER(c.top)}">
 				<div class="run-seg-head"><i></i><b>${T('{isle} chain', { isle: esc(isleShort(npcById.get(c.rungs[0].npcId)) || c.rungs[0].npc) })}</b><em>${T('Level {lv}', { lv: c.top })}</em><span>${soldHere ? T('{silver} sold', { silver: FC(Math.round(soldHere)) }) : T('nothing sold')}${leftHere ? ` · ${T('{silver} left on the way', { silver: FC(Math.round(leftHere)) })}` : ''}${mine.length ? '' : (() => { const cut = plan.cut.find(x => x.chain === k); return cut && cut.why === 'market' ? ` · ${cut.listed ? T('cannot start: only {n} {good} on the Market', { n: F(cut.listed), good: esc(gameName(cut.good)) }) : T('cannot start: no {good} on the Market', { good: esc(gameName(cut.good)) })}` : ` · ${T('every island already dealt')}`; })()}</span><button class="map-x" data-act="barter-chain" data-id="${esc(c.id)}" aria-label="${T('Untick this chain')}">×</button></div>

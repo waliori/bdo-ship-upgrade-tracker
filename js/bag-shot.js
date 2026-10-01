@@ -50,7 +50,7 @@ export function bagFigures(words) {
 		const now = figure(m[1]);
 		if (now === null) continue;
 		const stripped = figure(m[2]), whole = m[3] ? figure(m[2] + m[3]) : null;
-		const fits = max => max !== null && max > 0 && now <= max * 1.7 + 1e-6;
+		const fits = max => max !== null && max > 0 && now <= max * BAG_OVER + 1e-6;
 		const max = fits(stripped) ? stripped : fits(whole) ? whole : null;
 		if (max === null) continue;
 		out.now = now; out.max = max; weightAt = line.y;

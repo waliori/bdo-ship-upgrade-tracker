@@ -94,7 +94,7 @@ export function boardNow() {
 	// counted for the fleet, and the rest are planned at their likelier.
 	if (combo && combo.rolls) noteRolls(combo);
 	const rolled = combo && combo.rolls ? assumedRolls(combo) : [];
-	return { standing, combo, shut, gated, told, data: combo ? dataOf(combo, [...V.board.answers, ...rolled], shut) : barterData };
+	return { standing, combo, shut, gated, told, rolled, data: combo ? dataOf(combo, [...V.board.answers, ...rolled], shut) : barterData };
 }
 
 // The board laid out from the table, kept while what it is laid from
@@ -226,7 +226,7 @@ export function boardHTML(b) {
 		}
 		return bar('known',
 			`<b>${T('Layout {id}', { id: esc(b.combo.id) })}</b><span>${T('today’s board')}</span>${rollsChipHTML(b.combo)}`,
-			T('one of the game’s {n} layouts · every island’s offer is known; the material islands roll on their own and are read from the whole table, and which of its four [Level 7] goods an island pays is not the layout’s to say', { n: combos.combos.length }),
+			T('one of the game’s {n} layouts · every island’s offer is known; the material list is a layout of its own, named on its bar, and which of its four [Level 7] goods an island pays is not the layout’s to say', { n: combos.combos.length }),
 			seen,
 			`<button class="ghost-btn sm" data-act="barter-shot" title="${T('Read more of the window off a screenshot — the rows are matched against what each island deals')}">📷 ${T('Read the window')}</button><button class="ghost-btn sm" data-act="barter-book" title="${T('Every layout on file, how often each has been seen, and the boards sailors have read that are in no record')}">📖 ${T('The layout book')}</button>${fix}<button class="ghost-btn sm" data-act="barter-board-clear" title="${T('The board was refreshed in game: start again')}">↻ ${T('Refreshed in game')}</button>`,
 			shutLine);

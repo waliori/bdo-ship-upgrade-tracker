@@ -322,7 +322,13 @@ function allocate(H, facts, sources, state, orders) {
 	}
 	// The lists: the days' draws, shared out. What only barter sells
 	// goes first; then what is dearest in coins, since every draw spent
-	// on it is coins kept.
+	// on it is coins kept. Each material is given draws of its own, never
+	// one shared with another, so the Parley a draw needs is one
+	// material's: four attempts at most, which a bar pays for four times
+	// over (the forecast holds a draw to what the bar pays regardless).
+	// Several materials bartered on one draw would be quicker than this,
+	// and could be held up by Parley -- the days here are the slower,
+	// sure count.
 	const cap = { trade: playDays * lists.trade, material: playDays * lists.material };
 	const usedRefreshes = { trade: 0, material: 0 };
 	const bartered = orders.barter
@@ -333,7 +339,9 @@ function allocate(H, facts, sources, state, orders) {
 		const left = short.get(f.item);
 		const avail = cap[f.list] - usedRefreshes[f.list];
 		if (avail <= 0) continue;
-		const units = Math.min(left, avail * f.perRefresh);
+		// Whole goods: an island pays whole ones, and a third of one left to
+		// the coins was shown as 3 bartered and 7 bought for a shortfall of 10.
+		const units = Math.min(left, Math.floor(avail * f.perRefresh + 1e-9));
 		if (units <= 0) continue;
 		const refreshes = units / f.perRefresh;
 		const days = refreshes / lists[f.list];

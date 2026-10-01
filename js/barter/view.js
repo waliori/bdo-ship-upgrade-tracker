@@ -98,7 +98,7 @@ export function restore() {
 			// run that outlived its page -- a phone gone to sleep, a tab
 			// reloaded an hour in, which is most runs -- was recorded as if
 			// its shore goods had cost nothing.
-			for (const k of ['loaded', 'bagLoaded', 'bagFromHold', 'bought', 'parleyUsed', 'cost', 'silver', 'net', 'trades', 'questsHome', 'chains', 'goal', 'item', 'time', 'port', 'drawnAt', 'lastTick', 'weightStart', 'laidFor', 'appliedN', 'cal']) if (s.sail[k] !== undefined) keep[k] = s.sail[k];
+			for (const k of ['loaded', 'bagLoaded', 'bagFromHold', 'bought', 'parleyUsed', 'cost', 'silver', 'net', 'trades', 'questsHome', 'chains', 'goal', 'item', 'time', 'port', 'drawnAt', 'lastTick', 'lastAt', 'weightStart', 'laidFor', 'appliedN', 'cal']) if (s.sail[k] !== undefined) keep[k] = s.sail[k];
 			if (s.sail.applied) keep.applied = cleanApplied(s.sail.applied);
 			if (s.sail.packLog) keep.packLog = cleanApplied(s.sail.packLog);
 			if (Array.isArray(s.sail.told)) keep.told = s.sail.told.filter(x => x && typeof x.item === 'string' && typeof x.g === 'string');
@@ -267,7 +267,9 @@ export function persistNamed(label) {
  *  what is on screen already, and the page is not drawn again for it. */
 export const barterWritingView = () => V.writing === true;
 
-function flushView() {
+/** What the page had still to write, written now. `hold: false` writes
+ *  the view alone, for a caller that has worked out the hold itself. */
+export function flushView({ hold = true } = {}) {
 	if (!V.writeTimer) return;
 	clearTimeout(V.writeTimer);
 	V.writeTimer = null;
@@ -276,7 +278,7 @@ function flushView() {
 	// the memory it came from.
 	V.writing = true;
 	try {
-		syncHold();
+		if (hold) syncHold();
 		store.setView(VIEW_NS, viewNow());
 	} finally {
 		V.writing = false;

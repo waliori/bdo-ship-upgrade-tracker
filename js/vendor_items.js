@@ -1,6 +1,8 @@
 // A dictionary of item acquisition methods organized by type
 // Each item can have multiple acquisition methods with proper categorization
 
+import { coins } from './sea_coins.js';
+
 export const items = {
 	"Falasi's Epheria Carrack Parts Upgrade Permit: Advance": {"Purchase": ["Philaberto Falasi, Port Epheria (5 bil)"]},
 	"Falasi's Epheria Carrack Parts Upgrade Permit: Balance": {"Purchase": ["Philaberto Falasi, Port Epheria (5 bil)"]},
@@ -207,9 +209,9 @@ export const items = {
 	"Epheria Carrack: Toro Sail": {"Purchase": ["Crow Coin Shop (10,000 Crow Coins)"]},
 	"Epheria Carrack: Toro Figurehead": {"Purchase": ["Crow Coin Shop (10,000 Crow Coins)"]},
 	"Epheria Carrack: Toro Plating": {"Purchase": ["Crow Coin Shop (10,000 Crow Coins)"]},
-	"Violent Wave Plywood": {"Purchase": ["Crow Coin Shop (350 Crow Coins)"], "Processing": ["Manufacture (Beginner 1)"]},
-	"Delicately Polished Support": {"Purchase": ["Crow Coin Shop (350 Crow Coins)"], "Processing": ["Manufacture (Beginner 1)"]},
-	"Wave Residue Adhesive": {"Purchase": ["Crow Coin Shop (350 Crow Coins)"], "Processing": ["Simple Alchemy (Beginner 1)"]},
+	"Violent Wave Plywood": {"Purchase": ["Crow Coin Shop (300 Crow Coins)"], "Processing": ["Manufacture (Beginner 1)"]},
+	"Delicately Polished Support": {"Purchase": ["Crow Coin Shop (300 Crow Coins)"], "Processing": ["Manufacture (Beginner 1)"]},
+	"Wave Residue Adhesive": {"Purchase": ["Crow Coin Shop (300 Crow Coins)"], "Processing": ["Simple Alchemy (Beginner 1)"]},
 	"Blueprint: Chiro's Cannon": {"Gathering": ["Worker Node: Al-Nahad Island (chance drop)"]},
 	"Blueprint: Chiro's Sail": {"Gathering": ["Worker Node: Racid Island (chance drop)"]},
 	"Blueprint: Chiro's Figurehead": {"Gathering": ["Worker Node: Tinberra Island (chance drop)"]},
@@ -255,6 +257,15 @@ export const items = {
 	"Starlight Hardener": {"Purchase": ["Crow Coin Shop (200 Crow Coins)"]},
 	"Starlight Emulsifier": {"Purchase": ["Crow Coin Shop (200 Crow Coins)"]},
 };
+
+// The Crow Coin price written in a Purchase line is sea_coins.js's, the
+// one table of them: the two were typed apart and three had drifted
+// (350 here against the shop's 300, checked 2026-10-01).
+for (const [name, ways] of Object.entries(items)) {
+	if (!ways.Purchase || !(coins[name] > 0)) continue;
+	ways.Purchase = ways.Purchase.map(p => (/^Crow Coin Shop \(/.test(p) ? `Crow Coin Shop (${coins[name].toLocaleString('en-US')} Crow Coins)` : p));
+}
+
 
 /**
  * One thing that buys a great many of another.

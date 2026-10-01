@@ -1,18 +1,17 @@
-// A run planned from the hold for a material, on the pinned table and
-// the real islands, and the readings of the table it shares with the
-// run for silver.
+// The hold and the goods: the readings of the table every barter
+// planner shares, what a good weighs and pays, and the slots it takes.
 //
-// What can go wrong: an island dealt twice in one run, a ladder
-// counted without what is already aboard, a stock read with the
-// materials in it.
+// What can go wrong: a stock read with the materials in it, a [Great
+// Ocean] good priced as a plain [Level 5], a rare pay priced at
+// nothing, or a bag that stacks goods the game does not.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-import { materialPlan, exchanges, goodsHeld, weightOf, sellOf } from '../js/barter-plan.js';
-import { npcById, ports } from '../js/barter_npcs.js';
-import { GOODS, ladder } from '../js/barter.js';
+import { exchanges, goodsHeld, weightOf, sellOf, stacks, bagSlotsOf } from '../js/barter-plan.js';
+import { GOODS } from '../js/barter.js';
+import { sellable, PLAIN_ORDERS } from '../js/barter-orders.js';
 
 const barterData = JSON.parse(await readFile(new URL('../js/all_barter.json', import.meta.url), 'utf8'));
 
@@ -27,72 +26,28 @@ test('the table flattens to one row an exchange, and a stock to its goods', () =
 	assert.equal(sellOf('Tidal Black Stone'), 0);
 });
 
-test('a material with nothing aboard starts ashore, at the floor of its ladder', () => {
-	const top = ladder('Brilliant Pearl Shard', barterData);
-	const p = materialPlan({ item: 'Brilliant Pearl Shard', qty: 10, stock: {}, barterData, npcById, start: ports[0] });
-	assert.ok(p && !p.covered);
-	assert.equal(p.rungs[0].item, 'Brilliant Pearl Shard');
-	assert.equal(p.rungs[0].give, top.give);
-	assert.ok(p.first && p.first.ashore, 'the first thing to get is bought on land');
-	assert.equal(p.first.item, top.seed.item);
-	// The stops climb: the seed's island first, the top rung last.
-	const levels = p.stops.map(s => s.level);
-	assert.deepEqual(levels, [...levels].sort((a, b) => a - b));
-	const islands = p.stops.map(s => s.npcId);
-	assert.equal(new Set(islands).size, islands.length);
-	assert.ok(p.stops.every(s => s.times <= s.tries));
-	// Ten shards at two a draw from four islands is more than one refresh.
-	assert.ok(p.refreshes >= 2);
+test('the [Great Ocean] goods and the rare pays sell at their own price', () => {
+	// BDOCodex 800073: a Rust Repair Tool sells for 25,000,000, a plain
+	// [Level 5] (Statue's Tear, 800061) for 10,000,000.
+	assert.equal(sellOf('[Level 5] Rust Repair Tool'), 25000000);
+	assert.equal(sellOf("[Level 5] Cox Pirates' Journal"), 25000000);
+	assert.equal(sellOf("[Level 5] Statue's Tear"), GOODS[5].sell);
+	// The rare pays have no level and used to read as worth nothing.
+	assert.equal(sellOf('Golden Galley Figurine'), 100000000);
+	assert.equal(sellOf('Elaborate Pearl Necklace'), 30000000);
+	assert.equal(sellOf('Obsidian Crystal Bracelet'), 50000000);
+	assert.equal(weightOf('Obsidian Crystal Bracelet'), 0.1);
+	assert.equal(weightOf('[Level 5] Rust Repair Tool'), GOODS[5].weight);
+	// They sell at a wharf as a [Level 7] does.
+	assert.ok(sellable('Golden Galley Figurine', { ...PLAIN_ORDERS, sell: 7 }));
+	assert.ok(!sellable('Tidal Black Stone', { ...PLAIN_ORDERS, sell: 3 }));
 });
 
-test('what is aboard shortens the ladder: the top give in the hold covers the run', () => {
-	const top = ladder('Brilliant Pearl Shard', barterData);
-	const p = materialPlan({ item: 'Brilliant Pearl Shard', qty: 4, stock: { [top.give]: 10 }, barterData, npcById });
-	assert.ok(p.covered);
-	assert.equal(p.rungs.length, 1);
-	assert.equal(p.first, null);
-	assert.ok(p.stops.every(s => s.item === 'Brilliant Pearl Shard'));
-	assert.equal(p.stops.reduce((a, s) => a + s.times, 0), 4);
-	// Part of it aboard: the hold's part is one rung, the shortfall
-	// another beside it, and the rung below is only asked for the rest.
-	const part = materialPlan({ item: 'Brilliant Pearl Shard', qty: 4, stock: { [top.give]: 2 }, barterData, npcById });
-	assert.ok(!part.covered);
-	assert.equal(part.rungs[0].have, 2);
-	assert.equal(part.rungs[0].short, 0);
-	assert.equal(part.rungs[0].trades, 2);
-	assert.equal(part.rungs[1].item, 'Brilliant Pearl Shard');
-	assert.equal(part.rungs[1].short, 2);
-	assert.equal(part.rungs[2].need, 2);
-	// A good held on another path is spent before anything is bought:
-	// three Azure Quartz cover forty Tidal Black Stone in two trades.
-	const side = materialPlan({ item: 'Tidal Black Stone', qty: 40, stock: { '[Level 5] Azure Quartz': 3 }, barterData, npcById });
-	assert.ok(side.covered);
-	assert.equal(side.trades, 2);
-	assert.equal(side.rungs[0].give, '[Level 5] Azure Quartz');
-});
-
-test('nothing bartered, no plan', () => {
-	assert.equal(materialPlan({ item: 'Steel', qty: 1, stock: {}, barterData, npcById }), null);
-});
-
-test('the material list, once ticked, is all a material rung may use; what no island deals waits', () => {
-	const at = name => [...npcById.values()].find(n => n.at === name).id;
-	// Board B, 2026-09-04: Paratama and Duch dealt the Glue.
-	const showing = [
-		{ npcId: at('Paratama Island'), give: '[Level 3] Skull Decorated Teacup', recv: 'Deep Sea Memory Filled Glue' },
-		{ npcId: at('Duch Island'), give: '[Level 3] Old Hourglass', recv: 'Deep Sea Memory Filled Glue' }
-	];
-	const stock = { '[Level 3] Skull Decorated Teacup': 4, '[Level 3] Old Hourglass': 2 };
-	const p = materialPlan({ item: 'Deep Sea Memory Filled Glue', qty: 6, stock, barterData, npcById, showing });
-	assert.ok(p);
-	const isles = new Set(p.stops.map(s => s.npcId));
-	assert.deepEqual([...isles].sort(), showing.map(a => a.npcId).sort(), 'only the islands ticked are sailed to');
-	assert.equal(p.trades, 4, 'two attempts at each');
-	assert.equal(p.waits, 2, 'the rest waits for another refresh');
-	assert.ok(!p.covered);
-	assert.ok(!p.rungs.some(r => r.seed), 'nothing is bought for a rung no island deals today');
-	// Nothing ticked: the whole table, as before.
-	const all = materialPlan({ item: 'Deep Sea Memory Filled Glue', qty: 6, stock, barterData, npcById });
-	assert.equal(all.waits, 0);
-	assert.ok(all.covered);
+test('a [Level 5] and up takes a slot a unit; the levels under it stack', () => {
+	assert.ok(stacks('[Level 4] Old Chest with Gold Coins'));
+	assert.ok(!stacks("[Level 5] Statue's Tear"));
+	assert.ok(!stacks('[Level 7] Heidelian Wine'));
+	assert.ok(!stacks('Obsidian Crystal Bracelet'));
+	const bag = new Map([['[Level 4] Old Chest with Gold Coins', 12], ["[Level 5] Statue's Tear", 3], ['[Level 6] Brass Bowl Crate', 2], ['[Level 3] Ancient Orders', 0]]);
+	assert.equal(bagSlotsOf(bag), 1 + 3 + 2, 'twelve chests in one slot, every [Level 5] and [Level 6] in its own');
 });

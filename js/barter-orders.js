@@ -11,12 +11,12 @@
 // Pure: no store, no screen. The shape is read and cleaned in
 // profile-shape.js the same way the stash is.
 
-import { GOODS, levelOf } from './barter.js';
+import { GOODS, PARLEY, SELL_PRICES, goodSell, levelOf } from './barter.js';
 import { TT } from './i18n.js';
 
 /** One normal trade's Parley at Beginner 1: the guide's "barter
  *  unit", which every silver-per-Parley figure is quoted in. */
-export const PARLEY_UNIT = 14286;
+export const PARLEY_UNIT = PARLEY.perGreatOceanTrade;
 
 /**
  * The presets, in the order they are offered. `sell` is the lowest
@@ -116,7 +116,7 @@ const RENAMED = { stock: 'floor' };
  */
 export const VOUCHER_CHOICES = [
 	['use', TT('drawn on when needed'), TT('A voucher goes in as soon as the run is going to need it and a whole quarter fits — which starts its two-hour cooldown as early as possible')],
-	['keep', TT('kept back'), TT('The run is planned on the bar alone; where that runs out, the sheet says so')]
+	['keep', TT('kept back'), TT('The run is planned on the bar alone; where that runs out, the route says so')]
 ];
 
 /**
@@ -250,10 +250,13 @@ export function onPreset(orders) {
 		&& JSON.stringify(p.floors) === JSON.stringify(orders.floors || {});
 }
 
-/** Whether a wharf call sells this good under the orders. */
+/** Whether a wharf call sells this good under the orders. The rare
+ *  pays of the trade board have no level and nothing takes them: they
+ *  sell as a [Level 7] does. */
 export function sellable(name, orders) {
 	const lv = levelOf(name);
-	return lv !== null && !!GOODS[lv] && GOODS[lv].sell > 0 && lv >= orders.sell;
+	if (lv === null) return SELL_PRICES[name] > 0 && 7 >= orders.sell;
+	return !!GOODS[lv] && goodSell(name) > 0 && lv >= orders.sell;
 }
 
 /** How many of a good to keep back, under the orders. */

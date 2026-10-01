@@ -27,7 +27,7 @@ import { V, STEPS } from './state.js';
 import { timerAction, timerState, timerNow, startTimer, stopTimer, passedStop, arrivedAt, spanText } from '../sail-timer.js';
 import { fromPort, sailCal, itemNow, readWindow, takeFleetBoard, openBook, tellTheFleet, pickOffer, pickIsland, showGated, pickAnyIsland, boardNow } from './board.js';
 import { openRolls } from './rolls.js';
-import { bringUp, patchPaid, restFind } from './cockpit.js';
+import { bringUp, patchPaid, restFind, sailLocked } from './cockpit.js';
 import { castOffFx } from './setsail.js';
 import { aboardStock, unloadTo, held, openSheet, shoreAboard } from './hold.js';
 import { matBoardNow, matFitNow, takeMatOffers, openMatBook, openMatRolls, pickGood, pickMaterial, matOn, openMatIsles, pickShipAt } from './material.js';
@@ -36,7 +36,7 @@ import { parleyRefilled, retickIfAuto, ordersNow, setOrders, applySaved, dropSav
 import { STASHES, bagSet, legsOf, skippedToday, pulledToday, ledgerOf } from './route.js';
 import { sailKey, sailing, stopKey, ticked, runLabel, runMarks, owesCount, rangeOf, unsyncHold, abandonRun, markDone, sailRecord, planOfSail, stranded, sailedPlan, recordTrip } from './sail.js';
 import { proposeAsync, redrawSoon } from './search.js';
-import { setStep, restore, persist, persistNamed } from './view.js';
+import { setStep, restore, persist, persistNamed, flushView } from './view.js';
 
 /** A click on the tab. Returns true when it was one of ours, with the
  *  screen to be redrawn by the caller. */
@@ -49,7 +49,20 @@ export function barterAction(act, el, redraw) {
 		// Which of the four steps is on the page. Asked for by hand, it
 		// stays asked for: the page does not slide out from under a sailor
 		// reading it because a stop was ticked somewhere else.
-		case 'barter-step': setStep(STEPS.includes(el.dataset.id) ? el.dataset.id : 'plan'); bringUp('.barter-screen .steps'); return true;
+		case 'barter-step': {
+			// Sail with no run under way used to leave the page on Plan with
+			// nothing said: it goes where the next press is, and says why.
+			if (el.dataset.id === 'sail' && !sailing()) {
+				const planned = !!(V.shownPlan && V.shownPlan.stops && V.shownPlan.stops.length);
+				toast(sailLocked(planned));
+				setStep(planned ? 'load' : 'plan');
+				bringUp('.barter-screen .steps');
+				return true;
+			}
+			setStep(STEPS.includes(el.dataset.id) ? el.dataset.id : 'plan');
+			bringUp('.barter-screen .steps');
+			return true;
+		}
 		// Which part of the plan is open. Pressing the open one shuts it.
 		case 'barter-sec': {
 			const id = el.dataset.id;
@@ -439,7 +452,20 @@ export function barterAction(act, el, redraw) {
 		// not ticked and not recorded: it is only out of the way.
 		case 'barter-sail-jump': V.cursor = String(el.dataset.k); return true;
 		case 'barter-sail-due': V.cursor = null; restFind(); return true;
-		case 'barter-sail-skip': { V.skipped.add(String(el.dataset.k)); V.cursor = null; return true; }
+		case 'barter-sail-skip': {
+			V.skipped.add(String(el.dataset.k));
+			V.cursor = null;
+			// The ship passes the island skipped: the next leg is timed from
+			// here, not from the Traded before it, or Arrived would time two
+			// legs as one.
+			const on = sailing();
+			const plan = on ? sailedPlan() : null;
+			if (on && plan) {
+				const at = plan.stops.findIndex((s, i) => stopKey(s, i, plan.stops) === String(el.dataset.k));
+				if (at >= 0) { on.lastTick = Date.now(); on.lastAt = at; persist(); }
+			}
+			return true;
+		}
 		// What the last Record came to, put away or taken back.
 		case 'barter-recorded-ok': V.lastTrip = null; return true;
 		case 'barter-undo-record': {
@@ -452,6 +478,9 @@ export function barterAction(act, el, redraw) {
 				toast(T('Changes came after the run was recorded: take those back first with the Undo at the top'));
 				return true;
 			}
+			// The view the page had still to write goes down first, or it
+			// would land after the Undo and mark the islands traded again.
+			flushView();
 			const label = store.undo();
 			// The stops written into the hold as they were ticked go back
 			// with the rest of the run.
@@ -493,6 +522,7 @@ export function barterAction(act, el, redraw) {
 				const open = stops.findIndex((x, i) => !ticked(on.done, x, i, stops));
 				const past = open < 0 ? stops.length - 1 : open - 1;
 				on.lastTick = Date.now();
+				on.lastAt = past;
 				if (past >= 0) passedStop(past);
 			}
 			persist();
@@ -544,7 +574,15 @@ export function barterAction(act, el, redraw) {
 			const at = Number(el.dataset.at), key = el.dataset.k;
 			if (!plan || !plan.stops[at] || !key) return false;
 			const legs = legsOf(plan.stops);
-			const m = legs.from ? legs.legs[at] : at > 0 ? legs.legs[at - 1] : null;
+			// The time runs from the last Traded, so the legs it covers are
+			// every one since that stop: a stop skipped on the way leaves two
+			// legs timed as one, which would teach the ship a speed it never
+			// had. Timed, but learned from only when it was a single leg.
+			const legInto = i => (legs.from ? legs.legs[i] : i > 0 ? legs.legs[i - 1] : null);
+			const fromAt = Number.isInteger(on.lastAt) && on.lastAt < at ? on.lastAt : at - 1;
+			const sailedLegs = [];
+			for (let i = fromAt + 1; i <= at; i++) if (legInto(i) > 0) sailedLegs.push(legInto(i));
+			const m = sailedLegs.length > 1 ? null : sailedLegs.length ? sailedLegs[0] : legInto(at);
 			const t = timerNow();
 			const from = on.lastTick || (t && t.startedAt) || 0;
 			const secs = from ? Math.round((Date.now() - from) / 1000) : 0;
@@ -565,13 +603,13 @@ export function barterAction(act, el, redraw) {
 			if (learned) {
 				// The ship's own figure, the moment there is one: said once,
 				// in a dialog, and the clock put right for the rest of the run.
-				arrivedAt(at, runMarks(plan, legsOf(plan.stops), ledgerOf(plan.stops, legsOf(plan.stops))));
+				arrivedAt(at, runMarks(plan, legsOf(plan.stops), ledgerOf(plan.stops, legsOf(plan.stops))), plan.stops.length);
 				openDialog(`<h2>${T('Your {ship}’s speed', { ship: esc(shipName) })}</h2>
 					<p class="dialog-copy">${T('From the {n} legs you timed: <b>{v} m/s</b> at 100%, and <b>{lag} s</b> a leg getting under way and coming in. Every time and every chime for this ship uses it from now on — the clock has put the rest of this run right already.', { n: pace.n, v: pace.cal, lag: pace.lag })}</p>
 					<p class="dialog-copy">${T('Keep pressing Arrived whenever you like: each leg refines it. Other ships keep the default until they are timed too.')}</p>
 					<div class="dialog-actions"><button class="act" data-close>${T('Good')}</button></div>`);
 			} else if (pace.from === 'ship') {
-				arrivedAt(at, runMarks(plan, legsOf(plan.stops), ledgerOf(plan.stops, legsOf(plan.stops))));
+				arrivedAt(at, runMarks(plan, legsOf(plan.stops), ledgerOf(plan.stops, legsOf(plan.stops))), plan.stops.length);
 				toast(T('Leg timed at {t}. Your {ship}: {v} m/s at 100%, {lag} s a leg, from its last {n} legs', { t: spanText(secs), ship: shipName, v: pace.cal, lag: pace.lag, n: pace.n }));
 			} else {
 				arrivedAt(at);

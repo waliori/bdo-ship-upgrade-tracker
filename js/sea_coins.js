@@ -3,6 +3,10 @@
 // Checked against the in-game shop on 2026-08-25. Most sailing materials
 // came down by roughly 20% at some point before that; anything not listed
 // on the shop pages read that day is left at its previous value.
+// The one table of these prices: vendor_items.js writes its Purchase
+// lines from it. Violent Wave Plywood, Delicately Polished Support and
+// Wave Residue Adhesive rechecked at 300 on 2026-10-01 (GrumpyG's shop
+// list, BDOCodex).
 
 export const coins = {
     "Khan's Concentrated Magic": 80000,

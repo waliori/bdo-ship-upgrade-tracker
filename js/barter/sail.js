@@ -22,7 +22,7 @@ import { noteMatUsed } from './material.js';
 import { bringUp, stopAt, stopNames, cockpitHTML } from './cockpit.js';
 import { planSheetHTML, parleyOf, ordersNow } from './plan.js';
 import { storeOf, legsOf, skippedToday, questTitle, TIER, ledgerOf, runTime, sevenOf, chartData, chartFragmentOf } from './route.js';
-import { VIEW_NS, setStep, restore, persist, viewNow } from './view.js';
+import { VIEW_NS, setStep, restore, persist, viewNow, flushView } from './view.js';
 
 /* ------------------------------------------------------------------ *
  * sailing the run: the checklist, and the trip recorded
@@ -34,11 +34,13 @@ import { VIEW_NS, setStep, restore, persist, viewNow } from './view.js';
 // the length the profile keeps a string at, so the key is a short
 // digest of them -- it is only ever compared, never read.
 export const sailKey = () => digest(V.goal === 'material' ? `material|${itemNow()}|${V.qty}|${V.port}` : `${V.goal}|${V.routes.key}|${V.routes.ids.slice().sort().join('.')}|${V.port}`);
-function digest(str) {
+/** A long key folded to a short one, the part before its first `|` kept readable. */
+export function digest(str) {
 	// FNV-1a, 32 bits: the same short key for the same run, always.
 	let h = 0x811c9dc5;
 	for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
-	return `${str.slice(0, str.indexOf('|'))}:${h.toString(16)}`;
+	const cut = str.indexOf('|');
+	return `${cut < 0 ? '' : str.slice(0, Math.min(cut, 24))}:${h.toString(16)}`;
 }
 /** The checklist for the run on screen, or null when not sailing it. */
 export const sailing = () => (V.sail && V.sail.key === sailKey() ? V.sail : null);
@@ -227,6 +229,14 @@ function paidAt(s, on) {
 	return s.recvMin || s.recv;
 }
 
+/** Rounded to the nearest whole, a half to the even one: 2.5 is 2 and
+ *  7.5 is 8, so the halves a guessed range leaves fall both ways. */
+export function halfEven(n) {
+	const f = Math.floor(n), d = n - f;
+	if (Math.abs(d - 0.5) > 1e-9) return Math.round(n);
+	return f % 2 === 0 ? f : f + 1;
+}
+
 /** The stops done whose island pays a range and was never asked about:
  *  what the recording has to guess at, so it can say so. */
 export function unsaid(plan, on) {
@@ -247,7 +257,10 @@ export function unsaid(plan, on) {
  */
 export function tripOf(plan, on, from) {
 	const delta = {}, moves = [];
-	const add = (item, n) => { if (Math.round(n)) delta[item] = (delta[item] || 0) + Math.round(n); };
+	// Added up as they come, halves and all, and rounded once at the end:
+	// rounded stop by stop, every lone 2-3 recorded as 3, since a half
+	// always rounds up -- the guess was meant to be wrong both ways.
+	const add = (item, n) => { if (n) delta[item] = (delta[item] || 0) + n; };
 	// An island that paid another of its four [Level 7]s than the plan
 	// named: the goods it paid are sold or carried under their own name
 	// -- those goods, and from that stop on. The rename was once taken
@@ -321,6 +334,10 @@ export function tripOf(plan, on, from) {
 	}
 	if (on.done.length) for (const l of plan.bagFromHold || []) moves.push({ item: l.item, from: '', to: store.BAG, n: Math.round(l.n) });
 	if (silver - spent) add(SILVER, silver - Math.round(spent));
+	for (const [item, n] of Object.entries(delta)) {
+		const r = halfEven(n);
+		if (r) delta[item] = r; else delete delta[item];
+	}
 	return { delta, moves, silver, trades, spent: Math.round(spent) };
 }
 
@@ -521,8 +538,10 @@ export function markDone(on, k) {
 	if (!plan) return;
 	const at = plan.stops.findIndex((s, i) => stopKey(s, i, plan.stops) === k || stopKeysWas(s, i, plan.stops).includes(k));
 	// The voucher's cooldown runs from the press that drew it, and a
-	// wait with no such press counts from the stop before it.
+	// wait with no such press counts from the stop before it. Which stop
+	// it was rides along, so a leg timed with Arrived knows where from.
 	on.lastTick = Date.now();
+	if (at >= 0) on.lastAt = at;
 	// A voucher counts only once the sailor says it was drawn (the
 	// cockpit's Drawn press), which starts its cooldown there.
 	persist();
@@ -530,7 +549,7 @@ export function markDone(on, k) {
 	// are counted from now rather than from an estimate made before the
 	// ship left, so a run that ran late does not chime early all the way
 	// to the end.
-	if (at >= 0) passedStop(at, runMarks(plan, legsOf(plan.stops), ledgerOf(plan.stops, legsOf(plan.stops))));
+	if (at >= 0) passedStop(at, runMarks(plan, legsOf(plan.stops), ledgerOf(plan.stops, legsOf(plan.stops))), plan.stops.length);
 	const stop = plan.stops[at];
 	const list = ((stop && stop.quests) || []).filter(x => x.step.what !== 'hunt').map(x => x.q).filter(q => !questDone(q) && rewardOf(q));
 	if (list.length) {
@@ -879,7 +898,7 @@ export function recordTrip(plan, from, on = sailing(), { abandoned = false } = {
 		if (s.wharf) return { k: 'w', p: names.place, w: names.who, sale: s.sale && !ticked(on.kept, s, k, plan.stops) ? { n: Math.round(s.sale.n * 10) / 10, silver: Math.round(s.sale.total) } : null };
 		if (s.wait) return { k: 'v', p: names.place, t: Math.round(s.wait) };
 		return { k: 'q', p: names.place, w: names.who };
-	}).filter(Boolean).slice(0, 80);
+	}).filter(Boolean).slice(0, 300);
 	const drawnOn = plan.stops.reduce((n, s, k) => n + (ticked(on.done, s, k, plan.stops) ? (bookOf.rows[k] && bookOf.rows[k].drawn) || 0 : 0), 0);
 	const runs = [...(store.getProfile('runs', []) || []), {
 		day: barterKey(), at: Date.now(), silver: trip.silver, cost: trip.spent || Math.round(plan.cost || 0), net: trip.silver - (trip.spent || 0), trades: trip.trades, parley: parleySpent, coins: Math.round(trip.delta[COIN] || 0), vouchers: drawnOn,
@@ -959,26 +978,33 @@ export function recordTrip(plan, from, on = sailing(), { abandoned = false } = {
 	// ticked: what is left to write is the rest.
 	const rest = holdDiff({ delta: trip.delta, moves: netMoves(trip.moves) }, on.applied || NO_HOLD);
 	const applied = on.applied || null;
+	// The attempts the run spent on today's islands go into the same
+	// change as its record: an Undo that gave back the hold and the
+	// Parley but left the islands marked as traded laid the next plan on
+	// a board with fewer chains than the sea still offers. What the page
+	// had still to write is written first, so the change's "before" is
+	// the board as it stood, not as it stood a quarter-second ago. (The
+	// hold is not synced on the way: what is left to write of it was
+	// worked out above, from the ticks as they stand.)
+	flushView({ hold: false });
 	noteUsed(plan, on);
 	noteMatUsed(plan, on);
 	// Abandoned, the run goes out in the same change as its record, as
 	// abandonRun's does: one Undo brings both back, the run where it
 	// stood. (Recorded, the run is done with; its Undo, on the results
 	// strip, takes the ticks back too.)
-	let views = null;
-	if (abandoned) {
-		if (V.writeTimer) { clearTimeout(V.writeTimer); V.writeTimer = null; }
-		V.sail = null;
-		views = { views: { ...(store.getProfile('views', {}) || {}), [VIEW_NS]: viewNow() } };
-		V.writing = true;
-	}
+	if (V.writeTimer) { clearTimeout(V.writeTimer); V.writeTimer = null; }
+	if (abandoned) V.sail = null;
+	const views = { views: { ...(store.getProfile('views', {}) || {}), [VIEW_NS]: viewNow() } };
+	const viewKeys = { [VIEW_NS]: abandoned ? ['sail', 'board', 'matBoard'] : ['board', 'matBoard'] };
+	V.writing = true;
 	let entry;
 	try {
-		entry = store.applyTrip({ delta: rest.delta, moves: rest.moves, at: intoHold, profile: { runs, ratios, sevens, tally, ...counted, ...spentOf, questProgress: Object.keys(progress).length ? progress : null, questsDone: Object.keys(questsDone).length ? questsDone : null, ...views }, ...(abandoned ? { viewKeys: { [VIEW_NS]: ['sail'] } } : {}), label: `${on.done.length === 1 ? T('Sailed a run: {n} stop', { n: on.done.length }) : T('Sailed a run: {n} stops', { n: on.done.length })}${trip.silver ? `, ${T('{silver} sold', { silver: FC(trip.silver) })}` : ''}` });
+		entry = store.applyTrip({ delta: rest.delta, moves: rest.moves, at: intoHold, profile: { runs, ratios, sevens, tally, ...counted, ...spentOf, questProgress: Object.keys(progress).length ? progress : null, questsDone: Object.keys(questsDone).length ? questsDone : null, ...views }, viewKeys, label: `${on.done.length === 1 ? T('Sailed a run: {n} stop', { n: on.done.length }) : T('Sailed a run: {n} stops', { n: on.done.length })}${trip.silver ? `, ${T('{silver} sold', { silver: FC(trip.silver) })}` : ''}` });
 	} finally {
 		V.writing = false;
 	}
-	if (abandoned) { const s = store.getView(VIEW_NS); V.readSig = s ? JSON.stringify(s) : null; }
+	{ const s = store.getView(VIEW_NS); V.readSig = s ? JSON.stringify(s) : null; }
 	V.sail = null;
 	// What it came to, for the results step to show until the next run is
 	// cast off: the page would otherwise fall back to the plan the moment

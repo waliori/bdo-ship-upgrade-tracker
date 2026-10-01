@@ -6,7 +6,6 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
 import { candidates, offersAt, askable, boardData, offersOf } from '../js/barter-board.js';
-import { materialPlan } from '../js/barter-plan.js';
 import { chains, chainRun } from '../js/barter-chains.js';
 import { ladder, levelOf, triesFor, TRIES_BY_RUNG } from '../js/barter.js';
 import { npcById, ports } from '../js/barter_npcs.js';
@@ -108,9 +107,6 @@ test('a run planned on the board only calls at islands the board deals, and the 
 		const o = board.get(s.npcId);
 		assert.ok(o && o.give === s.give && o.recv === s.item, `${s.npc} deals ${s.give} -> ${s.item} today`);
 	}
-	const m = materialPlan({ item: 'Brilliant Pearl Shard', qty: 2, stock: {}, barterData: data, npcById });
-	assert.ok(m && m.stops.length > 0);
-	for (const s of m.stops) if (levelOf(s.item) !== null) assert.equal(board.get(s.npcId).recv, s.item);
 	assert.equal(triesFor('[Level 7] Golden Flour Sack', 0), TRIES_BY_RUNG[7]);
 	assert.equal(triesFor('[Level 5] Azure Quartz', 4), 4);
 	assert.equal(triesFor('Crow Coin', 0), TRIES_BY_RUNG.coin);
