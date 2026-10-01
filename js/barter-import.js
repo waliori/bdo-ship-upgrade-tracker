@@ -22,7 +22,6 @@ import { esc, F } from './fmt.js';
 import { T, said, gameName, gameNamesFor } from './i18n.js';
 import { openDialog, closeDialog, toast } from './dialogs.js';
 import { triage, readWords, wireShotIntake, close as closeReader, shotLang } from './shot-reader.js';
-import { offersFrom, figuresFrom, localized, inEnglish } from './barter-shot.js';
 import { npcs, isleOf, whoOf } from './barter_npcs.js';
 import { img } from './ui-bits.js';
 import * as store from './state.js';
@@ -206,6 +205,18 @@ export function openBarterImport({ files, deals, onAnswers = () => {} } = {}) {
 			if (bar) bar.style.width = `${Math.round(at * 100)}%`;
 			if (note) note.textContent = text;
 		};
+		// What sorts the words into offers is fetched with the first
+		// shot, not with the page; the service worker keeps it offline.
+		let shot = null;
+		try { shot = await import('./barter-shot.js'); } catch { /* said below */ }
+		if (!shot) {
+			if (stop === me) stop = null;
+			for (const f of take) skipped.push({ name: f.name, why: T('the reader could not load — check your connection') });
+			rows = [...seen.values()];
+			draw(reviewView());
+			return;
+		}
+		const { offersFrom, figuresFrom, localized, inEnglish } = shot;
 		// The islands and exchanges as the client names them. What is
 		// read is handed back in English, which is what the app keeps.
 		const lang = shotLang();

@@ -18,11 +18,17 @@
 // own image decoders, handed on as pixels, and the engine that reads
 // those pixels is WebAssembly in a worker with no network of its own.
 
-import { panelBox, sailorFrom } from './sailor-shot.js';
 import { localeFor, langByTag, DEFAULT_LANG } from './sailor-locales.js';
 import { iconLoader } from './icon-loader.js';
-import { grayscale, settleGrid, readSlots, bankEntry, countBox, readCounts, isHeld, sharedRows } from './storage-shot.js';
+// The storage reader -- the lattice, the icon matching and the small
+// network that reads the counts, 70 KB of it the model's weights -- is
+// fetched the first time a storage shot is read rather than with the
+// page: only a player dropping one in needs it. The service worker
+// keeps it with the shell, so it reads offline as before.
+let storageShot = null;
+const pixelReader = () => (storageShot ||= import('./storage-shot.js').catch(err => { storageShot = null; throw err; }));
 import { T, readerLang } from './i18n.js';
+import { whileLoading } from './loading.js';
 
 /**
  * The language a screenshot of the game is read in: the one chosen in
@@ -364,6 +370,9 @@ const WANT_LINE = 40;
  * and should not read as a failure.
  */
 async function readOne(worker, PSM, file, locale) {
+	// What finds a sailor's panel and reads its numbers comes with the
+	// first shot, like the storage reader below.
+	const { panelBox, sailorFrom } = await import('./sailor-shot.js');
 	let bitmap;
 	try {
 		bitmap = await createImageBitmap(file);
@@ -404,7 +413,11 @@ async function readOne(worker, PSM, file, locale) {
  * a frozen page. `onProgress` is called with the file being read and
  * how far along the batch is; `signal` stops it between shots.
  */
-export async function readShots(files, { onProgress = () => {}, signal = null, lang = DEFAULT_LANG } = {}) {
+// Each reading runs under the page's loading thread as well as the
+// dialog's own bar: the dialog says how far, the thread that the page
+// is busy -- and it ends however the reading does.
+export const readShots = (files, opts) => whileLoading(() => readShotsNow(files, opts), T('Reading the screenshots…'));
+async function readShotsNow(files, { onProgress = () => {}, signal = null, lang = DEFAULT_LANG } = {}) {
 	const locale = localeFor(lang);
 	const { worker, Tesseract } = await open(locale.tess, onProgress);
 	const out = [];
@@ -445,7 +458,8 @@ const LIST_WIDE = 2200;
  * this one reads the whole picture and leaves the sorting to
  * barter-shot.js.
  */
-export async function readWords(file, { lang = DEFAULT_LANG, wide = LIST_WIDE, onProgress = null } = {}) {
+export const readWords = (file, opts) => whileLoading(() => readWordsNow(file, opts), T('Reading the screenshots…'));
+async function readWordsNow(file, { lang = DEFAULT_LANG, wide = LIST_WIDE, onProgress = null } = {}) {
 	const locale = localeFor(lang);
 	listen = onProgress;
 	let bitmap = null;
@@ -485,6 +499,7 @@ const ICON_SIDE = 44;
 
 export async function iconBank(onProgress = () => {}) {
 	if (bank) return bank;
+	const { bankEntry } = await pixelReader();
 	await iconLoader.init();
 	const byFile = new Map();
 	for (const [name, entry] of Object.entries(iconLoader.iconMapping)) {
@@ -542,7 +557,7 @@ function pixelsOf(bitmap) {
  * slot -- a storage is full of things this app has no business
  * knowing -- so it is counted and reported as a number, not as a row.
  */
-async function readStorageOne(file, icons) {
+async function readStorageOne(file, icons, { grayscale, settleGrid, readSlots, countBox, readCounts, isHeld }) {
 	let bitmap;
 	try {
 		bitmap = await createImageBitmap(file);
@@ -616,7 +631,9 @@ async function readStorageOne(file, icons) {
  * megabytes of reader that a sailor panel needs. The bank of icons is
  * built first, which is where the second of waiting is.
  */
-export async function readStorageShots(files, { onProgress = () => {}, signal = null } = {}) {
+export const readStorageShots = (files, opts) => whileLoading(() => readStorageNow(files, opts), T('Reading the screenshots…'));
+async function readStorageNow(files, { onProgress = () => {}, signal = null } = {}) {
+	const reader = await pixelReader();
 	const icons = await iconBank(onProgress);
 	const out = [];
 	for (let i = 0; i < files.length; i++) {
@@ -625,7 +642,7 @@ export async function readStorageShots(files, { onProgress = () => {}, signal = 
 		onProgress({ stage: 'reading', at: i / files.length, i, n: files.length, name: file.name });
 		let res;
 		try {
-			res = await readStorageOne(file, icons);
+			res = await readStorageOne(file, icons, reader);
 		} catch (err) {
 			res = { rows: [], why: err && err.message ? err.message : T('could not be read') };
 		}
@@ -634,7 +651,7 @@ export async function readStorageShots(files, { onProgress = () => {}, signal = 
 	// Shots of one storage overlap: scroll, shoot again, and the last row
 	// of one is the first row of the next. Those rows are one row, and
 	// are taken from the shot that came first.
-	const shared = sharedRows(out.map(o => o.lattice || []));
+	const shared = reader.sharedRows(out.map(o => o.lattice || []));
 	for (let i = 0; i < out.length; i++) {
 		const twice = shared[i];
 		if (twice.size) {

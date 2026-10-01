@@ -7,6 +7,7 @@ import { questIcon } from '../quest_icons.js';
 import { monsters } from '../sea_monsters.js';
 import { esc, F } from '../fmt.js';
 import { T, gameName, said } from '../i18n.js';
+import { loadingNote } from '../loading.js';
 import { img } from '../ui-bits.js';
 import { createMap } from '../map.js';
 import { npcs, npcById } from '../barter_npcs.js';
@@ -88,7 +89,7 @@ export function renderMap() {
 	if (!mv.mapState) mv.mapState = createMap();
 
 	if (!barterData) {
-		return `<div class="panel"><p class="empty">${T('Loading the barter routes…')}</p></div>`;
+		return `<div class="panel"><p class="empty">${loadingNote(T('Loading the barter routes…'))}</p></div>`;
 	}
 
 	const marks = marksNow();

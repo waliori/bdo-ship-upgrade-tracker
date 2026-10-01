@@ -27,6 +27,7 @@
 
 import { MAX_ZOOM, TILE, TILES } from '../barter_npcs.js';
 import { T } from '../i18n.js';
+import { MAP_LOADING_DELAY, whileLoading } from '../loading.js';
 import { setProjector, tileSrc, levelFor } from '../map.js';
 
 /** Sea level, in chart units. js/worldmap.js has it in the game's own
@@ -831,7 +832,7 @@ async function loadIndex() {
 	if (state.index || state.indexTried) return state.index;
 	state.indexTried = true;
 	try {
-		const res = await fetch('map3d/index.json');
+		const res = await whileLoading(fetch('map3d/index.json'), T('Fetching the terrain…'), { at: state.host });
 		if (!res.ok) throw new Error(res.status);
 		const ix = await res.json();
 		for (const lv of ix.levels) {
@@ -1000,12 +1001,14 @@ function loadingLight(on) {
 	if (!host) return;
 	if (on) {
 		if (!lightTimer && !host.classList.contains('is-loading')) {
-			lightTimer = setTimeout(() => { lightTimer = null; if (state.on) host.classList.add('is-loading'); }, 300);
+			lightTimer = setTimeout(() => { lightTimer = null; if (state.on) host.classList.add('is-loading'); }, MAP_LOADING_DELAY);
 		}
+		host.setAttribute('aria-busy', 'true');
 		return;
 	}
 	if (lightTimer) { clearTimeout(lightTimer); lightTimer = null; }
 	host.classList.remove('is-loading');
+	host.removeAttribute('aria-busy');
 }
 
 let pendingDraw = null;

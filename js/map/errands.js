@@ -10,6 +10,7 @@
 
 import { esc, F } from '../fmt.js';
 import { T, TT, said, gameName } from '../i18n.js';
+import { loadingNote } from '../loading.js';
 import { questIcon } from '../quest_icons.js';
 import { img } from '../ui-bits.js';
 import { ports } from '../barter_npcs.js';
@@ -300,7 +301,7 @@ export function errandsHTML() {
 	}
 	if (working) {
 		return `<div class="map-courses">${head}
-			<p class="map-course-note">${T('Working out the loop — a ground for every hunt, and the way round them all…')}</p>
+			<p class="map-course-note">${loadingNote(T('Working out the loop — a ground for every hunt, and the way round them all…'))}</p>
 		</div>`;
 	}
 	const p = plan;

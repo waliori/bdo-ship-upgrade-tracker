@@ -22,6 +22,7 @@ import { exchangeGate, knownAt } from './barter-board.js';
 import { bookOf, searchBook } from './layout-book.js';
 import { shared, fleetHistory, sawItToo, unsay } from './sea-boards.js';
 import { me } from './sync.js';
+import { loadingNote } from './loading.js';
 
 const isle = id => { const n = npcById.get(Number(id)); return n ? isleOf(n) : `island ${id}`; };
 const dayOf = key => {
@@ -180,7 +181,7 @@ export function openLayoutBook({ combos, answers = [], day = '', count = null, l
 			<input class="lb-search" type="search" data-lb-q placeholder="${T('an island, a good, or a layout’s number…')}" value="${esc(query)}" aria-label="${T('Search the layouts')}">
 			${onTell && shared() && answers.length ? `<button class="ghost-btn sm" data-lb-tell title="${me() ? T('Send the islands you answered today, with your name on the reading') : T('Sign in from the Menu first — a reading goes up with a name on it')}">📣 ${T('Tell the fleet what you saw')}</button>` : ''}
 		</div>
-		${!shared() ? `<p class="lb-sub">${T('This deployment keeps no fleet readings, so the book is the record alone.')}</p>` : !asked ? `<p class="lb-sub">${T('Asking what the fleet has read…')}</p>` : book.open ? `<p class="lb-sub">${book.open === 1 ? T('{n} reading named too few islands to tell the layouts apart, and is counted for none.', { n: F(book.open) }) : T('{n} readings named too few islands to tell the layouts apart, and are counted for none.', { n: F(book.open) })}</p>` : ''}
+		${!shared() ? `<p class="lb-sub">${T('This deployment keeps no fleet readings, so the book is the record alone.')}</p>` : !asked ? `<p class="lb-sub">${loadingNote(T('Asking what the fleet has read…'))}</p>` : book.open ? `<p class="lb-sub">${book.open === 1 ? T('{n} reading named too few islands to tell the layouts apart, and is counted for none.', { n: F(book.open) }) : T('{n} readings named too few islands to tell the layouts apart, and are counted for none.', { n: F(book.open) })}</p>` : ''}
 		${mineLine()}
 		<div data-lb-grid>${gridHTML()}</div>
 		<div class="dialog-actions"><button class="act quiet" data-close>${T('Close')}</button></div>`;

@@ -419,11 +419,27 @@ test('what only some visitors need is not in the page for all of them', () => {
 
 	const ui = fs.readFileSync(new URL('../js/ui.js', import.meta.url), 'utf8');
 	assert.doesNotMatch(ui, /^import .*realistic-water-ripples/m, 'the shader is statically imported again');
-	assert.match(ui, /await import\('\.\/realistic-water-ripples\.js'\)/, 'and nothing fetches it on demand either');
+	assert.match(ui, /import\('\.\/realistic-water-ripples\.js'\)/, 'and nothing fetches it on demand either');
 
-	// Both still belong to the offline shell.
+	// The same for the heaviest modules a first screen never draws: the
+	// release notes (170 KB, opened from What's new and Help), the
+	// Community tab, the storage reader with its network's weights, and
+	// the layout book. Each is fetched when it is opened.
+	const lazy = [
+		['js/ui.js', 'about.js'], ['js/ui.js', 'screen-community.js'], ['js/feedback.js', 'about.js'],
+		['js/shot-reader.js', 'storage-shot.js'], ['js/barter/board.js', 'layouts-view.js']
+	];
+	for (const [file, dep] of lazy) {
+		const src = fs.readFileSync(new URL(`../${file}`, import.meta.url), 'utf8');
+		const name = dep.replace(/[.]/g, '\\.');
+		assert.doesNotMatch(src, new RegExp(`^import [^;]*/${name}'`, 'm'), `${file} imports ${dep} statically again`);
+	}
+	const reader = fs.readFileSync(new URL('../js/shot-reader.js', import.meta.url), 'utf8');
+	assert.match(reader, /import\('\.\/storage-shot\.js'\)/, 'the storage reader is fetched on demand');
+
+	// All of them still belong to the offline shell.
 	const sw = fs.readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
-	for (const path of ['/js/driver.iife.js', '/css/driver.css', '/js/realistic-water-ripples.js']) {
+	for (const path of ['/js/driver.iife.js', '/css/driver.css', '/js/realistic-water-ripples.js', '/js/about.js', '/js/release.js', '/js/screen-community.js', '/js/storage-shot.js', '/js/count_model.js', '/js/layouts-view.js', '/js/loading.js']) {
 		assert.ok(sw.includes(`'${path}'`), `${path} fell out of the offline shell`);
 	}
 });

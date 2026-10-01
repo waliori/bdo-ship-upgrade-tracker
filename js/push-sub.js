@@ -9,6 +9,8 @@
 // come back the same way -- false, and the page keeps its own clock.
 
 import { me, onAccount } from './sync.js';
+import { T } from './i18n.js';
+import { whileLoading } from './loading.js';
 
 const b64ToBytes = s => {
 	const b = atob(s.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - s.length % 4) % 4));
@@ -31,7 +33,8 @@ export async function pushAvailable() {
  * row is the account's as well, which is the whole of how one device's
  * clock reaches another.
  */
-export async function subscribePush() {
+export const subscribePush = () => whileLoading(subscribeNow, T('Setting up the chimes…'));
+async function subscribeNow() {
 	if (!(await pushAvailable())) return false;
 	try {
 		const { key } = await (await fetch('/api/push/key')).json();
@@ -115,7 +118,8 @@ onAccount(() => { loadDiscordDm(); });
 
 /** Switch the messages on or off. `{ ok, error }`: the server sends the
  *  first one itself, so a refusal from Discord comes back here. */
-export async function setDiscordDm(on) {
+export const setDiscordDm = on => whileLoading(() => setDmNow(on), T('Asking the Discord bot…'));
+async function setDmNow(on) {
 	try {
 		const res = await fetch('/api/discord-dm', {
 			method: 'PUT', headers: { 'Content-Type': 'application/json' },

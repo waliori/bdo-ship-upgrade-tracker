@@ -16,7 +16,7 @@ import { quests } from './quests.js';
 import { openDialog, closeDialog, toast } from './dialogs.js';
 import { openPicker } from './picker.js';
 import { KINDS, kindOf } from './kinds.js';
-import { openStorageImport } from './storage-import.js';
+import { whileLoading } from './loading.js';
 
 let known = null;
 function names() {
@@ -197,10 +197,19 @@ export function openTripLog(focusRow = null) {
 	// A screenshot instead of forty picks. The storage reader does the
 	// looking; the counts come back here rather than going into the
 	// Inventory, because what they mean is this dialog's business.
-	host.querySelector('[data-trip-shot]').addEventListener('click', () => {
+	host.querySelector('[data-trip-shot]').addEventListener('click', async evt => {
 		readQty();
+		// The reader's dialog is fetched on the first press, the button
+		// marked busy meanwhile; a fetch that fails leaves the trip open.
+		let reader;
+		try {
+			reader = await whileLoading(import('./storage-import.js'), T('Loading…'), { by: evt.currentTarget });
+		} catch {
+			toast(T('That could not load — check your connection and try again'));
+			return;
+		}
 		closeDialog();
-		openStorageImport(() => {}, {
+		reader.openStorageImport(() => {}, {
 			label: shotSign > 0 ? TT('Add to the trip') : TT('Take off the trip'),
 			note: shotSign > 0
 				? TT('What is read goes into the trip as things gained. Shoot the hold, or the storage window showing what you came back with.')

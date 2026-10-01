@@ -11,6 +11,7 @@
 
 import { T } from './i18n.js';
 import { feature, me } from './sync.js';
+import { whileLoading } from './loading.js';
 
 /** What the last call brought back, so a redraw does not ask again.
  *  Short: a sighting sent by somebody else is worth having quickly. */
@@ -52,7 +53,7 @@ async function fleetBoards({ force = false } = {}) {
 	if (!force && Date.now() - held.at < FRESH_MS) return held.boards;
 	if (asking) return asking;
 	asking = (async () => {
-		const res = await api('GET', '/api/boards');
+		const res = await whileLoading(api('GET', '/api/boards'), T('Asking what the fleet has read…'));
 		if (res.ok && res.body && Array.isArray(res.body.boards)) {
 			held = { at: Date.now(), boards: res.body.boards };
 		}
@@ -68,7 +69,7 @@ async function fleetBoards({ force = false } = {}) {
 export async function fleetHistory({ days = 60, force = false } = {}) {
 	if (!shared()) return [];
 	if (!force && Date.now() - shelf.at < FRESH_MS) return shelf.boards;
-	const res = await api('GET', `/api/boards?days=${days}`);
+	const res = await whileLoading(api('GET', `/api/boards?days=${days}`), T('Asking what the fleet has read…'));
 	if (res.ok && res.body && Array.isArray(res.body.boards)) shelf = { at: Date.now(), boards: res.body.boards };
 	return shelf.boards;
 }
@@ -92,11 +93,11 @@ export async function boardsFor(day, opts) {
 export async function tellFleet(day, layout, offers) {
 	if (!shared()) return { ok: false, why: T('This deployment keeps no boards.') };
 	if (!me()) return { ok: false, why: T('Sign in to put your name to a reading.') };
-	const res = await api('POST', '/api/boards', {
+	const res = await whileLoading(api('POST', '/api/boards', {
 		day,
 		layout: layout || null,
 		offers: offers.map(o => [o.npcId, o.give, String(o.qty || 1), o.recv])
-	});
+	}), T('Telling the fleet…'));
 	stale();   // ask again next time
 	if (!res.ok) return { ok: false, why: (res.body && res.body.error) || T('The reading did not reach the server.') };
 	return { ok: true, id: res.body.id, offers: res.body.offers };
@@ -105,7 +106,7 @@ export async function tellFleet(day, layout, offers) {
 /** Somebody else's reading is the board you are looking at too. */
 export async function sawItToo(id) {
 	if (!shared() || !me()) return { ok: false };
-	const res = await api('POST', `/api/boards/${id}/seen`);
+	const res = await whileLoading(api('POST', `/api/boards/${id}/seen`), T('Telling the fleet…'));
 	stale();
 	return { ok: res.ok, why: res.body && res.body.error };
 }
@@ -113,7 +114,7 @@ export async function sawItToo(id) {
 /** Take your own reading back. */
 export async function unsay(id) {
 	if (!shared() || !me()) return { ok: false };
-	const res = await api('DELETE', `/api/boards/${id}`);
+	const res = await whileLoading(api('DELETE', `/api/boards/${id}`), T('Telling the fleet…'));
 	stale();
 	return { ok: res.ok, why: res.body && res.body.error };
 }

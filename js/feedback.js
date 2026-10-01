@@ -34,7 +34,8 @@ import { T, TT, said } from './i18n.js';
 import { openDialog, closeDialog, toast } from './dialogs.js';
 import { feature, me, call, signIn } from './sync.js';
 import { view } from './ui-state.js';
-import { RELEASE } from './about.js';
+import { RELEASE } from './release.js';
+import { whileLoading, loadingNote } from './loading.js';
 import { renderMarkup, renderPlain, fileURL, MAX_MARKUP } from './markup.js';
 
 const ISSUES = 'https://github.com/waliori/bdo-ship-upgrade-tracker/issues';
@@ -486,7 +487,7 @@ export function openFeedback(kind = 'bug') {
 		strip.querySelectorAll('[data-drop]').forEach(btn => btn.addEventListener('click', async () => {
 			btn.disabled = true;
 			const id = btn.dataset.drop;
-			const res = await call('DELETE', `/api/feedback/image/${id}`).catch(() => null);
+			const res = await call('DELETE', `/api/feedback/image/${id}`, null, { label: T('Saving…'), by: btn }).catch(() => null);
 			if (!res || !res.ok) { btn.disabled = false; return toast(T('That one would not come off.')); }
 			const at = shots.findIndex(f => f.id === id);
 			if (at >= 0) shots.splice(at, 1);
@@ -507,11 +508,10 @@ export function openFeedback(kind = 'bug') {
 			strip.hidden = false;
 			const waiting = document.createElement('div');
 			waiting.className = 'fb-shot waiting';
-			waiting.textContent = T('sending…');
+			waiting.innerHTML = loadingNote(T('sending…'));
 			strip.appendChild(waiting);
 			try {
-				const blob = await shrink(file, limits);
-				const landed = await upload(blob, file.name);
+				const landed = await whileLoading(async () => upload(await shrink(file, limits), file.name), T('Sending the image…'), { at: strip });
 				shots.push(landed);
 			} catch (err) {
 				toast(err.message || T('That image did not go up.'));
@@ -572,7 +572,7 @@ export function openFeedback(kind = 'bug') {
 				files: shots.map(f => f.id),
 				contact: contact ? contact.value.trim() : '',
 				username: who.username
-			});
+			}, { label: T('Sending…'), by: send });
 		} catch {
 			res = null;
 		}
@@ -602,8 +602,8 @@ function signInPanel() {
 
 /** What people have written in: the list, for anyone. */
 export async function openReports() {
-	const host = openDialog(`<h2>${said(TITLE.public)}</h2><p class="dialog-copy">${T('Fetching…')}</p>`);
-	const res = await call('GET', '/api/feedback').catch(() => null);
+	const host = openDialog(`<h2>${said(TITLE.public)}</h2><p class="dialog-copy">${loadingNote(T('Fetching…'))}</p>`);
+	const res = await call('GET', '/api/feedback', null, { label: T('Fetching…'), at: host }).catch(() => null);
 	if (!res || !res.ok) {
 		host.querySelector('.dialog-box').innerHTML = `<h2>${said(TITLE.public)}</h2><p class="dialog-copy">${esc(res && res.body && res.body.error ? said(res.body.error) : T('The box did not answer.'))}</p><div class="dialog-actions"><button class="ghost-btn" data-close>${T('Close')}</button></div>`;
 		return;
@@ -680,7 +680,7 @@ function paintInbox(host, entries, only, admin) {
 		const id = Number(btn.closest('.fb-entry').dataset.id);
 		const status = btn.dataset.status;
 		btn.disabled = true;
-		const res = await call('POST', `/api/feedback/${id}/status`, { status }).catch(() => null);
+		const res = await call('POST', `/api/feedback/${id}/status`, { status }, { label: T('Saving…'), by: btn }).catch(() => null);
 		if (!res || !res.ok) { btn.disabled = false; return toast(T('That did not stick.')); }
 		const entry = entries.find(e => e.id === id);
 		if (entry) entry.status = status;
@@ -700,7 +700,7 @@ function paintInbox(host, entries, only, admin) {
 			}
 			const id = Number(btn.dataset.drop);
 			btn.disabled = true;
-			const res = await call('DELETE', `/api/feedback/${id}`).catch(() => null);
+			const res = await call('DELETE', `/api/feedback/${id}`, null, { label: T('Saving…'), by: btn }).catch(() => null);
 			if (!res || !res.ok) { btn.disabled = false; return toast(T('That one would not go.')); }
 			const at = entries.findIndex(e => e.id === id);
 			if (at >= 0) entries.splice(at, 1);

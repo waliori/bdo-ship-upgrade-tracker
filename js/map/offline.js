@@ -3,6 +3,7 @@
 
 import { pinTiles, PIN_MAX } from '../map.js';
 import { T } from '../i18n.js';
+import { loading } from '../loading.js';
 import { toast } from '../dialogs.js';
 import { mv } from './state.js';
 import { hostSize } from './view.js';
@@ -68,6 +69,9 @@ export async function pinArea() {
 	if (!tiles.length) return toast(T('Nothing in view to keep'));
 	toast(tiles.length === 1 ? T('Keeping {n} tile…', { n: tiles.length }) : T('Keeping {n} tiles…', { n: tiles.length }));
 	let got = 0, failed = 0;
+	// The page's loading thread while the area comes down; ended on
+	// either way out below.
+	const stop = loading(T('Keeping the area offline…'), { at: host });
 	try {
 		const cache = await caches.open(PINNED_CACHE);
 		// Six at a time: enough to be quick, not enough to starve the
@@ -85,6 +89,8 @@ export async function pinArea() {
 		}));
 	} catch {
 		return toast(T('The browser would not keep the tiles'));
+	} finally {
+		stop();
 	}
 	await countPinned();
 	toast(failed

@@ -13,6 +13,7 @@
 // material layouts, as the trade board is one of its forty.
 
 import { T } from './i18n.js';
+import { loadingNote } from './loading.js';
 import * as store from './state.js';
 import { img } from './ui-bits.js';
 import { barterData } from './ui-state.js';
@@ -43,7 +44,7 @@ export function renderBarter() {
 	if (V.lastTrip && !store.hasChange(V.lastTrip.entry)) V.lastTrip = null;
 	const me = currentShip();
 	const b = boardNow();
-	if (!barterData) return `<p class="empty">${T('Reading the barter table…')}</p>`;
+	if (!barterData) return `<p class="empty">${loadingNote(T('Reading the barter table…'))}</p>`;
 	// One column, the page's width, and four steps across its head: the
 	// plan -- the board, where the day ends, how it is sailed, the chains
 	// -- then the wharf, the cockpit and the results. One step is on the
@@ -73,7 +74,7 @@ export function renderBarter() {
 	// While a run is under way the step leads with what it said at the
 	// wharf, kept with the run: the live list below is laid again from
 	// the hold as it is now.
-	const loadStep = `${on ? toldHTML(on) : ''}${holdBarHTML(me, parts.packLT || 0)}${parts.load || `<p class="empty step-empty">${T('Nothing to pack yet. Tick a chain on the plan and what it needs is listed here.')}</p>`}${loadFoot}`;
+	const loadStep = `${on ? toldHTML(on) : ''}${holdBarHTML(me, parts.packLT || 0, parts.packSlots ?? null)}${parts.load || `<p class="empty step-empty">${T('Nothing to pack yet. Tick a chain on the plan and what it needs is listed here.')}</p>`}${loadFoot}`;
 	const body = now === 'load' ? loadStep : now === 'sail' ? sailHTML() : now === 'results' ? resultsHTML() : planStep;
 	// A screenshot pasted on another step is read at the top of it.
 	return `<div class="barter-screen step-${now}">

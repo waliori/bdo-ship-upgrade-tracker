@@ -40,7 +40,6 @@ import { renderWorkshop, pendingEnhancements, toggleBlocked } from './screen-wor
 import { renderCrew, crewAction, crewChange, applyShipSetup, shipSetupPatch, openSetupPicker, selectSailor, setLooking } from './screen-crew.js';
 import { statusLine } from './today.js';
 import { renderQuests, questAction, questDone, wantedQuests, setQuestPay, setQuestFocus } from './screen-quests.js';
-import { renderCommunity, communityAction, wireCommunity } from './screen-community.js';
 import { openResetsDialog } from './today.js';
 import { startClocks, tickClocks } from './clock.js';
 import { recordProgress } from './pace.js';
@@ -51,13 +50,15 @@ import { isPhone, onPhoneChange } from './viewport.js';
 import { film } from './film.js';
 
 import { openProfiles, activeProfile } from './profiles.js';
-import { DATA, CHANGES, LATEST, RELEASES, RELEASE } from './about.js';
+// Which release this is, and the newest diary line, are all a page
+// needs at boot; the notes behind them are 170 KB and are fetched when
+// What's new or Help is opened (aboutNotes, below).
+import { RELEASE, LATEST, LATEST_TITLE } from './release.js';
+import { whileLoading, loadingNote } from './loading.js';
 import { openTables } from './screen-tables.js';
 import { openTripLog } from './triplog.js';
 import { pickGameFolder, writeGameFile, restoreGameFile } from './gamefile.js';
-import { renderGet, shoppingText, shoppingCSV, getAction, getChange } from './screen-get.js';
 import { openCoinBuy } from './coin-shop.js';
-import { openStorageImport } from './storage-import.js';
 import {
 	renderMap, paintMap, wireMap, setMapPick, mapZoomStep, mapCentreOn, mapCentreOnStash,
 	mapShowItem, mapFit, setMapMode, toggleMapPanel, toggleMapStop,
@@ -393,8 +394,8 @@ export function render() {
 	else if (view === 'barter') root.innerHTML = renderBarter();
 	else if (view === 'crew') root.innerHTML = renderCrew();
 	else if (view === 'quests') root.innerHTML = renderQuests();
-	else if (view === 'community') root.innerHTML = renderCommunity();
-	else root.innerHTML = renderGet();
+	else if (view === 'community') root.innerHTML = lazyScreen('community', m => m.renderCommunity());
+	else root.innerHTML = lazyScreen('get', m => m.renderGet());
 	restoreFocus(root, focus);
 	// On a phone the inventory detail is a sheet at the bottom edge, and
 	// a sheet is something a thumb can move: out to the whole screen,
@@ -623,7 +624,7 @@ let barterLoading = null;
 
 async function loadBarter() {
 	if (barterData || barterLoading) return;
-	barterLoading = (async () => {
+	barterLoading = whileLoading(async () => {
 		// The boards ride with the table: the Barter tab needs both, and
 		// a table without its boards still plans at best.
 		const [table, game, mats] = await Promise.all([
@@ -636,7 +637,7 @@ async function loadBarter() {
 		// the forty layouts, from the game's own tables
 		if (game) setCombos(useGame(game));
 		if (mats && mats.ok) setMatBoards(await mats.json());
-	})();
+	}, T('Reading the barter table…'));
 	try {
 		await barterLoading;
 	} catch {
@@ -674,7 +675,7 @@ async function waterOn() {
 		return;
 	}
 	try {
-		const { default: RealisticWaterRipples } = await import('./realistic-water-ripples.js');
+		const { default: RealisticWaterRipples } = await whileLoading(import('./realistic-water-ripples.js'), T('Loading…'));
 		// Turned on and off again while the module was in flight.
 		if (store.getSetting('water', false) !== true) return;
 		water = RealisticWaterRipples.create(document.body, {
@@ -860,7 +861,9 @@ async function chooseLang(id) {
 	// Older builds kept the look-up language under its own name; keep it
 	// in step so a save opened on either build says the same thing.
 	store.setSetting('codexLang', id, true);
-	await setLang(id);
+	// A pack not fetched before comes over the wire; the flag that opens
+	// the picker is marked busy until it is in.
+	await whileLoading(setLang(id), T('Fetching the language…'), { by: document.getElementById('lang-btn') });
 	render();
 	toast(T('Language: {name}', { name: (LANGS.find(l => l.id === id) || {}).label || id }));
 }
@@ -1058,7 +1061,7 @@ function wire() {
 		if (NAV_ACTS.has(act) && el.closest('.dialog')) closeDialog();
 
 		switch (act) {
-			case 'view': if (el.dataset.quest) setQuestFocus(el.dataset.quest); if (el.dataset.sail) getAction('get-today-sail', el); showView(el.dataset.id); return;
+			case 'view': if (el.dataset.quest) setQuestFocus(el.dataset.quest); if (el.dataset.sail && tabMods.get) tabMods.get.getAction('get-today-sail', el); showView(el.dataset.id); return;
 			case 'tab-sheet': return openTabSheet();
 			case 'undo': {
 				const label = store.undo();
@@ -1130,7 +1133,7 @@ function wire() {
 			case 'import': return doImport();
 			case 'reset': return doReset();
 			case 'market-refresh':
-				loadMarket({ force: true }).then(ok => {
+				loadMarket({ force: true, by: el }).then(ok => {
 					toast(ok ? T('Market prices refreshed') : T('The Market did not answer — showing the last prices it gave'));
 					// The button that asked is in the bar, and so is the
 					// line that says how old the prices are: the render
@@ -1144,18 +1147,18 @@ function wire() {
 			case 'language': return openLanguages();
 			case 'pick-lang': closeDialog(); return chooseLang(el.dataset.id);
 			case 'tour': return startTour();
-			case 'whats-new': return openWhatsNew();
-			case 'help': return openHelp();
+			case 'whats-new': return openWhatsNew({ by: el });
+			case 'help': return openHelp(el);
 			case 'tables': return openTables(el.dataset.stack ? Number(el.dataset.stack) : null);
 			case 'guide': return openGuide();
 			case 'signin':
 			case 'account': return openAccount();
-			case 'feedback': return import('./feedback.js').then(m => m.openFeedback());
+			case 'feedback': return lazyOpen(() => import('./feedback.js'), el).then(m => m && m.openFeedback());
 			// The masthead carries this on every screen; the sheet has it
 			// as well because on a phone the masthead is three glyphs and
 			// the menu is where anyone goes looking.
 			case 'discord': window.open(DISCORD_INVITE, '_blank', 'noopener'); return;
-			case 'inbox': return import('./feedback.js').then(m => m.openReports());
+			case 'inbox': return lazyOpen(() => import('./feedback.js'), el).then(m => m && m.openReports());
 			// The masthead's Menu and the thumb bar's are the one sheet;
 			// pressed while it stands, it goes.
 			case 'more': if (menuOpen()) closeDialog(); else openTabSheet(); return;
@@ -1227,6 +1230,8 @@ function wire() {
 			case 'quest-map': showHunt(el.dataset.monster); return showView('map');
 			// An island named on the community boards: the chart, flown there
 			// once it has drawn itself.
+			// A tab's own screen would not fetch: ask again.
+			case 'tab-load': tabFailed[el.dataset.id] = false; render(); return;
 			case 'community-isle': {
 				const npc = Number(el.dataset.npc);
 				if (el.closest('.dialog')) closeDialog();
@@ -1381,7 +1386,7 @@ function wire() {
 			case 'inv-select': setInvPicking(!invPicking); if (invPicking) setSelected(null); return render();
 			// The storage window, read off screenshots: the counts land at
 			// the storage named in the dialog, in one change.
-			case 'inv-shot': openStorageImport(render); return;
+			case 'inv-shot': lazyOpen(() => import('./storage-import.js'), el).then(m => m && m.openStorageImport(render)); return;
 			case 'inv-pick': {
 				const it = el.dataset.item;
 				if (invPicked.has(it)) invPicked.delete(it); else invPicked.add(it);
@@ -1424,7 +1429,7 @@ function wire() {
 			case 'copy':
 			case 'copy-csv':
 				try {
-					await navigator.clipboard.writeText(act === 'copy-csv' ? shoppingCSV() : shoppingText());
+					await navigator.clipboard.writeText(act === 'copy-csv' ? tabMods.get.shoppingCSV() : tabMods.get.shoppingText());
 					toast(act === 'copy-csv' ? T('Shortfall list copied as CSV') : T('Shortfall list copied'));
 				} catch {
 					toast(T('Could not reach the clipboard'));
@@ -1569,8 +1574,8 @@ function wire() {
 				// (and repaint through it), the rest are session state.
 				if (act.startsWith('crew-') && crewAction(act, el)) return render();
 				if (act.startsWith('quest-') && questAction(act, el)) return render();
-				if (act.startsWith('get-') && getAction(act, el)) return render();
-				if (act.startsWith('community-') && communityAction(act, el)) return render();
+				if (act.startsWith('get-') && tabMods.get && tabMods.get.getAction(act, el)) return render();
+				if (act.startsWith('community-') && tabMods.community && tabMods.community.communityAction(act, el)) return render();
 		}
 	});
 
@@ -1641,7 +1646,7 @@ function wire() {
 		// The plan's orders: the days a week at sea, and the coins kept
 		// back. The activity chips are buttons and answer a click.
 		const gc = evt.target.closest('[data-act="get-days"], [data-act="get-reserve"]');
-		if (gc) return getChange(gc, parseAmount);
+		if (gc && tabMods.get) return tabMods.get.getChange(gc, parseAmount);
 
 		// The ticked tiles, moved to one storage as one change.
 		const pl = evt.target.closest('[data-act="inv-place"]');
@@ -2394,12 +2399,19 @@ function offerLegacyImport() {
  * not pull down a two-megabyte GIF to make its point. They load lazily,
  * so the sections nobody scrolls to cost nothing.
  */
-function openWhatsNew({ onClose = null } = {}) {
+async function openWhatsNew({ onClose = null, by = null } = {}) {
 	// These notes are shown once and then marked read, so anything that
 	// opens over them has taken them away for good -- the sync's "two
 	// copies" question used to do exactly that, arriving whenever the
-	// server answered. The screen is held until they are closed.
+	// server answered. The screen is held until they are closed -- and
+	// from before they are fetched, so nothing slips in while they are.
 	const free = holdScreen();
+	const about = await aboutNotes(by);
+	if (!about) {
+		free();
+		return null;
+	}
+	const { RELEASES } = about;
 	const r = RELEASES[0];
 	const headline = r.sections.filter(s => s.media);
 	const rest = r.sections.filter(s => !s.media);
@@ -2439,7 +2451,7 @@ function openWhatsNew({ onClose = null } = {}) {
 				${points(s.points)}
 			</section>`).join('')}
 		</details>
-		${olderHTML(points)}
+		${olderHTML(RELEASES, points)}
 		<p class="dialog-copy">${T('The same notes are in {link}.', { link: '<a href="https://github.com/waliori/bdo-ship-upgrade-tracker/blob/main/CHANGELOG.md" target="_blank" rel="noopener">CHANGELOG.md</a>' })}</p>
 		<div class="dialog-actions">
 			<button class="act quiet" data-close>${T('Close')}</button>
@@ -2463,7 +2475,7 @@ function openWhatsNew({ onClose = null } = {}) {
  * The pictures are inside the fold, so a browser does not fetch them
  * until someone actually opens the release they belong to.
  */
-function olderHTML(points) {
+function olderHTML(RELEASES, points) {
 	const older = RELEASES.slice(1);
 	if (!older.length) return '';
 	return `<div class="news-older">
@@ -2518,7 +2530,10 @@ function markReleaseSeen() {
  * asked for, which matters rather more at thirty megabytes than it did
  * at seven.
  */
-function openHelp() {
+async function openHelp(by = null) {
+	const about = await aboutNotes(by);
+	if (!about) return null;
+	const { CHANGES, DATA } = about;
 	const at = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 	// The offsets are generated beside the film; what each part is for is
 	// copy, and stays here.
@@ -2598,14 +2613,114 @@ function openHelp() {
 	return host;
 }
 
+/**
+ * The screens fetched the first time their tab is opened.
+ *
+ * Most visits never reach the harbour or the shopping list, and their
+ * screens -- the boards, the cards, the digest that draws them; the way
+ * to get every shortfall -- were a tenth of the first load between
+ * them. Until one is in, its tab says it is on its way; once it is, it
+ * is wired exactly as boot used to wire it and the page is drawn again.
+ * Every action and field these screens answer is drawn by the screen
+ * itself, so nothing can ask one before it is here. The service worker
+ * keeps them with the shell, so offline they open as before.
+ */
+const LAZY_TABS = {
+	community: {
+		fetch: () => import('./screen-community.js'),
+		wait: TT('Fetching the boards…'),
+		failed: TT('The boards could not load — check your connection and try again'),
+		wire: m => { if (communityWired) m.wireCommunity(render, { look: lookAtShip }); }
+	},
+	get: {
+		fetch: () => import('./screen-get.js'),
+		wait: TT('Fetching the list…'),
+		failed: TT('The list could not load — check your connection and try again')
+	}
+};
+const tabMods = {};
+const tabLoads = {};
+const tabFailed = {};
+let communityWired = false;
+/** The screen module for a lazy tab, or null while it is on its way. */
+function tabModule(id) {
+	if (tabMods[id]) return tabMods[id];
+	const t = LAZY_TABS[id];
+	if (!tabLoads[id] && !tabFailed[id]) {
+		tabLoads[id] = whileLoading(t.fetch, said(t.wait), { at: document.getElementById('screen') })
+			.then(m => {
+				tabMods[id] = m;
+				if (t.wire) t.wire(m);
+			})
+			.catch(err => {
+				console.warn(`[ui] the ${id} screen is unavailable:`, err);
+				tabFailed[id] = true;
+			})
+			.finally(() => {
+				tabLoads[id] = null;
+				if (view === id) render();
+			});
+	}
+	return null;
+}
+/** What a lazy tab shows until its screen is in -- or why it is not. */
+function tabWait(id) {
+	const t = LAZY_TABS[id];
+	return `<section class="panel"><p class="comm-copy">${tabFailed[id]
+		? `${said(t.failed)} <button class="chip tiny" data-act="tab-load" data-id="${id}">${T('Try again')}</button>`
+		: loadingNote(said(t.wait))}</p></section>`;
+}
+const lazyScreen = (id, draw) => {
+	const m = tabModule(id);
+	return m ? draw(m) : tabWait(id);
+};
+
+/**
+ * A module a press opens, fetched under the loading thread, the button
+ * that asked marked busy with it. A fetch that fails says so once and
+ * resolves to null, so the caller does nothing rather than throw.
+ */
+async function lazyOpen(fetchIt, by = null) {
+	try {
+		return await whileLoading(fetchIt, T('Loading…'), { by });
+	} catch (err) {
+		console.warn('[ui] a module would not load:', err);
+		toast(T('That could not load — check your connection and try again'));
+		return null;
+	}
+}
+
+/**
+ * The release notes and the diary, fetched when they are opened.
+ *
+ * Nothing at boot needs more of them than js/release.js holds, and they
+ * were the heaviest module on the first load. The service worker keeps
+ * them with the rest of the shell, so offline they open as before; a
+ * fetch that fails says so and leaves the page as it was.
+ */
+async function aboutNotes(by = null) {
+	try {
+		return await whileLoading(import('./about.js'), T('Fetching the release notes…'), { by });
+	} catch (err) {
+		console.warn('[ui] release notes unavailable:', err);
+		toast(T('The notes could not load — check your connection and try again'));
+		return null;
+	}
+}
+
 async function startTour() {
 	// Whatever asked for it -- the Help film, most likely -- gets out of
 	// the way first. A tour that highlights the page from behind a dialog
 	// is worse than no tour.
 	closeDialog();
 	try {
-		const { guidedTour } = await import('./guided-tour.js');
-		if (!await guidedTour.startTour('main')) {
+		// The tour and its library are fetched on the first one; the
+		// thread runs until it is up, or until it is known it will not be.
+		const started = await whileLoading(async () => {
+			const { guidedTour } = await import('./guided-tour.js');
+			return guidedTour.startTour('main');
+		}, T('Fetching the tour…'));
+		if (!started) {
 			toast(T('The tour could not load — check your connection and try again'));
 		}
 	} catch (err) {
@@ -2717,7 +2832,8 @@ export async function init() {
 		const acct = document.getElementById('account');
 		if (acct) acct.innerHTML = `<span class="account-chip off" title="${T('Sync mirrors the Main profile only')}">${T('sync off on this profile')}</span>`;
 	} else {
-		wireCommunity(render, { look: lookAtShip });
+		// The boards are wired when their screen arrives (LAZY_TABS).
+		communityWired = true;
 		setRunSheet(runSheetHTML);
 		setStepHook(sailJump);
 		initSync({ toast, openDialog, closeDialog, whenScreenFree, rerender: render })
@@ -2741,7 +2857,7 @@ function whatsNewToast() {
 	const KEY = 'bdo-tracker/seen';
 	let seen = null;
 	try { seen = localStorage.getItem(KEY); } catch { /* then say nothing */ }
-	if (seen && seen !== LATEST) toast(T('New since your last visit: {what}. The details are under Help.', { what: said(CHANGES[0].title) }));
+	if (seen && seen !== LATEST) toast(T('New since your last visit: {what}. The details are under Help.', { what: said(LATEST_TITLE) }));
 	try { localStorage.setItem(KEY, LATEST); } catch { /* private mode */ }
 }
 

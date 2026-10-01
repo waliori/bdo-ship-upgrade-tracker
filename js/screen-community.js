@@ -32,6 +32,7 @@ import { combos, SILVER } from './ui-state.js';
 import { openItemCard } from './item-card.js';
 import { openSailorSheet } from './screen-crew.js';
 import { T, said, gameName } from './i18n.js';
+import { loadingNote } from './loading.js';
 
 let data = null;          // the last answer from /api/community
 let fetchedAt = 0;
@@ -91,7 +92,7 @@ async function load(force = false) {
 	loading = (async () => {
 		let res;
 		try {
-			res = await call('GET', '/api/community');
+			res = await call('GET', '/api/community', null, T('Fetching the boards…'));
 		} catch {
 			res = null;
 		}
@@ -263,7 +264,7 @@ function headHTML() {
 			<div class="comm-you-body">
 				<p class="comm-you-line">${T('You are on the boards as <b>{who}</b>', { who: who.share === 'named' ? esc(who.username) : T('an unnamed sailor') })}${y.level ? ` <span>· ${esc(y.level)}</span>` : ''}${y.joinedAt ? ` <span>· ${T('since {day}', { day: day(y.joinedAt) })}</span>` : ''}</p>
 				<div class="comm-you-places">
-					${shown.length ? shown.map(({ b, p }) => `<button class="comm-place${p.rank <= 3 ? ` p${p.rank}` : ''}" data-act="community-places" title="${esc(T('{rank} of {n} · {desc}', { rank: ordinal(p.rank), n: p.of, desc: said(b.desc) }))}">${medal(p.rank)}<span><i aria-hidden="true">${boardIcon(b)}</i> ${esc(said(b.title))}</span></button>`).join('') : `<span class="comm-you-none">${data ? T('No place on any board yet — the boards below say what earns one.') : T('Fetching your places…')}</span>`}
+					${shown.length ? shown.map(({ b, p }) => `<button class="comm-place${p.rank <= 3 ? ` p${p.rank}` : ''}" data-act="community-places" title="${esc(T('{rank} of {n} · {desc}', { rank: ordinal(p.rank), n: p.of, desc: said(b.desc) }))}">${medal(p.rank)}<span><i aria-hidden="true">${boardIcon(b)}</i> ${esc(said(b.title))}</span></button>`).join('') : `<span class="comm-you-none">${data ? T('No place on any board yet — the boards below say what earns one.') : loadingNote(T('Fetching your places…'), { status: false })}</span>`}
 					${places.length > shown.length ? `<button class="comm-more-places" data-act="community-places">${T('and {n} more', { n: places.length - shown.length })}</button>` : ''}
 				</div>
 			</div>
@@ -277,7 +278,7 @@ function headHTML() {
 	return `<section class="panel comm-head">
 		<div class="panel-head">
 			<h2 class="panel-title">${T('The harbour')}</h2>
-			<span class="panel-sub">${data ? `${n === 1 ? T('{n} sailor on the boards', { n }) : T('{n} sailors on the boards', { n })} · ${T('{n} by name', { n: named })}${built ? ` · ${T('drawn up at {time} UTC', { time: built.toISOString().slice(11, 16) })}` : ''}` : loading ? T('fetching the boards…') : failed || ''}</span>
+			<span class="panel-sub">${data ? `${n === 1 ? T('{n} sailor on the boards', { n }) : T('{n} sailors on the boards', { n })} · ${T('{n} by name', { n: named })}${built ? ` · ${T('drawn up at {time} UTC', { time: built.toISOString().slice(11, 16) })}` : ''}` : loading ? loadingNote(T('fetching the boards…'), { status: false }) : failed || ''}</span>
 			<span class="panel-spacer"></span>
 			<button class="chip tiny" data-act="community-find" title="${T('Find a sailor on the boards by name')}">⌕ ${T('Find a sailor')}</button>
 			<div class="comm-halves" role="tablist">
@@ -537,7 +538,7 @@ export function renderCommunity() {
 	load();
 	let body;
 	if (!data) {
-		body = `<section class="panel"><p class="comm-copy">${failed ? `${esc(failed)} <button class="chip tiny" data-act="community-refresh">${T('Try again')}</button>` : T('Fetching the boards…')}</p></section>`;
+		body = `<section class="panel"><p class="comm-copy">${failed ? `${esc(failed)} <button class="chip tiny" data-act="community-refresh">${T('Try again')}</button>` : loadingNote(T('Fetching the boards…'))}</p></section>`;
 	} else body = half === 'fame' ? fameHTML() : numbersHTML();
 	return `<div class="community">${headHTML()}${body}</div>`;
 }
@@ -643,7 +644,7 @@ let openRef = null;           // the card on screen, for ‹ › to count from
 /** The card, fetched once and held for the session. */
 async function fetchCard(ref) {
 	if (cards.has(ref)) return cards.get(ref);
-	const res = await call('GET', `/api/community/sailor/${encodeURIComponent(ref)}`).catch(() => null);
+	const res = await call('GET', `/api/community/sailor/${encodeURIComponent(ref)}`, null, T('Fetching the card…')).catch(() => null);
 	if (!res || !res.ok) throw new Error(res && res.body && res.body.error ? res.body.error : 'The card did not answer.');
 	cards.set(ref, res.body);
 	return res.body;
@@ -664,7 +665,7 @@ function openEntry(boardId, ref) {
 
 /** A sailor's card: places, the ship, the fleet, the crew, the career. */
 export async function openSailorCard(ref, section = null) {
-	const host = openDialog(`<h2>${T('A sailor')}</h2><p class="dialog-copy">${T('Fetching the card…')}</p>`);
+	const host = openDialog(`<h2>${T('A sailor')}</h2><p class="dialog-copy">${loadingNote(T('Fetching the card…'))}</p>`);
 	host.querySelector('.dialog-box').classList.add('wide', 'comm-card-box');
 	try {
 		paintCard(host, await fetchCard(ref), section);
@@ -782,8 +783,8 @@ function paintCard(host, c, section) {
 
 /** One board whole. */
 async function openBoard(id) {
-	const host = openDialog(`<h2>${T('The board')}</h2><p class="dialog-copy">${T('Fetching…')}</p>`);
-	const res = await call('GET', `/api/community/board/${encodeURIComponent(id)}`).catch(() => null);
+	const host = openDialog(`<h2>${T('The board')}</h2><p class="dialog-copy">${loadingNote(T('Fetching…'))}</p>`);
+	const res = await call('GET', `/api/community/board/${encodeURIComponent(id)}`, null, { label: T('Fetching…'), at: host }).catch(() => null);
 	const box = host.querySelector('.dialog-box');
 	if (!res || !res.ok) {
 		box.innerHTML = `<h2>${T('The board')}</h2><p class="dialog-copy">${esc(res && res.body && res.body.error ? res.body.error : T('The board did not answer.'))}</p><div class="dialog-actions"><button class="ghost-btn" data-close>${T('Close')}</button></div>`;
@@ -822,7 +823,7 @@ function openFind() {
 			if (q === last) return;
 			last = q;
 			if (q.length < 2) { list.innerHTML = ''; return; }
-			const res = await call('GET', `/api/community/find?q=${encodeURIComponent(q)}`).catch(() => null);
+			const res = await call('GET', `/api/community/find?q=${encodeURIComponent(q)}`, null, { label: T('Finding a sailor…'), at: list }).catch(() => null);
 			if (input.value.trim() !== q) return;
 			const hits = res && res.ok ? res.body.sailors : [];
 			list.innerHTML = hits.length

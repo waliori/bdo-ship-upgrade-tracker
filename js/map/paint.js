@@ -24,6 +24,7 @@ import { routeSeq, n1, stashLive } from './route.js';
 import { paintTrace } from './trace.js';
 import { inBox, hostSize, paintMeasure, restore3D } from './view.js';
 import { drawTerrain, terrainOn, prefetch as prefetchTerrain } from './terrain.js';
+import { MAP_LOADING_DELAY } from '../loading.js';
 
 /* ------------------------------------------------------------------ *
  * painting
@@ -352,11 +353,13 @@ function paintTiles(layer, tiles, size, { hold = false, ahead = [] } = {}) {
 	if (host) {
 		if (loading && !hold) {
 			if (!host._loadingTimer && !host.classList.contains('is-loading')) {
-				host._loadingTimer = setTimeout(() => { host._loadingTimer = null; host.classList.add('is-loading'); }, 300);
+				host._loadingTimer = setTimeout(() => { host._loadingTimer = null; host.classList.add('is-loading'); }, MAP_LOADING_DELAY);
 			}
+			host.setAttribute('aria-busy', 'true');
 		} else {
 			if (host._loadingTimer) { clearTimeout(host._loadingTimer); host._loadingTimer = null; }
 			host.classList.remove('is-loading');
+			host.removeAttribute('aria-busy');
 		}
 	}
 }

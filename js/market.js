@@ -16,6 +16,7 @@ import { T } from './i18n.js';
 import { items as vendorItems } from './vendor_items.js';
 import { iconLoader } from './icon-loader.js';
 import { landGoods } from './land_goods.js';
+import { loading as showLoading } from './loading.js';
 
 const KEY = 'bdo-tracker/market';
 const STALE_MS = 30 * 60 * 1000;
@@ -128,10 +129,13 @@ export function onMarket(fn) {
  * request however many screens ask. Resolves to true when new prices
  * landed, false when the copy in hand (if any) is all there is.
  */
-export async function loadMarket({ force = false } = {}) {
+export async function loadMarket({ force = false, by = null } = {}) {
 	if (loading) return loading;
 	const status = marketStatus();
 	if (!force && !status.stale) return false;
+	// The thread along the top while the prices are on the wire; the
+	// refresh button that asked, if one did, is marked busy with it.
+	const stop = showLoading(T('Fetching Market prices…'), { by });
 	loading = (async () => {
 		const ids = marketItems();
 		const byId = Object.fromEntries(Object.entries(ids).map(([item, id]) => [id, item]));
@@ -168,6 +172,7 @@ export async function loadMarket({ force = false } = {}) {
 		return false;
 	}).finally(() => {
 		loading = null;
+		stop();
 	});
 	return loading;
 }
