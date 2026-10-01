@@ -7910,5 +7910,7 @@
 	"on Discord": "в Discord",
 	"<b>The harbour.</b> On a weak signal the app opens from its offline copy after a few seconds instead of waiting on the network.": "<b>Гавань.</b> При слабом сигнале приложение через несколько секунд открывается из своей офлайн-копии, а не ждёт сеть.",
 	"The boards and the fleet in numbers. Signing in puts you on them, and one press here takes you off again. Only numbers are shared, never your stock, your notes or your traces.": "Рейтинги и флот в числах. Вход ставит вас на них, а одно нажатие здесь снимает обратно. Передаются только числа — никогда ваш запас, заметки или следы.",
-	"refills on every Barter Refresh": "пополняется при каждом обновлении информации о бартере"
+	"refills on every Barter Refresh": "пополняется при каждом обновлении информации о бартере",
+	"Discord did not answer. Try again in a moment.": "Discord не ответил. Попробуйте ещё раз через минуту.",
+	"Discord would not let the bot message you. Join the community server and allow direct messages from its members, then try again.": "Discord не дал боту написать вам. Вступите в сервер сообщества и разрешите личные сообщения от его участников, затем попробуйте ещё раз."
 }

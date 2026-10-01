@@ -5785,5 +5785,7 @@
 	"on Discord": "ใน Discord",
 	"<b>The harbour.</b> On a weak signal the app opens from its offline copy after a few seconds instead of waiting on the network.": "<b>ท่าเรือ</b> เมื่อสัญญาณอ่อน แอปจะเปิดจากสำเนาออฟไลน์ของมันหลังผ่านไปไม่กี่วินาที แทนที่จะรอเครือข่าย",
 	"The boards and the fleet in numbers. Signing in puts you on them, and one press here takes you off again. Only numbers are shared, never your stock, your notes or your traces.": "กระดานและกองเรือเป็นตัวเลข การเข้าสู่ระบบจะพาคุณขึ้นไป และกดที่นี่ครั้งเดียวก็ออกได้อีก แบ่งปันเฉพาะตัวเลข ไม่เคยแบ่งปันของสะสม บันทึก หรือเส้นทางของคุณ",
-	"refills on every Barter Refresh": "เติมเต็มทุกครั้งที่รีเฟรชรายการแลกเปลี่ยน"
+	"refills on every Barter Refresh": "เติมเต็มทุกครั้งที่รีเฟรชรายการแลกเปลี่ยน",
+	"Discord did not answer. Try again in a moment.": "Discord ไม่ตอบกลับ ลองใหม่อีกครั้งในอีกสักครู่",
+	"Discord would not let the bot message you. Join the community server and allow direct messages from its members, then try again.": "Discord ไม่ยอมให้บอทส่งข้อความหาคุณ เข้าร่วมเซิร์ฟเวอร์ชุมชนและอนุญาตข้อความส่วนตัวจากสมาชิก แล้วลองใหม่อีกครั้ง"
 }

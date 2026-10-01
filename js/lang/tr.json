@@ -5785,5 +5785,7 @@
 	"on Discord": "Discord’da",
 	"<b>The harbour.</b> On a weak signal the app opens from its offline copy after a few seconds instead of waiting on the network.": "<b>Liman.</b> Sinyal zayıfken uygulama ağı beklemek yerine birkaç saniye sonra çevrimdışı kopyasından açılıyor.",
 	"The boards and the fleet in numbers. Signing in puts you on them, and one press here takes you off again. Only numbers are shared, never your stock, your notes or your traces.": "Panolar ve sayılarla filo. Giriş yapmak seni onlara koyar, buradaki tek bir basış seni yeniden çıkarır. Yalnızca sayılar paylaşılır; stoğun, notların ya da izlerin asla.",
-	"refills on every Barter Refresh": "her Takas Yenileme’de dolar"
+	"refills on every Barter Refresh": "her Takas Yenileme’de dolar",
+	"Discord did not answer. Try again in a moment.": "Discord yanıt vermedi. Birazdan yeniden dene.",
+	"Discord would not let the bot message you. Join the community server and allow direct messages from its members, then try again.": "Discord, botun sana yazmasına izin vermedi. Topluluk sunucusuna katıl, üyelerinden özel mesajlara izin ver ve yeniden dene."
 }

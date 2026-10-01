@@ -5785,5 +5785,7 @@
 	"on Discord": "已发 Discord",
 	"<b>The harbour.</b> On a weak signal the app opens from its offline copy after a few seconds instead of waiting on the network.": "<b>港口。</b>在信号弱时，应用会在几秒后从离线副本打开，而不是一直等待网络。",
 	"The boards and the fleet in numbers. Signing in puts you on them, and one press here takes you off again. Only numbers are shared, never your stock, your notes or your traces.": "榜单以及数字里的船队。登录就会把你放上去，在这里按一下就能退出。只分享数字，绝不分享你的库存、笔记或航迹。",
-	"refills on every Barter Refresh": "每次物品交换更新都会补满"
+	"refills on every Barter Refresh": "每次物品交换更新都会补满",
+	"Discord did not answer. Try again in a moment.": "Discord 没有回应。请稍后再试一次。",
+	"Discord would not let the bot message you. Join the community server and allow direct messages from its members, then try again.": "Discord 不让机器人给你发消息。请加入社区服务器，并允许来自其成员的私信，然后再试一次。"
 }

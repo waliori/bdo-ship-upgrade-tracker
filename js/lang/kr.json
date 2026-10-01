@@ -5785,5 +5785,7 @@
 	"on Discord": "Discord로",
 	"<b>The harbour.</b> On a weak signal the app opens from its offline copy after a few seconds instead of waiting on the network.": "<b>항구.</b> 신호가 약하면 앱이 네트워크를 기다리지 않고 몇 초 뒤 오프라인 사본에서 열립니다.",
 	"The boards and the fleet in numbers. Signing in puts you on them, and one press here takes you off again. Only numbers are shared, never your stock, your notes or your traces.": "게시판과 숫자로 보는 선단. 로그인하면 올라가고, 여기서 한 번 누르면 다시 빠집니다. 숫자만 공유되며, 재고나 메모, 항적은 절대 공유되지 않습니다.",
-	"refills on every Barter Refresh": "물물교환 갱신마다 가득 참"
+	"refills on every Barter Refresh": "물물교환 갱신마다 가득 참",
+	"Discord did not answer. Try again in a moment.": "Discord가 응답하지 않았습니다. 잠시 후 다시 시도하세요.",
+	"Discord would not let the bot message you. Join the community server and allow direct messages from its members, then try again.": "Discord가 봇의 메시지를 허용하지 않았습니다. 커뮤니티 서버에 들어가 멤버의 다이렉트 메시지를 허용한 뒤 다시 시도하세요."
 }

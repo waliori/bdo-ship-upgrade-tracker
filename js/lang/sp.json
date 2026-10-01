@@ -5803,5 +5803,7 @@
 	"on Discord": "en Discord",
 	"<b>The harbour.</b> On a weak signal the app opens from its offline copy after a few seconds instead of waiting on the network.": "<b>El puerto.</b> Con señal débil, la app se abre desde su copia sin conexión después de unos segundos en lugar de esperar a la red.",
 	"The boards and the fleet in numbers. Signing in puts you on them, and one press here takes you off again. Only numbers are shared, never your stock, your notes or your traces.": "Los tableros y la flota en números. Iniciar sesión te pone en ellos, y un toque aquí te saca de nuevo. Solo se comparten números, nunca tu inventario, tus notas ni tus trazos.",
-	"refills on every Barter Refresh": "se recarga con cada Actualización de Trueque"
+	"refills on every Barter Refresh": "se recarga con cada Actualización de Trueque",
+	"Discord did not answer. Try again in a moment.": "Discord no respondió. Inténtalo de nuevo en un momento.",
+	"Discord would not let the bot message you. Join the community server and allow direct messages from its members, then try again.": "Discord no dejó que el bot te escribiera. Únete al servidor de la comunidad y permite mensajes directos de sus miembros; luego inténtalo de nuevo."
 }

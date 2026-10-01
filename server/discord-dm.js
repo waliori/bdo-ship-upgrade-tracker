@@ -82,11 +82,11 @@ export function dmRoutes() {
 					body: 'You asked Falasi to message you when a stop or a run is due. Switch it off in Sailor’s Log whenever you like.'
 				});
 				if (!said.ok) {
-					return res.status(409).json({
-						error: said.closed
-							? 'Discord would not let the bot message you. Join the community server and allow direct messages from its members, then try again.'
-							: 'Discord did not answer. Try again in a moment.'
-					});
+					// Each refusal written as `error: '…'` on its own, so the
+					// language catalogue finds it and the page can say() it.
+					const closed = { error: 'Discord would not let the bot message you. Join the community server and allow direct messages from its members, then try again.' };
+					const silent = { error: 'Discord did not answer. Try again in a moment.' };
+					return res.status(409).json(said.closed ? closed : silent);
 				}
 			}
 			await setDiscordAlerts(req.userId, on);
