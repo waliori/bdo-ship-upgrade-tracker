@@ -8,9 +8,10 @@
 //   node tools/build-changelog.mjs          # write it
 //   node tools/build-changelog.mjs --check  # fail if it would change
 //
-// The dialog shows the narrow copies under docs/media/small, since they
-// travel inside the Docker image. A README is served by GitHub to a
-// desktop browser, so here the full-size original is used instead.
+// The pictures are the narrow copies under docs/media/small, the same
+// ones the dialog shows. The full-size originals are several times the
+// weight, and a changelog is read past rather than studied: pointing at
+// them kept a dozen megabytes of GIFs in the tree for this file alone.
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -25,9 +26,6 @@ const md = html => html
 	.replace(/<\/?b>/g, '**')
 	.replace(/<\/?i>/g, '*')
 	.replace(/<kbd>(.*?)<\/kbd>/g, '`$1`');
-
-/** The full-size original of a picture the app serves narrow. */
-const wide = src => src.replace('/small/', '/');
 
 const HEAD = `# Changelog
 
@@ -52,7 +50,7 @@ const body = RELEASES.flatMap(r => {
 	}
 	for (const s of r.sections) {
 		blocks.push(`### ${md(s.title)}`);
-		if (s.media) blocks.push(`![${s.alt || ''}](${wide(s.media)})`);
+		if (s.media) blocks.push(`![${s.alt || ''}](${s.media})`);
 		if (s.text) blocks.push(md(s.text));
 		if (s.points) blocks.push(s.points.map(p => `- ${md(p)}`).join('\n'));
 	}

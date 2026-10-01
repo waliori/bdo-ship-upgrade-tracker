@@ -19,21 +19,21 @@ const entries = () => [
 		img: 'guide/parley-window.webp',
 		title: T('Parley, and the bar it fills'),
 		where: T('World Map (M) → Barter Information'),
-		text: T('The bar refills to 1,000,000 at the 06:00 UTC reset. Every row prints “Parley: N required” — the rate depends on which list the row is on, and your discounts are already applied to it. “Total Barters” in the header is the number this app calls Total Barters in the bar above the tabs: type it there and the routes it has opened — and the islands every run is planned through — will agree with your game.')
+		text: T('Every Barter Refresh, on either list, refills the bar to 1,000,000; the refresh points themselves come back at the 06:00 UTC reset. Every row prints “Parley: N required” — the rate depends on which list the row is on, and your discounts are already applied to it. “Total Barters” in the header is the number this app calls Total Barters in the bar above the tabs: type it there and the routes it has opened — and the islands every run is planned through — will agree with your game.')
 	},
 	{
 		id: 'refresh',
 		img: 'guide/refresh.webp',
 		title: T('Two lists, refreshed apart'),
 		where: T('the ↻ button in Barter Information'),
-		text: T('Trade items and ship materials are separate lists with separate refresh costs — 20/40/50 points and 10/30 — plus 30 to skip the two-hour cooldown, and parley can buy the cooldown down a minute per 10,000. The point pool is 100 a day, 150 with a Value Pack. The map’s Materials / Trade goods filter exists because of this split.')
+		text: T('Trade items and ship materials are separate lists with separate refresh costs — 20/40/50 points and 10/30 — plus 30 to skip the two-hour cooldown, and Parley can buy the cooldown down a minute per 10,000. The point pool is 100 a day, 150 with a Value Pack. The map’s Materials / Trade goods filter exists because of this split.')
 	},
 	{
 		id: 'level',
 		img: 'guide/barter-level.webp',
 		title: T('The level discount'),
 		where: T('Profile (P) → Life Skill → hover “Barter”'),
-		text: T('Higher Barter levels cut the parley of every exchange — the tooltip states the exact percentage. It adds with the Value Pack’s −10% and Cleia’s −10%; the sum comes off the base price. Pick your level in the bar above the tabs and every parley figure in the app uses it. Cleia’s cut is not asked for: seat her at the First Mate seat on the Ship tab and it is taken as read.')
+		text: T('Higher Barter levels cut the Parley of every exchange — the tooltip states the exact percentage. It adds with the Value Pack’s −10% and Cleia’s −10%; the sum comes off the base price. Pick your level in the bar above the tabs and every Parley figure in the app uses it. Cleia’s cut is not asked for: seat her at the First Mate seat on the Ship tab and it is taken as read.')
 	},
 	{
 		id: 'voucher',
@@ -47,7 +47,7 @@ const entries = () => [
 		img: 'guide/exchanges-left.webp',
 		title: T('One offer per island, so many tries'),
 		where: T('the rows of Barter Information'),
-		text: T('Each refresh deals every island one offer per list, drawn from that island’s own pool — the map’s “1 of N a refresh” is that pool. “Exchanges Left” caps how many times you can take the offer: ten for the low rungs, as few as one or two at the top, which is why the forecast counts refreshes rather than parley.')
+		text: T('Each refresh deals every island one offer per list, drawn from that island’s own pool — the map’s “1 of N a refresh” is that pool. “Exchanges Left” caps how many times you can take the offer: ten for the low rungs, as few as one or two at the top, which is why the forecast counts refreshes rather than Parley.')
 	},
 	{
 		id: 'island',

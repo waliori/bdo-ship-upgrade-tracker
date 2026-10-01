@@ -22,7 +22,7 @@
 //
 // The languages are BDOCodex's own sixteen, so the look-up link always
 // lands on the database the player reads. Three of those sixteen --
-// Basa Indonesia, SEA English and Global Lab -- serve English item
+// Bahasa Indonesia, SEA English and Global Lab -- serve English item
 // names (checked against tip.php, 2026-09-09), so they carry the
 // English interface and differ only in where a look-up opens.
 
@@ -67,7 +67,7 @@ export const LANGS = [
 	{ id: 'tw', label: '繁體中文', flag: '\u{1F1F9}\u{1F1FC}', ui: 'tw', font: 'Noto+Sans+TC', reader: 'zh-Hant' },
 	{ id: 'th', label: 'ภาษาไทย', flag: '\u{1F1F9}\u{1F1ED}', ui: 'th', font: 'Noto+Sans+Thai', reader: 'th' },
 	{ id: 'tr', label: 'Türkçe', flag: '\u{1F1F9}\u{1F1F7}', ui: 'tr', reader: 'tr' },
-	{ id: 'id', label: 'Basa Indonesia', flag: '\u{1F1EE}\u{1F1E9}', ui: 'en', reader: 'id' },
+	{ id: 'id', label: 'Bahasa Indonesia', flag: '\u{1F1EE}\u{1F1E9}', ui: 'en', reader: 'id' },
 	{ id: 'seaen', label: 'SEA English', flag: '\u{1F30F}', ui: 'en', reader: 'sea' },
 	{ id: 'gl', label: 'Global Lab', flag: '\u{1F9EA}', ui: 'en', reader: 'gl' }
 ];

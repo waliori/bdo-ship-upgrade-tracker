@@ -11,9 +11,9 @@ export const DATA = [
 	{ what: TT('Barterers’ positions on the chart'), asOf: '2026-08-30', from: TT('client positions, within a pixel') },
 	{ what: TT('Sea monster spawn points'), asOf: '2026-08-30', from: TT('BDOCodex; the Lyngbakr Habitat from in-game bookmarks, 2026-08-31') },
 	{ what: TT('What islands paid on your runs'), asOf: 'live', from: TT('your own record, from the Barter tab’s checklist') },
-	{ what: TT('The ship-material board — four whole boards'), asOf: '2026-09-05', from: TT('the barter window, read off screenshots of four refreshes; how often each offer is up comes from these') },
-	{ what: TT('The trade-good list — forty layouts'), asOf: '2026-09-18', from: TT('a community sheet kept by RENGEREL, 465 refreshes since 2026-04-16; refetched after the patch of 17 September moved a slot on layout 31') },
-	{ what: TT('What each island deals, and the barter count each exchange needs'), asOf: '2026-09-18', from: TT('the game client’s own barter table, read after the 17 September patch') },
+	{ what: TT('The ship-material list — the game’s 41 layouts'), asOf: '2026-09-27', from: TT('the game client’s own barter tables; how often each material is up is worked out from them, not sampled') },
+	{ what: TT('The trade-good list — forty layouts'), asOf: '2026-09-27', from: TT('the game client’s own barter tables, baked again after each patch; RENGEREL’s community sheet, which they were first read from, is kept only as how often each was seen') },
+	{ what: TT('What each island deals, the Total Barters each exchange needs, and its Parley'), asOf: '2026-09-27', from: TT('the game client’s own barter tables') },
 	{ what: TT('Monster ground markers — 32 of them'), asOf: '2026-09-14', from: TT('the game’s own world map: the client’s habitat icons, position and all') },
 	{ what: TT('Wharf managers — the full roll, 58 of them'), asOf: '2026-08-31', from: TT('BDOCodex NPC pages') },
 	{ what: TT('Cox Pirates’ camps, flags and cargo ships'), asOf: '2026-08-31', from: TT('Awabi’s “The Road to Cox” map, fitted to the chart on its island names') },
@@ -27,7 +27,11 @@ export const DATA = [
 	{ what: TT('The yellow tier (Falasi, Cheongun)'), asOf: '2026-08-26', from: TT('patch notes, BDOCodex') },
 	{ what: TT('Crow Coin Shop prices'), asOf: '2026-08-25', from: TT('the shop at Oquilla’s Eye') },
 	{ what: TT('Falasi’s prices'), asOf: '2026-08-25', from: 'Port Epheria' },
-	{ what: TT('Parley rates and discounts'), asOf: '2026-08-29', from: TT('the Barter Information window') },
+	{ what: TT('Parley discounts'), asOf: '2026-08-29', from: TT('the Barter Information window') },
+	{ what: TT('Rations eaten under sail'), asOf: '2026-09-28', from: TT('measured: the pool watched in game — a tick about every 7 s of the hull’s take and every sailor’s appetite; read on the Carracks, a guess on the other hulls') },
+	{ what: TT('Sailing time of a leg'), asOf: '2026-09-23', from: TT('measured: five legs of a Carrack timed in game, 8.75 m/s at 100% and 23 s a leg; an estimate for any other ship until it times its own') },
+	{ what: TT('The barter ceiling, 170% of the hold limit'), asOf: '2026-09-11', from: TT('an estimate: community ship calculators and sailors’ own runs; the game states no figure') },
+	{ what: TT('A wharf loads no further than the hold limit'), asOf: '2026-09-28', from: TT('measured: Load Cargo refusing past the limit in game; only exchanges go on to the barter ceiling') },
 	{ what: TT('Vell’s timetable (EU, NA)'), asOf: '2026-08-30', from: 'mmotimer.com' },
 	{ what: TT('Sea crystals — 287 variants and the Nols'), asOf: '2026-08-31', from: 'BDOCodex' },
 	{ what: TT('Central Market prices'), asOf: 'live', from: TT('the community market API, per region') }
@@ -63,8 +67,8 @@ export const RELEASES = [
 	{
 		id: '1.5',
 		name: TT('Plan, load, sail, results'),
-		date: '2026-09-25',
-		sum: TT('A barter run is four steps — plan it, pack it, sail it stop by stop, record it — with routes found by water, trips when the hold is full, your bag as a second hold, and one trade picked for a short trip.'),
+		date: '2026-10-01',
+		sum: TT('A barter run is four steps — plan it, pack it, sail it stop by stop, record it — with routes found by water, trips when the hold is full, your bag as a second hold, one trade picked for a short trip, and both barter lists read out of the game’s own tables.'),
 		thanks: {
 			text: TT('One player shaped most of this release, and a crew of others caught what was broken in it.'),
 			who: [
@@ -76,7 +80,7 @@ export const RELEASES = [
 			also: ['TheRealDonia', 'Bevs', 'GriefLZ', 'Kairukae', 'BAYONET', 'Sam', 'RENGEREL', 'eavi', 'Fresh', 'Zelpha'],
 			foot: TT('The box is under <b>Menu \u2192 Feedback</b>. It reaches whoever runs the site.')
 		},
-		blurb: TT('The Barter tab was one long page with a sheet over it, and the run was sailed somewhere else. It is <b>four steps</b> now, one on the page at a time: <b>Plan</b> the day, <b>Load</b> what goes aboard — a tick loads the hold for real — <b>Sail</b> it from a cockpit that waits at every island for you, and see the <b>Results</b> before they are recorded. Under it, the route is <b>searched by water</b> and cut into trips when the hold cannot carry everything at once.'),
+		blurb: TT('The Barter tab was one long page with a sheet over it, and the run was sailed somewhere else. It is <b>four steps</b> now, one on the page at a time: <b>Plan</b> the day, <b>Load</b> what goes aboard — a tick loads the hold for real — <b>Sail</b> it from a cockpit that waits at every island for you, and see the <b>Results</b> before they are recorded. Under it, the route is <b>searched by water</b> and cut into trips when the hold cannot carry everything at once. And the boards are <b>the game’s own</b> now: both barter lists come out of the client’s tables, the material list is one of its 41 layouts, and every route counts the rations it eats.'),
 		sections: [
 			{
 				title: TT('Four steps, one at a time'),
@@ -110,6 +114,76 @@ export const RELEASES = [
 			{
 				title: TT('Readers, links and words'),
 				text: TT('The barter reader reads any client’s language, taken from the Menu; the material list has a book of its own, like the layouts. Signed in, a shared plan, ship, drawing or route is a <b>short link</b>, and a drawing holds several lines of stops. Every game word in the twelve languages was checked against the game’s own.')
+			},
+			{
+				title: TT('The boards are the game’s own'),
+				text: TT('The forty trade layouts and the material list are read out of the game client’s own barter tables, baked again after each patch; the community sheet they were first read from is kept only as how often each layout was seen. Every exchange carries what the game gives it: how many a day, what it pays, the Total Barters that open it, and its own <b>Parley</b> — a Crow Coin trade costs more than a trade good, and a run now spends what it says.'),
+				points: [
+					TT('A few slots on a layout are left to chance — a good or Crow Coins, one of an island’s [Level 7]s. <b>Today’s rolls</b> asks which, with the game’s odds and the fleet’s share beside each, and the board follows the answer.'),
+					TT('The trade layouts keep the islands paying something else — a ship material, a box, a rare good, a pool that pays one of several — so a run can end a chain at a material the builds need, and the Great Ocean goods can be left out with one switch.')
+				]
+			},
+			{
+				title: TT('The material list is one of the game’s layouts'),
+				text: TT('The material list is one of <b>41 layouts</b>, so a page read off the window names it and fills in the rest. The materials the builds need are chosen by themselves — or as many as the Parley buys — and the run packs at the wharf like a trade-goods run: one checklist, the route island by island, the Parley at every stop.'),
+				points: [
+					TT('A material run spends only the Parley it has, the best rates first, and takes as many trips as the hold needs.'),
+					TT('It can be taken up again at sea, from the island the ship is at, and a run recorded part-way leaves the islands what they have left today.'),
+					TT('How often a material is on the list is worked out from the game’s tables rather than sampled from a handful of boards.'),
+					TT('A refresh is a trade board <i>or</i> a material list, never both: reading one puts down the other.')
+				]
+			},
+			{
+				title: TT('Rations, and what a wharf will load'),
+				text: TT('Every barter route counts the <b>rations</b> it eats — a tick about every seven seconds of the hull’s take and every sailor’s appetite, with BreezySail on top — and puts a call for supplies in at a wharf where the pool would run low. The cockpit and the Map’s panel show what is left at every stop.'),
+				points: [
+					TT('A wharf loads no further than the hold’s limit, from storage, the bag or the Market; only the exchanges take the hold on to the barter ceiling. Every run keeps to it, a fast run included.')
+				]
+			},
+			{
+				title: TT('To Get has today'),
+				text: TT('To Get reads the board read on the Barter tab: the islands paying something you are short of, what each can bring today, and the ones that cannot be done with why. <b>Sail it</b> hands the Barter tab the run. Every barter figure on To Get is marked an estimate, and the days count both lists.')
+			},
+			{
+				title: TT('Sailing it'),
+				text: TT('The sailing clock draws <b>your own ship</b> crossing the leg on a moving sea, making fast at the pier when the leg’s time comes. Casting off drops it in close up and pulls back into the clock, and the glance view and the full view grow one into the other.'),
+				points: [
+					TT('A stop that pays a range waits for <b>Traded</b> until its count is said — typed, or picked off the least, the middle, the most or what sailors were paid most.'),
+					TT('Under way, a voucher counts once it is drawn, and the Parley bar can be set from the game’s window.'),
+					TT('<b>Abandon</b> asks whether to keep what was traded — recorded as Record would — or put everything back, and Undo brings the run back either way.'),
+					TT('Where the ship is now is picked among every barterer, the island the last run stopped at first.')
+				]
+			},
+			{
+				title: TT('A stock run, good by good'),
+				text: TT('A stock run starts each chain from the goods held over their target and stops below a good already full, says when a good is held elsewhere, and between two runs worth the same takes the cheaper.')
+			},
+			{
+				title: TT('A correction: Total Barters adds nothing to Crow Coins'),
+				text: TT('The diary of 14 September said <b>Total Barters adds a percent to every exchange</b>, up to +30% past 2,500. It does not: the barter window pays what the island states, and the client table that was read for it is about something else. The bonus is gone from every coin figure, so a coin run shows less than it did — and what it shows now is what lands in the purse.')
+			},
+			{
+				title: TT('Around the app'),
+				points: [
+					TT('A chain card opens its climb step by step, and two ticked chains that want the same goods say so before both are sailed.'),
+					TT('Items can be removed from the Inventory, and reading a storage can replace it rather than add to it.'),
+					TT('A held count can be typed in place on the Builds blockers and every To Get row; crafting a build’s own item asks whether the build is done.'),
+					TT('The two Barter Goods Support dailies ask which [Level 1] good went.'),
+					TT('On a phone the sailing bar is half as tall.')
+				]
+			},
+			{
+				title: TT('Fixes, and a Map that fits a phone'),
+				text: TT('A last sweep before the release, through saves, the clock, the Ship tab and the Map.'),
+				points: [
+					TT('<b>Your save is safer.</b> The tour over someone’s shared plan no longer keeps their plan as yours; <i>Replace mine</i> keeps your Map routes, drawings and run diary; <i>Make it my ship</i> brings their sailors aboard beside yours; signing in asks before replacing a save that holds only a crew or drawings; edits made offline go up without asking which copy; one Undo is never applied twice across two tabs; a run of more than eighty stops keeps them all.'),
+					TT('<b>The barter run.</b> The five [Great Ocean] goods sell at their 25 million and the rare goods are priced at last; a [Level 5] or higher takes a bag slot each; Undo after Record gives the islands their attempts back; route edits survive a reload with many chains ticked; a 2–3 range is recorded fairly; three Crow Coin Shop prices agree everywhere; Sail and Results say what to do when there is nothing to show.'),
+					TT('<b>The clock.</b> Resets and Vell’s times hold across a clock change in a zone of your own; <i>the whole run</i> chime rings, and the end bell rings once; the stop count follows a run laid again under way.'),
+					TT('<b>The ship.</b> The Fleet list reads the ship as it sails — the Corsair point and the parts you own included; a crafting route no longer switches a thing from bought to crafted; auto-arrange leaves sick sailors ashore; a pool you watched is used by the barter routes too, ship by ship.'),
+					TT('<b>The Map.</b> Its tools fit a phone and have names, its tabs are <i>Who has it</i>, <i>Route</i>, <i>Draw</i>, <i>Hunt</i> and <i>Today</i>, the chart starts higher, and its labels keep their colours in the light theme.'),
+					TT('<b>The harbour.</b> Signing in no longer puts you on the community boards: you are asked first. And on a weak signal the app opens from its offline copy after a few seconds instead of waiting on the network.'),
+					TT('<b>Around the app.</b> A first visit follows the system’s light or dark; a phone’s bar holds Plan, Inventory, Map and Barter for good; taps on a phone have room; the quests’ box says what it is for.')
+				]
 			}
 		]
 	},
@@ -788,6 +862,55 @@ export const RELEASES = [
 export const RELEASE = RELEASES[0].id;
 
 export const CHANGES = [
+	{
+		date: '2026-10-01',
+		title: TT('A sweep of fixes before 1.5'),
+		notes: [
+			TT('<b>Saves.</b> A shared plan looked at under the tour stays theirs; <i>Replace mine</i> and <i>Make it my ship</i> keep what the link never carried; sign-in asks before replacing a save of only a crew or drawings; offline edits go up without asking; sync recovers when the server has lost the save.'),
+			TT('<b>Clock, ship and Map.</b> Resets across a clock change, the whole-run chime, one end bell; the Fleet list matches the ship sailed; sick sailors stay ashore; the Map’s tools fit a phone, its tabs have plain names, and a first visit follows the system’s theme.')
+		]
+	},
+	{
+		date: '2026-09-30',
+		title: TT('Loose ends after the game’s tables'),
+		notes: [
+			TT('<b>A fast run never loads past the hold limit</b>, a trip that would fit at the start says why it waits, and the next board’s loads are on the Load step. A run taken up at sea hands its home quests in back there, and Undo after <i>Abandon, keep</i> brings the run back.'),
+			TT('<b>Smaller things.</b> A recorded material run shows the materials it brought; To Get says a pool pays only if a draw shows it; the barter reader steps over the (?) after Total Barters; the board names the game’s layouts; the sailing clock numbers the stops as the run does; the phone’s sailing bar is half as tall; French says Tractation for Parley, as the game does.')
+		]
+	},
+	{
+		date: '2026-09-29',
+		title: TT('To Get has today’s board, and one layout at a time'),
+		notes: [
+			TT('<b>To Get reads today’s board</b>: island by island, what the layout read on the Barter tab can bring toward the list, the ones that cannot be done listed with why, and <b>Sail it</b> to hand the Barter tab the run. Every barter figure there is marked an estimate, and the days count both lists.'),
+			TT('<b>One layout at a time</b>: a trade board read puts down the material list read before it, and the other way round. The trade layouts keep the islands paying something else — materials, boxes, rare goods, pools — and <b>Today’s rolls</b> asks what the pools pay.'),
+			TT('<b>A stock run is shaped good by good</b>, and a material run keeps to the material list. A held count is typed in place on the Builds blockers and on To Get; crafting a build’s own item asks whether the build is done; under way, a voucher counts once drawn and the Parley bar can be set from the game’s window.')
+		]
+	},
+	{
+		date: '2026-09-28',
+		title: TT('The material list is the game’s 41 layouts, and every route eats'),
+		notes: [
+			TT('<b>The material list is one of the game’s 41 layouts</b>: a page read names it and fills in the rest, the materials the builds need are chosen by themselves, and the run packs at the wharf, spends only the Parley it has and takes as many trips as the hold needs. It can be taken up again at sea.'),
+			TT('<b>Rations in every route</b>: a tick about every seven seconds of the hull’s take and every sailor’s appetite, BreezySail on top, and a call for supplies where the pool would run low. <b>A wharf loads no further than the hold’s limit</b>; only exchanges go on to the barter ceiling.'),
+			TT('<b>No Total Barters bonus on Crow Coins</b>: the window pays what the island states, and a stop that pays a range waits for its count to be said.')
+		]
+	},
+	{
+		date: '2026-09-27',
+		title: TT('The game’s own barter tables, and your ship on the clock'),
+		notes: [
+			TT('<b>The layouts come from the game client’s own tables</b>, and the community sheet is dropped: every exchange carries the game’s daily count, pay, gate and Parley, and <b>Today’s rolls</b> asks which way the slots left to chance went. The material odds are exact rather than sampled.'),
+			TT('<b>The sailing clock draws your own ship</b> crossing the leg on a moving sea; casting off drops it in close up and pulls back into the clock. A chain card opens its climb step by step, and two chains on one pile of goods say so before both are ticked.')
+		]
+	},
+	{
+		date: '2026-09-25',
+		title: TT('Abandon asks, and the Inventory can let go'),
+		notes: [
+			TT('<b>Abandon asks</b> whether to keep what was traded or put everything back, the packing refunded; the Results step always opens. Items can be removed from the Inventory, reading a storage can replace it, and looking at a shared ship stands it up on the Ship tab with a bar that brings yours back.')
+		]
+	},
 	{
 		date: '2026-09-25',
 		title: TT('Your bag as a second hold, and a day of fixes'),

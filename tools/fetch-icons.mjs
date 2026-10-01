@@ -2,11 +2,10 @@
 //
 // The item names come from the same modules the interface reads --
 // recipes, vendors, coins, quests, sailor care, ships -- plus the barter
-// catalogue. A name with no entry in icon_mapping.json is looked up: the
-// barter file already carries an id and an icon path beside each item,
-// and everything else is resolved by name against BDOCodex's item list
-// (query.php?a=items, one big dump, fetched once per run). Each icon is
-// downloaded to icons/ and the mapping gains a row with the item's page.
+// catalogue. A name with no entry in icon_mapping.json is resolved by
+// name against BDOCodex's item list (query.php?a=items, one big dump,
+// fetched once per run). Each icon is downloaded to icons/ and the
+// mapping gains a row with the item's page.
 //
 // This is the icon getter from ../bdocode-scraper/bdo_scraper_simple.py
 // (download_icon and its browser headers), made to run over the app's
@@ -86,8 +85,8 @@ for (const s of ships) want(typeof s === 'string' ? s : s.name);
 
 const barter = JSON.parse(fs.readFileSync(path.join(ROOT, 'js/all_barter.json'), 'utf8'));
 for (const e of Array.isArray(barter) ? barter : Object.values(barter)) {
-	want(e.name, { id: e.id, icon: e.icon });
-	for (const s of e.sources || []) if (s.give) want(s.give.name, { id: s.give.id, icon: s.give.icon });
+	want(e.name);
+	for (const s of e.sources || []) if (s.give) want(s.give.name);
 }
 
 const missing = [...wanted].filter(([n]) => !known(n));

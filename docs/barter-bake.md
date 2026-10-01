@@ -134,5 +134,7 @@ works with:
   least half the time, else only once seen.
 
 A random or rare slot never rules a layout out by what it shows, unless what
-was seen is none of its options. Material islands are left to the material
-list.
+was seen is none of its options. Islands on the trade board that pay a ship
+material, a box or a rare good keep their row as an offer, and a material pool
+(`pools`) is named with what it may draw; the material list itself is its own
+board, read from `MATERIAL` as one of its 41 layouts.

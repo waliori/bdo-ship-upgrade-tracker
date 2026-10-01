@@ -130,7 +130,7 @@ export const LANGS = [
 		condition: ['Sağlık'], appetite: ['İştah'], cabin: ['Talep Edilen Kamara'], weight: ['Ağırlık'],
 		speed: ['Nefes'], accel: ['İvme'], turn: ['Hassaslık'], brake: ['Süper Zırh'],
 		patience: ['Sabır'], force: ['Güç'], focus: ['Odaklanma'], vision: ['Görüş Mesafesi'] } },
-	{ tag: 'id', label: 'Basa Indonesia', tess: 'eng', labels: {
+	{ tag: 'id', label: 'Bahasa Indonesia', tess: 'eng', labels: {
 		cabin: ['Cabin yang diperlukan'], weight: ['Berat'] } },
 	// The two English services the game's own menu lists apart. Their
 	// client is the US one as far as a screenshot is concerned.

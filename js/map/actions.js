@@ -484,7 +484,8 @@ export function skipMapErrandCall(i) {
 	if (!c || !c.todo.length) return;
 	for (const t of c.todo) skipErrand(t.q.id, true);
 	closeDialog();
-	toast(`${c.name} left out — ${c.todo.length} quest${c.todo.length === 1 ? '' : 's'} put aside for today`);
+	const n = c.todo.length, name = gameName(c.name);
+	toast(n === 1 ? T('{name} left out — {n} quest put aside for today', { name, n: F(n) }) : T('{name} left out — {n} quests put aside for today', { name, n: F(n) }));
 	startErrands();
 	refreshSide();
 	afterPaint(() => { errandPlan(); refreshSide(); paintMap(); });
@@ -493,11 +494,11 @@ export function skipMapErrandCall(i) {
 /** The loop onto the Draw tab, where it can be named, kept and shared. */
 export function drawMapErrands() {
 	const data = errandTrace();
-	if (!data) return toast('Nothing to draw — work the loop out first');
-	if (!applyTraceObject(data)) return toast('The loop would not draw');
+	if (!data) return toast(T('Nothing to draw — work the loop out first'));
+	if (!applyTraceObject(data)) return toast(T('The loop would not draw'));
 	refreshSide();
 	paintMap();
-	toast('Today’s errands are on the Draw tab — name it and keep it to share the link', true);
+	toast(T('Today’s errands are on the Draw tab — name it and keep it to share the link'), true);
 }
 
 export function setMapHunt(key) {

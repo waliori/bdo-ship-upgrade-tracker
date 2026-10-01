@@ -8,9 +8,13 @@ Then the sea: the sailing quests, a barter run laid out for today's board
 and the route to sail it, your ship and its crew, and a map you can draw
 on, share, and export into the game as bookmarks or a loop.
 
-Runs entirely in your browser. No account, no server, nothing leaves your
-machine — [unless you turn on sync](#syncing-across-devices), which is
-opt-in, self-hosted and off by default.
+Runs in your browser, and keeps your save there. No account is needed,
+and nothing of yours leaves your machine unless you
+[turn on sync](#syncing-across-devices), which is opt-in, self-hosted and
+off by default. The page itself is served by a small Node server, which
+also relays the Central Market's prices from the community market API
+while you are online; offline, the app runs from its own copy and the
+last prices it was given.
 
 ![The Plan screen, part-way through two Carrack parts](docs/media/hero.png)
 
@@ -41,6 +45,13 @@ whatever is being talked about lit up on screen as it is named:
 Same rule as the walkthrough: it is the real app being driven, and the
 only invented thing anywhere in it is the handful of sailors on those
 boards.
+
+*The barter parts are older than the Barter tab.* Chapter Six, the
+barter stretch of the walkthrough, and the clips of the layout book and
+the screenshot reader below were shot before the tab became four steps
+and before the boards came out of the game's own tables. What they show
+still happens, but not on the screens they show it on; they are due to
+be shot again.
 
 ---
 
@@ -158,8 +169,11 @@ stock either way.
 
 Below the yellow tier an attempt takes a **failstack** too. The game
 publishes no per-stack figure for ship parts, so the Workshop assumes
-the standard line — a tenth of the base rate a stack, capped at 90% —
-and says so; blank means the quoted rate.
+the standard line — a tenth of the base rate a stack until the chance
+reaches 70%, a fiftieth of it a stack after that, and never past 90% —
+and says so; blank means the quoted rate. It was checked against a
+community table for the green Caravel parts; the other tiers are taken
+to follow it.
 
 ![Crafting a batch of 40](docs/media/craft.gif)
 
@@ -270,14 +284,12 @@ it, because none is published — on a two-part Carrack that is the
 difference between forty-three days and thirty.
 
 **How often the offer is really there.** Every barter figure in this app
-used to assume the exchange you want is on the list each time you draw
-it. It is not: of the four whole ship-material boards recorded, a
-Saltwater Crocodile's Scale was on *one*. So the forecast now reads both
-records that ride with the barter table — those four complete boards,
-and the forty trade-list layouts seen across four hundred and twenty
-refreshes — and paces every rung by how often it was actually there. The
-old figure survives as the floor, with the sample beside it: *about 11
-days, 5 if the offer is always up · on 1 of the 4 boards recorded*.
+used to assume the exchange you want is on the list each time you
+refresh it. It is not: a Saltwater Crocodile's Scale is on one material
+list in thirty. So the forecast reads the game client's own tables — the
+41 material layouts and the forty trade layouts, with the odds of every
+slot the game leaves to chance — and paces every rung by how often it is
+actually there. The old figure survives as the floor, beside the odds.
 
 What is measured is presence rather than how many islands showed it, so
 the change can only ever lengthen a forecast and never shorten one; a
@@ -356,7 +368,7 @@ the level table lives.
 
 **Menu → Language** offers the same sixteen BDOCodex does — US English,
 Deutsch, Français, Русский, Español (NA/EU), Español (SA), Português,
-日本語, 한국어, 中文, 繁體中文, ภาษาไทย, Türkçe, Basa Indonesia, SEA
+日本語, 한국어, 中文, 繁體中文, ภาษาไทย, Türkçe, Bahasa Indonesia, SEA
 English and Global Lab — and one choice moves both halves of the screen:
 the app's own words, and the database its look-ups open in.
 
@@ -373,7 +385,7 @@ and a recipe are all written in English names, on every language, so a
 route planned in Korean opens in German and a shared build reads the same
 on both. Only the pixels change.
 
-Three of the sixteen — Basa Indonesia, SEA English and Global Lab — are
+Three of the sixteen — Bahasa Indonesia, SEA English and Global Lab — are
 English databases on BDOCodex, so they draw the English interface and
 differ only in where a look-up lands, which is what a player on those
 servers wants.
@@ -705,8 +717,9 @@ cap, says so on the leg, and the total follows. A leg the router
 cannot bend round the land is drawn straight, dashed in red, and named
 in the panel as a floor rather than a reading. The **Rations** line
 does the same for the pool: what the run eats of it and what is left,
-from the crew's appetite and an estimated drain under sail (6,000 a
-minute, replaceable by watching the pool over one leg), and when it
+at a tick about every seven seconds of the hull's take and every
+sailor's appetite — 10,000 to 26,000 a minute, depending on hull and
+crew, and replaceable by watching the pool over one leg — and when it
 would run below a tenth before the end, the stop it runs low after and
 the nearest wharf manager to call at, put into the run at one press.
 Parley is costed at
@@ -773,8 +786,8 @@ sort, and every trace as a card.
 ### A run on today's board
 
 The trade-goods barters are not rolled island by island: every refresh
-the whole sea shows one of forty fixed layouts, which a community
-record of nearly two thousand refreshes writes out island by island. So
+the whole sea shows one of forty fixed layouts, which the game client's
+own tables write out island by island. So
 the **Barter** tab asks what *one* island is showing — tap it from that
 island's possible offers, the one that tells the layouts apart best is
 suggested — and the whole board follows: every chain the day allows,
@@ -827,11 +840,12 @@ and Nopsae's Byeot County at the Dami and Dallae piers). The bag gets its
 own group on the packing list, and the run without it is kept when it
 pays better an hour — the plan says why the bag went unused.
 
-**The material list has a book of its own.** Sailors' readings of the
-ship-material list are kept on the server for a year as their own
-board list; two readings that agree island for island are one board
-seen again, and a page of the window read against them names the board
-and offers its other islands, ticked as taken rather than read.
+**The material list has a book of its own.** The ship-material list is
+one of the game's 41 layouts, M1 to M41, each a card in the material
+book with what it pays. A page of the window read off a screenshot names
+the layout and fills in the rest of the list; a slot the game fills at
+random says so. A refresh is a trade board *or* a material list, never
+both, so reading one puts down the other.
 
 **A run buys only what the Central Market has.** A chain that starts on
 land starts with something bought, and the Market's last price stands
@@ -862,8 +876,8 @@ short (`[Level 5] Faded Gold Dra...`) is as good as a whole one, and a
 misread letter cannot invent an offer the game never showed. Six rows
 off one screenshot are usually enough to settle which of the forty
 layouts the sea is on. A row two exchanges fit equally well is a list to
-pick from rather than a guess, and the islands that pay ship materials
-go to the material list instead, since those roll on their own.
+pick from rather than a guess, and a row that pays a ship material goes
+to the material list instead, which is a layout of its own.
 
 ![A screenshot of the barter window read into six islands, and the board settled on a layout from them](docs/media/read-the-window.gif)
 
@@ -934,8 +948,8 @@ layout* is told apart from *never seen here*.
 the moment it is settled — the day and the layout, in your own save. The
 book's *Yours* shows the boards you have been dealt, the commonest
 first; and for those who take part in the Community tab the counts are
-added up fleet-wide under *Barter layouts most dealt*, beside each
-layout's share of the community's own record.
+added up fleet-wide under *Barter layouts most dealt*, beside the share
+the old community record gave each layout.
 
 **Or sail out for one trade.** *Short trip*, at the head of the plan,
 turns the board round: instead of the best set of chains, every trade on
@@ -1008,9 +1022,16 @@ from the release notes in `js/about.js` — the same ones the app shows
 under **Menu → What's new**; the suite fails if the file is stale.
 
 `npm run capture` re-shoots every picture and clip in this README, and
-both cuts of the film, by driving the real app in a headless Chrome —
-so a screen that changes never leaves the documentation quietly lying
-about it. See [`tools/capture/README.md`](tools/capture/README.md).
+the film, by driving the real app in a headless Chrome — so a screen
+that changes need not leave the documentation lying about it for longer
+than it takes to run. The barter clips are waiting on exactly that (see
+the note under the chapters). See
+[`tools/capture/README.md`](tools/capture/README.md).
+
+`npm run lint` runs ESLint as CI does; `npm run lang` rewrites the
+English catalogue and checks every pack; `npm run names` refetches the
+game's own names per language from BDOCodex; `npm run guide` shoots the
+narrated chapters; `npm run dev` is `npm start` with a `.env` read in.
 
 ### Docker
 
@@ -1154,22 +1175,25 @@ come onto the chart — as the route when their points sit on barterers
 be put over the whole screen; on a phone that is the whole screen, in
 landscape.
 
-The material list is the run for **several materials at once**: tick
-the islands showing each material you are after, each with its own
-want, and one run sails for all of them -- one route through every
-island ticked, whatever each deals, in the shortest order from the
-harbour, a give kept at another harbour's storage loaded on the way
-with a wharf call before the island that needs it, and a choice between
-coming home once the wants are met and sailing every island ticked. The
-hold is the constraint: the gives weigh a thousand a piece and the
-materials nothing, so a run leaves heavy and comes home light, and the
-run's pace says what happens when every give does not fit at once. The
-*full* pace sails everything ticked -- what the run will not spend is
-left in storage to make room, the hold is loaded to the barter ceiling,
-and the run goes out in several departures, back to the harbour for the
-rest between them; the *fast* pace sails once, under the limit the ship
-still sails at full speed under, and lists what stays ashore. Before
-casting off, the run lists what it hands over that is not aboard yet:
+The material list is the run for **several materials at once**. Once
+the layout is known, the materials the builds are short of are chosen
+by themselves — or as many as the Parley buys — and every island the
+list pays them at is on the run: each material is a summary of its
+islands, the Parley for all of them and what they bring, with the
+islands that cannot be done today set apart and the reason given. One
+route goes through them all, in the shortest order from the harbour, a
+give kept at another harbour's storage loaded on the way with a wharf
+call before the island that needs it, and a choice between coming home
+once the wants are met and dealing every attempt. The hold is the
+constraint: the gives weigh a thousand a piece and the materials
+nothing, so a run leaves heavy and comes home light. A wharf loads no
+further than the hold's limit, so what the run will not spend is left
+in storage to make room and the run goes out in as many departures as
+the hold needs, back to the harbour for the rest between them. The
+Parley binds too — a material exchange costs about three times a trade
+good's — so the run deals no more than the bar and the vouchers pay
+for, the best rates first. Before casting off, the run lists what it
+hands over that is not aboard yet:
 the Gold Bars a few islands take, bought ashore and priced; a give kept
 in a storage the run cannot load from, to bring to the harbour first;
 and, for what is held nowhere, the way to the item board.
@@ -1190,7 +1214,9 @@ islands allow and leaves the surplus at a wharf before the hull would
 slow — more calls, full speed. *Full, loaded* does every attempt and
 takes the hold up to the barter ceiling — seventy per cent over the
 limit, the same point the hull stops moving at — sailing slower for it,
-and calls at a wharf only where the next island would not deal. Under every stop the hold reads as the game's
+and calls at a wharf only where the next island would not deal. A wharf
+itself loads no further than the limit, in every pace: only the
+exchanges take the hold past it. Under every stop the hold reads as the game's
 Ship Info does — everything aboard, crew included, over the limit —
 and beside it the Parley bar counts down from what it holds now, priced
 at your barter level, a Crow's Trade Voucher drawn on where the bar
@@ -1564,7 +1590,11 @@ js/
   barter/             the Barter tab's parts: state (one object the rest share),
                       view (what the profile keeps), board, hold, plan, search
                       (the workers), route, packing, sail, cockpit, results,
-                      short, material, parts, today, and actions (the presses)
+                      short, material, parts, today, rolls (the slots a layout
+                      leaves to chance), fleet (what sailors were paid),
+                      get-today (To Get's today), setsail and morph (casting
+                      off, and the glance view growing into the full one),
+                      and actions (the presses)
   barter.js           what a bartered material costs in sea time
   barter_npcs.js      where the 91 barterers are, and the harbours
   barter_game.js      the game client's barter tables, baked by tools/bake-barter.mjs
@@ -1584,7 +1614,9 @@ js/
   barter-material.js  the run for a material
   barter-shot.js      the barter window read out of a screenshot -- pure
   barter-import.js    the barter reader's dialog
-  material-book.js    what the fleet has read of the material list
+  material-book.js    the material list's 41 layouts, from the game's tables
+  material_boards.json  five material lists read off screenshots, the fallback
+                      when the game's tables will not load
   material-book-view.js  the material book, on the screen
   sea-boards.js       /api/boards from the browser: what the fleet read today
   layout-book.js      the layouts on file against the fleet's readings -- pure
@@ -1596,9 +1628,11 @@ js/
   trade_goods.js      the sea trade goods, by level
   market.js           Central Market prices and stock, per region, kept offline
   sail-timer.js       the clock for the time the ship is out
+  sail-scene.js       the sailing clock as a picture: your ship crossing the leg
   pace.js             legs timed at sea, and the ship's own figure learnt from them
   screen-map.js       the Map: the chart, the list drawn on it, routes and traces
   map.js              the tile viewer's arithmetic
+  tile_alias.js       the chart tiles kept once where several are identical
   map/                the Map's parts: view, paint, gestures, marks, route,
                       trace (the Draw tab), errands, offline areas, terrain (3D),
                       the game's world map, render and actions
@@ -1631,6 +1665,8 @@ js/
   screen-community.js the Community tab
   feedback.js         Menu → Feedback, and the admins' inbox
   markup.js           the little markup a report is written in
+  realistic-water-ripples.js  the water behind the page, when it is switched on
+  driver.iife.js      the guided tour's library, vendored
 reader/               Tesseract, vendored: every screenshot is read in the browser
 tools/check-env.mjs   npm run check -- validates a configuration
 tools/backup.mjs      npm run backup / restore -- every table, and the pictures
@@ -1639,6 +1675,23 @@ tools/build-lang.mjs  reads every T() call into js/lang/en.json, and checks
 tools/lang-todo.mjs   what each pack still lacks
 tools/fetch-names.mjs the game's own names per language, from BDOCodex
 tools/build-sea-dist.mjs  the distances by water between every island and wharf
+tools/bake-barter.mjs npm run bake:barter -- the game client's barter tables
+                      into js/barter_game.js (tools/barter-bake/ holds its parts)
+tools/build-barter.mjs    js/all_barter.json from a BDOCodex pull, and from it
+tools/build-trade-goods.mjs / build-land-goods.mjs  the goods lists
+tools/build-seamask.mjs   where the sea is, read off the tiles
+tools/build-terrain.mjs   the game's terrain meshes into the 3D chart's tiles
+tools/build-shell.mjs     the service worker's precache list
+tools/build-changelog.mjs CHANGELOG.md from js/about.js
+tools/post-release-notes.mjs  a release's notes to the Discord channel
+tools/tw-from-cn.mjs      a first 繁體中文 pack out of the 中文 one
+tools/fetch-*.mjs         one-off pulls from BDOCodex and community sheets:
+                      icons, map tiles, monster art, land and part weights,
+                      quest icons, sailor rolls and titles, sea crystals
+tools/read-ocean-map.mjs / read-worldmap-monsters.mjs  marks read off gpw's
+                      ocean map and the client's world map
+tools/prune-land-spawns.mjs  spawn points that fell on land, dropped
+tools/count-reader/   the storage reader's count network, and its training
 server/               only loaded when sync is configured
   config.js           what is switched on, and what is therefore offered
   db.js               libSQL schema and queries
@@ -1667,6 +1720,10 @@ docs/media/guide/     the seven narrated chapters, with their captions
 CHANGELOG.md          generated from js/about.js by tools/build-changelog.mjs
 tools/capture/        the harness that generates the media, film included
 ```
+
+Module names follow a loose rule: data written by a tool, or kept as a
+table, is snake_case (`barter_game.js`, `sea_dist.js`); logic is
+kebab-case (`barter-route.js`); a tab is `screen-*.js`.
 
 The planner is pure: given stock, a queue and your craft-or-buy choices,
 it returns a requirement tree per build, netted against one draining pool
