@@ -65,7 +65,9 @@ export function linkRoutes() {
 	const openLimit = perAddress(60, 600, 'That is a lot of links at once; try again shortly.');
 
 	/** Keep this, and say what to call it. */
-	router.post('/links', requireUser, body, keepLimit, wrap(async (req, res) => {
+	// The ceiling before the parser, as /state has it: a refused request
+	// is refused before a quarter of a megabyte of it is read.
+	router.post('/links', requireUser, keepLimit, body, wrap(async (req, res) => {
 		const read = readLink(req.body);
 		if (read.error) return res.status(400).json({ error: read.error });
 		if (Buffer.byteLength(read.payload) > config.maxLinkBytes) {

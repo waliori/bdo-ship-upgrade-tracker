@@ -328,3 +328,47 @@ test('a hidden entry leaves the public list, with its pictures, and comes back',
 	assert.equal((await json(await call('GET', '/api/feedback'))).entries.some(e => e.id === id), true);
 	assert.equal((await fetch(`${base}/api/feedback/file/${file.id}`)).status, 200);
 });
+
+test('one image in the air an account: a second sent alongside is refused before it is read', async () => {
+	await upsertUser({ id: '3010', username: 'Burst', avatar: null });
+	const burst = cookieFor('3010');
+	// The first upload, held open half-way through its body.
+	let finish;
+	const body = new ReadableStream({
+		start(controller) {
+			controller.enqueue(PNG.subarray(0, 20));
+			finish = () => { controller.enqueue(PNG.subarray(20)); controller.close(); };
+		}
+	});
+	const first = fetch(`${base}/api/feedback/image`, {
+		method: 'POST', duplex: 'half', body,
+		headers: { Cookie: burst, 'Content-Type': 'image/png' }
+	});
+	await wait(150);
+	const second = await send('/api/feedback/image', PNG, 'image/png', { cookie: burst });
+	assert.equal(second.status, 429);
+	// Somebody else is not held up by it.
+	const others = await send('/api/feedback/image', PNG, 'image/png', { cookie: other });
+	assert.equal(others.status, 201);
+	await call('DELETE', `/api/feedback/image/${(await others.json()).id}`, { cookie: other });
+	finish();
+	assert.equal((await first).status, 201);
+	// And once it has landed, the next one goes.
+	assert.equal((await send('/api/feedback/image', PNG, 'image/png', { cookie: burst })).status, 201);
+});
+
+test('the pictures on disk have a ceiling of their own', async () => {
+	const { config } = await import('../server/config.js');
+	await upsertUser({ id: '3011', username: 'Full', avatar: null });
+	const full = cookieFor('3011');
+	const was = config.maxUploadBytes;
+	config.maxUploadBytes = 1;
+	try {
+		const res = await send('/api/feedback/image', PNG, 'image/png', { cookie: full });
+		assert.equal(res.status, 507);
+		assert.match((await res.json()).error, /no room/);
+	} finally {
+		config.maxUploadBytes = was;
+	}
+	assert.equal((await send('/api/feedback/image', PNG, 'image/png', { cookie: full })).status, 201);
+});

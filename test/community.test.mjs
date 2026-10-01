@@ -263,16 +263,22 @@ test('taking part puts the digest of the save on the boards, by name or unnamed'
 	assert.equal(me.share, 'named');
 	assert.equal(me.admin, true);
 
-	// The boards are opt-out: asking who is signed in puts an account
-	// that has never said on them, by name. The stranger -- the highest
-	// mastery of the three -- is put on, then leaves, and is not put
-	// back however often the page asks again.
+	assert.equal(me.asked, true, 'choosing is answering');
+
+	// The boards are opt-in: signing in puts nobody on them. The
+	// stranger -- the highest mastery of the three -- is signed in, has
+	// never been asked, and is on no board however often the page asks
+	// who is there; the page is told to put the question.
 	const first = await (await call('GET', '/api/me', { cookie: stranger })).json();
-	assert.equal(first.share, 'named');
+	assert.equal(first.share, null);
+	assert.equal(first.asked, false);
 	assert.equal(first.admin, false);
+	assert.equal((await (await call('GET', '/api/me', { cookie: stranger })).json()).share, null);
+	// "No, thanks" is an answer, and is kept.
 	assert.deepEqual(await (await call('PUT', '/api/community/share', { cookie: stranger, body: { share: 'off' } })).json(), { share: null });
-	assert.equal((await (await call('GET', '/api/me', { cookie: stranger })).json()).share, null);
-	assert.equal((await (await call('GET', '/api/me', { cookie: stranger })).json()).share, null);
+	const after = await (await call('GET', '/api/me', { cookie: stranger })).json();
+	assert.equal(after.share, null);
+	assert.equal(after.asked, true);
 
 	const body = await (await call('GET', '/api/community', { cookie: deckhand })).json();
 	assert.equal(body.sailors, 2);
@@ -353,12 +359,6 @@ test('a fresh push reaches the boards, and leaving takes the digest down', async
 	assert.equal(Number(rows[0].n), 0, 'the row is gone, not marked');
 });
 
-test('the caller can see its own digest before agreeing', async () => {
-	assert.equal((await call('GET', '/api/community/mine')).status, 401);
-	const body = await (await call('GET', '/api/community/mine', { cookie: stranger })).json();
-	assert.equal(body.digest.mastery, 2900);
-});
-
 test('deleting the account takes it off the boards', async () => {
 	await upsertUser({ id: '2004', username: 'Leaver', avatar: null });
 	const leaver = cookieFor('2004');
@@ -417,4 +417,46 @@ test('the list is anyone\'s to read; answering one is the admin\'s', async () =>
 	const after = (await (await call('GET', '/api/feedback', { cookie: admiral })).json()).entries;
 	assert.equal(after[0].status, 'open', 'the open one comes first');
 	assert.equal(after[1].status, 'done');
+});
+
+test('the move to opt-in takes off the boards only those signing in put there', async () => {
+	// A database as it stood under the opt-out rule: one sailor who
+	// joined before it by pressing Take part, one who chose to be shown
+	// unnamed, one who left, and one whom signing in put on by name.
+	const { createClient } = await import('@libsql/client');
+	const { MIGRATIONS } = await import('../server/db.js');
+	const c = createClient({ url: `file:${path.join(dir, 'migrate.db')}` });
+	const run = statement => c.execute(statement);
+	await run('CREATE TABLE schema_version (version INTEGER PRIMARY KEY, applied_at INTEGER NOT NULL)');
+	for (const step of MIGRATIONS.filter(m => m.version <= 10)) {
+		await step.up(run);
+		await run({ sql: 'INSERT INTO schema_version (version, applied_at) VALUES (?, ?)', args: [step.version, step.version === 3 ? 5000 : 1] });
+	}
+	for (const id of ['early', 'anon', 'left', 'auto']) await run({ sql: 'INSERT INTO users (id, username, created_at, seen_at) VALUES (?, ?, 0, 0)', args: [id, id] });
+	await run("UPDATE users SET community_off = 1 WHERE id = 'left'");
+	for (const [id, share, at] of [['early', 'named', 1000], ['anon', 'anon', 9000], ['auto', 'named', 9000]]) {
+		await run({ sql: "INSERT INTO community (user_id, share, stats, rev, joined_at, updated_at) VALUES (?, ?, '{}', 0, ?, ?)", args: [id, share, at, at] });
+	}
+	for (const step of MIGRATIONS.filter(m => m.version > 10)) await step.up(run);
+
+	const on = (await run('SELECT user_id FROM community ORDER BY user_id')).rows.map(r => r.user_id);
+	assert.deepEqual(on, ['anon', 'early'], 'the one signing in put on is still on, or a chooser was taken off');
+	const asked = Object.fromEntries((await run('SELECT id, community_asked FROM users')).rows.map(r => [r.id, Number(r.community_asked)]));
+	assert.deepEqual(asked, { early: 1, anon: 1, left: 1, auto: 0 }, 'the Community tab asks only the one who never answered');
+	c.close();
+});
+
+test('a save never read into memory still adds its barter counts, read with the rest in one go', async () => {
+	const { writeSave } = await import('../server/db.js');
+	const { invalidate } = await import('../server/community.js');
+	const { heldSave } = await import('../server/saves.js');
+	await upsertUser({ id: '2010', username: 'Quiet', avatar: null });
+	const profile = { rolls: { '31|58966': { day: '2026-09-28', pick: '[Level 4] Panacea|Crow Coin', seen: { '[Level 4] Panacea|Crow Coin': 3 } } } };
+	invalidate();
+	const before = (await (await call('GET', '/api/community')).json()).stats.rolls['31|58966']['[Level 4] Panacea|Crow Coin'];
+	await writeSave('2010', { rev: 1, payload: JSON.stringify(save(profile)), updatedAt: Date.now(), device: 'x' });
+	invalidate();
+	const after = (await (await call('GET', '/api/community')).json()).stats.rolls['31|58966']['[Level 4] Panacea|Crow Coin'];
+	assert.equal(after, before + 3);
+	assert.equal(heldSave('2010'), null, 'counting the fleet pulled a save into the cache');
 });

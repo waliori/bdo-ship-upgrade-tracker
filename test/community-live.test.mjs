@@ -73,6 +73,7 @@ test('a ship fitted after the boards were drawn is on them without rejoining', a
 		cookie: skipper,
 		body: { rev: 0, device: 'test', data: save({ sailingMastery: 500, crewShip: 'Epheria Sailboat' }) }
 	});
+	assert.deepEqual(await (await call('PUT', '/api/community/share', { cookie: skipper, body: { share: 'named' } })).json(), { share: 'named' });
 	assert.equal((await (await call('GET', '/api/me', { cookie: skipper })).json()).share, 'named');
 
 	// Read them once, so there is a held copy to go stale.
@@ -143,6 +144,7 @@ test('a digest from an older build is re-rated without its owner lifting a finge
 		cookie: ghost,
 		body: { rev: 0, device: 'test', data: save({ sailingMastery: 700, crewShip: 'Carrack (Valor)' }) }
 	});
+	assert.deepEqual(await (await call('PUT', '/api/community/share', { cookie: ghost, body: { share: 'named' } })).json(), { share: 'named' });
 	assert.equal((await (await call('GET', '/api/me', { cookie: ghost })).json()).share, 'named');
 
 	// Put a digest of the old shape on the boards by hand, with a score

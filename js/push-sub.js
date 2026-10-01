@@ -67,7 +67,9 @@ export async function dropSubscription() {
 		if (!sub) return;
 		await fetch('/api/push/subscribe', {
 			method: 'DELETE', headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ endpoint: sub.endpoint })
+			// The subscription's own secret beside its address: the server
+			// lets go of an endpoint only for the browser that holds it.
+			body: JSON.stringify({ endpoint: sub.endpoint, auth: (sub.toJSON().keys || {}).auth })
 		}).catch(() => {});
 		await sub.unsubscribe();
 	} catch { /* then the server's copy dies of a 410 on its next send */ }

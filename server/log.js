@@ -9,6 +9,7 @@
 // them in a file that gets pasted into an issue.
 
 import crypto from 'node:crypto';
+import { config } from './config.js';
 import { sessionUser } from './session.js';
 
 /** Totals since boot, reported by /healthz. */
@@ -18,12 +19,19 @@ export const counters = {
 	pushSent: 0
 };
 
-const STATIC = /^\/(css|js|icons|map|guide|docs)\/|^\/[^/]*\.(png|json|webmanifest|ico|html)$|^\/(sw\.js)?$/;
+// The terrain alone is forty thousand tiles, and the reader's engine is
+// files too: neither earns a line apiece.
+const STATIC = /^\/(css|js|icons|map|map3d|reader|guide|docs)\/|^\/[^/]*\.(png|json|webmanifest|ico|html)$|^\/(sw\.js)?$/;
 const enabled = process.env.LOG_REQUESTS !== '0';
-const who = req => {
-	const uid = sessionUser(req);
-	return uid ? crypto.createHash('sha256').update(uid).digest('hex').slice(0, 12) : undefined;
-};
+
+/**
+ * An account as the logs name it. Keyed with the server's secret, not a
+ * plain hash: a Discord id is public, and a plain hash of one is found
+ * in a log by anybody who hashes the id they are looking for. The same
+ * account still reads the same everywhere in one deployment's logs.
+ */
+export const acct = uid => (uid ? crypto.createHmac('sha256', config.sessionSecret).update(`log:${uid}`).digest('hex').slice(0, 12) : undefined);
+const who = req => acct(sessionUser(req));
 
 export function accessLog() {
 	return (req, res, next) => {

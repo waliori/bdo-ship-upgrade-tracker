@@ -15,7 +15,7 @@ import path from 'path';
 import { execFileSync } from 'child_process';
 import { fileURLToPath } from 'url';
 import { config, syncEnabled, pushEnabled, feedbackEnabled, uploadsEnabled, communityEnabled, presenceEnabled, ephemeralSecret, describe } from './server/config.js';
-import { presenceRoutes } from './server/presence.js';
+import { presenceRoutes, startPresenceSweep } from './server/presence.js';
 import { marketRoutes } from './server/market.js';
 import { accessLog, counters } from './server/log.js';
 
@@ -251,16 +251,20 @@ if (presenceEnabled) {
 	if (config.turso.url) {
 		const m = await import('./server/db.js');
 		if (!syncEnabled && !pushEnabled && !feedbackEnabled) m.migrate().catch(err => console.warn('[db] tables not ready yet:', err.message));
-		presenceDb = { touchPresence: m.touchPresence, countPresence: m.countPresence };
+		presenceDb = { touchPresence: m.touchPresence, countPresence: m.countPresence, sweepPresence: m.sweepPresence };
 	}
 	app.use('/api', presenceRoutes({ db: presenceDb }));
+	if (process.env.NODE_ENV !== 'test') startPresenceSweep(presenceDb);
 }
 
 // So the page knows whether to offer sign-in at all. A deployment with no
 // Discord app should not show a button that cannot work.
 app.get('/api/config', (req, res) => {
 	res.set('Cache-Control', 'no-store');
-	res.json({ sync: syncEnabled, push: pushEnabled, feedback: feedbackEnabled, uploads: uploadsEnabled, community: communityEnabled, presence: presenceEnabled, links: syncEnabled });
+	// `build` is the deploy's stamp, the one the service worker's cache is
+	// named for: what a bug report says it was sent from, so a report can
+	// be matched to a deploy rather than to a release that spans dozens.
+	res.json({ sync: syncEnabled, push: pushEnabled, feedback: feedbackEnabled, uploads: uploadsEnabled, community: communityEnabled, presence: presenceEnabled, links: syncEnabled, build: VERSION });
 });
 
 // Is it up, and is the database behind it answering? `db` is 'off' on a
@@ -268,6 +272,16 @@ app.get('/api/config', (req, res) => {
 // supervisor can tell a site that is up from one whose sync is not.
 // One statement, one attempt, and a short leash on it: the container
 // healthcheck gives this three seconds.
+//
+// The rest -- the build, the counters, what memory is holding -- is for
+// the operator, and answered only on the machine itself: the container's
+// own healthcheck and `docker compose exec` ask from loopback, while
+// anything through the proxy arrives from another address with a
+// forwarding header on it. The world is told up or down and no more.
+const fromHere = req => {
+	const a = String((req.socket && req.socket.remoteAddress) || '');
+	return (a === '127.0.0.1' || a === '::1' || a === '::ffff:127.0.0.1') && !req.headers['x-forwarded-for'];
+};
 app.get('/healthz', async (req, res) => {
 	res.set('Cache-Control', 'no-store');
 	let db = 'off';
@@ -275,6 +289,7 @@ app.get('/healthz', async (req, res) => {
 		const leash = new Promise((_, reject) => setTimeout(() => reject(new Error('slow')), 2500).unref());
 		db = await Promise.race([dbPing(), leash]).then(() => 'ok', () => 'down');
 	}
+	if (!fromHere(req)) return res.status(db === 'down' ? 503 : 200).json({ ok: db !== 'down', db });
 	const held = saveStats ? saveStats() : { dirty: 0, queued: 0 };
 	res.status(db === 'down' ? 503 : 200).json({
 		ok: db !== 'down',
@@ -308,6 +323,19 @@ const MUST_REVALIDATE = /\.(html|json|webmanifest)$/;
 // exists. `no-cache` is not "do not store": it stores and revalidates,
 // so the usual answer is a 304 costing a header round-trip.
 const REVALIDATE = { maxAge: 0, etag: true, setHeaders: res => res.set('Cache-Control', 'no-cache') };
+
+// And the same rule spelled out for whatever sits in front. The proxy and
+// the CDN ahead of the live site were seen turning the modules' no-cache
+// into a day's max-age, which hands a browser -- and a service worker
+// installing the next deploy -- yesterday's module beside today's. These
+// two headers speak to the edge alone: `CDN-Cache-Control` to any CDN
+// that reads it, Cloudflare's own to Cloudflare. The browser never sees
+// a difference; it still stores and revalidates by the header above.
+const notAtTheEdge = res => {
+	res.set('CDN-Cache-Control', 'no-store');
+	res.set('Cloudflare-CDN-Cache-Control', 'no-store');
+};
+const CODE = { ...REVALIDATE, setHeaders: res => { REVALIDATE.setHeaders(res); notAtTheEdge(res); } };
 
 // Icons are addressed by the game's own item id, so a given name really
 // does keep its contents. Long, but not `immutable` -- a wrong icon
@@ -343,11 +371,13 @@ app.use('/reader', express.static(path.join(__dirname, 'reader'), FOREVER));
 // name whenever the UI moves, so it revalidates like the modules do.
 app.use('/docs/media', express.static(path.join(__dirname, 'docs', 'media'), REVALIDATE));
 for (const dir of PUBLIC.filter(d => d !== 'icons' && d !== 'map' && d !== 'map3d' && d !== 'reader')) {
-	app.use(`/${dir}`, express.static(path.join(__dirname, dir), REVALIDATE));
+	app.use(`/${dir}`, express.static(path.join(__dirname, dir), dir === 'js' || dir === 'css' ? CODE : REVALIDATE));
 }
 for (const file of FILES) {
 	app.get(`/${file}`, (req, res) => {
 		res.set('Cache-Control', MUST_REVALIDATE.test(file) ? 'no-cache' : 'public, max-age=604800');
+		if (MUST_REVALIDATE.test(file)) notAtTheEdge(res);
+		if (file === 'index.html') res.set('X-Build', VERSION);
 		// Express does not know this one by extension.
 		if (file.endsWith('.webmanifest')) res.type('application/manifest+json');
 		res.sendFile(path.join(__dirname, file));
@@ -364,6 +394,7 @@ app.get('/sw.js', (req, res, next) => {
 	fs.readFile(path.join(__dirname, 'sw.js'), 'utf8', (err, source) => {
 		if (err) return next(err);
 		res.set('Cache-Control', 'no-cache');
+		notAtTheEdge(res);
 		res.type('application/javascript');
 		res.send(source.replace(/^const VERSION = '[^']*';/m, `const VERSION = '${VERSION}';`));
 	});
@@ -376,8 +407,13 @@ app.get('/favicon.ico', (req, res) => {
 	res.sendFile(path.join(__dirname, 'icon.png'));
 });
 
+// The page names the deploy it belongs to, so the service worker can
+// tell whether the network and its cache are the same deploy before it
+// lets one stand in for the other (sw.js, "Waiting on a slow network").
 app.get('/', (req, res) => {
 	res.set('Cache-Control', 'no-cache');
+	res.set('X-Build', VERSION);
+	notAtTheEdge(res);
 	res.sendFile(path.join(__dirname, 'index.html'));
 });
 

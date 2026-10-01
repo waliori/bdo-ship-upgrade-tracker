@@ -88,3 +88,18 @@ test('the page is told the count is on', async () => {
 	assert.equal(config.presence, true);
 	assert.equal(config.sync, false, 'and it runs without sign-in');
 });
+
+test('a browser gone for months leaves the roll, and still counts as having come', async () => {
+	const { sweepPresence } = await import('../server/db.js');
+	const now = Date.now();
+	await touchPresence('long-gone-browser', now - 200 * 86_400_000);
+	const before = await countPresence(now - 5 * 60_000);
+	const swept = await sweepPresence(now - 90 * 86_400_000);
+	assert.equal(swept, 1);
+	const after = await countPresence(now - 5 * 60_000);
+	assert.equal(after.sailors, before.sailors, 'sweeping the roll changed how many ever came');
+	assert.equal(after.online, before.online);
+	// Sweeping again finds nothing, and counts nothing twice.
+	assert.equal(await sweepPresence(now - 90 * 86_400_000), 0);
+	assert.equal((await countPresence(now - 5 * 60_000)).sailors, before.sailors);
+});

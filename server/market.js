@@ -19,6 +19,7 @@
 import fs from 'node:fs';
 import { fetch } from 'undici';
 import { perAddress } from './limit.js';
+import { wrap } from './wrap.js';
 import { items as vendorItems } from '../js/vendor_items.js';
 import { landGoods } from '../js/land_goods.js';
 
@@ -258,7 +259,7 @@ export function marketRoutes(express, deps = {}) {
 	// batches, which is why the process-wide ceiling is the low one: it
 	// caps what this deployment can ask of the upstream in a minute,
 	// whoever is asking.
-	router.get('/market', perAddress(30, 120, 'The Market has been asked a lot just now; try again shortly.'), async (req, res) => {
+	router.get('/market', perAddress(30, 120, 'The Market has been asked a lot just now; try again shortly.'), wrap(async (req, res) => {
 		res.set('Cache-Control', 'no-store');
 		const region = String(req.query.region || DEFAULT_REGION).toLowerCase();
 		if (!REGIONS.includes(region)) return res.status(400).json({ error: 'That is not a region the Market has.' });
@@ -278,6 +279,6 @@ export function marketRoutes(express, deps = {}) {
 		// rather than last-sold from the first, so the page can be
 		// straight about it instead of quietly showing a different number.
 		res.json({ region, at: Date.now(), prices, failed, fellBack });
-	});
+	}));
 	return router;
 }

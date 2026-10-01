@@ -49,17 +49,14 @@ const MAX_NAME = 120;
 const RECENT_DAYS = 4;
 const KEEP_DAYS = 60;
 
-/** The material list is kept far longer. Its boards are in no record
- *  but this one, so a reading is the evidence itself rather than a
- *  vote for a layout already on file -- and a material board may come
- *  round again only after months. */
-const KEEP_MATERIAL_DAYS = 400;
-
-/** The two lists the window shows: the forty layouts ('trade') and the
- *  ship materials, which roll on their own ('material'). */
-export const LISTS = ['trade', 'material'];
-const listOf = x => (x === 'material' ? 'material' : 'trade');
-const keepOf = list => (list === 'material' ? KEEP_MATERIAL_DAYS : KEEP_DAYS);
+/** The material list was once read and kept here too, as a list of its
+ *  own. It is one of the game's own layouts now (js/barter/material.js
+ *  reads it from the client's tables), nothing in the app sends a
+ *  reading of it, and keeping a sailor's reading for a year for a
+ *  feature that no longer exists is keeping it for nothing. A page that
+ *  has not reloaded may still send one: it is refused in words, and the
+ *  readings already kept are swept. */
+const GONE_LIST = 'material';
 
 /**
  * A sighting as it may be stored, or a complaint about it.
@@ -70,6 +67,7 @@ const keepOf = list => (list === 'material' ? KEEP_MATERIAL_DAYS : KEEP_DAYS);
  */
 export function readSighting(body) {
 	if (!body || typeof body !== 'object') return { error: 'Expected a sighting.' };
+	if (body.list === GONE_LIST) return { error: 'The material list is not kept any more; only the trade board is.' };
 	const day = String(body.day || '').slice(0, 24);
 	if (!/^[0-9]{4}-[0-9]{2}-[0-9]{2}/.test(day)) return { error: 'A sighting has to say which barter day it is.' };
 	if (!Array.isArray(body.offers) || !body.offers.length) return { error: 'A sighting needs at least one island.' };
@@ -88,10 +86,8 @@ export function readSighting(body) {
 		offers.push([npcId, give, qty || '1', recv]);
 	}
 	if (!offers.length) return { error: 'A sighting needs at least one island.' };
-	const list = listOf(body.list);
-	// A material board has no layout number: nothing numbers them.
-	const layout = list === 'material' || body.layout === null || body.layout === undefined ? null : String(body.layout).slice(0, 12);
-	return { day, offers, layout, list };
+	const layout = body.layout === null || body.layout === undefined ? null : String(body.layout).slice(0, 12);
+	return { day, offers, layout };
 }
 
 /* ------------------------------------------------------------------ *
@@ -100,9 +96,9 @@ export function readSighting(body) {
 
 /** Today's sightings and the last few days', newest first -- or as far
  *  back as the book asks, and no further than they are kept. */
-export async function sightings(days = RECENT_DAYS, list = 'trade') {
-	const span = Math.min(keepOf(list), Math.max(1, Math.floor(Number(days)) || RECENT_DAYS));
-	return listSightings(Date.now() - span * 86_400_000, span > RECENT_DAYS ? 1000 : 200, listOf(list));
+export async function sightings(days = RECENT_DAYS) {
+	const span = Math.min(KEEP_DAYS, Math.max(1, Math.floor(Number(days)) || RECENT_DAYS));
+	return listSightings(Date.now() - span * 86_400_000, span > RECENT_DAYS ? 1000 : 200);
 }
 
 /**
@@ -111,8 +107,8 @@ export async function sightings(days = RECENT_DAYS, list = 'trade') {
  * the second telling is the same board with more of it seen. An island
  * answered twice takes the later answer, because they looked again.
  */
-export async function putSighting(userId, { day, offers, layout, list = 'trade' }) {
-	const held = await getSighting(userId, day, list);
+export async function putSighting(userId, { day, offers, layout }) {
+	const held = await getSighting(userId, day);
 	if (held) {
 		const by = new Map(held.offers.filter(o => Array.isArray(o)).map(o => [o[0], o]));
 		for (const o of offers) by.set(o[0], o);
@@ -120,7 +116,7 @@ export async function putSighting(userId, { day, offers, layout, list = 'trade' 
 		await updateSighting(held.id, { layout: layout ?? held.layout, offers: merged });
 		return { id: held.id, offers: merged };
 	}
-	const id = await insertSighting(userId, { day, layout, offers, list });
+	const id = await insertSighting(userId, { day, layout, offers });
 	return { id, offers };
 }
 
@@ -143,12 +139,11 @@ export async function drop(id, userId) {
 	return { ok: true };
 }
 
-/** Sightings older than the book's memory are swept, each list at its
- *  own age. */
+/** Sightings older than the book's memory are swept, and whatever is
+ *  left of the material list with them. */
 export async function sweep() {
-	let n = 0;
-	for (const list of LISTS) n += await sweepSightings(Date.now() - keepOf(list) * 86_400_000, list);
-	return n;
+	const now = Date.now();
+	return await sweepSightings(now - KEEP_DAYS * 86_400_000) + await sweepSightings(now + 1, GONE_LIST);
 }
 
 /**
@@ -188,7 +183,9 @@ export function boardRoutes() {
 	 *  the app that is genuinely common property. */
 	router.get('/boards', wrap(async (req, res) => {
 		const uid = sessionUser(req);
-		const list = await sightings(req.query.days, listOf(req.query.list));
+		// A page that has not reloaded may still ask for the material
+		// list; there is none, and it is told so with an empty one.
+		const list = req.query.list === GONE_LIST ? [] : await sightings(req.query.days);
 		const seen = new Set(uid ? await sightingsConfirmedBy(uid) : []);
 		res.set('Cache-Control', 'no-store');
 		res.json({

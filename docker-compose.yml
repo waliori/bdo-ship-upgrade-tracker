@@ -12,6 +12,9 @@
 services:
   bdo-tracker:
     build: .
+    # Named, so the backup service below runs the same image rather than
+    # building a second copy of it.
+    image: bdo-tracker
     # A real init as PID 1, so SIGTERM reaches node cleanly and the
     # shutdown flush in server/saves.js actually gets to run.
     init: true
@@ -48,7 +51,10 @@ services:
   # and read one out with
   #   docker compose cp bdo-backup:/app/backups ./backups
   bdo-backup:
-    build: .
+    # The tracker's own image: the backup tool is already in it, and a
+    # second build of three hundred megabytes of terrain is not wanted.
+    # `docker compose --profile backup up -d --build` builds it first.
+    image: bdo-tracker
     profiles: ["backup"]
     init: true
     env_file:

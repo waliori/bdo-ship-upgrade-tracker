@@ -185,6 +185,11 @@ export const config = {
 	// Long enough that a double-press cannot send twice, short enough
 	// that remembering one more thing is not a punishment.
 	reportGapMs: num('REPORT_GAP_SECONDS', 60) * 1000,
+	// All the pictures on disk together, sent or not. Past it the box
+	// takes no more until some are swept or thrown away: a disk that
+	// fills up takes the database file down with it when both live in
+	// the same volume, which is the default.
+	maxUploadBytes: num('MAX_UPLOAD_BYTES', 2 * 1024 * 1024 * 1024),
 	// An image nobody ever attached to a report is swept after this.
 	uploadTtlMs: num('UPLOAD_TTL_HOURS', 24) * 3600_000,
 	// How long a quiet set of community boards is held between rebuilds:

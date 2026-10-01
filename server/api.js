@@ -10,7 +10,7 @@ import express from 'express';
 import { config } from './config.js';
 import { getUser, deleteAccount } from './db.js';
 import { isAdmin, unlinkAll } from './feedback.js';
-import { communityRoutes, ensureOnBoards, leaveBoards } from './community.js';
+import { communityRoutes, shareStanding, leaveBoards } from './community.js';
 import { boardRoutes } from './boards.js';
 import { linkRoutes } from './links.js';
 import { readSave, writeSaveFor, forget } from './saves.js';
@@ -107,15 +107,17 @@ export function apiRoutes() {
 			endSession(res);
 			return res.json({ signedIn: false });
 		}
+		// How the account stands on the community boards, and whether it
+		// may read the feedback inbox. The share is read fresh: it changes
+		// from the boards page and must show there at once. `asked` is
+		// whether the account has ever answered -- the Community tab asks
+		// once, and nothing about it is shown until it does.
+		const standing = await shareStanding(uid);
 		res.json({
 			signedIn: true,
 			user: { id: user.id, username: user.username, avatar: user.avatar },
-			// How the account stands on the community boards, and whether
-			// it may read the feedback inbox. The share is read fresh: it
-			// changes from the boards page and must show there at once --
-			// and this is where an account that has never said is put on
-			// them, since the boards are opt-out rather than opt-in.
-			share: await ensureOnBoards(uid),
+			share: standing.share,
+			asked: standing.asked,
 			admin: isAdmin(uid)
 		});
 	}));

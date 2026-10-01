@@ -9,7 +9,7 @@
 import express from 'express';
 import { config } from './config.js';
 import { upsertUser } from './db.js';
-import { beginOAuth, finishOAuth, startSession, endSession } from './session.js';
+import { beginOAuth, finishOAuth, startSession, endSession, revokeThis } from './session.js';
 import { wrap } from './wrap.js';
 
 const AUTHORIZE = 'https://discord.com/oauth2/authorize';
@@ -92,13 +92,17 @@ export function authRoutes() {
 		}
 	}));
 
-	// Signing out clears the cookie and stops there. The save stays put,
-	// because signing out of a device is not the same as wanting the
-	// account deleted -- /api/account handles that, deliberately separately.
-	router.post('/logout', (req, res) => {
+	// Signing out clears the cookie and files it as handed back, so a
+	// copy of it -- a shared machine, a cookie lifted off a laptop --
+	// stops working too. The account's other devices keep theirs: each
+	// has a cookie of its own. The save stays put, because signing out of
+	// a device is not the same as wanting the account deleted --
+	// /api/account handles that, deliberately separately.
+	router.post('/logout', wrap(async (req, res) => {
+		await revokeThis(req);
 		endSession(res);
 		res.json({ ok: true });
-	});
+	}));
 
 	return router;
 }

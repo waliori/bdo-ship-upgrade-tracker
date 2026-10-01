@@ -29,7 +29,7 @@
 
 import { getSave, writeSave, closePool, transient } from './db.js';
 import { config } from './config.js';
-import { counters } from './log.js';
+import { counters, acct } from './log.js';
 
 /* How long to sit on a change before writing it out. Long enough that
  * typing "1", "12", "120" into a quantity is one write instead of three,
@@ -105,7 +105,7 @@ async function entryFor(userId) {
 		// lets the next push replace it.
 		let payload = stored ? stored.payload : null;
 		if (payload && !readable(payload)) {
-			console.error('[saves] unreadable stored save for', userId);
+			console.error('[saves] unreadable stored save for account', acct(userId));
 			payload = null;
 		}
 
@@ -219,6 +219,17 @@ function told(userId, rev) {
  */
 export async function readSave(userId) {
 	return snapshot(await entryFor(userId));
+}
+
+/**
+ * The save as memory holds it, or null when it is not held -- without
+ * reading it in. For a caller that reads many saves once (the fleet's
+ * barter counts) and must neither wait on them one by one nor push
+ * every account that ever synced through the cache.
+ */
+export function heldSave(userId) {
+	const entry = live.get(userId);
+	return entry && !entry.gone ? snapshot(entry) : null;
 }
 
 /**
@@ -384,7 +395,7 @@ async function flush(userId, entry) {
 		// the durable copy is behind -- it has to say so plainly.
 		if (!transient(error)) {
 			console.error(
-				`[saves] the database refused ${userId}'s save; ` +
+				`[saves] the database refused account ${acct(userId)}'s save; ` +
 				'it is held in memory only until the next edit or shutdown retries it:',
 				error.message
 			);
@@ -397,7 +408,7 @@ async function flush(userId, entry) {
 		const backoff = Math.min(FLUSH_DELAY * 2 ** entry.failures, 30_000);
 		if (entry.failures === 1 || entry.failures % 10 === 0) {
 			console.warn(
-				`[saves] could not reach the database for ${userId}`,
+				`[saves] could not reach the database for account ${acct(userId)}`,
 				`(attempt ${entry.failures}, retrying in ${Math.round(backoff / 1000)}s):`,
 				error.message
 			);
@@ -448,7 +459,7 @@ export async function flushAll() {
 		pending.push(writeSave(userId, snapshot(entry)).then(
 			() => { entry.dirty = false; counters.savesFlushed++; return true; },
 			error => {
-				console.error(`[saves] ${userId}'s last save did not reach the database:`, error.message);
+				console.error(`[saves] account ${acct(userId)}'s last save did not reach the database:`, error.message);
 				return false;
 			}
 		));

@@ -42,9 +42,29 @@ let cached = null;
  *  was given. Anything else is not answered, rather than stored. */
 const TOKEN = /^[A-Za-z0-9_-]{8,64}$/;
 
+// A browser not seen for this long is taken off the roll -- it still
+// counts among those who ever opened the page (server/db.js keeps the
+// number), it just stops being a row counted every twenty seconds.
+const ROLL_DAYS = 90;
+
+/** Sweep the roll now and once a day. Tidiness: nothing reads a row
+ *  this old except the count of them. */
+export function startPresenceSweep(db) {
+	if (!db || !db.sweepPresence) return () => {};
+	const go = () => db.sweepPresence(Date.now() - ROLL_DAYS * 86_400_000).catch(err => console.warn('[presence] the sweep did not run:', err.message));
+	const timer = setInterval(go, 86_400_000);
+	if (timer.unref) timer.unref();
+	go();
+	return () => clearInterval(timer);
+}
+
 export function presenceRoutes({ db = null } = {}) {
 	const router = express.Router();
-	const limit = perAddress(20, 600, 'That is a lot of hellos; try again shortly.');
+	// A browser says hello once a minute, so twenty an address was
+	// twenty tabs -- and every player behind one proxy address shares
+	// that. The ceiling over everyone is for a flood, not for a busy
+	// evening: six hundred a minute was six hundred open tabs.
+	const limit = perAddress(60, 20000, 'That is a lot of hellos; try again shortly.');
 	// A token and nothing else: the parser is sized for exactly that.
 	const body = express.json({ limit: 1024 });
 

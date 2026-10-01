@@ -29,15 +29,13 @@ import express from 'express';
 import crypto from 'node:crypto';
 import { digest, BOARDS, DIGEST_V, paidBand } from '../js/digest.js';
 import { config } from './config.js';
-import { listCommunity, listSaveRevs, putCommunity, putDigest, deleteCommunity, getShareState, setCommunityOff } from './db.js';
-import { onSaveChanged, readSave } from './saves.js';
+import { listCommunity, listSaveRevs, getSaves, putCommunity, putDigest, deleteCommunity, getShareState, setCommunityOff } from './db.js';
+import { onSaveChanged, readSave, heldSave } from './saves.js';
 import { requireUser, sessionUser } from './session.js';
 import { wrap } from './wrap.js';
+import { acct } from './log.js';
 
 export const SHARES = ['named', 'anon'];
-
-/** How an account is shown when it has never said. */
-export const DEFAULT_SHARE = 'named';
 
 let held = null;       // the boards as last built
 let building = null;   // the build in progress, so two requests share one
@@ -241,20 +239,35 @@ async function barterParts(live) {
 	const onBoards = new Map(live.map(r => [r.userId, r]));
 	const revs = await listSaveRevs();
 	const out = [];
+	// Which saves have moved since they were last counted. On a fresh
+	// process that is every one of them, and reading them one by one --
+	// a round trip each, and each pulled into the save cache besides --
+	// held the first answer of the boards for a minute and more on a
+	// fleet of a thousand. So they are read from memory where memory
+	// holds them, and the rest from the table a hundred at a time.
+	const moved = [];
 	for (const { userId, rev } of revs) {
 		const r = onBoards.get(userId);
 		if (r) { out.push(barterPart(r.digest)); barterHeld.set(userId, { rev: r.rev, v: DIGEST_V, part: barterPart(r.digest) }); continue; }
 		const was = barterHeld.get(userId);
 		if (was && was.rev === rev && was.v === DIGEST_V) { out.push(was.part); continue; }
-		try {
-			const { stats, rev: at } = await digestOf(userId);
-			const part = barterPart(stats);
-			barterHeld.set(userId, { rev: at, v: DIGEST_V, part });
-			out.push(part);
-		} catch (err) {
-			if (was) out.push(was.part);
-			console.warn(`[community] could not read ${userId}'s barter counts:`, err.message);
-		}
+		moved.push(userId);
+	}
+	let stored = new Map();
+	const unheld = moved.filter(id => !heldSave(id));
+	try {
+		if (unheld.length) stored = await getSaves(unheld);
+	} catch (err) {
+		console.warn(`[community] could not read ${unheld.length} saves' barter counts:`, err.message);
+	}
+	for (const userId of moved) {
+		const save = heldSave(userId) || stored.get(userId);
+		const was = barterHeld.get(userId);
+		if (!save) { if (was) out.push(was.part); continue; }
+		const data = save.payload ? safeParse(save.payload) : null;
+		const part = barterPart(digest(data || {}));
+		barterHeld.set(userId, { rev: save.rev, v: DIGEST_V, part });
+		out.push(part);
 	}
 	// An account deleted since: its counts go with it.
 	const known = new Set(revs.map(x => x.userId));
@@ -290,7 +303,7 @@ async function build() {
 				// the next build tries again rather than leaving a stale
 				// row on the boards until its save happens to move.
 				behind.add(r.userId);
-				console.warn(`[community] could not refresh ${r.userId}'s digest:`, err.message);
+				console.warn(`[community] could not refresh account ${acct(r.userId)}'s digest:`, err.message);
 			}
 		}
 		r.digest = stored;
@@ -384,29 +397,23 @@ function answer(b, userId) {
 }
 
 /**
- * Put a signed-in account on the boards unless it has asked not to be.
+ * How a signed-in account stands on the boards, and whether it has ever
+ * been asked.
  *
- * The boards were opt-in and nearly empty, which is the usual fate of a
- * leaderboard nobody is on: there is nothing to look at, so nobody
- * joins, so there is nothing to look at. They are opt-out instead --
- * signing in puts you on them by name, and one press on the Community
- * tab takes you off again and remembers it.
+ * The boards are opt-in. For a while they were not: signing in put an
+ * account on them by name, Discord avatar and all, before its owner had
+ * said a word, on the reasoning that an empty leaderboard stays empty.
+ * But a name on a public board is the owner's to give, and publishing
+ * first and offering a way off afterwards is not asking. So signing in
+ * puts nobody anywhere; the Community tab asks once, plainly, and the
+ * answer -- on by name, on unnamed, or no -- is remembered either way
+ * (server/db.js, version 11).
  *
- * Called from /api/me, which every load asks: that is the one place
- * that already knows who is signed in and already reads how they stand.
- * It writes only when there is no row and no refusal on record, so the
- * common case is the read it was doing anyway.
- *
- * Returns how the account is shown, which is what the caller answers.
+ * Called from /api/me, which every load asks.
  */
-export async function ensureOnBoards(userId) {
+export async function shareStanding(userId) {
 	const state = await getShareState(userId);
-	if (state.share || state.off || !state.known) return state.share;
-	const { stats, rev } = await digestOf(userId);
-	await putCommunity(userId, DEFAULT_SHARE, stats, rev);
-	members.add(userId);
-	invalidate();
-	return DEFAULT_SHARE;
+	return { share: state.share, asked: state.asked || Boolean(state.share) };
 }
 
 export function communityRoutes() {
@@ -479,13 +486,6 @@ export function communityRoutes() {
 		const b = await boards();
 		const hits = [...b.byRef.values()].filter(r => r.share === 'named' && String(r.username).toLowerCase().includes(q)).slice(0, 10);
 		res.json({ sailors: hits.map(r => ({ ref: r.ref, name: r.username, avatar: avatarURL(r) })) });
-	}));
-
-	/** The caller's own digest as the boards would take it right now --
-	 *  for the page to show what it is offering before anyone agrees. */
-	router.get('/community/mine', requireUser, wrap(async (req, res) => {
-		res.set('Cache-Control', 'no-store');
-		res.json({ digest: (await digestOf(req.userId)).stats });
 	}));
 
 	return router;

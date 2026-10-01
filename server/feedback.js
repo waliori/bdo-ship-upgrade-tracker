@@ -38,7 +38,7 @@ import path from 'node:path';
 import { config, uploadsEnabled } from './config.js';
 import {
 	insertFeedback, listFeedback, setFeedbackStatus, deleteFeedback, feedbackStanding, feedbackShown,
-	insertFile, getFile, pendingFiles, attachFiles, deleteFile, staleFiles, getUser
+	insertFile, getFile, pendingFiles, attachFiles, deleteFile, staleFiles, getUser, uploadedBytes
 } from './db.js';
 import { sniff, EXTENSION } from './images.js';
 import { sessionUser, requireUser } from './session.js';
@@ -287,7 +287,37 @@ export function feedbackRoutes() {
 	 */
 	const image = express.raw({ type: Object.keys(EXTENSION), limit: config.maxImageBytes });
 
-	router.post('/feedback/image', requireUser, perAccount(40, 'That is a lot of images at once; try again in a minute.'), image, wrap(async (req, res) => {
+	// One upload in the air per account, and a handful across the
+	// process, taken before the body is read. The pending-picture ceiling
+	// below is a question asked of the table, and forty uploads sent at
+	// once all asked it before any of them had written a row -- so all
+	// forty got in, with four megabytes each held in memory meanwhile.
+	// The browser sends a report's pictures one after another, so a
+	// second one in flight is never the app.
+	const uploading = new Set();
+	let inFlight = 0;
+	const MAX_IN_FLIGHT = 8;
+	const oneAtATime = (req, res, next) => {
+		if (uploading.has(req.userId)) return res.status(429).json({ error: 'One image at a time, please.' });
+		if (inFlight >= MAX_IN_FLIGHT) {
+			res.set('Retry-After', '5');
+			return res.status(503).json({ error: 'The box is busy with other pictures; try again in a moment.' });
+		}
+		uploading.add(req.userId);
+		inFlight++;
+		let done = false;
+		const release = () => {
+			if (done) return;
+			done = true;
+			uploading.delete(req.userId);
+			inFlight--;
+		};
+		res.on('finish', release);
+		res.on('close', release);
+		next();
+	};
+
+	router.post('/feedback/image', requireUser, perAccount(20, 'That is a lot of images at once; try again in a minute.'), oneAtATime, image, wrap(async (req, res) => {
 		if (!uploadsEnabled) return res.status(503).json({ error: 'This copy of the app cannot take images.' });
 		const buf = Buffer.isBuffer(req.body) ? req.body : null;
 		if (!buf || !buf.length) return res.status(415).json({ error: 'Send the image itself, as image/png, image/jpeg, image/gif or image/webp.' });
@@ -301,6 +331,10 @@ export function feedbackRoutes() {
 		const held = await pendingFiles(req.userId);
 		if (held.length >= config.maxFilesPerEntry * 2) {
 			return res.status(429).json({ error: 'There are already that many images waiting to be sent. Send the report, or take one off.' });
+		}
+		if (await uploadedBytes() + buf.length > config.maxUploadBytes) {
+			console.warn('[feedback] the picture store is full; MAX_UPLOAD_BYTES refused an upload');
+			return res.status(507).json({ error: 'The box has no room for more pictures right now. Send the report without it, or try again later.' });
 		}
 
 		const id = crypto.randomBytes(12).toString('base64url');

@@ -38,7 +38,9 @@ const AUTH = 'b'.repeat(22);
 const SUB = { endpoint: 'https://fcm.googleapis.com/fcm/send/abc', keys: { p256dh: P256DH, auth: AUTH } };
 
 test('push is offered without Discord, once the keys are set', async () => {
-	assert.deepEqual(await (await call('GET', '/api/config')).json(), { sync: false, push: true, feedback: true, uploads: true, community: false, presence: true, links: false });
+	const { build, ...offered } = await (await call('GET', '/api/config')).json();
+	assert.deepEqual(offered, { sync: false, push: true, feedback: true, uploads: true, community: false, presence: true, links: false });
+	assert.ok(build, 'the deploy is named, for a report to say where it came from');
 	const key = await (await call('GET', '/api/push/key')).json();
 	assert.equal(key.key, keys.publicKey);
 	assert.deepEqual(key.regions, ['eu', 'na']);
@@ -51,7 +53,9 @@ test('a subscription is kept by region, and can be dropped', async () => {
 	assert.deepEqual((await listPushSubs('na')).map(s => s.endpoint), [SUB.endpoint]);
 	assert.equal((await call('POST', '/api/push/subscribe', { subscription: SUB, region: 'mars' })).status, 400);
 	assert.equal((await call('POST', '/api/push/subscribe', { subscription: { endpoint: 'http://plain' }, region: 'eu' })).status, 400);
-	assert.equal((await call('DELETE', '/api/push/subscribe', { endpoint: SUB.endpoint })).status, 204);
+	// The browser's own secret comes with the address (see the rule
+	// below: the address alone is not enough to take it away).
+	assert.equal((await call('DELETE', '/api/push/subscribe', { endpoint: SUB.endpoint, auth: AUTH })).status, 204);
 	assert.equal((await listPushSubs('na')).length, 0);
 });
 
@@ -107,4 +111,18 @@ test('a region is due once, a quarter of an hour before its spawn', () => {
 	assert.deepEqual(dueRegions(spawn - before - 61e3, {}, before), [], 'too early');
 	assert.deepEqual(dueRegions(spawn - before, { eu: spawn }, before), [], 'already sent for this spawn');
 	assert.deepEqual(dueRegions(spawn - 5 * 60e3, {}, before), [], 'the window has passed');
+});
+
+test('a kept subscription is changed only by the browser that holds it, or its own account', async () => {
+	// Through the rule rather than the route, for the same reason as the
+	// keys above: six changes a minute from one address.
+	const { mayChange } = await import('../server/push.js');
+	const row = { sub: { endpoint: SUB.endpoint, keys: { p256dh: P256DH, auth: AUTH } }, userId: '2001' };
+	assert.ok(mayChange(null, 'anything', null), 'a new endpoint is anybody\'s to subscribe');
+	assert.ok(mayChange(row, AUTH, null), 'the browser holding the secret');
+	assert.ok(mayChange(row, AUTH, '9999'), 'the browser holding the secret, signed into another account');
+	assert.ok(mayChange(row, 'c'.repeat(22), '2001'), 'the account it is filed under, with new keys');
+	assert.equal(mayChange(row, 'c'.repeat(22), '9999'), false, 'somebody who only knows the address');
+	assert.equal(mayChange(row, undefined, null), false);
+	assert.equal(mayChange({ ...row, userId: null }, 'c'.repeat(22), null), false, 'an unfiled device is not up for grabs either');
 });

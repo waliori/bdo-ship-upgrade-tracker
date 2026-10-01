@@ -300,6 +300,21 @@ function lightbox(href, img) {
  * The form
  * ------------------------------------------------------------------ */
 
+/*
+ * Which build a report came from. The release ("1.5") spans weeks of
+ * deploys, so a report naming only that could not be matched to the
+ * code it was sent from; the server's stamp names the deploy -- the same
+ * stamp the offline cache is named for -- and is asked for once, the
+ * first time the box opens. The release stays beside it, for a reader.
+ */
+let stamp = '';
+let asked = null;
+const deployStamp = () => asked || (asked = call('GET', '/api/config').then(
+	res => { stamp = res && res.ok && res.body && typeof res.body.build === 'string' ? res.body.build : ''; return stamp; },
+	() => ''
+));
+const buildName = () => (stamp ? `${RELEASE} (${stamp})` : RELEASE);
+
 /** The feedback form. */
 export function openFeedback(kind = 'bug') {
 	const inbox = feature('feedback');
@@ -343,7 +358,7 @@ export function openFeedback(kind = 'bug') {
 			<input type="file" class="fb-file" accept="${ACCEPT}" multiple hidden>
 			${inbox && who ? `<input class="field fb-contact" maxlength="120" placeholder="${T('Somewhere else a reply could reach you (optional, not shown to anyone else)')}" aria-label="${T('How to reach you — not public')}">` : ''}
 		</div>
-		<p class="fb-meta">${inbox ? `${who ? T('Sent as <b>{name}</b>', { name: esc(who.username) }) : T('Sent once you are signed in')} · ` : ''}${T('on <b>{view}</b>', { view: esc(view) })} · ${T('build <b>{build}</b>', { build: esc(RELEASE) })} · ${esc(agent())}</p>
+		<p class="fb-meta">${inbox ? `${who ? T('Sent as <b>{name}</b>', { name: esc(who.username) }) : T('Sent once you are signed in')} · ` : ''}${T('on <b>{view}</b>', { view: esc(view) })} · ${T('build <b>{build}</b>', { build: `<span class="fb-build">${esc(buildName())}</span>` })} · ${esc(agent())}</p>
 		<div class="dialog-actions">
 			<a class="ghost-btn fb-issues" href="${ISSUES}/new" target="_blank" rel="noopener">${T('Open an issue on GitHub ↗')}</a>
 			${inbox ? `<button class="ghost-btn" data-reports title="${T('Every report anyone has sent, and which of them have been answered')}">${T('What people have written ↗')}</button>` : ''}
@@ -375,6 +390,12 @@ export function openFeedback(kind = 'bug') {
 		const link = host.querySelector('[data-act="signin"]');
 		if (link) link.addEventListener('click', () => signIn());
 		wireIssues();
+	if (!stamp) deployStamp().then(() => {
+		if (!host.isConnected) return;
+		const shown = host.querySelector('.fb-build');
+		if (shown) shown.textContent = buildName();
+		fillIssue();
+	});
 		return;
 	}
 	if (attach && !limits.images) attach.hidden = true;
@@ -527,7 +548,7 @@ export function openFeedback(kind = 'bug') {
 	function fillIssue() {
 		const issues = host.querySelector('.fb-issues');
 		const title = { bug: 'Something is wrong', idea: 'An idea', other: 'Feedback' }[picked];
-		const body = `${text ? text.value.trim() : ''}\n\n---\nSection: ${view}\nBuild: ${RELEASE}\nBrowser: ${agent()}`;
+		const body = `${text ? text.value.trim() : ''}\n\n---\nSection: ${view}\nBuild: ${buildName()}\nBrowser: ${agent()}`;
 		issues.href = `${ISSUES}/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`;
 	}
 	function wireIssues() {
@@ -547,7 +568,7 @@ export function openFeedback(kind = 'bug') {
 		let res;
 		try {
 			res = await call('POST', '/api/feedback', {
-				kind: picked, text: words, format: 'md', page: view, version: RELEASE,
+				kind: picked, text: words, format: 'md', page: view, version: buildName(),
 				files: shots.map(f => f.id),
 				contact: contact ? contact.value.trim() : '',
 				username: who.username

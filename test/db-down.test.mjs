@@ -28,7 +28,9 @@ test.after(() => { console.warn = realWarn; server.close(); });
 
 test('the page is served while the database is not', async () => {
 	assert.equal((await fetch(`${base}/`)).status, 200);
-	assert.deepEqual(await (await fetch(`${base}/api/config`)).json(), { sync: true, push: false, feedback: true, uploads: false, community: true, presence: true, links: true });
+	const { build, ...offered } = await (await fetch(`${base}/api/config`)).json();
+	assert.deepEqual(offered, { sync: true, push: false, feedback: true, uploads: false, community: true, presence: true, links: true });
+	assert.equal(typeof build, 'string', 'the deploy is named');
 });
 
 test('the healthcheck reports the database down with a 503', async () => {

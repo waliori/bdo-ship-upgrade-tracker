@@ -13,7 +13,7 @@
 import express from 'express';
 import webpush from 'web-push';
 import { config } from './config.js';
-import { putPushSub, deletePushSub, listPushSubs, countPushSubs, listUserPushSubs, putPushAlerts, deletePushAlerts, countPushAlerts, duePushAlerts, dropPushAlerts } from './db.js';
+import { putPushSub, getPushSub, deletePushSub, listPushSubs, countPushSubs, listUserPushSubs, putPushAlerts, deletePushAlerts, countPushAlerts, duePushAlerts, dropPushAlerts } from './db.js';
 import { VELL, nextSpawn } from '../js/clock.js';
 import { perAddress } from './limit.js';
 import { sessionUser, requireUser } from './session.js';
@@ -59,7 +59,50 @@ export const looksLikeSubscription = s =>
 	s && typeof s === 'object' && typeof s.endpoint === 'string' && s.endpoint.length < 2048
 	&& pushService(s.endpoint) && s.keys && b64url(s.keys.p256dh, 80, 128) && b64url(s.keys.auth, 16, 64);
 
+/**
+ * May this caller change what is filed under an endpoint that is already
+ * kept? An endpoint is not public, but it is not a secret either -- it
+ * passes through logs and devtools -- and the route is open. So holding
+ * one is not enough to re-file a device under another account, or to
+ * take its reminders away: the caller must also hold the subscription's
+ * own secret (`auth`, which only the browser that subscribed has), or be
+ * the account the row is already filed under.
+ */
+export function mayChange(row, auth, uid) {
+	if (!row) return true;
+	const held = row.sub && row.sub.keys ? row.sub.keys.auth : null;
+	if (held && typeof auth === 'string' && auth === held) return true;
+	return Boolean(uid) && row.userId === uid;
+}
+
+/* The keys are set once, as the routes are made: the two sweeps below
+ * both send, and the chimes' sweep used to rely on the Vell one having
+ * been started first to have set them. */
+let keysSet = false;
+function setKeys() {
+	if (keysSet || !config.vapid.publicKey || !config.vapid.privateKey) return;
+	webpush.setVapidDetails(config.vapid.subject, config.vapid.publicKey, config.vapid.privateKey);
+	keysSet = true;
+}
+
+// A push service that does not answer is given this long. Without it a
+// hung connection held a sweep open past the next beat.
+const SEND_TIMEOUT_MS = 10_000;
+// How many sends are in the air at once: a region of ten thousand
+// subscriptions is not ten thousand connections opened together.
+const FAN_OUT = 50;
+
+/** Run `fn` over `items`, `limit` at a time. */
+async function inTurns(items, limit, fn) {
+	let next = 0;
+	const lane = async () => {
+		while (next < items.length) await fn(items[next++]);
+	};
+	await Promise.all(Array.from({ length: Math.min(limit, items.length) }, lane));
+}
+
 export function pushRoutes() {
+	setKeys();
 	const router = express.Router();
 	// Scoped to these routes rather than to everything under /api: the
 	// sync API's own parser allows a megabyte for a save, and whichever
@@ -87,14 +130,19 @@ export function pushRoutes() {
 		if (!looksLikeSubscription(subscription)) return res.status(400).json({ error: 'Expected a push subscription.' });
 		if (!VELL[region]) return res.status(400).json({ error: 'No timetable for that region.' });
 		try {
-			if (await countPushSubs() >= MAX_SUBSCRIPTIONS) {
+			const uid = sessionUser(req) || null;
+			const kept = await getPushSub(subscription.endpoint);
+			if (!mayChange(kept, subscription.keys.auth, uid)) {
+				return res.status(403).json({ error: 'That subscription is not this browser’s to change.' });
+			}
+			if (!kept && await countPushSubs() >= MAX_SUBSCRIPTIONS) {
 				return res.status(503).json({ error: 'No room for another reminder right now.' });
 			}
 			// Signed in, the subscription is also this account's, which is
 			// what lets a chime set on one device reach the others. Signed
 			// out it stays what it always was: an endpoint and a region,
 			// saying nothing about who holds it.
-			await putPushSub(subscription.endpoint, subscription, region, sessionUser(req) || null, typeof vell === 'boolean' ? vell : null);
+			await putPushSub(subscription.endpoint, subscription, region, uid, typeof vell === 'boolean' ? vell : null);
 			res.status(204).end();
 		} catch (err) {
 			console.warn('[push] could not keep a subscription:', err.message);
@@ -106,6 +154,10 @@ export function pushRoutes() {
 		const endpoint = req.body && req.body.endpoint;
 		if (typeof endpoint !== 'string' || !endpoint) return res.status(400).json({ error: 'Which subscription?' });
 		try {
+			const kept = await getPushSub(endpoint);
+			if (!mayChange(kept, req.body.auth, sessionUser(req))) {
+				return res.status(403).json({ error: 'That subscription is not this browser’s to change.' });
+			}
 			await deletePushSub(endpoint);
 			res.status(204).end();
 		} catch (err) {
@@ -204,9 +256,9 @@ async function notifyRegion(region, at, now = Date.now()) {
 		tag: 'vell'
 	});
 	let sent = 0;
-	await Promise.all(subs.map(async s => {
+	await inTurns(subs, FAN_OUT, async s => {
 		try {
-			await webpush.sendNotification(s.sub, payload, { TTL: 15 * 60 });
+			await webpush.sendNotification(s.sub, payload, { TTL: 15 * 60, timeout: SEND_TIMEOUT_MS });
 			sent++;
 			counters.pushSent++;
 		} catch (err) {
@@ -214,7 +266,7 @@ async function notifyRegion(region, at, now = Date.now()) {
 			// weather, and the next spawn is another chance.
 			if (err.statusCode === 404 || err.statusCode === 410) await deletePushSub(s.endpoint).catch(() => {});
 		}
-	}));
+	});
 	return sent;
 }
 
@@ -227,20 +279,25 @@ async function notifyRegion(region, at, now = Date.now()) {
 export async function sendDueAlerts(now = Date.now()) {
 	const due = await duePushAlerts(now);
 	if (!due.length) return 0;
+	// Claimed before a single one is sent: taken off the table first, so
+	// a sweep that overlaps this one -- or a send that hangs past the
+	// next beat -- finds nothing to send twice. A chime lost to a push
+	// service that was down is one chime; a chime sent twice is every
+	// chime for as long as the service is slow.
+	await dropPushAlerts(due.map(a => a.id));
 	const subs = new Map();
 	for (const a of due) {
 		if (!subs.has(a.userId)) subs.set(a.userId, await listUserPushSubs(a.userId));
 		const payload = JSON.stringify({ title: a.title, body: a.body, url: '/#barter', tag: `sail-${a.tag}` });
-		await Promise.all((subs.get(a.userId) || []).map(async s => {
+		await inTurns(subs.get(a.userId) || [], FAN_OUT, async s => {
 			try {
-				await webpush.sendNotification(s.sub, payload, { TTL: 5 * 60 });
+				await webpush.sendNotification(s.sub, payload, { TTL: 5 * 60, timeout: SEND_TIMEOUT_MS });
 				counters.pushSent++;
 			} catch (err) {
 				if (err.statusCode === 404 || err.statusCode === 410) await deletePushSub(s.endpoint).catch(() => {});
 			}
-		}));
+		});
 	}
-	await dropPushAlerts(due.map(a => a.id));
 	return due.length;
 }
 
@@ -250,11 +307,19 @@ export async function sendDueAlerts(now = Date.now()) {
  * apart, and a chime a minute late is a chime for the wrong island.
  */
 export function startAlertPushes(every = 10e3) {
+	setKeys();
+	// One sweep at a time: a beat that comes round while the last is
+	// still sending waits for the next.
+	let running = false;
 	const beat = async () => {
+		if (running) return;
+		running = true;
 		try {
 			await sendDueAlerts();
 		} catch (err) {
 			console.warn('[push] chimes failed:', err.message);
+		} finally {
+			running = false;
 		}
 	};
 	const timer = setInterval(beat, every);
@@ -264,9 +329,19 @@ export function startAlertPushes(every = 10e3) {
 
 /** Once a minute, for the life of the process. */
 export function startVellPushes() {
-	webpush.setVapidDetails(config.vapid.subject, config.vapid.publicKey, config.vapid.privateKey);
+	setKeys();
 	const sent = {};
+	let running = false;
 	const beat = async () => {
+		if (running) return;
+		running = true;
+		try {
+			await vellBeat();
+		} finally {
+			running = false;
+		}
+	};
+	const vellBeat = async () => {
 		for (const d of dueRegions(Date.now(), sent)) {
 			sent[d.region] = d.at;
 			try {

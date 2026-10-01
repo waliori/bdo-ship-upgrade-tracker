@@ -91,9 +91,11 @@ export function perAddress(max, total = max * 20, message = 'Too many requests; 
 
 	return (req, res, next) => {
 		const now = Date.now();
-		if (all.until <= now) all = { count: 0, until: now + WINDOW_MS };
-		if (++all.count > total) return refuse(res, all.until, now);
-
+		// The address first, and only what it lets through is counted
+		// against everyone. The other way round, one host looping on a
+		// refusal spent the whole process's minute on requests it was
+		// already being turned away from -- and the market, push sign-ups
+		// and short links went quiet for every other player with it.
 		const key = clientAddress(req);
 		let bucket = seen.get(key);
 		if (!bucket || bucket.until <= now) {
@@ -101,6 +103,9 @@ export function perAddress(max, total = max * 20, message = 'Too many requests; 
 			seen.set(key, bucket);
 		}
 		if (++bucket.count > max) return refuse(res, bucket.until, now);
+
+		if (all.until <= now) all = { count: 0, until: now + WINDOW_MS };
+		if (++all.count > total) return refuse(res, all.until, now);
 		next();
 	};
 }

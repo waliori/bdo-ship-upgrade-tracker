@@ -9,18 +9,32 @@
 # dependency should show up in the log, not block a fix to the planner.
 # The image build is not -- a Dockerfile that no longer copies what the
 # server serves is a broken deploy, and cheaper to find here.
+#
+# The actions are pinned to a commit, not a tag: a tag can be moved to
+# other code after the fact, and this job runs with the repository's
+# token. The comment beside each says which release the commit is. The
+# token itself is read-only -- the job reads the code and writes nothing.
 name: test
 
 on:
   push:
+    branches: [main, develop]
   pull_request:
+
+permissions:
+  contents: read
+
+# A newer push to the same branch makes the run in progress moot.
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
           cache: npm

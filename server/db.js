@@ -404,11 +404,69 @@ export const MIGRATIONS = [
 			)`);
 			await run('CREATE INDEX IF NOT EXISTS links_owner ON links (user_id, created_at)');
 		}
+	},
+	{
+		version: 11,
+		up: async run => {
+			// The boards are opt-in again, and this time for good: signing
+			// in used to put an account on them by name, avatar and all,
+			// before its owner had said a word -- which is publishing
+			// somebody, not inviting them. Now nobody is on them who has
+			// not answered the question, and this column is whether they
+			// have. Off, named or unnamed are all answers; only silence is
+			// not.
+			await run('ALTER TABLE users ADD COLUMN community_asked INTEGER NOT NULL DEFAULT 0');
+			// Who had already answered. Leaving is an answer. So is being
+			// shown unnamed, because signing in only ever put anyone on by
+			// name. And so is any row older than the opt-out rule itself
+			// (version 3): before it, the only way onto the boards was to
+			// press Take part.
+			const { rows } = await run('SELECT applied_at FROM schema_version WHERE version = 3');
+			const optOutSince = rows[0] ? Number(rows[0].applied_at) : 0;
+			await run('UPDATE users SET community_asked = 1 WHERE community_off = 1');
+			await run({
+				sql: `UPDATE users SET community_asked = 1 WHERE id IN (
+					SELECT user_id FROM community WHERE share = 'anon' OR joined_at < ?)`,
+				args: [optOutSince]
+			});
+			// Everybody else was put there by signing in, and comes off
+			// until they say otherwise. The Community tab asks them once.
+			await run('DELETE FROM community WHERE user_id IN (SELECT id FROM users WHERE community_asked = 0)');
+		}
+	},
+	{
+		version: 12,
+		up: async run => {
+			// The sessions signed out of. A session is still a signed
+			// cookie and nothing else -- this is not a session table, only
+			// the short list of cookies that have been handed back, so a
+			// copy of one taken off a shared machine stops working the
+			// moment its owner signs out there. A row lives as long as the
+			// cookie it names would have, and no longer.
+			await run(`CREATE TABLE IF NOT EXISTS revoked_sessions (
+				sid         TEXT PRIMARY KEY,
+				until       INTEGER NOT NULL
+			)`);
+		}
+	},
+	{
+		version: 13,
+		up: async run => {
+			// The roll of browsers grew by one for every browser that ever
+			// opened the page, and was counted whole every twenty seconds.
+			// The ones not seen for months are swept now; this row keeps
+			// how many went, so "how many ever" still means ever.
+			await run(`CREATE TABLE IF NOT EXISTS presence_swept (
+				id          INTEGER PRIMARY KEY,
+				n           INTEGER NOT NULL
+			)`);
+			await run('INSERT OR IGNORE INTO presence_swept (id, n) VALUES (1, 0)');
+		}
 	}
 ];
 
 /** The data tables, in the order a restore has to write them (parents first). */
-export const TABLES = ['users', 'saves', 'push_subs', 'push_alerts', 'feedback', 'feedback_files', 'community', 'presence', 'barter_boards', 'barter_board_seen', 'links'];
+export const TABLES = ['users', 'saves', 'push_subs', 'push_alerts', 'feedback', 'feedback_files', 'community', 'presence', 'barter_boards', 'barter_board_seen', 'links', 'revoked_sessions', 'presence_swept'];
 
 /**
  * Bring the database up to the newest version. Safe to run any number
@@ -511,6 +569,16 @@ export async function putPushSub(endpoint, sub, region, userId = null, vell = nu
 	});
 }
 
+/** One subscription as stored, with the account it is filed under. */
+export async function getPushSub(endpoint) {
+	await migrate();
+	const { rows } = await exec({ sql: 'SELECT sub, user_id FROM push_subs WHERE endpoint = ?', args: [endpoint] });
+	if (!rows[0]) return null;
+	let sub = null;
+	try { sub = JSON.parse(rows[0].sub); } catch { /* a row nobody can send to; treated as keyless */ }
+	return { sub, userId: rows[0].user_id || null };
+}
+
 export async function deletePushSub(endpoint) {
 	await migrate();
 	await exec({ sql: 'DELETE FROM push_subs WHERE endpoint = ?', args: [endpoint] });
@@ -605,7 +673,7 @@ export async function countPresence(since) {
 	await migrate();
 	const { rows } = await exec({
 		sql: `SELECT (SELECT COUNT(*) FROM presence WHERE seen_at >= ?) AS online,
-			(SELECT COUNT(*) FROM presence) AS sailors,
+			(SELECT COUNT(*) FROM presence) + COALESCE((SELECT n FROM presence_swept WHERE id = 1), 0) AS sailors,
 			(SELECT COUNT(*) FROM users) AS crew`,
 		args: [since]
 	});
@@ -614,6 +682,20 @@ export async function countPresence(since) {
 		sailors: Number(rows[0] && rows[0].sailors) || 0,
 		crew: Number(rows[0] && rows[0].crew) || 0
 	};
+}
+
+/**
+ * Browsers not seen since `before`, off the roll and onto the count of
+ * those that went. One transaction, so a sweep cut short neither loses
+ * them from "ever" nor counts them twice.
+ */
+export async function sweepPresence(before) {
+	await migrate();
+	const results = await db().batch([
+		{ sql: 'UPDATE presence_swept SET n = n + (SELECT COUNT(*) FROM presence WHERE seen_at < ?) WHERE id = 1', args: [before] },
+		{ sql: 'DELETE FROM presence WHERE seen_at < ?', args: [before] }
+	], 'write');
+	return Number(results[1].rowsAffected) || 0;
 }
 
 /* ------------------------------------------------------------------ *
@@ -648,6 +730,27 @@ export async function getUser(id) {
 		args: [id]
 	});
 	return rows[0] || null;
+}
+
+/* ------------------------------------------------------------------ *
+ * Sessions signed out of
+ * ------------------------------------------------------------------ */
+
+/** A cookie handed back: refused from now until it would have lapsed. */
+export async function revokeSession(sid, until) {
+	await migrate();
+	await exec({
+		sql: 'INSERT INTO revoked_sessions (sid, until) VALUES (?, ?) ON CONFLICT(sid) DO UPDATE SET until = excluded.until',
+		args: [sid, until]
+	});
+}
+
+/** Every cookie still refused, the lapsed ones swept on the way. */
+export async function listRevokedSessions(now = Date.now()) {
+	await migrate();
+	await exec({ sql: 'DELETE FROM revoked_sessions WHERE until < ?', args: [now] });
+	const { rows } = await exec('SELECT sid, until FROM revoked_sessions');
+	return rows.map(r => ({ sid: r.sid, until: Number(r.until) }));
 }
 
 /* ------------------------------------------------------------------ *
@@ -890,6 +993,13 @@ export async function deleteFile(id) {
 	await exec({ sql: 'DELETE FROM feedback_files WHERE id = ?', args: [id] });
 }
 
+/** How many bytes of pictures the table says are on disk. */
+export async function uploadedBytes() {
+	await migrate();
+	const { rows } = await exec('SELECT COALESCE(SUM(bytes), 0) AS n FROM feedback_files');
+	return Number(rows[0] && rows[0].n) || 0;
+}
+
 /** Uploads nobody ever sent, older than `before`. Swept on a timer. */
 export async function staleFiles(before) {
 	await migrate();
@@ -915,19 +1025,20 @@ export async function staleFiles(before) {
 export async function getShareState(userId) {
 	await migrate();
 	const { rows } = await exec({
-		sql: `SELECT u.community_off AS off, c.share AS share
+		sql: `SELECT u.community_off AS off, u.community_asked AS asked, c.share AS share
 		      FROM users u LEFT JOIN community c ON c.user_id = u.id
 		      WHERE u.id = ?`,
 		args: [userId]
 	});
-	if (!rows[0]) return { share: null, off: true, known: false };
-	return { share: rows[0].share || null, off: Number(rows[0].off) === 1, known: true };
+	if (!rows[0]) return { share: null, off: true, asked: false, known: false };
+	return { share: rows[0].share || null, off: Number(rows[0].off) === 1, asked: Number(rows[0].asked) === 1, known: true };
 }
 
-/** Remember that an account chose to be off the boards, or chose not to be. */
+/** Remember the account's answer: off the boards, or on them. Either
+ *  way it has now been asked, and is not asked again. */
 export async function setCommunityOff(userId, off) {
 	await migrate();
-	await exec({ sql: 'UPDATE users SET community_off = ? WHERE id = ?', args: [off ? 1 : 0, userId] });
+	await exec({ sql: 'UPDATE users SET community_off = ?, community_asked = 1 WHERE id = ?', args: [off ? 1 : 0, userId] });
 }
 
 /** Put an account on the boards, or change how it is shown there. */
@@ -955,6 +1066,20 @@ export async function putDigest(userId, stats, rev) {
 export async function deleteCommunity(userId) {
 	await migrate();
 	await exec({ sql: 'DELETE FROM community WHERE user_id = ?', args: [userId] });
+}
+
+/** Many saves at once, as stored: a round trip a hundred accounts
+ *  rather than one an account. Not through saves.js's memory, which is
+ *  for the accounts in use -- this is for reading the fleet. */
+export async function getSaves(userIds) {
+	await migrate();
+	const out = new Map();
+	for (let i = 0; i < userIds.length; i += 100) {
+		const ids = userIds.slice(i, i + 100);
+		const { rows } = await exec({ sql: `SELECT user_id, rev, payload FROM saves WHERE user_id IN (${ids.map(() => '?').join(', ')})`, args: ids });
+		for (const r of rows) out.set(r.user_id, { rev: Number(r.rev) || 0, payload: r.payload });
+	}
+	return out;
 }
 
 /** Every account's save revision: which saves the fleet's barter

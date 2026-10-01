@@ -63,7 +63,9 @@ const SUB = { endpoint: 'https://fcm.googleapis.com/fcm/send/abc', keys: { p256d
 const SAVE = { stock: { 'Tidal Black Stone': 400 }, targets: [], strategy: {} };
 
 test('both halves are on', async () => {
-	assert.deepEqual(await (await call('GET', '/api/config')).json(), { sync: true, push: true, feedback: true, uploads: true, community: true, presence: true, links: true });
+	const { build, ...offered } = await (await call('GET', '/api/config')).json();
+	assert.deepEqual(offered, { sync: true, push: true, feedback: true, uploads: true, community: true, presence: true, links: true });
+	assert.equal(typeof build, 'string', 'the deploy is named');
 });
 
 test('a push subscription keeps its own body limit when sync is on', async () => {
