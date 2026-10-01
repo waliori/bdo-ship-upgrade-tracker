@@ -2,7 +2,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { pathLength, legLengths, speedPct, sailSeconds, calibrate, fmtDistance, fmtDuration, DEFAULT_CAL } from '../js/sailing.js';
+import { pathLength, legLengths, sailSeconds, calibrate, fmtDistance, fmtDuration, DEFAULT_CAL } from '../js/sailing.js';
 import { ports } from '../js/barter_npcs.js';
 
 test('a chart pixel is a quarter of a metre', () => {
@@ -20,12 +20,7 @@ test('legs are split at the stops, bends included in the leg they belong to', ()
 	assert.deepEqual(legLengths([{ x: 0, y: 0 }]), []);
 });
 
-test('the speed is hull plus parts plus crew, and time follows from it', () => {
-	const bare = speedPct('Epheria Sailboat');
-	assert.equal(bare.total, 100);
-	const crewed = speedPct('Epheria Sailboat', {}, [{ id: 'a', type: 'Ambitious', lv: 10, cond: 100 }], { 'sail:0': 'a' });
-	assert.ok(crewed.crew > 0 && crewed.total > 100, JSON.stringify(crewed));
-	assert.equal(speedPct('No Such Hull'), null);
+test('the time a leg takes follows from the speed', () => {
 	assert.equal(sailSeconds(875, 100), 100);
 	assert.equal(sailSeconds(1100, 100, 22), 50);
 	assert.equal(sailSeconds(1000, 0), Infinity);

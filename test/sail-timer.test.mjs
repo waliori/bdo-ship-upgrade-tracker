@@ -213,3 +213,73 @@ test('a clock laid on the route before a call was put in takes the run’s marks
 	assert.equal(t.marks[2].at, 200 + (290 - 160 - 60), 'B one leg from the press');
 	stopTimer();
 });
+
+// A browser's audio, counted: every note of a chime is an oscillator.
+let notes = 0;
+const fakeAudio = () => {
+	class AC {
+		constructor() { this.state = 'running'; this.currentTime = 0; this.destination = {}; }
+		createOscillator() { notes++; return { frequency: { value: 0 }, connect: x => x, start() {}, stop() {} }; }
+		createGain() { return { gain: { value: 0, setValueAtTime() {}, exponentialRampToValueAtTime() {} }, connect: x => x }; }
+	}
+	globalThis.window = globalThis.window || {};
+	globalThis.window.AudioContext = AC;
+};
+const rewind = s => store.setView('timer', { ...timerNow(), startedAt: timerNow().startedAt - s * 1000 });
+
+test('the whole run rings once at its end, with no stop ticked off on the way', async () => {
+	const { watchTimer } = await import('../js/sail-timer.js');
+	fakeAudio();
+	setMarksMode('whole');
+	startTimer(0, 'run', [{ at: 100, label: 'A', hold: 0, k: 0 }, { at: 200, label: 'B', hold: 0, k: 1 }, { at: 300, label: 'C', hold: 0, k: 2 }], 3);
+	rewind(3600);
+	const before = notes;
+	watchTimer(null);
+	assert.ok(notes > before, 'the bell rang an hour into a five-minute run');
+	assert.equal(timerNow().chimed, true);
+	const rung = notes;
+	// Traded pressed through the stops afterwards is not a second bell.
+	passedStop(0); passedStop(1); passedStop(2);
+	watchTimer(null);
+	assert.equal(notes, rung, 'one chime for the whole run');
+	setMarksMode('each');
+	stopTimer();
+});
+
+test('the end bell rings once, not again when the last Traded is pressed', async () => {
+	const { watchTimer } = await import('../js/sail-timer.js');
+	fakeAudio();
+	setMarksMode('each');
+	startTimer(0, 'A and 1', [{ at: 100, label: 'A', hold: 0, k: 0 }, { at: 200, label: 'B', hold: 0, k: 1 }], 2);
+	rewind(150); watchTimer(null);
+	passedStop(0);
+	rewind(300); watchTimer(null);
+	assert.equal(timerNow().chimed, true, 'the end rang as B came up');
+	const rung = notes;
+	passedStop(1); watchTimer(null);
+	assert.equal(notes, rung, 'Traded at the last stop does not ring the end again');
+	stopTimer();
+});
+
+test('a run laid again mid-sail carries its new count of stops, and a restart goes back to it', async () => {
+	const { restartTimer } = await import('../js/sail-timer.js');
+	const old = [{ at: 100, label: 'A', hold: 0, k: 0 }, { at: 200, label: 'B', hold: 0, k: 1 }];
+	const fresh = [{ at: 100, label: 'A', hold: 0, k: 0 }, { at: 160, label: 'call', hold: 60, k: 1 }, { at: 290, label: 'B', hold: 0, k: 2 }];
+	startTimer(0, 'A and 1', old, 2);
+	rewind(150);
+	arrivedAt(1, fresh, 3);
+	assert.equal(timerState().stops, 3, 'of 3 now, the supply call counted');
+	const again = restartTimer();
+	assert.deepEqual(again.marks.map(m => m.label), ['A', 'call', 'B'], 'the restart counts the run as it now is');
+	stopTimer();
+});
+
+test('Arrived at a stop past a skipped one waits there, under its own name', () => {
+	startTimer(0, 'run', [{ at: 100, label: 'A', hold: 0, k: 0 }, { at: 200, label: 'B', hold: 0, k: 1 }, { at: 300, label: 'C', hold: 0, k: 2 }], 3);
+	rewind(250);
+	arrivedAt(2);
+	const s = timerState();
+	assert.ok(s.wait);
+	assert.equal(s.wait.label, 'C');
+	stopTimer();
+});

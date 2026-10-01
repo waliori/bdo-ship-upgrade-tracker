@@ -111,3 +111,37 @@ test('a player who knows their server outranks the table', () => {
 	assert.equal(mine.sure, true, 'a correction is not a guess');
 	assert.equal(mine.custom, true);
 });
+
+test('a zone that keeps summer time turns its day once, at the reset, across the change', () => {
+	// Europe/London goes to BST at 01:00 UTC on Sunday 2026-03-29, and back
+	// at 01:00 UTC on Sunday 2026-10-25. Every day must get a key of its
+	// own, changing exactly at local midnight.
+	const plan = { zone: 'Europe/London', daily: 0, barter: 6, weekly: { day: 0, hour: 0 } };
+	const turns = (cadence, from, to) => {
+		const out = [];
+		let prev = null;
+		for (let t = at(from); t < at(to); t += 15 * 60e3) {
+			const k = periodKey(cadence, t, plan);
+			if (k !== prev) { out.push([new Date(t).toISOString().slice(0, 16), k]); prev = k; }
+		}
+		return out;
+	};
+	const spring = turns('daily', '2026-03-28T12:00:00Z', '2026-03-31T12:00:00Z');
+	assert.deepEqual(spring.map(r => r[0]), ['2026-03-28T12:00', '2026-03-29T00:00', '2026-03-29T23:00', '2026-03-30T23:00']);
+	assert.equal(new Set(spring.map(r => r[1])).size, spring.length, 'no day shares a key with another');
+	const autumn = turns('daily', '2026-10-24T12:00:00Z', '2026-10-27T12:00:00Z');
+	assert.deepEqual(autumn.map(r => r[0]), ['2026-10-24T12:00', '2026-10-24T23:00', '2026-10-26T00:00', '2026-10-27T00:00']);
+	// A Sunday weekly turns once a week, never back and forth.
+	const weeks = turns('weekly', '2026-03-20T00:00:00Z', '2026-04-08T00:00:00Z');
+	assert.deepEqual(weeks.map(r => r[0]), ['2026-03-20T00:00', '2026-03-22T00:00', '2026-03-29T00:00', '2026-04-04T23:00']);
+	// Saturday 23:15 London, the night the clocks go forward: 45 minutes to midnight.
+	assert.equal(untilHourIn('Europe/London', 0, at('2026-03-28T23:15:00Z')), 45 * 60e3);
+});
+
+test("Vell on the night the clocks go forward is still Sunday's", () => {
+	// Saturday 2026-03-28 between 23:15 and midnight Berlin (CET, 22:15Z-23:00Z).
+	for (const iso of ['2026-03-28T22:15:00Z', '2026-03-28T22:45:00Z', '2026-03-28T23:15:00Z']) {
+		const n = nextSpawn(VELL.eu.zone, VELL.eu.times, at(iso));
+		assert.equal(n.at, at('2026-03-29T12:00:00Z'), iso);
+	}
+});

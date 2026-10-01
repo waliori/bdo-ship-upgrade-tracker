@@ -5,7 +5,7 @@
 import { encodeAny, decodeAny } from '../share.js';
 import { esc, F, FC } from '../fmt.js';
 import { T, gameName, said } from '../i18n.js';
-import { currentShip, aboardWhat, rationDrain } from '../ship.js';
+import { currentShip, aboardWhat, rationDrain, setRationCal } from '../ship.js';
 import { paceNow, LEARN_AT } from '../ship-pace.js';
 import { img, tierName } from '../ui-bits.js';
 import { npcById, ports } from '../barter_npcs.js';
@@ -14,7 +14,7 @@ import { gradeById } from '../crystals.js';
 import { openDialog, closeDialog, toast } from '../dialogs.js';
 import * as store from '../state.js';
 import { legLengths, pathLength, sailRange, fmtRange, calibrate, fmtDistance, DEFAULT_CAL } from '../sailing.js';
-import { rationPlan, calibrateRations, fmtRations, fmtRationRange, perMinute, RATION_RESERVE } from '../rations.js';
+import { rationPlan, calibrateRations, fmtRations, fmtRationRange, drainRate, RATION_RESERVE } from '../rations.js';
 import { looksLikeGameXML } from '../worldmap.js';
 import { parleyPerTrade, PARLEY, GOODS, amount, bestExchange, levelOf, triesFor } from '../barter.js';
 import { aboardStock } from '../barter-plan.js';
@@ -108,10 +108,15 @@ export function routeHTML(marks) {
 	// Rations: the pool as typed (full when nothing is), the estimated
 	// drain over the legs, and the stop after which it would run below
 	// the reserve at the pessimistic end.
-	const rRate = rationRate();
-	const rMeasured = Number(store.getSetting('rationCal', null)) > 0;
+	// The drain is the barter planner's own rule (rations.js drainRate),
+	// so the calls it puts in and the warnings here agree: the sailor's
+	// watched figure for this ship if there is one, and no BreezySail on
+	// a leg sailed past the hold's limit.
+	const drain = rationDrain(me);
+	const rRate = rationRate(me);
+	const rMeasured = drain.cal > 0;
 	const rations = rationPlan({
-		legs: legList.map(l => ({ minutes: [l.secs[0] / 60, l.secs[1] / 60], refill: !!(seq[l.k] && seq[l.k].kind === 'stash' && seq[l.k].place.rations) })),
+		legs: legList.map(l => ({ minutes: [l.secs[0] / 60, l.secs[1] / 60], refill: !!(seq[l.k] && seq[l.k].kind === 'stash' && seq[l.k].place.rations), rate: drainRate(drain, { overweight: l.holdAt > me.hold.free }) })),
 		aboard: mv.rationsAboard === null ? me.rations : Math.min(me.rations, mv.rationsAboard),
 		full: me.rations, rate: rRate, measured: rMeasured
 	});
@@ -174,7 +179,7 @@ export function routeHTML(marks) {
 					? T('≈ {time} at {pct}%', { time: esc(fmtRange(...totalSecs)), pct: speed.total })
 					: slowedLegs === 1
 						? T('≈ {time} at {pct}%, {n} leg slowed by the hold', { time: esc(fmtRange(...totalSecs)), pct: speed.total, n: slowedLegs })
-						: T('≈ {time} at {pct}%, {n} legs slowed by the hold', { time: esc(fmtRange(...totalSecs)), pct: speed.total, n: slowedLegs })} · ${T('100% ≈ {v} m/s', { v: cal })} ${measured ? '±10%' : '±20%'} · <button class="linky" data-act="map-sail-cal">${T('timed a leg?')}</button></div>${wharfLine}</div>` : '';
+						: T('≈ {time} at {pct}%, {n} legs slowed by the hold', { time: esc(fmtRange(...totalSecs)), pct: speed.total, n: slowedLegs })}${slowedLegs ? ` (${T('how much a heavy hold slows the ship is an estimate')})` : ''} · ${T('100% ≈ {v} m/s', { v: cal })} ${measured ? '±10%' : '±20%'} · <button class="linky" data-act="map-sail-cal">${T('timed a leg?')}</button></div>${wharfLine}</div>` : '';
 	const cargo = cargoTile({ weight: me.hold.free });
 	// A leg the router could not bend round the land is drawn straight
 	// and said so: its metres and minutes are a floor, not a reading.
@@ -290,14 +295,14 @@ export function sailCal() {
 export const sailLag = () => Math.max(0, Math.min(120, paceNow().lag || 0));
 
 /** Rations a minute under sail: the player's own figure if they watched
- *  the pool over a leg, else the ship's ticks -- the hull's take and the
- *  crew's appetite every seven seconds, and BreezySail when kept going. */
-function shipRate() {
-	return Math.round(perMinute(rationDrain()));
+ *  the pool over a leg on this ship, else the ship's ticks -- the hull's
+ *  take and the crew's appetite every seven seconds, and BreezySail when
+ *  kept going. */
+function shipRate(me = currentShip()) {
+	return Math.round(drainRate({ ...rationDrain(me), cal: 0 }));
 }
-function rationRate() {
-	const v = Number(store.getSetting('rationCal', null));
-	return v > 0 ? v : shipRate();
+function rationRate(me = currentShip()) {
+	return Math.round(drainRate(rationDrain(me)));
 }
 
 /**
@@ -933,7 +938,7 @@ export function openRationCal() {
 			<button class="act" data-rcal-save>${T('Set')}</button>
 		</div>`);
 	host.querySelector('[data-rcal-reset]').addEventListener('click', () => {
-		store.setSetting('rationCal', null);
+		setRationCal(currentShip().name, null);
 		closeDialog();
 		refreshSide();
 		toast(T('Back to {v} rations a minute', { v: F(shipRate()) }));
@@ -943,10 +948,10 @@ export function openRationCal() {
 		const minutes = Number(String(host.querySelector('[data-rcal-min]').value).replace(',', '.'));
 		const v = calibrateRations(fell, minutes);
 		if (!v) return toast(T('Give how far the pool fell, and over how many minutes'));
-		store.setSetting('rationCal', v);
+		setRationCal(currentShip().name, v);
 		closeDialog();
 		refreshSide();
-		toast(T('The pool falls {v} a minute on this chart', { v: F(v) }));
+		toast(T('The pool falls {v} a minute on your {ship}', { v: F(v), ship: gameName(currentShip().name) }));
 	});
 }
 

@@ -128,6 +128,11 @@ export function openFleet() {
 	// for it here rather than widening every dialog in the app.
 	const box = host.querySelector('.dialog-box');
 	if (box) box.classList.add('wide');
+	// The list's presses are heard once, here, on the box that stays: a
+	// paint replaces what is inside it, not the box. Bound in paint(), a
+	// listener was added on every keystroke and every page, each press ran
+	// them all, and each of those painted -- doubling until the page froze.
+	host.querySelector('.fleet').addEventListener('click', evt => onFleetClick(host, evt));
 	paint(host);
 	const input = host.querySelector('.fleet-search');
 	if (input) input.focus();
@@ -192,32 +197,34 @@ function paint(host) {
 		page = 0;
 		paint(host);
 	});
-	box.addEventListener('click', evt => {
-		const el = evt.target.closest('[data-act]');
-		if (!el) return;
-		const act = el.dataset.act;
-		if (act === 'fleet-hull') { hull = el.dataset.hull; page = 0; return paint(host); }
-		if (act === 'fleet-page') { page = Number(el.dataset.to); return paint(host); }
-		if (act === 'fleet-del') {
-			const bare = hullOfRow(el.dataset.id);
-			// Out of the hold, which is where an owned hull lives; the
-			// change is one step, so the toast's Undo puts the ship back.
-			if (bare) store.setStock(bare, 0, T('Took the {ship} out of the inventory', { ship: gameName(bare) }));
-			else deleteSetup(el.dataset.id);
-			return paint(host);
+}
+
+/** A press anywhere in the fleet dialog. */
+function onFleetClick(host, evt) {
+	const el = evt.target.closest('[data-act]');
+	if (!el) return;
+	const act = el.dataset.act;
+	if (act === 'fleet-hull') { hull = el.dataset.hull; page = 0; return paint(host); }
+	if (act === 'fleet-page') { page = Number(el.dataset.to); return paint(host); }
+	if (act === 'fleet-del') {
+		const bare = hullOfRow(el.dataset.id);
+		// Out of the hold, which is where an owned hull lives; the
+		// change is one step, so the toast's Undo puts the ship back.
+		if (bare) store.setStock(bare, 0, T('Took the {ship} out of the inventory', { ship: gameName(bare) }));
+		else deleteSetup(el.dataset.id);
+		return paint(host);
+	}
+	if (act === 'fleet-sail') {
+		const bare = hullOfRow(el.dataset.id);
+		if (bare) {
+			store.setProfile('crewShip', bare, T('Sailing the {ship}', { ship: gameName(bare) }));
+			closeDialog();
+			return toast(T('Sailing the {ship}', { ship: gameName(bare) }));
 		}
-		if (act === 'fleet-sail') {
-			const bare = hullOfRow(el.dataset.id);
-			if (bare) {
-				store.setProfile('crewShip', bare, T('Sailing the {ship}', { ship: gameName(bare) }));
-				closeDialog();
-				return toast(T('Sailing the {ship}', { ship: gameName(bare) }));
-			}
-			const s = listSetups().find(x => x.id === el.dataset.id);
-			if (loadSetup(el.dataset.id)) {
-				closeDialog();
-				toast(s ? T('Sailing {name}', { name: gameName(s.name) }) : T('Sailing it'));
-			}
+		const s = listSetups().find(x => x.id === el.dataset.id);
+		if (loadSetup(el.dataset.id)) {
+			closeDialog();
+			toast(s ? T('Sailing {name}', { name: gameName(s.name) }) : T('Sailing it'));
 		}
-	});
+	}
 }

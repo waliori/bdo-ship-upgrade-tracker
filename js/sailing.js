@@ -10,10 +10,6 @@
 // timed leg calibrates every other.
 
 import { T } from './i18n.js';
-import { shipStats } from './ship_stats.js';
-import { loadout } from './part_stats.js';
-import { families } from './enhancement.js';
-import { crewTotals, fitSeats } from './sailors.js';
 
 export const METRES_PER_PX = 0.25;
 // Metres a second at 100% speed, and the seconds every leg costs apart
@@ -52,26 +48,17 @@ export function legLengths(points) {
 	return legs;
 }
 
-/**
- * The speed a hull actually sails at: its own figure, the best part in
- * each slot, and the crew in the sail seats -- the same sum the Crew
- * screen shows, so the two never disagree.
- */
-export function speedPct(ship, stock = {}, roster = [], seats = {}) {
-	const s = shipStats[ship];
-	if (!s) return null;
-	const fit = loadout(ship, stock, families);
-	const crew = crewTotals(roster, fitSeats(ship, seats, s), s);
-	const parts = Number(fit.total.speed) || 0;
-	return { hull: s.speed, parts, crew: crew.speed, total: Math.round((s.speed + parts + crew.speed) * 10) / 10 };
-}
-
 export const speedMs = (pct, cal = DEFAULT_CAL) => cal * pct / 100;
 
 /* How much of its speed a hull keeps at the most it will move under.
-   An estimate: the game says an overweight ship is slower and gives no
-   curve, so the chart takes it as a straight line from full speed at
-   the limit to half at the overload cap. Replace when someone times it. */
+   ASSUMED, not measured: the game says an overweight ship is slower and
+   gives no curve, and nobody has timed a leg sailed heavy, so the chart
+   takes it as a straight line from full speed at the limit to half at
+   the overload cap. Every leg time sailed past the limit, and the worth
+   an hour of the "Full, loaded" pace, rests on it -- which is why such
+   a leg says "an estimate" where its time is shown, and why a leg timed
+   with Arrived while overweight teaches the ship's speed nothing. To
+   measure it: time one leg at about 150% with Arrived and fit the curve. */
 export const OVERLOAD_SLOWEST = 0.5;
 
 /**

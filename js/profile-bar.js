@@ -248,7 +248,7 @@ export function profileHTML({ sheet = false } = {}) {
 
 		chip('mastery', '⚓', T('Sailing mastery'),
 			num('crew-mastery', mastery, T('Sailing mastery'), ' data-from="bar"'),
-			mastery ? T('+{n}% speed, turn, brake', { n: masteryBonus(mastery) }) : T('adds to speed, turn and brake'),
+			mastery ? T('+{n}% speed, acceleration, turn, brake', { n: masteryBonus(mastery) }) : T('adds to speed, acceleration, turn and brake'),
 			T('Sailing Mastery as the game shows it: half a point of speed, acceleration, turn and brake per fifty up to 2,000, a quarter-point per fifty to 3,000')),
 
 		// The sailing log the character wears. Its mastery is already in

@@ -10,6 +10,7 @@
 // aboard, the numbers the Crew screen sums.
 
 import * as store from './state.js';
+import { F } from './fmt.js';
 import { T, TT, gameName } from './i18n.js';
 import { skinFor, skinStats, SKIN_SLOTS } from './ship_skins.js';
 import { shipStats, bigShips } from './ship_stats.js';
@@ -82,9 +83,8 @@ export function splitLevel(name) {
  * `gear` is what the parts weigh in themselves, which the hold pays for:
  * see the note on the hold in currentShip().
  */
-export function fittedFor(ship, stock = store.getAllStock()) {
+export function fittedFor(ship, stock = store.getAllStock(), chosen = (store.getProfile('fitted', {}) || {})[ship] || {}) {
 	const owned = loadout(ship, stock, families);
-	const chosen = (store.getProfile('fitted', {}) || {})[ship] || {};
 	const slots = owned.slots.map(o => {
 		const pick = chosen[o.slot];
 		const fromStock = () => (o.part ? { ...o, source: 'owned' } : { slot: o.slot, source: 'none' });
@@ -109,7 +109,11 @@ export function gearLT(slots) {
 
 /** The sea crystal on a hull, if one is set: the codex entry and its stats. */
 export function crystalFor(ship) {
-	const id = (store.getProfile('crystal', {}) || {})[ship];
+	return crystalOf((store.getProfile('crystal', {}) || {})[ship]);
+}
+
+/** A crystal by codex id, with its stats; null for none. */
+function crystalOf(id) {
 	const c = id ? crystalById[id] : null;
 	return c ? { ...c, stats: crystalStats(c) } : null;
 }
@@ -341,28 +345,71 @@ export function skinTotals(ship) {
  * What the ship eats under sail: a tick of the hull's own take and the
  * appetite of everyone seated, and a BreezySail every BREEZY_EVERY
  * seconds when the sailor keeps it going (`breezy`: that interval, or
- * 0). `measured` says whether this hull's take was read in game.
+ * 0). `measured` says whether this hull's take was read in game; `cal`
+ * is the rations a minute the sailor watched this ship's pool fall, or
+ * 0. rations.js drainRate turns it into a rate, the same way for the
+ * Map and the barter planner.
  */
 export function rationDrain(me = currentShip()) {
 	const hull = hullTick(me.name);
 	const crew = (me.crew && me.crew.appetite) || 0;
-	return { tick: hull.n + crew, hull: hull.n, crew, measured: hull.measured, breezy: store.getProfile('breezy', false) === true ? BREEZY_EVERY : 0 };
+	return { tick: hull.n + crew, hull: hull.n, crew, measured: hull.measured, breezy: store.getProfile('breezy', false) === true ? BREEZY_EVERY : 0, cal: rationCalFor(me.name) };
+}
+
+/**
+ * The ration drain the sailor watched, for one hull. It is kept per
+ * ship, since a Carrack with a full crew eats three times a bare
+ * Sailboat's. It used to be one number for the device, and a save
+ * holding that number still has it: it goes on standing for every ship
+ * not watched since (filed under '*').
+ */
+export function rationCalFor(name) {
+	const raw = store.getSetting('rationCal', null);
+	if (Number(raw) > 0) return Number(raw);
+	if (!raw || typeof raw !== 'object') return 0;
+	if (Object.prototype.hasOwnProperty.call(raw, name)) return Number(raw[name]) > 0 ? Number(raw[name]) : 0;
+	return Number(raw['*']) > 0 ? Number(raw['*']) : 0;
+}
+
+/** Set (a rate) or clear (null) the watched drain for one hull. A clear
+ *  is kept as a 0, so a figure from before it was per ship does not
+ *  stand in for it again. */
+export function setRationCal(name, rate) {
+	const raw = store.getSetting('rationCal', null);
+	const all = Number(raw) > 0 ? { '*': Number(raw) } : raw && typeof raw === 'object' ? { ...raw } : {};
+	all[name] = Number(rate) > 0 ? Math.round(Number(rate)) : 0;
+	store.setSetting('rationCal', all);
 }
 
 export function currentShip() {
-	const name = shipName();
+	return shipFrom(currentSetup());
+}
+
+/**
+ * A ship worked out from a setup -- the hull, the parts picked by hand,
+ * the crystal, the seating and the skin -- the one sum every figure of
+ * a ship comes from. The ship sailed is the current setup put through
+ * it; a saved setup in the Fleet list is put through the same, so the
+ * two cannot disagree. They did: the Fleet row summed only the parts
+ * picked by hand (none of the best owned for the slots left alone),
+ * left the Corsair point out and read the seats as saved, and showed
+ * the setup being sailed at 115% beside a Ship card at 127.5%.
+ */
+export function shipFrom(setup) {
+	const name = setup.ship;
 	const stats = shipStats[name];
-	const fit = fittedFor(name);
-	const crystal = crystalFor(name);
+	const fit = fittedFor(name, store.getAllStock(), setup.fitted || {});
+	const crystal = crystalOf(setup.crystal);
 	const gem = k => (crystal && Number(crystal.stats[k])) || 0;
-	const seats = seatedOn(name);
+	const seats = fitSeats(name, setup.seats || {}, stats);
 	const crew = crewTotals(store.getProfile('roster', []) || [], seats, stats);
 	const parts = k => Number(fit.total[k]) || 0;
 	const mastery = masteryBonus();
 	const corsair = corsairBonus();
 	// The appearance set is not only a look: its four slots carry speed,
 	// weight, turn and durability, so it belongs in the same sum.
-	const skinT = skinStats(name, skinWorn(name));
+	const worn = setup.skin || {};
+	const skinT = skinStats(name, worn);
 	const skin = k => Number(skinT[k]) || 0;
 	// The pets are the player's, not the hull's, and they only count on
 	// a Big Ship -- but on one they are simply more hold, so they go in
@@ -411,7 +458,7 @@ export function currentShip() {
 		lines.push({ label: one ? T('{what}, its own weight', { what: said }) : T('{what}, their own weight', { what: said }), lt: -gear });
 	}
 	return {
-		name, stats, fit, crew, crystal, mastery, corsair, skin: skinT, skinWorn: skinWorn(name),
+		name, stats, fit, crew, crystal, mastery, corsair, skin: skinT, skinWorn: worn,
 		speed: (() => {
 			const total = round1(stats.speed + parts('speed') + gem('speed') + crew.speed + mastery + corsair + skin('speed'));
 			const log = sailingLog();
@@ -466,7 +513,7 @@ export function shownHold(hold, goods = 0) {
 		extra: max ? Math.max(0, Math.min(total, deal) - limit) / max * 100 : 0,
 		worse: max ? Math.max(0, Math.min(total, max) - deal) / max * 100 : 0,
 		mark: max ? Math.min(100, limit / max * 100) : 100,
-		text: T('{total} / {limit} LT', { total: Math.round(total).toLocaleString(), limit: Math.round(limit).toLocaleString() }),
+		text: T('{total} / {limit} LT', { total: F(total), limit: F(limit) }),
 		note: state === 'dead' ? T('more than the hull will move under, and past dealing — lighten first')
 			: state === 'heavy' ? T('too heavy to barter — lighten first')
 			: state === 'over' ? T('past the limit — sailing slower') : ''
@@ -507,50 +554,27 @@ export function setFitted(ship, slot, value) {
  * currentShip() answers the same question for the setup that is
  * standing, but it reads the profile -- so comparing two saved setups
  * meant loading each in turn and remembering the numbers. This works
- * them out from the setup's own record instead, which is what lets the
- * Ship screen put them side by side.
+ * them out from the setup's own record instead, through the same
+ * shipFrom the sailed ship goes through, which is what lets the Ship
+ * screen put them side by side and agree with the Ship card.
  *
  * Crew is counted from the seats the setup kept, against the roster as
  * it is now: the roster is shared between setups, so a sailor who has
  * been dismissed since simply no longer counts, which is the truth.
  */
 export function setupSummary(setup) {
-	const stats = shipStats[setup && setup.ship];
-	if (!stats) return null;
-	const parts = [];
-	let gear = 0;
-	for (const raw of Object.values(setup.fitted || {})) {
-		if (!raw) continue;
-		const { part, level } = splitLevel(raw);
-		if (!partStats[part]) continue;
-		parts.push(statsAt(part, level));
-		gear += partLT(part);
-	}
-	const total = sumStats(...parts);
-	const c = setup.crystal ? crystalById[setup.crystal] : null;
-	// The crystal's litre and the rod's, the same as on the ship itself.
-	gear += (c ? Number(c.lt) || 0 : 0) + (rodAboard(setup.ship, setup.seats || {}) ? OTTER_ROD.lt : 0);
-	const gemStats = c ? crystalStats(c) : {};
-	const gem = k => Number(gemStats[k]) || 0;
-	const got = k => Number(total[k]) || 0;
-	const crew = crewTotals(store.getProfile('roster', []) || [], fitSeats(setup.ship, setup.seats || {}, stats), stats);
-	const mastery = masteryBonus();
-	// A setup keeps the skin it was saved with, so two setups of the same
-	// hull -- one skinned, one not -- compare as the different ships they
-	// actually are.
-	const skinT = skinStats(setup.ship, setup.skin || {});
-	const skin = k => Number(skinT[k]) || 0;
-	const limit = stats.weight + got('weight') + gem('weight') + skin('weight') + petWeight(setup.ship);
+	if (!setup || !shipStats[setup.ship]) return null;
+	const me = shipFrom(setup);
 	return {
 		ship: setup.ship,
 		skinned: Object.values(setup.skin || {}).filter(Boolean).length,
-		fittedCount: Object.values(setup.fitted || {}).filter(Boolean).length,
-		slots: stats.slots,
-		seated: Object.keys(setup.seats || {}).length,
-		crystal: c ? c.name : null,
-		speed: round1(stats.speed + got('speed') + gem('speed') + crew.speed + mastery + skin('speed')),
-		hold: Math.max(0, limit - crew.weight - gear),
-		durability: stats.durability + got('durability') + gem('durability') + crew.durability + skin('durability')
+		fittedCount: me.fit.slots.filter(sl => sl.part).length,
+		slots: me.stats.slots,
+		seated: me.crew.seated,
+		crystal: me.crystal ? me.crystal.name : null,
+		speed: me.speed.total,
+		hold: me.hold.free,
+		durability: me.durability
 	};
 }
 

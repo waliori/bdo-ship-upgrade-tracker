@@ -218,7 +218,9 @@ export function openTripLog(focusRow = null) {
 			const n = parseAmount(String(l.qty), { signed: true });
 			if (n === null || !n) return toast(T('How many {item}?', { item: gameName(l.item) }));
 			delta[l.item] = (delta[l.item] || 0) + n;
-			used.push(l.item);
+			// Two lines of the same item are one item: added together, and
+			// named and counted once.
+			if (!used.includes(l.item)) used.push(l.item);
 		}
 		if (!used.length) return toast(T('Nothing to record'));
 		store.applyDelta(delta, 'trip', T('Logged a trip: {items}', { items: used.map(gameName).join(', ') }));

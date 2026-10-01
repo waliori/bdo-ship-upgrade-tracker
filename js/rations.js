@@ -20,18 +20,28 @@
  */
 export const TICK_SECONDS = 7;
 
-// What a hull takes a tick with nobody aboard, where it was read.
+// What a hull takes a tick with nobody aboard, and whether it was read
+// that way. Only the Advance and the Volante were read empty (1,200
+// each, 2026-09-28). The Balance and the Valor are the same Carrack and
+// are taken at the same figure, but nobody has read them, so they say
+// so. The Bartali Sailboat read 1,500 with two sailors aboard (Menio,
+// 150, and Polnis, 100): the hull's own take is likely the 1,250 left
+// when their appetite is taken off, and is unconfirmed until it is
+// read with nobody aboard.
 const HULL_TICK = {
-	'Carrack (Advance)': 1200, 'Carrack (Balance)': 1200, 'Carrack (Volante)': 1200, 'Carrack (Valor)': 1200,
-	'Bartali Sailboat': 1500
+	'Carrack (Advance)': { n: 1200, measured: true },
+	'Carrack (Volante)': { n: 1200, measured: true },
+	'Carrack (Balance)': { n: 1200, measured: false },
+	'Carrack (Valor)': { n: 1200, measured: false },
+	'Bartali Sailboat': { n: 1250, measured: false }
 };
 /** A hull nobody has read yet is taken at a Carrack's. */
 export const HULL_TICK_GUESS = 1200;
 
 /** The hull's own take a tick, and whether it was read in game. */
 export function hullTick(name) {
-	const n = HULL_TICK[name];
-	return { n: n || HULL_TICK_GUESS, measured: n > 0 };
+	const h = HULL_TICK[name];
+	return h ? { ...h } : { n: HULL_TICK_GUESS, measured: false };
 }
 
 // BreezySail, used over and over ("Continuously use BreezySail", from
@@ -56,6 +66,32 @@ export function rationsOver(seconds, { tick = HULL_TICK_GUESS, breezy = 0 } = {}
 
 /** The same drain in rations a minute. */
 export const perMinute = ({ tick = HULL_TICK_GUESS, breezy = 0 } = {}) => rationsOver(60, { tick }) + (breezy > 0 ? BREEZY_RATIONS * 60 / breezy : 0);
+
+/**
+ * Rations a minute under sail, by the one rule the Map's Rations tile
+ * and the barter planner's supply calls both use -- they had a rule
+ * each, and the calls one put in disagreed with the warnings the other
+ * showed.
+ *
+ * `drain` is the ship's (ship.js rationDrain): the take a tick, the
+ * BreezySail interval or 0, and `cal`, the rations a minute the sailor
+ * watched the pool fall for this ship, or 0. A watched figure outranks
+ * the ticks, since it is the game's own answer. A leg sailed with the
+ * hold past its limit has no BreezySail -- the game will not use it --
+ * so its share comes off, from a watched figure too, which was watched
+ * with it on; never below what the ticks alone take.
+ */
+export function drainRate({ tick = HULL_TICK_GUESS, breezy = 0, cal = 0 } = {}, { overweight = false } = {}) {
+	const ticks = tick * 60 / TICK_SECONDS;
+	const sail = breezy > 0 ? BREEZY_RATIONS * 60 / breezy : 0;
+	if (cal > 0) return overweight && sail ? Math.max(ticks, cal - sail) : cal;
+	return ticks + (overweight ? 0 : sail);
+}
+
+/** What `seconds` under sail eat by that rule. */
+export function drainOver(seconds, drain, opts) {
+	return seconds > 0 ? seconds / 60 * drainRate(drain, opts) : 0;
+}
 
 // How far to trust the rate: a tenth either way around what the ticks
 // say -- the tick is timed by hand -- and a seventh around a leg
@@ -83,8 +119,9 @@ export function legRations(minutes, { rate, measured = false } = {}) {
 
 /**
  * The pool over a whole route. `legs` are each leg's minutes as
- * [quick, slow] -- or `{ minutes, refill: true }` for a leg that ends
- * at a wharf where the pool is filled again; `aboard` the rations
+ * [quick, slow] -- or `{ minutes, refill: true, rate }` for a leg that
+ * ends at a wharf where the pool is filled again, or eats at a rate of
+ * its own; `aboard` the rations
  * aboard at the start and `full` the pool when full; `rate` rations a
  * minute (perMinute). Returns the run's use and what is left at the
  * end as ranges, each leg's own, and `lowAfter`: the number of the stop
@@ -99,7 +136,9 @@ export function rationPlan({ legs = [], aboard, full = 0, rate, measured = false
 	const out = [];
 	legs.forEach((leg, k) => {
 		const minutes = Array.isArray(leg) ? leg : leg.minutes;
-		const [a, b] = legRations(minutes, { rate, measured });
+		// A leg can carry a rate of its own: one sailed overweight has no
+		// BreezySail (drainRate).
+		const [a, b] = legRations(minutes, { rate: !Array.isArray(leg) && leg.rate > 0 ? leg.rate : rate, measured });
 		lo += a; hi += b;
 		left = [Math.max(0, left[0] - b), Math.max(0, left[1] - a)];
 		if (!lowAfter && left[0] < floor) lowAfter = k + 1;

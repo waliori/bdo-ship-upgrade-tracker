@@ -121,7 +121,7 @@ export function startTimer(seconds, label = '', marks = [], of = 0) {
  * with the clock's, they are taken, laid from now: the mark for stop
  * `index` at `ran` (arrived) or its pause over at `ran` (passed).
  */
-function adopt(t, fresh, index, passed) {
+function adopt(t, fresh, index, passed, of = 0) {
 	if (!Array.isArray(fresh) || !fresh.length || !fresh.every(m => Number.isFinite(m.k))) return null;
 	const lines = fresh.length === t.marks.length && fresh.every((m, j) => m.k === t.marks[j].k);
 	if (lines) return null;
@@ -133,7 +133,19 @@ function adopt(t, fresh, index, passed) {
 	if (!anchor) return null;
 	const shift = ran - (anchor.at + (passed ? anchor.hold : 0));
 	const marks = fresh.map((m, j) => (j < done || (!passed && j === i) ? { ...m, at: Math.max(1, Math.min(m.at + shift, ran)) } : { ...m, at: Math.max(ran + 1, m.at + shift) }));
-	return { ...t, marks, done, reached: passed ? done : i >= 0 ? i + 1 : done, legAt: passed ? ran : t.legAt, seconds: Math.max(30, marks[marks.length - 1].at), chimed: false };
+	// The run itself has changed -- a supply call put in, a stop skipped
+	// -- so its count of stops goes with it, or the strip would go on
+	// saying "of 37" beside a cockpit that says "of 38". What the clock
+	// goes back to on a restart is this run too, not the one cast off.
+	const count = Number(of) > 0 ? { of: Math.floor(Number(of)) } : {};
+	const seconds = Math.max(30, marks[marks.length - 1].at);
+	return {
+		...t, ...count, marks, done, reached: passed ? done : i >= 0 ? i + 1 : done, legAt: passed ? ran : t.legAt, seconds,
+		base: { seconds: Math.max(30, fresh[fresh.length - 1].at), marks: fresh.map(m => ({ ...m })) },
+		// The end bell has rung only if the clock had reached the end of
+		// the run as it now stands.
+		chimed: t.chimed && (passed ? done : i + 1) >= marks.length
+	};
 }
 
 /**
@@ -143,10 +155,10 @@ function adopt(t, fresh, index, passed) {
  * they go gets a clock that corrects itself; one who does not gets the
  * estimate it started with, which is the best anything here can do.
  */
-export function passedStop(index, fresh = null) {
+export function passedStop(index, fresh = null, of = 0) {
 	const t = timerNow();
 	if (!t || !t.marks.length) return;
-	const re = adopt(t, fresh, index, true);
+	const re = adopt(t, fresh, index, true, of);
 	if (re) { write(re); arm(); sendSchedule(); return; }
 	// `index` is the stop in the run; a mark carries the stop it is for.
 	// A stop with no leg of its own (a second exchange at the same
@@ -171,7 +183,10 @@ export function passedStop(index, fresh = null) {
 		const from = fresh[done - 1].at + fresh[done - 1].hold;
 		marks = marks.map((m, j) => (j < done ? m : { ...m, at: Math.max(ran + 1, ran + fresh[j].at - from), hold: fresh[j].hold }));
 	}
-	write({ ...t, marks, done, reached: Math.max(done, Math.min(t.reached, done)), legAt: ran, seconds: Math.max(30, marks[marks.length - 1].at), chimed: false });
+	// `chimed` is carried, not cleared: it says the end bell has rung, and
+	// a Traded pressed after that -- the last stop's, as a rule -- is not a
+	// reason to ring it again. Clearing it here rang the end twice.
+	write({ ...t, ...(Number(of) > 0 ? { of: Math.floor(Number(of)) } : {}), marks, done, reached: Math.max(done, Math.min(t.reached, done)), legAt: ran, seconds: Math.max(30, marks[marks.length - 1].at) });
 	arm();
 	sendSchedule();
 }
@@ -185,10 +200,10 @@ export function passedStop(index, fresh = null) {
  * clock that rang early all run long is put right mid-run rather than
  * at the next cast-off.
  */
-export function arrivedAt(index, fresh = null) {
+export function arrivedAt(index, fresh = null, of = 0) {
 	const t = timerNow();
 	if (!t || !t.marks.length) return;
-	const re = adopt(t, fresh, index, false);
+	const re = adopt(t, fresh, index, false, of);
 	if (re) { write(re); arm(); sendSchedule(); return; }
 	const byK = t.marks.some(m => Number.isFinite(m.k));
 	const i = byK ? t.marks.findIndex(m => m.k === index) : Math.floor(index);
@@ -202,7 +217,11 @@ export function arrivedAt(index, fresh = null) {
 		marks[j].at = same ? marks[i].at + (fresh[j].at - fresh[i].at) + (marks[i].hold - fresh[i].hold) : marks[j].at + (marks[i].at - was);
 		marks[j].hold = same ? fresh[j].hold : marks[j].hold;
 	}
-	write({ ...t, marks, reached: Math.max(t.reached, i + 1), seconds: Math.max(30, marks[marks.length - 1].at), chimed: false });
+	// Arrived at a stop further on than the one the clock was counting to
+	// -- the ones between skipped -- puts those behind it as well: the
+	// clock waits at the stop the ship is at, and says its name, not the
+	// skipped one's.
+	write({ ...t, ...(Number(of) > 0 ? { of: Math.floor(Number(of)) } : {}), marks, done: Math.max(t.done, i), reached: Math.max(t.reached, i + 1), seconds: Math.max(30, marks[marks.length - 1].at) });
 	arm();
 	sendSchedule();
 }
@@ -223,9 +242,11 @@ export function sendSchedule() {
 	const marks = t.marks.length ? t.marks : [{ at: t.seconds, label: t.label }];
 	const alerts = marks
 		.map((m, i) => ({ m, i, last: i === marks.length - 1 }))
-		// Only the next stop is known: the ones after it come when Traded is
-		// pressed, and are sent again then.
-		.filter(({ i, last }) => (each || last) && i === t.done)
+		// Stop by stop, only the next stop is known: the ones after it come
+		// when Traded is pressed, and are sent again then -- and a stop the
+		// sailor has already said they are at is not rung for. The whole
+		// run rings once, at its end, however many stops are still open.
+		.filter(({ i, last }) => (each ? i === t.done && t.reached <= t.done : last && !t.chimed))
 		.map(({ m, i, last }) => ({
 			at: from + m.at * 1000,
 			title: last ? (t.marks.length ? T('The run should be done') : T('The ship should be in')) : T('{stop} should be in reach', { stop: m.label || T('A stop') }),
@@ -607,8 +628,20 @@ function arm() {
 	// ten minutes comes back to several of them at once -- so the check
 	// is "has it gone by", not "is it now".
 	if (t.marks.length) {
+		// The whole run rings at the end of the estimate whether or not
+		// the stops on the way were ticked off: a sailor who asked for one
+		// chime when the run should be done is the one least likely to be
+		// pressing Traded. Before, the clock reached stop 1, waited there
+		// for a Traded that never came, and the chime never rang.
+		const end = t.marks[t.marks.length - 1].at;
+		if (marksMode() === 'whole' && !t.chimed && t.ran >= end) return fireWhole();
 		if (t.done < t.marks.length && t.reached <= t.done && t.ran >= t.marks[t.done].at) return fireMark();
-		if (t.done < t.marks.length && t.reached > t.done) return;   // waiting at a stop: nothing to count to
+		if (t.done < t.marks.length && t.reached > t.done) {
+			// Waiting at a stop: nothing to count to, but the whole run's
+			// end, if that is what was asked for.
+			if (marksMode() === 'whole' && !t.chimed) pending = setTimeout(arm, Math.min(Math.max(end - t.ran, 0) * 1000 + 50, 60000));
+			return;
+		}
 		if (t.done >= t.marks.length && !t.chimed) return fireEnd();
 	} else if (t.over && !t.chimed) return fireEnd();
 	const wait = t.marks.length && t.done < t.marks.length ? t.marks[t.done].at - t.ran : t.left;
@@ -630,8 +663,10 @@ function fireMark() {
 	const done = t.done + 1;
 	const last = done >= t.marks.length;
 	// Reached, and chimed for -- not passed: that is the sailor's press.
-	write({ ...t, reached: done, chimed: last });
-	if (last) {
+	// The end bell may already have rung, in whole-run mode, at the
+	// estimate; it is not rung a second time when the stop is reached.
+	write({ ...t, reached: done, chimed: t.chimed || last });
+	if (last && !t.chimed) {
 		chime();
 		notify(T('The run should be done'), T('{stop} — every stop on the run has come up.', { stop: mark.label || t.label || T('the last stop') }));
 	} else if (marksMode() === 'each') {
@@ -639,6 +674,20 @@ function fireMark() {
 		const n = stopNo(t, mark, t.done);
 		notify(T('{stop} should be in reach', { stop: mark.label || T('A stop') }), T('Stop {n} of {total} — {left} more after this one.', { n, total: stopsOf(t), left: stopsOf(t) - n }));
 	}
+	if (redraw) redraw();
+	arm();
+}
+
+/** The whole run's single chime, at the end of its estimate. The stops
+ *  are left as they are: the clock still waits for each Traded, it just
+ *  no longer keeps the bell waiting with it. */
+function fireWhole() {
+	const t = timerNow();
+	if (!t || t.chimed || !t.marks.length) return;
+	write({ ...t, chimed: true });
+	const mark = t.marks[t.marks.length - 1];
+	chime();
+	notify(T('The run should be done'), T('{stop} — every stop on the run has come up.', { stop: mark.label || t.label || T('the last stop') }));
 	if (redraw) redraw();
 	arm();
 }

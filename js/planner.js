@@ -7,6 +7,7 @@
 // two builds at once.
 
 import { T } from './i18n.js';
+import { F } from './fmt.js';
 import { recipes as defaultRecipes, routes, yields, buyFirst } from './recipes.js';
 import { tableFor, chanceAt } from './enhancement.js';
 
@@ -26,7 +27,7 @@ import { tableFor, chanceAt } from './enhancement.js';
 export function resolveRoutes(strategy = {}, recipes = defaultRecipes) {
 	let out = null;
 	for (const [item, variants] of Object.entries(routes)) {
-		const picked = variants[strategy[item]];
+		const picked = variants[pickedRoute(item, strategy)];
 		if (!picked || picked === recipes[item]) continue;
 		out = out || { ...recipes };
 		out[item] = picked;
@@ -34,12 +35,35 @@ export function resolveRoutes(strategy = {}, recipes = defaultRecipes) {
 	return out || recipes;
 }
 
+/**
+ * Where the route through an upgrade is kept: a key of its own beside
+ * the item's buy-or-craft choice, not in its place. One key held both
+ * until 2026-10-01, so picking a route for something bought quietly
+ * switched it to crafted -- Cox Pirates' Artifact (Combat) went from
+ * one bought to 200 Extermination Seals. A save from before still holds
+ * the route under the item's own key; state.js moves it on load, and
+ * pickedRoute reads it there too for a strategy that never went
+ * through the store.
+ */
+export const ROUTE_PREFIX = 'route:';
+export const routeKey = item => ROUTE_PREFIX + item;
+
+/** The route picked for an item, or null for none (or one that no
+ *  longer exists). */
+function pickedRoute(item, strategy = {}) {
+	const variants = routes[item];
+	if (!variants) return null;
+	const own = strategy[routeKey(item)];
+	if (typeof own === 'string' && Object.hasOwn(variants, own)) return own;
+	const old = strategy[item];
+	return typeof old === 'string' && Object.hasOwn(variants, old) ? old : null;
+}
+
 /** Which route is in force for an item -- the first is the default. */
 export function routeOf(item, strategy = {}) {
 	const variants = routes[item];
 	if (!variants) return null;
-	const names = Object.keys(variants);
-	return names.includes(strategy[item]) ? strategy[item] : names[0];
+	return pickedRoute(item, strategy) || Object.keys(variants)[0];
 }
 
 /**
@@ -51,7 +75,9 @@ export function routeOf(item, strategy = {}) {
  */
 export function buying(item, strategy = {}) {
 	const mode = strategy[item];
-	return mode ? mode === 'buy' : buyFirst.has(item);
+	if (mode === 'buy' || mode === 'craft') return mode === 'buy';
+	// A route kept here by an old save meant "craft it, this way".
+	return mode && routes[item] && Object.hasOwn(routes[item], mode) ? false : buyFirst.has(item);
 }
 
 /** How many one craft of `item` makes: one, for all but a few. */
@@ -220,15 +246,15 @@ function explode(item, qty, pool, acc, ctx, seen, via) {
  * Used as the denominator for progress so the figure doesn't move around
  * as stock changes.
  */
-export function totalUnits(item, qty, strategy = {}, recipes = defaultRecipes, seen = new Set()) {
+export function totalUnits(item, qty, strategy = {}, recipes = defaultRecipes, seen = new Set(), failstacks = null) {
 	const recipe = recipeFor(item, strategy, recipes);
 	if (!recipe || seen.has(item)) return qty;
 	const deeper = new Set(seen).add(item);
 	const crafts = Math.ceil(qty / yieldOf(item));
 	let sum = 0;
 	for (const [ingredient, per] of Object.entries(recipe)) {
-		const need = Math.ceil(perCraft(item, ingredient, per) * crafts);
-		sum += totalUnits(ingredient, need, strategy, recipes, deeper);
+		const need = Math.ceil(perCraft(item, ingredient, per, failstacks) * crafts);
+		sum += totalUnits(ingredient, need, strategy, recipes, deeper, failstacks);
 	}
 	return sum;
 }
@@ -287,7 +313,10 @@ export function plan({ stock = {}, targets = [], strategy = {}, recipes = defaul
 		for (const [item, qty] of Object.entries(acc.missing)) {
 			missingUnits += qty - (before.missing[item] || 0);
 		}
-		const total = totalUnits(target.item, target.qty, strategy, recipes);
+		// On the same footing as the shortfall: the stones scaled by the
+		// failstack the player carries, as explode() scales them, or the
+		// progress was measured against a total the plan never asked for.
+		const total = totalUnits(target.item, target.qty, strategy, recipes, new Set(), failstacks);
 		const progress = total > 0 ? Math.max(0, Math.min(100, ((total - missingUnits) / total) * 100)) : 100;
 
 		results.push({
@@ -745,19 +774,19 @@ export function shoppingList(missing, sources = {}) {
 
 		if (coins[item]) {
 			entry.coins = coins[item] * qty;
-			entry.unit = T('{n} coins each', { n: coins[item].toLocaleString() });
+			entry.unit = T('{n} coins each', { n: F(coins[item]) });
 			add('Crow Coins', entry);
 			continue;
 		}
 		if (silver[item]) {
 			entry.silver = silver[item] * qty;
-			entry.unit = T('{n} silver each', { n: silver[item].toLocaleString() });
+			entry.unit = T('{n} silver each', { n: F(silver[item]) });
 			add('Falasi (silver)', entry);
 			continue;
 		}
 		if (market[item]) {
 			entry.silver = market[item] * qty;
-			entry.unit = T('about {n} silver each, last sold', { n: market[item].toLocaleString() });
+			entry.unit = T('about {n} silver each, last sold', { n: F(market[item]) });
 			entry.market = true;
 			add('Central Market (silver)', entry);
 			continue;

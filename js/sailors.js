@@ -528,7 +528,10 @@ const DOUBLES = { sail: ['speed', 'accel'], wheel: ['turn', 'brake'], cannon: ['
 export function autoAssign(roster, ship, stats, want = 'balanced') {
 	const w = goalOf(want).weights;
 	const seats = seatsFor(ship, stats);
-	const all = [...(roster || [])].filter(s => anyType[s.type]);
+	// A sick sailor -- condition at nothing -- gives a seat nothing and
+	// still eats, weighs and takes a cabin, so is left ashore until mended.
+	// They were being seated at the Sail on figures they cannot give.
+	const all = [...(roster || [])].filter(s => anyType[s.type] && (s.cond ?? 100) > 0);
 	const t = s => anyType[s.type];
 	const out = {};
 

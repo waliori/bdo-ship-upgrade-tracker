@@ -105,12 +105,22 @@ export function weekKey(now = Date.now(), weekly = WEEKLY_RESET) {
  * instant rather than from a UTC date.
  */
 export function periodKey(cadence, now = Date.now(), plan = standing) {
+	// The last reset is found on the zone's own calendar, not by taking a
+	// day of 24 hours off the next one: a day that holds a daylight-saving
+	// change is 23 or 25 hours long, and counting back a fixed day from
+	// the next reset lands an hour off it, which left one day's key in
+	// force over two days. The key is the zone's own date at that reset,
+	// too, not the UTC one: a midnight reset west of UTC's summer offset
+	// can fall twice on one UTC date.
 	if (cadence === 'daily') {
-		if (plan && plan.zone !== 'UTC') return new Date(now - (DAY - untilHourIn(plan.zone, plan.daily, now))).toISOString().slice(0, 10);
+		if (plan && plan.zone !== 'UTC') return zoneDateKey(plan.zone, lastHourIn(plan.zone, plan.daily, now));
 		return dayKey(now, plan ? plan.daily : DAILY_RESET_UTC);
 	}
 	if (cadence === 'weekly') {
-		if (plan && plan.zone !== 'UTC') return 'W' + new Date(now - (7 * DAY - untilWeekly(now, plan))).toISOString().slice(0, 10);
+		if (plan && plan.zone !== 'UTC') {
+			const weekly = plan.weekly || WEEKLY_RESET;
+			return 'W' + zoneDateKey(plan.zone, lastSpawn(plan.zone, [{ day: weekly.day, hour: weekly.hour }], now));
+		}
 		return weekKey(now, plan ? plan.weekly : WEEKLY_RESET);
 	}
 	return 'once';
@@ -130,12 +140,28 @@ export const untilBarter = (now = Date.now(), plan = null) =>
 /** The same, on a zone's own clock: the next time it reads `hour`:00
  *  there, which survives that zone's daylight saving by itself. */
 export function untilHourIn(zone, hour, now = Date.now()) {
-	for (let k = 0; k < 3; k++) {
-		const w = wallDate(zone, now + k * DAY);
-		const at = zonedInstant(zone, w.y, w.m, w.d, hour);
-		if (at > now) return at - now;
-	}
+	for (const at of hoursIn(zone, hour, now)) if (at > now) return at - now;
 	return DAY;
+}
+
+/** The last time, at or before `now`, that the zone's clocks read
+ *  `hour`:00 -- the reset a period began at. */
+export function lastHourIn(zone, hour, now = Date.now()) {
+	let last = now - DAY;
+	for (const at of hoursIn(zone, hour, now)) if (at <= now) last = at;
+	return last;
+}
+
+/** `hour`:00 on the zone's calendar the day before, the day of and the
+ *  day after `now`, in order. Stepping by calendar date rather than by
+ *  24 hours is what keeps a 23- or 25-hour day from being skipped or
+ *  counted twice. */
+function hoursIn(zone, hour, now) {
+	const w = wallDate(zone, now);
+	return [-1, 0, 1, 2].map(k => {
+		const c = new Date(Date.UTC(w.y, w.m, w.d + k));
+		return zonedInstant(zone, c.getUTCFullYear(), c.getUTCMonth(), c.getUTCDate(), hour);
+	});
 }
 
 export function untilWeekly(now = Date.now(), plan = null) {
@@ -195,6 +221,12 @@ function wallDate(zone, at) {
 	return { y: Number(get('year')), m: Number(get('month')) - 1, d: Number(get('day')), day: DAYS.indexOf(get('weekday')) };
 }
 
+/** "2026-03-29": the zone's own calendar date at an instant. */
+function zoneDateKey(zone, at) {
+	const w = wallDate(zone, at);
+	return `${w.y}-${String(w.m + 1).padStart(2, '0')}-${String(w.d).padStart(2, '0')}`;
+}
+
 /** The instant at which the zone's clocks read y-m-d h:min. Two passes
  *  settle a date that sits across a daylight-saving change. */
 export function zonedInstant(zone, y, m, d, h, min = 0) {
@@ -210,14 +242,42 @@ export function zonedInstant(zone, y, m, d, h, min = 0) {
 export function nextSpawn(zone, times, now = Date.now()) {
 	let best = null;
 	for (const t of times || []) {
-		for (let k = 0; k < 9; k++) {
-			const w = wallDate(zone, now + k * DAY);
-			if (w.day !== t.day) continue;
-			const at = zonedInstant(zone, w.y, w.m, w.d, t.hour, t.minute || 0);
+		for (const c of calendarDays(zone, now, 0, 8)) {
+			if (c.day !== t.day) continue;
+			const at = zonedInstant(zone, c.y, c.m, c.d, t.hour, t.minute || 0);
 			if (at > now && (!best || at < best.at)) best = { at, entry: t };
 		}
 	}
 	return best;
+}
+
+/** The last instant, at or before `now`, a timetable fired: the start of
+ *  the week a weekly reset on a zone's own clock is in. */
+export function lastSpawn(zone, times, now = Date.now()) {
+	let last = null;
+	for (const t of times || []) {
+		for (const c of calendarDays(zone, now, -8, 0)) {
+			if (c.day !== t.day) continue;
+			const at = zonedInstant(zone, c.y, c.m, c.d, t.hour, t.minute || 0);
+			if (at <= now && (last == null || at > last)) last = at;
+		}
+	}
+	return last == null ? now - 7 * DAY : last;
+}
+
+/** The zone's calendar dates from `from` to `to` days off today's, with
+ *  their weekdays. A whole calendar day is stepped each time, never 24
+ *  hours, which on a daylight-saving day lands on the wrong date: the
+ *  hour before a spring-forward midnight jumped Saturday straight to
+ *  Monday, and Sunday's Vell went missing. */
+function calendarDays(zone, now, from, to) {
+	const w = wallDate(zone, now);
+	const out = [];
+	for (let k = from; k <= to; k++) {
+		const c = new Date(Date.UTC(w.y, w.m, w.d + k));
+		out.push({ y: c.getUTCFullYear(), m: c.getUTCMonth(), d: c.getUTCDate(), day: c.getUTCDay() });
+	}
+	return out;
 }
 
 /** Vell's timetable by server, on the server's own clock. Checked
@@ -262,7 +322,7 @@ export function tickClocks(now = Date.now()) {
 let ticking = null;
 /** The barter day, on whichever clock the region refills on. */
 export function barterKey(now = Date.now(), plan = standing) {
-	if (plan && plan.zone !== 'UTC') return new Date(now - (DAY - untilHourIn(plan.zone, plan.barter, now))).toISOString().slice(0, 10);
+	if (plan && plan.zone !== 'UTC') return zoneDateKey(plan.zone, lastHourIn(plan.zone, plan.barter, now));
 	return dayKey(now, plan ? plan.barter : BARTER_RESET_UTC);
 }
 

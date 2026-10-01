@@ -99,3 +99,11 @@ test('the artifact has two recipes, and the seals are the one the plan follows u
 	const planned = plan({ stock: {}, targets: [{ id: 'a', item: ARTIFACT, qty: 2, active: true }], strategy: { [ARTIFACT]: 'cannons' } });
 	assert.equal(planned.missing["Cox Pirates' Broken Cannon"], 20);
 });
+
+test('a route picked for something bought leaves it bought', () => {
+	const planned = plan({ stock: {}, targets: [{ id: 'a', item: ARTIFACT, qty: 2, active: true }], strategy: { [ARTIFACT]: 'buy', [`route:${ARTIFACT}`]: 'cannons' } });
+	assert.equal(planned.missing[ARTIFACT], 2);
+	assert.equal(planned.missing["Cox Pirates' Broken Cannon"], undefined);
+	const crafted = plan({ stock: {}, targets: [{ id: 'a', item: ARTIFACT, qty: 2, active: true }], strategy: { [ARTIFACT]: 'craft', [`route:${ARTIFACT}`]: 'cannons' } });
+	assert.equal(crafted.missing["Cox Pirates' Broken Cannon"], 20);
+});

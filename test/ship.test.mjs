@@ -392,3 +392,17 @@ test('the crystal weighs a litre, and so does the rod in a Carrack\'s fishing pl
 	assert.ok(fishing.hold.lines.some(l => /the Otter's rod/.test(l.label)));
 	assert.equal(fishing.hold.lines.reduce((a, l) => a + l.lt, 0), fishing.hold.free);
 });
+
+test('a saved setup reads as the ship it is when sailed: owned parts, the Corsair point, the same hold', async () => {
+	const { saveSetup, listSetups, setupSummary, activeSetupId } = await import('../js/ship.js');
+	const SAIL = "Epheria Carrack: Valor (Chiro's Sail)";
+	// Nothing picked by hand: both slots take the best part owned.
+	store.adopt({ stock: { [`+10 ${CANNON}`]: 1, [`+10 ${SAIL}`]: 1, 'Carrack (Valor)': 1 }, targets: [], strategy: {}, profile: { crewShip: 'Carrack (Valor)', corsair: true } });
+	const id = saveSetup('Main');
+	assert.equal(activeSetupId(), id);
+	const me = currentShip();
+	const sum = setupSummary(listSetups().find(s => s.id === id));
+	assert.equal(sum.speed, me.speed.total, 'the Fleet row and the Ship card agree on speed');
+	assert.equal(sum.hold, me.hold.free, 'and on the hold');
+	assert.equal(sum.fittedCount, 2, 'the owned parts count as fitted');
+});
