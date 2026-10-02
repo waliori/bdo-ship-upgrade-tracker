@@ -34,6 +34,9 @@ if (!CHROME) {
 
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sail-lang-'));
 process.env.NODE_ENV = 'test';
+// Market prices from a recorded answer, never the live Market, so a run
+// plans the same on any day (see server/market.js).
+process.env.MARKET_FIXTURE = new URL('./fixtures/market.json', import.meta.url).href;
 const app = (await import('../server.js')).default;
 const server = app.listen(0);
 await new Promise(resolve => server.once('listening', resolve));

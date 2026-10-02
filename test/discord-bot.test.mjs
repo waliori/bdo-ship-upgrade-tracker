@@ -22,6 +22,9 @@ process.env.SESSION_SECRET = 'test-secret-key-for-signing-sessions';
 process.env.TURSO_DATABASE_URL = `file:${path.join(dir, 'tracker.db')}`;
 process.env.DISCORD_BOT_PUBLIC_KEY = rawKey;
 
+// Market prices from a recorded answer, never the live Market, so a run
+// plans the same on any day (see server/market.js).
+process.env.MARKET_FIXTURE = new URL('./fixtures/market.json', import.meta.url).href;
 const app = (await import('../server.js')).default;
 const { upsertUser } = await import('../server/db.js');
 const { writeSaveFor } = await import('../server/saves.js');

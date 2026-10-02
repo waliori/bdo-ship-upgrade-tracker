@@ -32,6 +32,9 @@ process.env.UPLOAD_DIR = path.join(dir, 'uploads');
 process.env.REPORT_GAP_SECONDS = '1';
 process.env.FEEDBACK_WEBHOOK_URL = `http://127.0.0.1:${hook.address().port}/hook`;
 
+// Market prices from a recorded answer, never the live Market, so a run
+// plans the same on any day (see server/market.js).
+process.env.MARKET_FIXTURE = new URL('./fixtures/market.json', import.meta.url).href;
 const app = (await import('../server.js')).default;
 const { startSession } = await import('../server/session.js');
 const { upsertUser } = await import('../server/db.js');

@@ -25,6 +25,9 @@ process.env.SESSION_SECRET = 'test-secret-key-for-signing-sessions';
 process.env.FLUSH_DELAY_MS = '0';
 process.env.ADMIN_IDS = '3001';
 
+// Market prices from a recorded answer, never the live Market, so a run
+// plans the same on any day (see server/market.js).
+process.env.MARKET_FIXTURE = new URL('./fixtures/market.json', import.meta.url).href;
 const app = (await import('../server.js')).default;
 const { startSession } = await import('../server/session.js');
 const { upsertUser, insertSighting } = await import('../server/db.js');

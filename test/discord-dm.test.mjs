@@ -47,6 +47,9 @@ process.env.VAPID_PRIVATE_KEY = keys.privateKey;
 process.env.DISCORD_BOT_TOKEN = 'test-bot-token';
 process.env.DISCORD_API = `http://127.0.0.1:${fake.address().port}`;
 
+// Market prices from a recorded answer, never the live Market, so a run
+// plans the same on any day (see server/market.js).
+process.env.MARKET_FIXTURE = new URL('./fixtures/market.json', import.meta.url).href;
 const app = (await import('../server.js')).default;
 const { startSession } = await import('../server/session.js');
 const { upsertUser, putPushAlerts } = await import('../server/db.js');

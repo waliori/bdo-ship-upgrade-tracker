@@ -24,6 +24,9 @@ const { RELEASE } = await import('../js/about.js');
 // The hold's ceilings are the app's to state, not this file's to
 // remember -- see the material run test.
 const { shipStats } = await import('../js/ship_stats.js');
+// Market prices from a recorded answer, never the live Market, so a run
+// plans the same on any day (see server/market.js).
+process.env.MARKET_FIXTURE = new URL('./fixtures/market.json', import.meta.url).href;
 const app = (await import('../server.js')).default;
 const server = app.listen(0);
 await new Promise(resolve => server.once('listening', resolve));

@@ -25,6 +25,9 @@ process.env.FLUSH_DELAY_MS = '0';
 process.env.MAX_LINKS_PER_ACCOUNT = '3';
 process.env.MAX_LINK_BYTES = String(16 * 1024);
 
+// Market prices from a recorded answer, never the live Market, so a run
+// plans the same on any day (see server/market.js).
+process.env.MARKET_FIXTURE = new URL('./fixtures/market.json', import.meta.url).href;
 const app = (await import('../server.js')).default;
 const { startSession } = await import('../server/session.js');
 const { upsertUser, getLink, deleteAccount } = await import('../server/db.js');

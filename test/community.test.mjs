@@ -27,6 +27,9 @@ process.env.ADMIN_IDS = '2001';
 process.env.COMMUNITY_TTL_MS = '0';   // every read rebuilds, so a change shows at once
 delete process.env.FEEDBACK_WEBHOOK_URL;
 
+// Market prices from a recorded answer, never the live Market, so a run
+// plans the same on any day (see server/market.js).
+process.env.MARKET_FIXTURE = new URL('./fixtures/market.json', import.meta.url).href;
 const app = (await import('../server.js')).default;
 const { startSession } = await import('../server/session.js');
 const { upsertUser } = await import('../server/db.js');

@@ -25,6 +25,9 @@ for (const name of [
 	'TURSO_DATABASE_URL', 'TURSO_AUTH_TOKEN', 'PUBLIC_URL'
 ]) delete process.env[name];
 
+// Market prices from a recorded answer, never the live Market, so a run
+// plans the same on any day (see server/market.js).
+process.env.MARKET_FIXTURE = new URL('./fixtures/market.json', import.meta.url).href;
 const app = (await import('../server.js')).default;
 const { syncEnabled } = await import('../server/config.js');
 
@@ -216,6 +219,8 @@ test('the healthcheck answers without a database, and says so', async () => {
 	assert.equal(body.dirty, 0);
 	assert.equal(body.queued, 0);
 	assert.equal(body.version, 'test-stamp1.23', 'the operator, asking from the machine itself, is told the build');
+	// And when it was built, which only an image knows (build-info.json).
+	assert.ok('built' in body, 'the build date has its place, null in a checkout');
 	assert.equal(typeof body.counters.requests['2xx'], 'number');
 	// And the container asks this route, not the page.
 	const dockerfile = fs.readFileSync(new URL('../Dockerfile', import.meta.url), 'utf8');
