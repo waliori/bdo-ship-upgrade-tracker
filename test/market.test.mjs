@@ -3,6 +3,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import { pricesFor, REGIONS } from '../server/market.js';
 
 const row = (id, last, base = last) => ({ id, lastSoldPrice: last, basePrice: base, currentStock: 5, lastSoldTime: 1 });
@@ -66,8 +67,73 @@ test('many ids go up in batches', async () => {
 	const table = Object.fromEntries(Array.from({ length: 95 }, (_, i) => [10000 + i, 100 + i]));
 	const up = upstream(table);
 	const { prices } = await pricesFor('kr', Object.keys(table).map(Number), { fetchImpl: up.fetchImpl, now: 5_000_000 });
-	assert.equal(up.calls.length, 3);
+	assert.equal(up.calls.length, 10, 'ten to a request');
 	assert.equal(Object.keys(prices).length, 95);
+});
+
+/* ------------------------------------------------------------------ *
+ * A refused batch is split
+ * ------------------------------------------------------------------ */
+
+// On 2026-10-02 api.arsha.io refused every forty-id batch with its
+// "blocked by Imperva" 500 while ten-id batches of the same ids answered.
+// A refusal is now met by asking each half, down to single ids, before
+// the second source is asked. These fake the upstream's refusals.
+
+/** An upstream that refuses a request it does not like, as arsha does. */
+function choosy(table, refuse) {
+	const calls = [];
+	const fetchImpl = async url => {
+		const u = String(url);
+		if (!u.includes('arsha.io')) { calls.push('fallback'); return { ok: false, status: 404, json: async () => ({}) }; }
+		const ids = new URL(u).searchParams.get('id').split(',').map(Number);
+		calls.push(ids.length);
+		if (refuse(ids)) {
+			return { ok: false, status: 500, json: async () => ({ status: 500, message: 'One or more requests returned invalid data (probably blocked by Imperva). Try again later.' }) };
+		}
+		const rows = ids.filter(id => table[id]).map(id => row(id, table[id]));
+		return { ok: true, json: async () => (rows.length === 1 ? rows[0] : rows) };
+	};
+	return { fetchImpl, calls };
+}
+
+test('a batch the upstream refuses as too big is asked again in halves, and every price comes back', async () => {
+	const table = Object.fromEntries(Array.from({ length: 10 }, (_, i) => [20000 + i, 500 + i]));
+	// Refuses anything over five ids: the ten-id batch fails, its halves pass.
+	const up = choosy(table, ids => ids.length > 5);
+	const { prices, failed, fellBack } = await pricesFor('kr', Object.keys(table).map(Number), { fetchImpl: up.fetchImpl, now: 30_000_000 });
+	assert.equal(Object.keys(prices).length, 10);
+	assert.equal(failed, 0);
+	assert.equal(fellBack, false, 'the first source answered, split');
+	assert.deepEqual(up.calls, [10, 5, 5], 'refused once at ten, not asked at ten again, then the two halves');
+});
+
+test('forty refused, ten accepted: the batch size today answers at once', async () => {
+	const table = Object.fromEntries(Array.from({ length: 40 }, (_, i) => [21000 + i, 700 + i]));
+	const up = choosy(table, ids => ids.length > 10);
+	const { prices, failed } = await pricesFor('kr', Object.keys(table).map(Number), { fetchImpl: up.fetchImpl, now: 31_000_000 });
+	assert.equal(Object.keys(prices).length, 40);
+	assert.equal(failed, 0);
+	assert.deepEqual(up.calls, [10, 10, 10, 10], 'no request was refused');
+});
+
+test('one id the upstream chokes on costs only itself, not the batch', async () => {
+	const table = Object.fromEntries(Array.from({ length: 10 }, (_, i) => [22000 + i, 900 + i]));
+	const up = choosy(table, ids => ids.includes(22003));
+	const { prices, failed } = await pricesFor('kr', Object.keys(table).map(Number), { fetchImpl: up.fetchImpl, now: 32_000_000 });
+	assert.equal(prices[22003], undefined);
+	assert.equal(Object.keys(prices).length, 9, 'the other nine are priced');
+	assert.equal(failed, 1);
+});
+
+test('refused at every size, the split stops at single ids and the second source is asked', async () => {
+	const table = { 23001: 144000, 23002: 79500 };
+	const up = choosy(table, () => true);
+	const { prices, failed } = await pricesFor('eu', [23001, 23002], { fetchImpl: up.fetchImpl, now: 33_000_000 });
+	assert.deepEqual(prices, {});
+	assert.equal(failed, 2);
+	assert.equal(up.calls.filter(c => c === 'fallback').length, 2, 'each id was asked of the second source');
+	assert.ok(up.calls.filter(c => c === 2).length === 1, 'the pair was asked once as a pair, then split');
 });
 
 /* ------------------------------------------------------------------ *
@@ -182,4 +248,81 @@ test('how many are listed comes through, and none listed is nought, not a gap', 
 	assert.equal(prices[5401].price, 900);
 	assert.equal(prices[5401].stock, 0);
 	assert.equal(prices[5402].stock, 12400);
+});
+
+/* ------------------------------------------------------------------ *
+ * The recorded Market the other tests plan against
+ * ------------------------------------------------------------------ */
+
+// Every test file that starts the server sets MARKET_FIXTURE, so its
+// runs are planned against one recorded answer rather than the day's
+// Market. These say the recording is served faithfully and covers what
+// the page asks; the live test below is the one place the real API is
+// still asked, to catch it changing shape under the recording.
+
+const FIXTURE = new URL('./fixtures/market.json', import.meta.url);
+
+async function serve(deps) {
+	const express = (await import('express')).default;
+	const { marketRoutes } = await import('../server/market.js');
+	const app = express();
+	app.use('/api', marketRoutes(express, deps));
+	const server = app.listen(0);
+	await new Promise(resolve => server.once('listening', resolve));
+	return { base: `http://127.0.0.1:${server.address().port}`, close: () => server.close() };
+}
+
+test('the recording holds a price for every id the page asks the Market about', async () => {
+	const { KNOWN_IDS, DEFAULT_REGION } = await import('../server/market.js');
+	const { regions } = JSON.parse(fs.readFileSync(FIXTURE, 'utf8'));
+	const missing = [...KNOWN_IDS].filter(id => !(regions[DEFAULT_REGION] || {})[id]);
+	assert.deepEqual(missing, [], 're-record test/fixtures/market.json when the page starts buying something new');
+});
+
+test('with MARKET_FIXTURE set, the route answers from the recording and never asks the network', async () => {
+	const { regions } = JSON.parse(fs.readFileSync(FIXTURE, 'utf8'));
+	let asked = 0;
+	const fetchImpl = async () => { asked++; throw new Error('no network in this test'); };
+	const srv = await serve({ fixture: FIXTURE.href, fetchImpl });
+	try {
+		const ids = Object.keys(regions.na).slice(0, 3);
+		const body = await (await fetch(`${srv.base}/api/market?region=na&ids=${ids.join(',')}`)).json();
+		for (const id of ids) {
+			assert.equal(body.prices[id].price, regions.na[id].price);
+			assert.equal(body.prices[id].stock, regions.na[id].stock);
+			assert.equal(body.prices[id].stale, undefined, 'a recorded price is served as fresh');
+		}
+		assert.equal(body.failed, 0);
+		// A region the recording lacks is unanswered, as an upstream that
+		// would not answer is -- not an error, and still not the network.
+		const kr = await (await fetch(`${srv.base}/api/market?region=kr&ids=${ids.join(',')}`)).json();
+		assert.deepEqual(kr.prices, {});
+		assert.equal(kr.failed, ids.length);
+		assert.equal(asked, 0);
+	} finally {
+		srv.close();
+	}
+});
+
+test('live: the real Market still answers in the shape the relay reads', { timeout: 60_000 }, async t => {
+	// The one test that leaves the machine. Offline, or with the Market
+	// refusing every source this minute, there is nothing to check, and
+	// that is a skip rather than a failure.
+	// Zinc Ingot and Iron Ingot: two the page really buys.
+	const ids = [4064, 4052];
+	const { prices, failed, fellBack } = await pricesFor('na', ids, { now: Date.now() + 1e9 });
+	if (failed === ids.length) return t.skip('the Market did not answer (offline or refused)');
+	// A shape change upstream shows as answered-but-empty: reduce() drops
+	// rows it cannot read, so nothing is priced and nothing failed.
+	for (const id of ids) {
+		const p = prices[id];
+		if (!p) continue;
+		assert.equal(p.id, id);
+		assert.ok(p.price > 0, `${id} has a price`);
+		assert.ok(p.base > 0, `${id} has a base price`);
+		assert.ok(Number.isFinite(p.stock), `${id} has a listed count`);
+		assert.ok(Number.isFinite(p.soldAt), `${id} has a last-sold time`);
+	}
+	assert.ok(Object.keys(prices).length + failed === ids.length && Object.keys(prices).length > 0,
+		`the answer was read (${fellBack ? 'second source' : 'api.arsha.io'})`);
 });
