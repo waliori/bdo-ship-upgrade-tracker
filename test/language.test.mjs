@@ -168,8 +168,16 @@ test('the game’s own names are drawn from the client’s vocabulary, and the E
 	// last hits an element that is no longer in the page.
 	const inventoryTab = '.tab[data-act="view"][data-id="inventory"]';
 	await page.waitForSelector(inventoryTab, { timeout: 8000 });
-	await page.click(inventoryTab);
-	await page.waitForFunction(() => document.body.dataset.view === 'inventory', { timeout: 8000 });
+	// Clicked as whatever tab is on the page at that moment, and again
+	// until the Inventory is up: the Market's prices land and redraw the
+	// shell at their own pace, and a handle taken a moment earlier can be
+	// gone by the time it is pressed.
+	await page.waitForFunction(sel => {
+		if (document.body.dataset.view === 'inventory') return true;
+		const tab = [...document.querySelectorAll(sel)].find(e => e.getBoundingClientRect().width > 0);
+		if (tab) tab.click();
+		return false;
+	}, { timeout: 8000, polling: 200 }, inventoryTab);
 	await page.waitForFunction(() => document.body.innerText.includes('Zinc Ingot'), { timeout: 8000 });
 
 	assert.equal(await choose(page, 'fr'), 'fr');
