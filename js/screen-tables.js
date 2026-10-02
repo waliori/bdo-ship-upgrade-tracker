@@ -8,7 +8,7 @@
 // column lit at whatever stack is typed, so the page answers "what are
 // my odds at 23" for every level at once.
 
-import { esc } from './fmt.js';
+import { esc, FD } from './fmt.js';
 import { T, gameName } from './i18n.js';
 import { tables, families, chanceAt, stacksTo } from './enhancement.js';
 import { openDialog } from './dialogs.js';
@@ -16,7 +16,7 @@ import { openDialog } from './dialogs.js';
 // The order the tables are read in: the ones people stack for first.
 const ORDER = ['caravel-green', 'caravel-blue', 'toro', 'chiro', 'yellow', 'sailboat', 'epheria'];
 
-const pct = v => `${v * 100 < 10 ? (v * 100).toFixed(2) : (v * 100).toFixed(1)}%`;
+const pct = v => `${FD(v * 100, v * 100 < 10 ? 2 : 1)}%`;
 
 function tableHTML(id, stack) {
 	const t = tables[id];

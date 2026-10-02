@@ -22,6 +22,7 @@
 // figure here and the one the ship's own window shows.
 
 import { T, TT, said } from './i18n.js';
+import { F, FD } from './fmt.js';
 
 export const partStats = {
 	"Bartali Sailboat: Old Cannon": { id: 49760, lt: 3, levels: [
@@ -1032,7 +1033,7 @@ export function describeStats(stats, { signed = true } = {}) {
 		const v = stats[k];
 		if (!v) continue;
 		const [name, unit] = LABEL[k];
-		const n = Math.abs(v) >= 1000 ? Math.round(v).toLocaleString() : String(v);
+		const n = Math.abs(v) >= 1000 ? F(v) : FD(v, 3);
 		bits.push(k === 'hits' ? T('×{n} hits', { n }) : `${said(name)} ${signed && v > 0 ? '+' : ''}${n}${unit ? said(unit) : ''}`);
 	}
 	return bits.join(', ');

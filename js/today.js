@@ -5,7 +5,7 @@
 // until the resets, and how many more days a build is at the pace it
 // has been going.
 
-import { esc, F } from './fmt.js';
+import { esc, F, FD } from './fmt.js';
 import { T, TT, said, gameName } from './i18n.js';
 import * as store from './state.js';
 import { snapshot } from './ui-state.js';
@@ -86,7 +86,7 @@ export function todayStrip() {
 	const me = currentShip();
 	const fitted = me.fit.slots.filter(s => s.part).length + (me.crystal ? 1 : 0);
 	const shipTile = `<div class="today-v">${esc(gameName(me.name))}</div>
-		<div class="today-sub">${me.speed.total}% · ${T('limit {lt} LT', { lt: esc(F(me.hold.limit)) })} · ${T('{n} of 5 fitted', { n: fitted })}${me.crew.seated ? ` · ${T('{n} aboard', { n: me.crew.seated })}` : ''} · <button class="linky" data-act="view" data-id="crew">${T('fit out')}</button></div>`;
+		<div class="today-sub">${FD(me.speed.total, 1)}% · ${T('limit {lt} LT', { lt: esc(F(me.hold.limit)) })} · ${T('{n} of 5 fitted', { n: fitted })}${me.crew.seated ? ` · ${T('{n} aboard', { n: me.crew.seated })}` : ''} · <button class="linky" data-act="view" data-id="crew">${T('fit out')}</button></div>`;
 	return `<div class="today">
 		<div class="today-k">${T('Today')}</div>
 		<div class="today-tiles">
@@ -110,7 +110,7 @@ export function statusLine() {
 	const targets = (snapshot.targets || []).filter(t => t.missingUnits > 0);
 	const paced = targets.map(t => ({ t, text: paceText(t) })).find(x => x.text);
 	const bits = [
-		`<button class="status-bit" data-act="view" data-id="crew" title="${T('Your ship — hull, parts, crew and setups, on the Ship tab')}">⚓ <b>${esc(gameName(me.name))}</b> ${me.speed.total}% · ${T('{lt} LT', { lt: F(me.hold.limit) })}</button>`,
+		`<button class="status-bit" data-act="view" data-id="crew" title="${T('Your ship — hull, parts, crew and setups, on the Ship tab')}">⚓ <b>${esc(gameName(me.name))}</b> ${FD(me.speed.total, 1)}% · ${T('{lt} LT', { lt: F(me.hold.limit) })}</button>`,
 		`<button class="status-bit" data-act="view" data-id="quests" title="${wanted.length ? T('Quests still to do this period; {n} of them pay in what your plan still wants — short of, or still to craft or buy', { n: left }) : T('Quests still to do this period')}">✦ ${leftAll === 1 ? T('<b>{n}</b> quest left', { n: leftAll }) : T('<b>{n}</b> quests left', { n: leftAll })}${wanted.length ? ` · ${T('<b>{n}</b> for your list', { n: left })}` : ''}</button>`,
 		`<span class="status-bit" title="${esc(resetTitle())}">${T('dailies')} <b data-until="daily"></b> · ${T('barter')} <b data-until="barter"></b></span>`,
 		paced ? `<button class="status-bit" data-act="view" data-id="builds" title="${esc(paced.text)}">${esc(gameName(paced.t.item))}: <b>${esc(paced.text.replace(/ at the last.*$/, ''))}</b></button>` : ''

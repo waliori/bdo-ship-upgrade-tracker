@@ -10,6 +10,7 @@
 // timed leg calibrates every other.
 
 import { T } from './i18n.js';
+import { FD } from './fmt.js';
 
 export const METRES_PER_PX = 0.25;
 // Metres a second at 100% speed, and the seconds every leg costs apart
@@ -150,7 +151,7 @@ export function learnSpeed(samples = []) {
 
 export function fmtDistance(m) {
 	if (!(m >= 0)) return '';
-	return m < 950 ? T('{n} m', { n: Math.round(m / 10) * 10 }) : T('{n} km', { n: (m / 1000).toFixed(m < 9950 ? 1 : 0) });
+	return m < 950 ? T('{n} m', { n: Math.round(m / 10) * 10 }) : T('{n} km', { n: FD(m / 1000, m < 9950 ? 1 : 0) });
 }
 
 export function fmtDuration(s) {

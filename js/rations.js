@@ -8,6 +8,8 @@
 // Pure: minutes and pools in, ranges out, so the arithmetic can be
 // checked without a chart.
 
+import { FD } from './fmt.js';
+
 /**
  * How the pool falls, as the game was watched doing it (2026-09-28, an
  * Epheria Carrack: Advance, Volante and a Bartali Sailboat): a tick
@@ -162,7 +164,7 @@ export function calibrateRations(fell, minutes) {
 export function fmtRations(n) {
 	if (!Number.isFinite(n)) return '';
 	const abs = Math.abs(n);
-	if (abs >= 1e6) return `${(n / 1e6).toFixed(abs < 1e7 ? 2 : 1).replace(/\.?0+$/, '')} M`;
+	if (abs >= 1e6) return `${FD(n / 1e6, abs < 1e7 ? 2 : 1)} M`;
 	if (abs >= 1e3) return `${Math.round(n / 1e3)} k`;
 	return String(Math.round(n));
 }

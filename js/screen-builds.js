@@ -4,7 +4,7 @@
 import { routes, routeInfo, recipes } from './recipes.js';
 import { shipGroups } from './ships.js';
 import { statsLine, shipStats } from './ship_stats.js';
-import { esc, F } from './fmt.js';
+import { esc, F, FD } from './fmt.js';
 import { T, said, gameName, nameHas } from './i18n.js';
 import * as store from './state.js';
 import { openDialog, closeDialog, toast, toastAsk } from './dialogs.js';
@@ -118,7 +118,7 @@ export function renderBuilds() {
 					<span class="build-state ${state}">${stateLabel}</span>
 				</div>
 				<div class="bar tall"><i class="fill" style="width:${pct.toFixed(1)}%"></i></div>
-				<div class="build-meta">${T('Priority {n}', { n: i + 1 })} · <span class="n">${pct.toFixed(1)}%</span> · ${esc(units)}${made}${routeNote(t.item)}</div>
+				<div class="build-meta">${T('Priority {n}', { n: i + 1 })} · <span class="n">${FD(pct, 1)}%</span> · ${esc(units)}${made}${routeNote(t.item)}</div>
 				${held > 0 ? `<div class="build-held">
 					<span>${held < t.qty - (t.made || 0)
 						? T('In your inventory: {n} of the {left} still to make', { n: F(held), left: F(t.qty - (t.made || 0)) })

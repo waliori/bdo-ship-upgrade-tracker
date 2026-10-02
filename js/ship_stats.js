@@ -17,6 +17,7 @@
 // Keys are the names the rest of the app uses for the same hulls.
 
 import { T, TT } from './i18n.js';
+import { FD } from './fmt.js';
 
 export const shipStats = {
 	"Bartali Sailboat": {
@@ -145,7 +146,7 @@ export const bigShips = new Set(crewedShips.filter(s => s !== 'Bartali Sailboat'
 export function statsLine(ship) {
 	const s = shipStats[ship];
 	if (!s) return '';
-	const bits = [T('{n} LT', { n: s.weight.toLocaleString() }), T('{n} slots', { n: s.slots })];
+	const bits = [T('{n} LT', { n: FD(s.weight, 2) }), T('{n} slots', { n: s.slots })];
 	if (s.crew) bits.push(T('{n} sailors', { n: s.crew }));
 	if (s.cannons) bits.push(s.cannons > 1 ? T('{n} cannons a side', { n: s.cannons }) : T('{n} cannon a side', { n: s.cannons }));
 	bits.push(T('speed {n}%', { n: s.speed }));

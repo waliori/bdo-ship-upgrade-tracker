@@ -8,6 +8,7 @@
 
 import { crystals, crystalById } from './sea_crystals.js';
 import { T, TT, said } from './i18n.js';
+import { FD } from './fmt.js';
 
 export const GRADES = [
 	{ id: 'eltro', label: 'Eltro', colour: '#cfe3f5', note: TT('white · drops from sea monsters'), local: true },
@@ -44,9 +45,9 @@ const WORD = { speed: TT('speed +{n}%'), accel: TT('acceleration +{n}%'), turn: 
 export function crystalVariant(c) {
 	const s = crystalStats(c);
 	for (const k of ['speed', 'accel', 'turn', 'brake']) if (s[k] !== undefined) return said(WORD[k], { n: s[k] });
-	if (s.weight !== undefined) return T('weight +{n} LT', { n: s.weight.toLocaleString('en-US') });
-	if (s.durability !== undefined) return T('durability +{n}', { n: s.durability.toLocaleString('en-US') });
-	if (s.damage !== undefined) return T('damage +{n} × hits', { n: s.damage.toLocaleString('en-US') });
+	if (s.weight !== undefined) return T('weight +{n} LT', { n: FD(s.weight, 2) });
+	if (s.durability !== undefined) return T('durability +{n}', { n: FD(s.durability, 2) });
+	if (s.damage !== undefined) return T('damage +{n} × hits', { n: FD(s.damage, 2) });
 	if (s.breezy) return T('BreezySail twice, +50% distance');
 	return '';
 }

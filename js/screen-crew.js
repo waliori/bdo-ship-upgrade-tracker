@@ -9,7 +9,7 @@
 // The roster and the seating travel with the save (profile), so the
 // phone at the wharf and the desktop agree on who sits where.
 
-import { esc, F } from './fmt.js';
+import { esc, F, FD } from './fmt.js';
 import { T, TT, said, gameName } from './i18n.js';
 import * as store from './state.js';
 import { img, iconSrc, codexName } from './ui-bits.js';
@@ -211,9 +211,9 @@ function board(ship, stats, totals) {
 function statCards(ship, stats, totals) {
 	const named = hasSeats(ship);
 	const card = (k, v, sub, cls = '') => `<div class="stat"><div class="stat-k">${k}</div><div class="stat-v ${cls}">${v}</div><div class="stat-sub">${sub}</div></div>`;
-	const pct = n => `${n > 0 ? '+' : ''}${n.toFixed(1)}%`;
+	const pct = n => `${n > 0 ? '+' : ''}${FD(n, 1)}%`;
 	const cannon = totals.force || totals.focus || totals.vision
-		? card(T('Cannon'), `${totals.force.toFixed(1)} / ${totals.focus.toFixed(1)} / ${totals.vision.toFixed(1)}`, T('force / focus / vision, doubled at the cannon'), 'teal') : '';
+		? card(T('Cannon'), `${FD(totals.force, 1)} / ${FD(totals.focus, 1)} / ${FD(totals.vision, 1)}`, T('force / focus / vision, doubled at the cannon'), 'teal') : '';
 	return `<div class="stats crew-stats">
 		${card(T('Seated'), `${totals.seated} / ${totals.seats}`, totals.overSpace ? T('{cabins} of {space} cabin space — {over} over', { cabins: F(totals.cabins), space: F(totals.space), over: F(totals.overSpace) }) : T('{cabins} of {space} cabin space', { cabins: F(totals.cabins), space: F(totals.space) }), totals.overSpace ? 'amber' : '')}
 		${card(T('Speed from crew'), pct(totals.speed), named ? T('sail seats count double') : T('no sail seat on this hull — each sailor counts once'), totals.speed ? 'teal' : '')}

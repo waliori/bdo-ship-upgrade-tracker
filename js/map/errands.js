@@ -8,7 +8,7 @@
 // Ticking a quest off, changing the harbour or the cadence throws it
 // away and it is worked out again.
 
-import { esc, F } from '../fmt.js';
+import { esc, F, FD } from '../fmt.js';
 import { T, TT, said, gameName } from '../i18n.js';
 import { loadingNote } from '../loading.js';
 import { questIcon } from '../quest_icons.js';
@@ -114,7 +114,7 @@ export function errandPlan() {
 		...made,
 		name: T('Today’s errands'),
 		sub: T('from {where}', { where: gameName(from.name) }),
-		note: T('{calls} calls, {km} km, worked out from the {quests} quests still open on the Quests tab. A ground is never called at after the man who pays for it.', { calls: made.stops.length, km: km(made.length).toFixed(1), quests: list.length }),
+		note: T('{calls} calls, {km} km, worked out from the {quests} quests still open on the Quests tab. A ground is never called at after the man who pays for it.', { calls: made.stops.length, km: FD(km(made.length), 1), quests: list.length }),
 		quests: list.length
 	};
 	planKey = key;
@@ -272,7 +272,7 @@ export function errandTrace(p = plan, from = mv.errandFrom) {
 	return {
 		app: 'bdo-ship-upgrade-tracker', kind: 'trace', version: 2,
 		name: T('Errands — {date}', { date: new Date().toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) }),
-		notes: T('{calls} calls, {km} km, {quests} quests, from {where}.', { calls: p.stops.length, km: km(p.length).toFixed(1), quests: p.quests || p.stops.length, where: gameName(from) }),
+		notes: T('{calls} calls, {km} km, {quests} quests, from {where}.', { calls: p.stops.length, km: FD(km(p.length), 1), quests: p.quests || p.stops.length, where: gameName(from) }),
 		points,
 		strokes: flat.length >= 4 ? [{ pts: flat, colour: '#ffd77a', width: 2.5 }] : [],
 		texts: [], areas: []
@@ -325,7 +325,7 @@ export function errandsHTML() {
 		<button class="map-course on" data-act="map-errands" aria-pressed="true">
 			<span class="map-course-dot"></span>
 			<span class="map-row-main"><span class="map-row-name">${esc(p.name)}</span>
-				<span class="map-row-sub">${T('{calls} calls · {km} km · {quests} quests', { calls: p.stops.length, km: km(p.length).toFixed(1), quests: p.quests })}</span></span>
+				<span class="map-row-sub">${T('{calls} calls · {km} km · {quests} quests', { calls: p.stops.length, km: FD(km(p.length), 1), quests: p.quests })}</span></span>
 		</button>
 		<div class="errand-stops">${p.stops.map(stopRow).join('')}</div>
 		${left}${aside}

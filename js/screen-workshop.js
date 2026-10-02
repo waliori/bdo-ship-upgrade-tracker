@@ -1,7 +1,7 @@
 // The Workshop: everything craftable right now, and every part worth an
 // enhancement attempt.
 
-import { esc, F } from './fmt.js';
+import { esc, F, FD } from './fmt.js';
 import { T, gameName, nameHas } from './i18n.js';
 import * as store from './state.js';
 import { img, codexName, amountInput, whereFrom } from './ui-bits.js';
@@ -22,7 +22,7 @@ export function odds(e) {
 	const s = e.step1 && e.step1.steps[0];
 	if (!s) return '';
 	if (s.chance >= 1) return `<span class="enh-odds sure">${T('always succeeds')}</span>`;
-	const pct = s.chance < 0.01 ? (s.chance * 100).toFixed(1) : Math.round(s.chance * 100);
+	const pct = s.chance < 0.01 ? FD(s.chance * 100, 1) : Math.round(s.chance * 100);
 	return `<span class="enh-odds">${T('{pct}% · certain after {n} fails', { pct, n: s.agris })}</span>`;
 }
 

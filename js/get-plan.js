@@ -27,6 +27,7 @@
 import { cadenceOf } from './quests.js';
 import { oddsText } from './barter-odds.js';
 import { T, TT, said, gameName } from './i18n.js';
+import { F } from './fmt.js';
 
 export const PRESETS = [
 	{
@@ -81,7 +82,7 @@ export function readGetOrders(raw) {
 }
 
 const COIN = 'Crow Coin';
-const fmt = n => Math.round(n).toLocaleString('en-GB');
+const fmt = F;
 const dayText = n => (n === 1 ? T('{n} day', { n: fmt(n) }) : T('{n} days', { n: fmt(n) }));
 const drawText = n => (n === 1 ? T('{n} draw', { n: fmt(n) }) : T('{n} draws', { n: fmt(n) }));
 const itemText = n => (n === 1 ? T('{n} item', { n: fmt(n) }) : T('{n} items', { n: fmt(n) }));

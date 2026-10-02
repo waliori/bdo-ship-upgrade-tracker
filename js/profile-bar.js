@@ -24,7 +24,7 @@
 // the day's draws, the region the prices are in, the next island it
 // opens -- and one press puts the fields under them.
 
-import { esc, F } from './fmt.js';
+import { esc, F, FD } from './fmt.js';
 import { T, TT, said, gameName } from './i18n.js';
 import * as store from './state.js';
 import { img } from './ui-bits.js';
@@ -179,7 +179,7 @@ export function profileHTML({ sheet = false } = {}) {
 	const next = nextUnlock(p.barterCount);
 	const mastery = Number(store.getProfile('sailingMastery', 0)) || 0;
 	const cut = [
-		T('−{pct}% level', { pct: (levelDiscount(p.level) * 100).toFixed(1) }),
+		T('−{pct}% level', { pct: FD(levelDiscount(p.level) * 100, 1) }),
 		p.valuePack ? T('−10% pack') : '',
 		mateCut()
 	].filter(Boolean).join(' · ');

@@ -12,7 +12,7 @@ import { forecast as barterForecast, GOODS, levelOf } from './barter.js';
 import { tradeGoodNames } from './trade_goods.js';
 import { landGoods } from './land_goods.js';
 import { iconLoader } from './icon-loader.js';
-import { esc, F, FC } from './fmt.js';
+import { esc, F, FC, FD } from './fmt.js';
 import { T, gameName, langById } from './i18n.js';
 import * as store from './state.js';
 import { parseEnhanced, enhanceStep, waysToGet, outstanding, yieldOf } from './planner.js';
@@ -286,7 +286,7 @@ export function barterHTML(item) {
 		: '';
 
 	return start + lines
-		+ `<div class="peek-cost">${T('{n} barter trades each', { n: esc(plan.perUnit.toFixed(2)) })}</div>`;
+		+ `<div class="peek-cost">${T('{n} barter trades each', { n: esc(FD(plan.perUnit, 2)) })}</div>`;
 }
 
 /** The hover card: what it is made of, or where it comes from. */
