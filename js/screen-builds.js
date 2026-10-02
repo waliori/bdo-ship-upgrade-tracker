@@ -288,7 +288,7 @@ export function openBuildPicker() {
 		const already = queued.has(n);
 		return `<button type="button" class="picker-row" data-pick="${esc(n)}" data-peek="${esc(n)}" ${already ? 'disabled' : ''}>
 					${img(n, 'row-icon sm')}
-					<span class="picker-name">${esc(gameName(n))}</span>
+					<span class="picker-name" title="${esc(gameName(n))}">${esc(gameName(n))}</span>
 					<span class="picker-tag">${already ? T('queued') : kindWord[kindOf(n)]}</span>
 				</button>`;
 	};

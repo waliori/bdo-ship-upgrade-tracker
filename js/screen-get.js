@@ -138,7 +138,7 @@ function stillToGet(q) {
 			title="${esc(gameName(item))} — ${T('{qty} short of {need} · {price}. Press to show only this below.', { qty: F(qty), need: F(need), price: esc(price) })}">
 			${img(item, 'want-icon')}
 			<span class="want-n">${F(qty)}</span>
-			<span class="want-name">${esc(gameName(item))}</span>
+			<span class="want-name" title="${esc(gameName(item))}">${esc(gameName(item))}</span>
 			<span class="want-of">${have ? T('{n} of {need} in hand', { n: F(have), need: F(need) }) : T('none in hand')}</span>
 		</button>`;
 	}).join('');

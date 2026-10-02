@@ -127,7 +127,7 @@ export function renderTree() {
 	// and the row grows without bound as the queue does.
 	const picker = `<button class="tpick" data-act="tree-pick">
 		${img(current.item, 'tchip-icon')}
-		<span class="tpick-name">${esc(gameName(current.item))}</span>
+		<span class="tpick-name" title="${esc(gameName(current.item))}">${esc(gameName(current.item))}</span>
 		<span class="tpick-of">${T('{n} of {total}', { n: targets.indexOf(current) + 1, total: targets.length })}</span>
 		<span class="tpick-caret" aria-hidden="true">▾</span>
 	</button>`;
@@ -216,7 +216,7 @@ export function pickTreeTarget() {
 			<button type="button" class="picker-row ${t === current ? 'on' : ''}"
 				data-act="tree-target" data-item="${esc(t.item)}">
 				${img(t.item, 'row-icon sm')}
-				<span class="picker-name">${esc(gameName(t.item))}</span>
+				<span class="picker-name" title="${esc(gameName(t.item))}">${esc(gameName(t.item))}</span>
 				<span class="picker-tag">${Math.round(t.progress)}%</span>
 			</button>`).join('')}</div>
 		<div class="dialog-actions"><button class="act quiet" data-close>${T('Close')}</button></div>

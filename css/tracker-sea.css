@@ -807,6 +807,10 @@
 .trip-shot { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 4px 0 10px; padding: 8px 10px; border-radius: var(--r-btn); border: 1px solid var(--line-btn); }
 .trip-shot-k { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-faint); margin-right: 2px; }
 .trip-shot .ghost-btn { margin-left: auto; }
+/* A line of Log a trip: the item, how many, and the cross, a rule
+   between lines (the look it shipped with, when it shared its name with
+   the Load step's trip rows). */
+.trip-row { display: flex; align-items: center; gap: 10px; padding: 7px 4px; border-top: 1px solid var(--line); }
 .trip-row .trip-qty { width: 120px; }
 .where-edit { display: inline-flex; align-items: center; gap: 6px; }
 .where-add { margin-top: 6px; font-size: 12px; }

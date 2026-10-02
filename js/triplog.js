@@ -41,7 +41,7 @@ let shotSign = 1;
 
 function rowHTML(l, i) {
 	return `<div class="trip-row" data-i="${i}">
-		<button class="trip-pick${l.item ? '' : ' empty'}" data-trip-pick="${i}" title="${T('Choose the item')}">${l.item ? `${img(l.item, 'row-icon sm')}<span>${esc(gameName(l.item))}</span>` : `<span class="trip-plus">+</span><span>${T('Choose an item…')}</span>`}</button>
+		<button class="trip-pick${l.item ? '' : ' empty'}" data-trip-pick="${i}" title="${T('Choose the item')}">${l.item ? `${img(l.item, 'row-icon sm')}<span title="${esc(gameName(l.item))}">${esc(gameName(l.item))}</span>` : `<span class="trip-plus">+</span><span>${T('Choose an item…')}</span>`}</button>
 		<input class="field trip-qty" type="text" inputmode="numeric" placeholder="${T('how many')}" value="${esc(l.qty)}" data-trip-qty="${i}" aria-label="${T('How many')}">
 		<button class="map-x" data-trip-del="${i}" aria-label="${T('Remove this line')}">×</button>
 	</div>`;

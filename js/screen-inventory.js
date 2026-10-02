@@ -165,8 +165,8 @@ export function renderInventory() {
 				? `<span class="tile-qty short">${T('{n} short', { n: F(stats.short) })}</span>`
 				: `<span class="tile-qty">${F(stats.own)}</span>`}
 			${levelOf(open) !== null
-				? `<span class="tile-name tiered" style="--tier:${TIER(levelOf(open))}"><i class="tile-tier">L${levelOf(open)}</i>${esc(gameName(key).replace(/^\[Level \d\] /, ''))}</span>`
-				: `<span class="tile-name">${esc(gameName(key))}</span>`}
+				? `<span class="tile-name tiered" style="--tier:${TIER(levelOf(open))}" title="${esc(gameName(key))}"><i class="tile-tier">L${levelOf(open)}</i>${esc(gameName(key).replace(/^\[Level \d\] /, ''))}</span>`
+				: `<span class="tile-name" title="${esc(gameName(key))}">${esc(gameName(key))}</span>`}
 			<span class="bar">
 				<i class="make" style="width:${(stats.reserved / denom) * 100}%"></i>
 				<i class="take" style="width:${(free / denom) * 100}%"></i>

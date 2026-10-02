@@ -1023,3 +1023,76 @@ img.comm-silver { width: 1.25em; height: 1.25em; vertical-align: -0.25em; object
   .driver-popover.sail-tour.tour-top { top: calc(10px + env(safe-area-inset-top, 0px)) !important; bottom: auto !important; }
   .sail-tour .driver-popover-arrow { display: none; }
 }
+
+/* ---- a phone: long words are never cut ------------------------------ */
+/* A German or Russian name is half again as long as the English one, and
+   a line that ends in "…" on a phone hid the half that told two goods
+   apart. One set of rules, at phone widths only (the desk is unchanged):
+   a name wraps to two lines and is cut only past the second, where its
+   full text is in the title; a line of figures or a reason wraps as far
+   as it needs; the icon and the tick hold the left, and a button stays
+   a thumb's width. */
+@media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
+  /* Names: two lines, then cut. */
+  .row-name, .picker-name, .tpick-name, .peek-name, .trip-pick span:last-child,
+  .barter-good .map-row-name, .map-row .map-row-name, .tile-name, .tile-name.tiered, .want-name {
+    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2;
+    white-space: normal; overflow: hidden; text-overflow: clip; overflow-wrap: break-word; hyphens: auto;
+    height: auto; max-height: none; min-width: 0;
+  }
+  .row-name { line-height: 1.3; }
+  .tile-name, .want-name { line-height: 1.25; min-height: 25px; }
+  /* Figures and reasons: as many lines as they take. */
+  .row-sub, .trow-sub, .trow-name, .sheet-item-text > small, .barter-good .map-row-sub, .map-row .map-row-sub,
+  .detail-line span:first-child, .plan-sec-head > span {
+    white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: break-word; hyphens: auto;
+  }
+  .row-sub.plan-why { display: block; -webkit-line-clamp: none; line-clamp: none; }
+  /* The barter step bar: the open step takes the whole first row and says
+     its whole line; the other three sit under it as tabs, in their order.
+     Side by side, a Russian "Погрузить на причале" had a hundred pixels. */
+  .steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-flow: row dense; gap: 6px; margin: 0; padding: 0; overflow: visible; }
+  .step { min-width: 0; min-height: 44px; }
+  .step.on { grid-column: 1 / -1; grid-row: 1; }
+  .step:not(.on) { justify-content: center; align-items: center; text-align: center; }
+  .step:not(.on) .step-k { flex-wrap: wrap; justify-content: center; }
+  .step.on .step-sub { -webkit-line-clamp: none; line-clamp: none; }
+
+  /* The hold's goods: the icon at the left of two rows -- the name and
+     its figures across the top, the count and Unload under them. */
+  .barter-good {
+    display: grid; grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas: "icon main main" "icon count act";
+    column-gap: 10px; row-gap: 6px; align-items: center;
+  }
+  .barter-good > .row-icon { grid-area: icon; align-self: start; }
+  .barter-good > .map-row-main { grid-area: main; }
+  .barter-good > .barter-count { grid-area: count; justify-self: start; }
+  .barter-good > .ghost-btn { grid-area: act; min-height: 44px; }
+  .barter-count { gap: 4px; }
+  .barter-count .map-load-btn { width: 44px; height: 44px; font-size: 16px; }
+  .barter-count .purse-inline { width: 72px; height: 44px; }
+  /* The chart's side rows (who has it, today's list): the goods' icons
+     go under the name, lined up with it, rather than beside it. */
+  .map-row { flex-wrap: wrap; row-gap: 5px; }
+  .map-row > .map-row-right { flex: 1 0 100%; }
+  .map-row > .map-row-dot ~ .map-row-right { margin-left: 17px; }
+  .map-row > .map-check ~ .map-row-right { margin-left: 27px; }
+  .map-row > .map-row-right:empty { display: none; }
+  /* To Get's manifest: three tiles to a row that share the width, not
+     72px ones, so a name has two lines to say itself in. */
+  .want-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); }
+  .want { width: auto; min-width: 0; }
+  .plan-step-cta { min-height: 44px; }
+  /* Log a trip: the item gets the room, the count a fixed width. */
+  .trip-row .field.trip-qty { flex: 0 0 96px; width: 96px; min-height: 44px; }
+  .trip-pick { min-height: 44px; }
+  /* The Parley the game shows, typed at a stop: room for 1,000,000. */
+  .parley-fix .purse-inline.narrow { width: 10ch; min-height: 44px; }
+}
+/* The section bar's labels on a small phone: no spacing between the
+   letters, so "Warentausch" fits under its icon. */
+@media (max-width: 400px) {
+  .tabbar-btn { letter-spacing: 0; padding-left: 1px; padding-right: 1px; }
+  .trip-row .field.trip-qty { flex-basis: 80px; width: 80px; }
+}

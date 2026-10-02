@@ -167,14 +167,14 @@ export function startHere() {
 			<h2 class="panel-title plain">${T('How this works')}</h2>
 			<span class="panel-sub">${T('Four steps, then it is just keeping the numbers current')}</span>
 		</div>
-		<ol class="steps">${steps.map(([title, body, cta, view], i) => `
-			<li class="step">
-				<span class="step-n">${i + 1}</span>
+		<ol class="plan-steps">${steps.map(([title, body, cta, view], i) => `
+			<li class="plan-step">
+				<span class="plan-step-n">${i + 1}</span>
 				<div>
-					<div class="step-title">${esc(title)}</div>
-					<div class="step-body">${esc(body)}</div>
+					<div class="plan-step-title">${esc(title)}</div>
+					<div class="plan-step-body">${esc(body)}</div>
 				</div>
-				<button class="act quiet step-cta" data-act="view" data-id="${view}">${esc(cta)}</button>
+				<button class="act quiet plan-step-cta" data-act="view" data-id="${view}">${esc(cta)}</button>
 			</li>`).join('')}</ol>
 	</div>`;
 }
