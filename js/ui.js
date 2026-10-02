@@ -3,6 +3,21 @@
 // every piece of shared state in ui-state.js. Nothing here holds its
 // own copy of anything: each screen is a projection of state.js through
 // planner.js, rebuilt on every change.
+//
+// Still loaded on the first visit, and the next ones to take off it
+// (2026-10-01; About, the readers, Community, To Get and the layout
+// book already wait to be asked for -- see loading.js):
+//   * the Map and its tiles: tile_alias.js (~26 KB) is read synchronously
+//     by tileSrc() in the chart, the terrain and the run sheet's strip, so
+//     deferring it needs a "map ready" gate in map/paint.js first;
+//   * screen-map.js and its subtree (~138 KB) and screen-crew.js (~39 KB):
+//     both are wound into this file's action switch and into the barter run
+//     sheet's chart (map/paint.js imports screen-barter), so they need their
+//     actions routed through a lazy door before they can be split;
+//   * shot-reader.js, barter-import.js and bag-shot.js: reached at render by
+//     barter/view.js (imagesOn), barter/material.js (shotGuideHTML) and
+//     barter/plan.js -- move those calls behind a dynamic import.
+// seamask.js and sea_dist.js stay: every sea route needs them.
 
 import { shipGroups } from './ships.js';
 import { routeInfo } from './recipes.js';
