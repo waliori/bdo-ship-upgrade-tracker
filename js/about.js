@@ -172,6 +172,13 @@ export const RELEASES = [
 					TT('A [Level 5], [Level 6], [Level 7] or [Great Ocean] good takes a slot each — only the lower levels stack — so a run keeps to the hull’s slots as well as its weight, and the hold shows its slots beside its LT.'),
 					TT('[Great Ocean] goods rank between a [Level 5] and a [Level 6] wherever goods are sorted, sold or kept.'),
 					TT('The hold takes no more goods than the hull has slots for: a press loads what fits and says what did not.'),
+					TT('A stack is never split across slots, and the trip card counts slots as the hold does.'),
+					TT('A level named in barter text is drawn in its level’s colour.'),
+					TT('A fast run may put in at a wharf on its way when selling there pays for the minute it costs.'),
+					TT('Numbers follow the app’s language, shown and typed: any common way of writing a million reads as one.'),
+					TT('Undo with two tabs open takes a change back once; the other tab says it is already undone.'),
+					TT('A deleted account’s posts keep their words and lose its name.'),
+					TT('The Central Market’s prices come through again.'),
 					TT('One button style across the app, and a button that deletes or abandons something looks like it.'),
 					TT('A lighter first load — the parts you have not opened yet arrive when you do — and a thin loading thread wherever the app is waiting.'),
 					TT('<b>The Vell timer is gone</b>: its countdown on the Plan and the Map, its own times and its reminder.')
