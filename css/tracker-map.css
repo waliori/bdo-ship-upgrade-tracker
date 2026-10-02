@@ -236,7 +236,6 @@
   white-space: nowrap;
   cursor: pointer;
 }
-.map-pin.wanted { width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; }
 /* A 7px button is no target for a finger; the pad is, and it is unseen. */
 .map-pin::before { content: ''; position: absolute; left: 50%; top: 50%; width: 22px; height: 22px; transform: translate(-50%, -50%); }
 
@@ -270,7 +269,7 @@
 /* An island that has something you are short of. Named all the time,
    because that is the whole point of opening this screen; the dot bobs
    like a buoy and rings like a sounder so it reads across a busy sea. */
-.map-pin.wanted { color: var(--teal); z-index: 2; }
+.map-pin.wanted { width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; color: var(--teal); z-index: 2; }
 .map-pin.wanted .map-pin-dot {
   background: var(--teal);
   box-shadow: 0 0 0 1px rgba(var(--deep-rgb), 0.9), 0 0 10px var(--teal-glow);
@@ -343,7 +342,7 @@
    no scroll could reach it. The two that are not self-evident -- the
    3D lean and the offline keep -- carry a word beside their mark. */
 .map-zoom { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; min-width: 0; }
-.map-zoom .ghost-btn { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
+.map-zoom .ghost-btn { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-width: 34px; font-size: 15px; line-height: 1; }
 .map-zoom .btn-label { font-size: 12px; font-family: var(--font-display); letter-spacing: 0.04em; }
 .ico { flex: none; vertical-align: middle; }
 
@@ -674,6 +673,7 @@
   overflow: hidden;
   cursor: crosshair;
   backdrop-filter: blur(8px);
+  touch-action: none;
 }
 
 .mini-dot {
@@ -777,9 +777,9 @@
   z-index: 3;
 }
 .map-port::before { content: ''; position: absolute; left: 50%; top: 50%; width: 20px; height: 20px; transform: translate(-50%, -50%); }
-.map-port-name { position: absolute; top: calc(100% + 3px); left: 50%; transform: translateX(-50%); }
-.map-port-dot { display: block; width: 100%; height: 100%; }
+.map-port-name { position: absolute; top: calc(100% + 3px); left: 50%; transform: translateX(-50%); text-shadow: 0 1px 4px #000; }
 .map-port-dot {
+  display: block;
   width: 9px;
   height: 9px;
   border-radius: 2px;
@@ -787,7 +787,6 @@
   border: 1.5px solid rgba(240, 250, 255, 0.7);
   box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
 }
-.map-port-name { text-shadow: 0 1px 4px #000; }
 .map-port:hover .map-port-name { color: var(--ink-hi); }
 .map-port.start { color: var(--amber); }
 .map-port.start .map-port-dot { background: var(--amber); }
@@ -1053,7 +1052,6 @@
 }
 
 .chart-link:hover { text-decoration: underline; }
-.map-zoom .ghost-btn { min-width: 34px; font-size: 15px; line-height: 1; }
 
 /* The run sheet in the chart's panel: the Barter tab's rows, the panel
    wide enough for them, the stop the chart stands at lit. */
@@ -1105,28 +1103,25 @@
 /* A planned run on the chart: the wharf step's route, narrow. */
 .map-run .rest-row:hover .rest-head > b { color: var(--blue-hi); }
 .map-plan-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 8px 10px; border: 1px solid var(--teal-edge); border-radius: var(--r-tile); background: var(--panel-inset); font-size: 12.5px; }
-.map-plan-bar .act { padding: 8px 14px; font-size: 13px; }
+.map-plan-bar .act { padding: 8px 14px; font-size: 13px; white-space: nowrap; }
 .map-plan-aboard { color: var(--ink-mid); }
 .map-plan-route .run-seg { padding: 0; border: 0; background: none; box-shadow: none; }
 .map-plan-route .run-seg-head { flex-wrap: wrap; gap: 4px 8px; font-size: 12px; }
 .map-plan-route .run-seg-head > span { flex: 1 1 100%; }
-.map-plan-bar .act { white-space: nowrap; }
 .map-plan-route .run-seg-chains { gap: 4px; }
 .map-plan-route .route-edit { font-size: 12px; }
-.map-plan-route .run-stops { padding: 0; }
 /* Each stop a card of its own, the whole card a way to fly the chart
    there; its buttons keep their own presses. */
 .map-plan-route .leg-snap { display: none; }
-.map-plan-route .run-stops { display: flex; flex-direction: column; gap: 8px; }
-.map-plan-route .run-stop { background: var(--panel-inset); border: 1px solid var(--line); border-radius: var(--r-tile); padding: 6px 8px 2px 4px; cursor: pointer; transition: border-color .15s, background .15s; }
+.map-plan-route .run-stops { display: flex; flex-direction: column; gap: 8px; padding: 0; }
+/* The hold and the Parley under the stop, not beside it: beside, the
+   trade had a third of the panel and broke a word a line. */
+.map-plan-route .run-stop { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 0 10px; background: var(--panel-inset); border: 1px solid var(--line); border-radius: var(--r-tile); padding: 6px 4px 2px; cursor: pointer; transition: border-color .15s, background .15s; }
 .map-plan-route .run-stop:hover { border-color: var(--blue-edge, rgba(120, 170, 255, .45)); background: color-mix(in srgb, var(--panel-inset) 85%, var(--blue, #4d8eff) 15%); }
 .map-plan-route .run-stop:hover .run-stop-name { color: var(--blue-hi); }
 .map-plan-route .run-stop.wharf { border-style: dashed; }
 .map-plan-route .run-rail i { display: none; }
 .map-plan-route .run-trip-head { margin: 6px 0 0; }
-/* The hold and the Parley under the stop, not beside it: beside, the
-   trade had a third of the panel and broke a word a line. */
-.map-plan-route .run-stop { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 0 10px; padding-right: 4px; }
 .map-plan-route .run-rail { grid-row: 1 / span 3; }
 .map-plan-route .run-main { grid-column: 2; padding-bottom: 4px; }
 .map-plan-route .run-hold { grid-column: 2; width: auto; padding: 0 0 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; }

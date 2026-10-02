@@ -167,6 +167,13 @@
   --btn-bad-ink-hi: var(--red);
   --btn-off: 0.4;
   --focus: var(--blue);
+
+  /* The level of a trade good, in the game's own colours: Level 1 and the
+     land goods white, 2 green, 3 blue, 4 yellow, and 5, 6 and 7 the one
+     orange-red -- what the barter window shows, so a good reads the same
+     here as it does there. */
+  --tier-1: #e4e8ee; --tier-2: #7fcf5f; --tier-3: #4f9fe0; --tier-4: #e8c04a;
+  --tier-5: #e8643a; --tier-6: #e8643a; --tier-7: #e8643a;
 }
 
 /* ---- the light theme ------------------------------------------------- *
@@ -251,6 +258,11 @@
   --btn-on-bg: rgba(var(--blue-rgb), 0.16);
   --btn-bad-bg: color-mix(in srgb, var(--red) 10%, transparent);
   --btn-bad-bg-hi: color-mix(in srgb, var(--red) 20%, transparent);
+
+  /* The same seven, darker on a pale page, so a tier named in text still
+     reads; the ink laid on them is --on-tint, which turns white here. */
+  --tier-1: #3c4654; --tier-2: #3a8a1f; --tier-3: #1b6fb5; --tier-4: #9a7300;
+  --tier-5: #c2461a; --tier-6: #c2461a; --tier-7: #c2461a;
 }
 
 /* The same, when the browser prefers light and nothing was chosen by hand. */
@@ -329,6 +341,9 @@
     --btn-on-bg: rgba(var(--blue-rgb), 0.16);
     --btn-bad-bg: color-mix(in srgb, var(--red) 10%, transparent);
     --btn-bad-bg-hi: color-mix(in srgb, var(--red) 20%, transparent);
+
+    --tier-1: #3c4654; --tier-2: #3a8a1f; --tier-3: #1b6fb5; --tier-4: #9a7300;
+    --tier-5: #c2461a; --tier-6: #c2461a; --tier-7: #c2461a;
   }
 }
 

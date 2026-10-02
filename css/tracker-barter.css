@@ -5,26 +5,7 @@
    rule between sheets, check nothing later relies on beating it. */
 
 /* ---- The Barter tab: the board, the hold, the chains and the run ---- */
-/* The level of a trade good, in the game's own colours: Level 1 and the
-   land goods white, 2 green, 3 blue, 4 yellow, and 5, 6 and 7 the one
-   orange-red -- what the barter window shows, so a good reads the same
-   here as it does there. */
-:root {
-  --tier-1: #e4e8ee; --tier-2: #7fcf5f; --tier-3: #4f9fe0; --tier-4: #e8c04a;
-  --tier-5: #e8643a; --tier-6: #e8643a; --tier-7: #e8643a;
-}
-/* The same seven, darker on a pale page, so a tier named in text still
-   reads; the ink laid on them is --on-tint, which turns white there. */
-:root[data-theme="light"] {
-  --tier-1: #3c4654; --tier-2: #3a8a1f; --tier-3: #1b6fb5; --tier-4: #9a7300;
-  --tier-5: #c2461a; --tier-6: #c2461a; --tier-7: #c2461a;
-}
-@media (prefers-color-scheme: light) {
-  :root:not([data-theme="dark"]) {
-    --tier-1: #3c4654; --tier-2: #3a8a1f; --tier-3: #1b6fb5; --tier-4: #9a7300;
-    --tier-5: #c2461a; --tier-6: #c2461a; --tier-7: #c2461a;
-  }
-}
+/* The level colours, --tier-1 to --tier-7, are tokens in tracker-base.css. */
 .barter-screen { display: flex; flex-direction: column; gap: 16px; }
 /* A panel carries no padding of its own: what stands under a head on
    this tab -- the orders, the figures, the chains -- stands in a body
@@ -39,7 +20,7 @@
    ticked: it stays in view above the phone's section bar as the chains
    or the islands are ticked, and opens the run laid out over the page. */
 .run-dock, .load-dock { position: sticky; bottom: calc(var(--tabbar-h, 0px) + 10px); z-index: 20; display: flex; align-items: center; gap: 8px 14px; flex-wrap: wrap; padding: 9px 12px 9px 16px; border-radius: var(--r-panel); background: rgba(var(--deep-rgb), 0.96); border: 1px solid rgba(var(--blue-rgb), 0.45); box-shadow: 0 10px 34px rgba(var(--shade-rgb), 0.5); backdrop-filter: blur(8px); }
-.run-dock-k { font-family: var(--font-display); font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--blue); white-space: nowrap; }
+.run-dock-k { font-family: var(--font-display); font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--teal); white-space: nowrap; }
 .run-dock-figs { flex: 1 1 200px; min-width: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; color: var(--ink-mute); }
 .run-dock-figs > span { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
 .run-dock-figs b { font-family: var(--font-display); font-weight: 700; color: var(--ink-hi); }
@@ -125,13 +106,17 @@
 .hold-purse-n b { font-family: var(--font-display); font-size: 15px; font-weight: 700; color: var(--ink-hi); }
 .hold-purse-n span { font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint); }
 .hold-purse-sub { font-size: 11px; color: var(--ink-faint); }
-.hold-bar-timer { display: flex; justify-content: flex-end; }
+.hold-bar-timer { display: flex; justify-content: flex-end; align-items: center; margin-left: auto; }
 @media (max-width: 860px) {
   .hold-cols { grid-template-columns: minmax(0, 1fr); }
   .hold-bar-timer { justify-content: flex-start; }
 }
 .hold-dialog .barter-hold { border: none; background: transparent; padding: 0; box-shadow: none; }
 .hold-dialog .dialog-actions { display: flex; justify-content: flex-end; margin-top: 14px; }
+/* A dialog that has columns to line up gets more room than the 560px a
+   paragraph of prose wants. Coming after them, this also outranks the
+   narrow-screen rules that lift the cap (above, and in tracker-extras.css);
+   on a phone the sheet is narrower than this anyway. */
 .dialog-box.wide { max-width: 720px; }
 @media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
   .hold-bar { padding: 8px 10px; }
@@ -359,7 +344,8 @@
 .run-leave { margin-top: 7px; border-left: 2px solid rgba(232, 182, 97, 0.35); padding-left: 11px; display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--ink-dim); }
 .run-leave span:first-child { font-size: 11px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--amber); }
 .run-sell { margin-top: 7px; display: inline-flex; align-items: center; gap: 7px; background: rgba(232, 144, 93, 0.12); border: 1px solid rgba(232, 144, 93, 0.35); border-radius: 7px; padding: 4px 11px; font-size: 12px; font-weight: 600; color: var(--tier-7); }
-.run-hold { width: 118px; flex: none; padding-top: 10px; }
+/* Room for "23,800 / 18,300 LT" and the Parley's spend beside its bar. */
+.run-hold { width: 152px; flex: none; padding-top: 10px; }
 .run-hold > div:first-child { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
 .run-hold > div.run-slots { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; margin-top: 1px; }
 .run-hold span { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
@@ -374,7 +360,7 @@
   .run-stop { flex-wrap: wrap; gap: 0 12px; }
   .run-rail { order: 0; }
   .run-main { order: 1; flex: 1 1 0; padding-bottom: 6px; }
-  .run-hold { order: 2; flex: 1 1 100%; width: auto; margin-left: 38px; padding: 0 0 12px; display: flex; align-items: center; gap: 10px; }
+  .run-hold { order: 2; flex: 1 1 100%; flex-wrap: wrap; width: auto; margin-left: 38px; padding: 0 0 12px; display: flex; align-items: center; gap: 10px; }
   .run-hold > div:first-child { flex: none; gap: 8px; }
   .run-hold > div.run-slots { flex: none; gap: 8px; margin-top: 0; }
   /* With the slots beside the LT the bar goes under them rather than to a sliver. */
@@ -398,7 +384,6 @@
 .run-good > i { font-family: var(--font-display); font-style: normal; font-size: 9.5px; font-weight: 700; color: var(--on-tint); background: var(--tier, var(--track)); border-radius: 4px; padding: 2px 5px; min-width: 22px; text-align: center; }
 .run-good b { font-family: var(--font-display); font-weight: 500; color: var(--ink-dim); width: 40px; }
 .run-good > span { color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.run-good .faint { color: var(--ink-mute); }
 .run-good-worth { margin-left: auto; flex: none; font-size: 11.5px; color: var(--ink-mute); }
 .run-chart { align-self: stretch; }
 
@@ -563,14 +548,14 @@
   .map-tip .map-tip-side { font-size: 13px; }
   .map-tip { width: 330px; }
 }
-.map-tip.stash { border-color: var(--stash-edge); }
+.map-tip.stash { border-color: var(--stash-edge); max-height: calc(100% - 20px); display: flex; flex-direction: column; }
 .map-tip.stash .map-tip-name { color: var(--stash); }
 .map-tip-sub.sell { color: var(--tier-7); }
 .map-tip-side.ashore { color: var(--ink-dim); }
 /* A wharf's calls, one block each: the stop and its sale on one line,
    the goods it leaves in a tight list beneath. The card is capped at
-   the chart's height and scrolls, so eight calls do not run off it. */
-.map-tip.stash { max-height: calc(100% - 20px); display: flex; flex-direction: column; }
+   the chart's height and scrolls, so eight calls do not run off it
+   (.map-tip.stash, above). */
 .map-tip-calls { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; overflow-y: auto; min-height: 0; scrollbar-width: thin; }
 .map-tip-call { border: 1px solid var(--stash-edge); border-radius: 8px; padding: 5px 8px 6px; background: rgba(178, 143, 224, 0.06); }
 .map-tip-call-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
@@ -1051,9 +1036,8 @@ button.rung-fate { cursor: pointer; }
 .cockpit-who { margin-top: 3px; font-size: 13px; color: var(--ink-mute); }
 .cockpit-trade { display: grid; grid-template-columns: 1fr auto 1fr auto; gap: 14px; align-items: center; padding: 16px; border-radius: var(--r-tile); background: var(--panel-inset); }
 .cockpit-good { display: flex; flex-direction: column; align-items: center; gap: 7px; text-align: center; min-width: 0; }
-.cockpit-good > b { font-size: 13px; font-weight: 600; color: var(--ink-mid); }
+.cockpit-good > b { font-size: 13px; font-weight: 600; color: var(--tier, var(--ink-hi)); }
 .cockpit-good > em { font-style: normal; font-size: 11.5px; color: var(--ink-faint); }
-.cockpit-good > b { color: var(--tier, var(--ink-hi)); }
 .cockpit-icon { display: flex; align-items: center; justify-content: center; width: 72px; height: 72px; border-radius: 14px; border: 1px solid var(--tier, var(--line-btn)); background: var(--panel-strong); }
 .cockpit-img { width: 60px; height: 60px; }
 .cockpit-arrow { font-family: var(--font-display); font-size: 28px; color: var(--ink-mute); }
@@ -1338,7 +1322,6 @@ button.rung-fate { cursor: pointer; }
    stays the size it was. */
 @media (pointer: coarse) {
   .barter-screen .chip.tiny, .barter-screen .chip.pay { min-height: 34px; padding: 6px 12px; display: inline-flex; align-items: center; }
-  .barter-screen .chip.tiny.lvl { min-width: 34px; justify-content: center; }
   .barter-screen .linky { display: inline-flex; align-items: center; min-height: 34px; padding: 0 2px; }
   .barter-screen .purse-inline, .barter-screen .amt { min-height: 34px; }
   .barter-screen .copy-name, .barter-screen .map-x { min-width: 34px; min-height: 34px; }
@@ -1348,7 +1331,7 @@ button.rung-fate { cursor: pointer; }
   .barter-screen .rest-row { grid-template-columns: 34px minmax(0, 1fr); }
   .barter-screen .seg { min-height: 36px; }
   .barter-screen .chip { min-height: 34px; }
-  .barter-screen .chip.tiny.lvl { width: auto; min-width: 34px; padding-left: 0; padding-right: 0; }
+  .barter-screen .chip.tiny.lvl { width: auto; min-width: 34px; padding-left: 0; padding-right: 0; justify-content: center; }
   .barter-screen .field { min-height: 36px; }
   .barter-screen .step { min-width: 40px; justify-content: center; }
   .barter-screen .step:not(.on) { align-items: center; }
@@ -1391,7 +1374,6 @@ body.sail-scene-hold .sail-scene canvas { visibility: hidden; }
   background: linear-gradient(rgba(78, 201, 174, 0.06), rgba(78, 201, 174, 0.06)), rgba(var(--deep-rgb), 0.96);
   box-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.55);
 }
-.run-dock-k { color: var(--teal); }
 .run-dock > .act, .load-dock > .act, .cockpit-foot > .act { flex: 0 1 420px; min-width: 180px; padding: 11px 18px; text-align: center; justify-content: center; }
 .load-dock > .linky { flex: none; }
 @media (max-width: 720px) {
@@ -1428,7 +1410,6 @@ body.sail-scene-hold .sail-scene canvas { visibility: hidden; }
 @media (max-width: 560px) { .hold-tiles { padding: 0 8px 8px; } }
 
 /* Which of an island's four it pays: each chip says how often, the likeliest ringed. */
-.chip.pay { gap: 5px; }
 .chip.pay.likely { border-style: dashed; border-color: var(--teal); }
 .chip.pay .pay-pct { font-style: normal; font-size: 10.5px; font-weight: 600; color: var(--ink-faint); }
 .chip.pay.active .pay-pct, .chip.pay.likely .pay-pct { color: var(--teal-hi); }

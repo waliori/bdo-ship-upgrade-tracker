@@ -69,6 +69,7 @@
 .roster-card {
   display: flex; gap: 9px; align-items: center; padding: 8px 10px; border-radius: 10px; cursor: pointer; text-align: left;
   background: rgba(var(--deep-rgb), 0.8); border: 1px solid rgba(var(--line-rgb), 0.12); color: inherit; font: inherit;
+  position: relative;
 }
 .roster-card.seated { opacity: 0.8; }
 .roster-card.picked { background: var(--picked); border-color: rgba(70, 224, 200, 0.5); opacity: 1; }
@@ -113,19 +114,16 @@
 .build-stats { color: var(--ink-faint); }
 .enh-log { font-size: 11.5px; color: var(--ink-faint); white-space: nowrap; }
 .enh-gain { display: block; font-size: 11px; color: var(--teal); font-weight: 400; white-space: normal; max-width: 220px; }
-.quest-rewards { color: var(--ink-dim); }
 
 /* On a phone the drawn hull has no room for seats you can tap; the same
    seats lay out as labelled rows instead, and the drawing steps aside. */
 @media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
-  .crew-board { aspect-ratio: auto; display: flex; flex-wrap: wrap; gap: 6px 8px; padding: 10px 12px 4px; margin: 0; background: none; }
   .crew-hull { display: none; }
   .crew-counter { position: static; flex: 1 1 100%; margin-bottom: 4px; font-size: 11px; }
   .seat-bar { position: static !important; transform: none !important; width: auto !important; flex: 1 1 100%; text-align: left; padding: 3px 8px; font-size: 11px; margin-top: 4px; }
   .seat-wrap { position: static !important; transform: none !important; flex-wrap: wrap; gap: 6px; }
   .seat { width: 46px; height: 46px; }
   .seat-mono { font-size: 12px; }
-  .cabin-row { padding-top: 6px; }
   .seat-bar.static { width: auto; margin: 4px 0 6px; text-align: left; padding: 3px 8px; }
   .crew-stats .stat { flex: 1 1 45%; }
 }
@@ -152,7 +150,7 @@
 .quest-name { font-weight: 600; color: var(--ink-hi); }
 .quest-tag { margin-left: 8px; font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--teal); }
 .quest-where { font-size: 12px; color: var(--ink-mute); margin: 2px 0 8px; }
-.quest-rewards { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.quest-rewards { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; color: var(--ink-dim); }
 .reward { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px 3px 4px; border-radius: 999px; background: rgba(var(--deep-rgb), 0.7); border: 1px solid var(--line-btn); font-size: 12px; color: var(--ink-dim); }
 .reward.wanted { border-color: rgba(88, 196, 196, 0.5); color: var(--ink-hi); }
 .reward b { color: var(--ink-hi); font-weight: 600; }
@@ -275,16 +273,9 @@
 .way-q-main { flex: 1; min-width: 0; }
 .way-q-name { font-weight: 600; font-size: 13px; color: var(--ink-row); }
 .way-q-name .quest-done-tag { margin-left: 8px; }
-.way-where { margin-top: 2px; font-size: 11.5px; color: var(--ink-faint); }
-.way-pays { margin-top: 7px; }
-.way-pays .reward.take { border-color: var(--teal-edge); background: var(--teal-glow); color: var(--ink-hi); }
-.way-pays .reward.coin-chip { border-color: rgba(232, 182, 97, 0.28); color: var(--amber); }
-.way-over { margin-top: 5px; font-size: 11.5px; color: var(--ink-faint); }
-.way-mine { font-size: 11px; color: var(--teal); }
 
 .way-row { align-items: flex-start; }
 .way-why { white-space: normal; overflow: visible; text-overflow: clip; }
-.way-also { margin-top: 3px; color: var(--ink-faint); white-space: normal; }
 .way-qty { flex: none; text-align: right; }
 .way-qty-cost { font-size: 11px; color: var(--amber); opacity: 0.85; }
 .way-coin-row { background: rgba(232, 182, 97, 0.06); }
@@ -308,7 +299,7 @@
 .way-where { margin-top: 3px; font-size: 11.5px; color: var(--ink-mute); }
 .way-pays { margin-top: 6px; }
 .way-pays .reward.take { border-color: rgba(78, 201, 174, 0.55); background: rgba(78, 201, 174, 0.1); color: var(--ink-hi); }
-.way-pays .reward.coin-chip { border-color: rgba(255, 215, 122, 0.35); }
+.way-pays .reward.coin-chip { border-color: rgba(255, 215, 122, 0.35); color: var(--amber); }
 .way-pays .quest-or { text-transform: uppercase; letter-spacing: 0.1em; font-style: normal; margin-right: 2px; }
 .way-over { margin-top: 5px; font-size: 11.5px; color: var(--ink-faint); }
 .way-also { margin-top: 3px; color: var(--ink-faint); white-space: normal; }
@@ -321,9 +312,6 @@
   .quest-pic, .quest-pic.none { width: 26px; height: 26px; }
   .quest-actions { flex: 1 0 100%; flex-direction: row; flex-wrap: wrap; justify-content: flex-end; align-items: center; }
 }
-/* A yellow row has three verdicts; they wrap inside their column rather
-   than shoving the column under the row. */
-.enh-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; max-width: 250px; }
 
 /* ---- Courses: community loops drawn beneath the route ---------------- */
 .map-courses { margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(var(--line-rgb), 0.12); }
@@ -339,8 +327,7 @@
 .errand-set { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
 .errand-set .field.sm { flex: 1 1 130px; min-width: 0; padding: 5px 8px; font-size: 12px; }
 .errand-stops { margin-top: 8px; display: flex; flex-direction: column; gap: 2px; }
-.errand-stop { display: flex; gap: 9px; align-items: flex-start; padding: 5px 8px; border-radius: var(--r-btn); border-left: 2px solid transparent; }
-.errand-stop.hunt { border-left-color: rgba(240, 130, 190, 0.7); background: rgba(240, 130, 190, 0.06); }
+.errand-stop { display: flex; gap: 9px; align-items: center; padding: 5px 8px; border-radius: var(--r-btn); border-left: 2px solid transparent; }
 .errand-stop.port { border-left-color: var(--teal); }
 .errand-n { flex: none; width: 18px; text-align: right; font-size: 10.5px; color: var(--ink-faint); padding-top: 2px; }
 .errand-main { flex: 1; min-width: 0; }
@@ -349,7 +336,6 @@
 .errand-jobs.faint { color: var(--ink-faint); font-size: 11px; }
 .errand-job { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; color: var(--ink-mute); }
 .errand-job.kill { color: var(--ink-dim); }
-.errand-job b { color: #f082be; font-weight: 700; }
 .errand-job i { font-style: normal; }
 .errand-job .quest-pip { width: 13px; height: 13px; margin: 0; vertical-align: 0; }
 /* The worked-out loop takes the amber of the day's own clocks rather
@@ -358,12 +344,11 @@
 .map-course-line.course-dailies .map-course-glow { stroke: var(--amber); }
 .map-course-line.course-dailies .map-course-path { stroke: var(--amber); }
 .errand-stop.hunt { border-left-color: rgba(232, 182, 97, 0.75); background: rgba(232, 182, 97, 0.07); }
-.errand-job b { color: var(--amber); }
+.errand-job b { color: var(--amber); font-weight: 700; }
 .map-course.on[data-act="map-errands"] { border-color: rgba(232, 182, 97, 0.7); background: rgba(232, 182, 97, 0.1); }
 .map-course.on[data-act="map-errands"] .map-course-dot { background: var(--amber); border-color: rgba(232, 182, 97, 0.8); box-shadow: 0 0 8px rgba(232, 182, 97, 0.7); }
 /* A call is a button the whole width of the row, with the cross that
    drops it kept out of its way. */
-.errand-stop { align-items: center; }
 .errand-row { display: flex; gap: 9px; align-items: flex-start; flex: 1; min-width: 0; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
 .errand-row:hover .errand-name { color: var(--amber); }
 .errand-skip { flex: none; opacity: 0; }
@@ -528,7 +513,6 @@
 .map-chip.on .map-chip-dot { opacity: 1; box-shadow: 0 0 6px currentColor; }
 
 /* ---- the traces library -------------------------------------------- */
-.dialog-box.wide { max-width: 900px; }
 .lib-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; }
 .lib-bar .field { flex: 1 1 100%; }
 .lib-label { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-off); margin-left: 6px; }
@@ -544,8 +528,8 @@
    guess to hit with a thumb; the glyph stays small, the target does not. */
 @media (pointer: coarse) {
   .map-x, .map-side-close {
-    min-width: 32px;
-    min-height: 32px;
+    min-width: 40px;
+    min-height: 40px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -576,7 +560,6 @@
   .info-dot::before { inset: -13px; }
   .detail-close::before { inset: -7px; }
   .seg::before { inset: -7px 0; }
-  .map-x, .map-side-close { min-width: 40px; min-height: 40px; }
   .sq-btn { width: 40px; height: 40px; }
   .stepper button { width: 40px; height: 40px; }
   .stepper .val { height: 40px; }
@@ -657,13 +640,13 @@
     border-radius: 0; border-width: 0 0 0 1px;
     padding: 20px 18px 24px;
     animation: drawerIn 0.2s ease;
+    display: flex; flex-direction: column;
   }
   @keyframes drawerIn { from { transform: translateX(24px); opacity: 0; } to { transform: none; opacity: 1; } }
   .menu-sheet .sheet-grid { grid-template-columns: repeat(3, 1fr); }
   .menu-sheet .sheet-tab { padding: 10px 4px 9px; font-size: 11.5px; }
   /* The dock already shows the sections, so the drawer leads with
      the verbs and keeps the sections for the end. */
-  .dialog-box.menu-sheet { display: flex; flex-direction: column; }
   .menu-sheet > h2 { order: 0; }
   .menu-sheet .sheet-rest { order: 1; }
   .menu-sheet .sheet-sections { order: 2; margin-top: 8px; }
@@ -679,11 +662,7 @@
 
 @media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
   .tabs { display: none; }
-  .shell { padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px)); }
-  /* The pouch is pulled up by the height of the tab row's margin so it
-     sits tight beneath it. With the row gone there is nothing above it
-     to tuck under but the title itself, which it was covering. */
-  .pouch { margin-top: 0; }
+  .shell { padding: 0 16px calc(84px + env(safe-area-inset-bottom, 0px)); }
   .tabbar {
     display: flex;
     position: fixed;
@@ -828,13 +807,9 @@
 .trip-shot { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 4px 0 10px; padding: 8px 10px; border-radius: var(--r-btn); border: 1px solid var(--line-btn); }
 .trip-shot-k { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-faint); margin-right: 2px; }
 .trip-shot .ghost-btn { margin-left: auto; }
-.trip-row { display: flex; gap: 6px; }
 .trip-row .trip-qty { width: 120px; }
-.where-line { align-items: center; }
 .where-edit { display: inline-flex; align-items: center; gap: 6px; }
-.where-val { width: 72px; text-align: right; }
 .where-add { margin-top: 6px; font-size: 12px; }
-.detail-note { font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--ink-faint); }
 
 /* ---- Profiles, Help extras ---- */
 .profile-list { display: flex; flex-direction: column; gap: 6px; margin: 10px 0; }
@@ -956,8 +931,10 @@
 .picker h2 { margin: 0; }
 .picker-in { font-size: 14px; padding: 9px 12px; }
 .picker-list { display: flex; flex-direction: column; gap: 2px; max-height: 52vh; overflow-y: auto; padding-right: 2px; }
-.picker-group { font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-mute); padding: 8px 6px 3px; position: sticky; top: 0; background: var(--panel, #0a1728); z-index: 1; }
-.picker-row { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: var(--r-btn); border: 1px solid transparent; background: none; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+/* Add a build's groups: a heading that stays at the top of the box
+   while its rows scroll under it. */
+.picker-group { position: sticky; top: 0; z-index: 1; padding: 8px 6px 3px; background: var(--panel, #0a1728); border-bottom: 1px solid var(--line); font-family: var(--font-display); font-size: 10.5px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-mute); }
+.picker-row { display: flex; align-items: center; gap: 10px; width: 100%; padding: 7px 10px; border-radius: var(--r-btn); border: 1px solid transparent; background: none; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
 .picker-row:hover, .picker-row.on { background: rgba(var(--blue-rgb), 0.12); border-color: rgba(var(--blue-rgb), 0.35); }
 .picker-row.picked { background: rgba(78, 201, 174, 0.1); border-color: rgba(78, 201, 174, 0.4); }
 .picker-row.off { opacity: 0.45; cursor: default; }
@@ -1009,7 +986,6 @@ button.status-bit:hover { background: rgba(var(--blue-rgb), 0.12); color: var(--
 .slot-part b { color: var(--teal); }
 .slot-stats { font-size: 11px; color: var(--ink-dim); margin-top: 2px; }
 .slot-btns { display: flex; gap: 6px; flex-wrap: wrap; }
-.roster-card { position: relative; }
 .roster-card.ticked { border-color: rgba(78, 201, 174, 0.55); }
 .roster-hit { position: absolute; inset: 0; background: none; border: 0; cursor: pointer; border-radius: inherit; }
 .roster-check { position: absolute; top: 6px; right: 6px; z-index: 2; width: 20px; height: 20px; border-radius: 5px; border: 1px solid var(--line-btn); background: rgba(var(--deep-rgb), 0.7); color: var(--teal); font-size: 12px; cursor: pointer; padding: 0; }
@@ -1032,7 +1008,7 @@ button.status-bit:hover { background: rgba(var(--blue-rgb), 0.12); color: var(--
 .trip-row .map-x { flex: none; }
 
 /* ---- Where it is: the same inputs as everywhere else ---- */
-.where-line { padding: 4px 0; }
+.where-line { align-items: center; padding: 4px 0; }
 .where-val { width: 76px; text-align: right; padding: 4px 8px; border-radius: var(--r-btn); border: 1px solid var(--line-btn); background: var(--panel-inset, rgba(var(--deep-rgb), 0.7)); color: var(--ink-hi); font-family: var(--font-display); font-size: 13px; }
 .where-val:focus { border-color: var(--blue-edge); outline: none; }
 .tile-qty.short { color: var(--red-soft); font-size: 13px; }
@@ -1048,7 +1024,6 @@ button.status-bit:hover { background: rgba(var(--blue-rgb), 0.12); color: var(--
 .row-ways summary::before { content: '▸ '; }
 .row-ways[open] summary::before { content: '▾ '; }
 .row-ways summary::-webkit-details-marker { display: none; }
-.tcaret { min-width: 26px; min-height: 26px; font-size: 14px; }
 .seat-list { display: none; flex-direction: column; gap: 10px; padding: 8px 14px 14px; }
 .seat-list-group { display: flex; flex-direction: column; gap: 6px; }
 .seat-list-seats { display: flex; flex-direction: column; gap: 4px; }
@@ -1102,7 +1077,6 @@ button.status-bit:hover { background: rgba(var(--blue-rgb), 0.12); color: var(--
 }
 
 /* ---- Minimap: a grip to move it, a × to hide it ---- */
-.map-mini { touch-action: none; }
 .mini-grip { position: absolute; left: 4px; top: 2px; z-index: 3; font-size: 11px; letter-spacing: -2px; color: rgba(207, 227, 245, 0.7); cursor: grab; padding: 0 4px; user-select: none; }
 .mini-grip:active { cursor: grabbing; }
 .mini-hide { position: absolute; right: 2px; top: 2px; z-index: 3; width: 18px; height: 18px; border-radius: 4px; border: 0; background: rgba(var(--deep-rgb), 0.6); color: rgba(207, 227, 245, 0.8); font-size: 12px; line-height: 1; cursor: pointer; padding: 0; }
@@ -1124,19 +1098,17 @@ button.status-bit:hover { background: rgba(var(--blue-rgb), 0.12); color: var(--
 .trip-row .field, .profile-new .field, .dialog-label .field { width: auto; flex: 1 1 auto; }
 .picker, .jump { min-width: 0; width: 100%; }
 .picker-list, .jump-list { padding: 2px 2px 6px; }
-.dialog-box { overflow-x: hidden; }
 
 /* ---- The chart: habitat markers and the currents ---- */
 .map-habitat { position: absolute; left: 0; top: 0; width: 44px; height: 44px; margin: -22px 0 0 -22px; z-index: 3; padding: 0; border: 0; background: none; color: #f3e35a; font: inherit; cursor: pointer; text-shadow: 0 1px 4px #000, 0 0 8px rgba(0, 0, 0, 0.8); }
 .map-habitat.young { width: 34px; height: 34px; margin: -17px 0 0 -17px; }
 .map-habitat-name { position: absolute; top: 100%; left: 50%; transform: translateX(-50%); margin-top: 1px; }
-.map-habitat-sub { position: absolute; top: calc(100% + 15px); left: 50%; transform: translateX(-50%); }
+.map-habitat-sub { position: absolute; top: calc(100% + 15px); left: 50%; transform: translateX(-50%); font-size: 10.5px; color: #cfe3f5; white-space: nowrap; }
 .map-habitat-pic { width: 44px; height: 44px; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.8)); transition: transform 0.15s; }
 .map-habitat:hover .map-habitat-pic, .map-habitat.on .map-habitat-pic { transform: scale(1.12); }
 .map-habitat.on .map-habitat-name { color: #7ef0d4; }
 .map-habitat-glyph { width: 34px; height: 34px; border-radius: 50%; border: 2px solid; display: inline-flex; align-items: center; justify-content: center; font-size: 16px; background: rgba(var(--deep-rgb), 0.6); }
 .map-habitat .map-habitat-name { font-size: 11px; font-weight: 600; white-space: nowrap; }
-.map-habitat-sub { font-size: 10.5px; color: #cfe3f5; white-space: nowrap; }
 .map-habitat.young .map-habitat-pic { width: 34px; height: 34px; }
 .map-habitat-art { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
 .map-habitat-count { position: absolute; right: -6px; top: -4px; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 9px; background: #ffd77a; color: #14202c; font-size: 10.5px; font-weight: 700; line-height: 17px; text-align: center; text-shadow: none; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6); }

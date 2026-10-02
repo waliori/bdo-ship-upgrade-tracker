@@ -168,6 +168,7 @@
   width: 100%;
   max-width: 560px;
   max-height: 82vh;
+  overflow-x: hidden;
   overflow-y: auto;
   background: var(--sheet-solid);
   border: 1px solid rgba(var(--line-rgb), 0.2);
@@ -227,10 +228,6 @@
 }
 
 @media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
-  .shell { padding: 0 16px 70px; }
-  .masthead { padding: 18px 0 14px; }
-  .brand-name { font-size: 16px; }
-  .row { gap: 10px; padding: 11px 14px; }
   .row-meter { flex-basis: 100%; min-width: 0; }
   .row-tail { width: 100%; justify-content: space-between; }
   .badge { text-align: left; min-width: 0; }
@@ -275,32 +272,9 @@
   margin-bottom: 14px;
 }
 
-.picker-row {
-  display: grid;
-  grid-template-columns: 28px 1fr auto;
-  gap: 12px;
-  align-items: center;
-  width: 100%;
-  padding: 8px 12px;
-  background: none;
-  border: none;
-  border-bottom: 1px solid var(--line-soft);
-  color: var(--ink-mid);
-  font-size: 13px;
-  text-align: left;
-}
+/* .picker-row and .picker-group are drawn with the picker, in tracker-sea.css. */
 
 .picker-row:last-child { border-bottom: none; }
-/* Add a build's groups: a heading that stays at the top of the box
-   while its rows scroll under it. */
-.picker-group {
-  position: sticky; top: 0; z-index: 1;
-  padding: 7px 12px 5px;
-  background: var(--sheet-solid);
-  border-bottom: 1px solid var(--line);
-  font-family: var(--font-display); font-size: 11.5px; font-weight: 600;
-  letter-spacing: 0.1em; text-transform: uppercase; color: var(--teal);
-}
 .picker-group-n { color: var(--ink-faint); font-weight: 400; letter-spacing: 0; margin-left: 4px; }
 .build-kinds { margin: 0 0 10px; }
 .picker-row:hover:not(:disabled) { background: rgba(var(--blue-rgb), 0.08); color: var(--ink-hi); }
@@ -564,6 +538,8 @@
    press away; open, the group's own name folds it back. Both are
    buttons, so neither wears the text caret the purse chips do. */
 .pouch-item.sail.summary {
+  position: relative;
+  margin-left: 15px;
   cursor: pointer;
   border: 1px solid transparent;
   text-align: left;
@@ -817,7 +793,6 @@ button.pouch-item.sail.pets:focus-visible { outline: 2px solid var(--focus); out
 .pouch-item.sail.summary .pouch-input.plain { width: auto; max-width: none; font-size: 15px; white-space: nowrap; }
 /* The hairline the group title carries when the fields are open, so
    the two halves of the strip stay told apart either way. */
-.pouch-item.sail.summary { position: relative; margin-left: 15px; }
 .pouch-item.sail.summary::before {
   content: '';
   position: absolute;
@@ -858,6 +833,10 @@ button.pouch-item.sail.pets:focus-visible { outline: 2px solid var(--focus); out
  * missing -- on one line the height of a single chip, and the typing
  * happens in a sheet where every field has the width of the screen. */
 @media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
+  /* No top margin: on a wide screen the pouch is pulled up by the tab
+     row's margin to sit tight beneath it; on a phone the row is gone
+     and there is nothing above it to tuck under but the title, which it
+     was covering. */
   .pouch { gap: 10px; padding: 6px 10px; margin: 0 0 16px; }
   .pouch-title { display: none; }
 }
@@ -1126,7 +1105,9 @@ button.pouch-item.sail.pets:focus-visible { outline: 2px solid var(--focus); out
   border: 1px solid rgba(var(--line-rgb), 0.25);
   background: none;
   color: var(--ink-mute);
-  font-size: 11px;
+  min-width: 26px;
+  min-height: 26px;
+  font-size: 14px;
   line-height: 1;
 }
 .tcaret:hover { color: var(--ink-hi); border-color: var(--line-btn-hi); }
@@ -1162,7 +1143,6 @@ button.pouch-item.sail.pets:focus-visible { outline: 2px solid var(--focus); out
 .dot.red { background: var(--red); }
 
 @media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
-  .trow { min-width: 520px; }
   .trow-own { display: none; }
 }
 

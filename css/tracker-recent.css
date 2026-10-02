@@ -106,7 +106,7 @@
 .chain-pips i.held { background: transparent; border: 1px solid var(--tier); color: var(--tier); }
 
 .ashore { padding: 4px 14px 14px; border-top: 1px solid var(--line-soft); margin-top: 6px; }
-.ashore-k { font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint); padding: 10px 6px 6px; }
+.ashore-k { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint); padding: 10px 6px 6px; }
 .ashore-town { margin-bottom: 8px; }
 .ashore-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; padding: 4px 6px 6px; font-size: 12px; }
 .ashore-head b { color: var(--ink-hi); font-weight: 600; }
@@ -184,7 +184,7 @@
 .run-paid { display: inline-flex; align-items: center; gap: 5px; flex-wrap: wrap; min-width: 0; max-width: 100%; font-size: 11.5px; color: var(--ink-mute); }
 .run-paid .run-paid-n { width: 84px; height: 26px; padding: 0 8px; text-align: right; }
 .run-paid > span { margin-right: 2px; text-transform: uppercase; letter-spacing: 0.08em; font-size: 10px; }
-.chip.pay { min-width: 30px; height: 28px; padding: 0 9px; display: inline-flex; align-items: center; justify-content: center; font-family: var(--font-display); font-weight: 700; font-size: 13px; }
+.chip.pay { min-width: 30px; height: 28px; padding: 0 9px; display: inline-flex; align-items: center; justify-content: center; gap: 5px; font-family: var(--font-display); font-weight: 700; font-size: 13px; }
 .chip.pay.active { background: rgba(78, 201, 174, 0.22); border-color: var(--teal); color: var(--teal-hi); }
 /* The mark that says this stop was sailed: a box you can hit. */
 .run-done { display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 12px 0 6px; border-radius: 8px; border: 1px solid var(--line-btn-hi); background: rgba(var(--deep-rgb), 0.6); color: var(--ink-mid); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; }
@@ -212,7 +212,7 @@
 .sail-timer { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .sail-timer .chip.tiny { padding: 3px 8px; }
 .sail-timer.running { gap: 8px; padding: 4px 6px 4px 10px; border-radius: var(--r-btn); background: var(--panel-inset); position: relative; overflow: hidden; }
-.sail-timer.running b { font-family: var(--font-display); font-weight: 600; color: var(--ink-hi); font-variant-numeric: tabular-nums; }
+.sail-timer.running b { flex: 0 1 auto; min-width: 0; font-family: var(--font-display); font-weight: 600; color: var(--ink-hi); font-variant-numeric: tabular-nums; }
 /* The estimate as a filling line under the clock, so how far along the
    run is can be read without reading the numbers. */
 .sail-timer-bar { position: absolute; inset: auto 0 0 0; height: 2px; background: rgba(255, 255, 255, 0.06); }
@@ -230,7 +230,6 @@
 .sail-timer.over { background: rgba(232, 184, 109, 0.1); }
 .sail-timer.over b { color: var(--amber); }
 .sail-timer.over .sail-timer-bar i { background: var(--amber); }
-.hold-bar-timer { display: flex; align-items: center; margin-left: auto; }
 .sail-n b { font-family: var(--font-display); font-size: 16px; color: var(--ink-hi); }
 /* What the recording will have to guess at. Amber rather than red: it
    is a count being estimated, not a thing gone wrong, and the sailor
@@ -251,7 +250,6 @@
 .hold-filters .field.hold-q, .chain-filters .field.hold-q { flex: 1 1 160px; min-width: 140px; padding: 5px 9px; font-size: 12px; }
 .chip.tiny.lvl { min-width: 22px; padding: 2px 6px; font-family: var(--font-display); font-weight: 700; border-color: var(--tier); color: var(--tier); background: transparent; }
 .chip.tiny.lvl.active { background: var(--tier); color: var(--on-tint); }
-.ashore-k { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .ashore-places { text-transform: none; letter-spacing: 0; }
 .map-tip-check { margin-top: 6px; }
 
@@ -614,7 +612,7 @@ body[data-view="map"] .status-bar { display: none; }
 
 /* The Parley bar under the hold's, in the same column of a stop. */
 .run-parley { margin-top: 8px; padding-top: 6px; border-top: 1px dashed var(--line); }
-.run-parley > div:first-child { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
+.run-parley > div:first-child { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px; }
 .run-parley span { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
 .run-parley b { font-family: var(--font-display); font-size: 12px; font-weight: 600; color: var(--ink-mute); }
 .run-parley b.amber { color: var(--amber); }
@@ -640,7 +638,6 @@ body[data-view="map"] .status-bar { display: none; }
 .run-bar.rations.low i, .mini-bar.rations.low .run-bar.rations i { background: var(--red); }
 .run-rations-line.warn { color: var(--red); }
 @media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
-  .run-hold { flex-wrap: wrap; }
   .run-parley { flex: 1 1 100%; display: flex; align-items: center; gap: 10px; margin-top: 4px; padding-top: 4px; }
   .run-parley > div:first-child { flex: none; }
   .run-parley .run-bar { flex: 1 1 auto; margin-top: 0; }
@@ -657,10 +654,7 @@ details.run-quests-off > summary { list-style: none; cursor: pointer; }
 details.run-quests-off > summary::-webkit-details-marker { display: none; }
 details.run-quests-off > summary .panel-title::before { content: '▸ '; color: var(--ink-faint); }
 details.run-quests-off[open] > summary .panel-title::before { content: '▾ '; }
-/* Room for "23,800 / 18,300 LT" and the Parley's spend beside its bar. */
-.run-hold { width: 152px; }
 .run-hold > div:first-child b, .run-parley > div:first-child b { font-size: 11.5px; white-space: nowrap; }
-.run-parley > div:first-child { flex-wrap: wrap; }
 
 /* ------------------------------------------------------------------ *
  * Community: the harbour, the hall of fame, the fleet in numbers
@@ -953,7 +947,6 @@ img.comm-silver { width: 1.25em; height: 1.25em; vertical-align: -0.25em; object
    right, so a figure that narrows as it counts moves nothing beside it. */
 .sail-timer-ctl { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-left: auto; }
 .cockpit-clock .sail-timer { flex: 1 1 100%; width: 100%; box-sizing: border-box; }
-.sail-timer.running b { flex: 0 1 auto; min-width: 0; }
 
 /* The ship on the sailing clock (sail-scene.js): a strip of sea across
    the top of the running clock, the sailor's own ship crossing the leg. */

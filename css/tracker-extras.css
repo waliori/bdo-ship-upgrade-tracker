@@ -79,9 +79,8 @@
 }
 
 /* ---- the fleet dialog ---------------------------------------------- */
-/* A dialog that has columns to line up gets more room than the 560px a
-   paragraph of prose wants. */
-.dialog-box.wide { max-width: 780px; }
+/* (.dialog-box.wide, the room it lines its columns up in, is drawn in
+   tracker-barter.css.) */
 .fleet { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .fleet-search { width: 100%; }
 .fleet-filters { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
