@@ -19,6 +19,8 @@ js/lang/en.json
 tools/**
 # The backup tool, for the scheduled backup service.
 !tools/backup.mjs
+# The build's stamp, run once by the Dockerfile.
+!tools/build-stamp.mjs
 *.md
 !README.md
 .env

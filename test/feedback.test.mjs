@@ -30,6 +30,9 @@ process.env.MAX_REPORTS_PER_DAY = '2';
 process.env.REPORT_GAP_SECONDS = '1';
 delete process.env.FEEDBACK_WEBHOOK_URL;
 
+// Market prices from a recorded answer, never the live Market, so a run
+// plans the same on any day (see server/market.js).
+process.env.MARKET_FIXTURE = new URL('./fixtures/market.json', import.meta.url).href;
 const app = (await import('../server.js')).default;
 const { startSession } = await import('../server/session.js');
 const { upsertUser } = await import('../server/db.js');
@@ -371,4 +374,46 @@ test('the pictures on disk have a ceiling of their own', async () => {
 		config.maxUploadBytes = was;
 	}
 	assert.equal((await send('/api/feedback/image', PNG, 'image/png', { cookie: full })).status, 201);
+});
+
+test('an account deleted leaves its posts in the box, with nothing left that says whose', async () => {
+	await upsertUser({ id: '3021', username: 'Leaver', avatar: null });
+	const leaver = cookieFor('3021');
+	const file = await json(await send('/api/feedback/image?name=stays.png', PNG, 'image/png', { cookie: leaver }));
+	const sent = await call('POST', '/api/feedback', {
+		cookie: leaver,
+		body: { kind: 'idea', text: `Before I go\n\n![it](attachment:${file.id})`, format: 'md', page: 'map', version: '1.5', contact: 'leaver#0001', files: [file.id] }
+	});
+	assert.equal(sent.status, 201);
+	const { id } = await json(sent);
+	// Answered before the account goes, so the status is seen to stay too.
+	assert.equal((await call('POST', `/api/feedback/${id}/status`, { cookie: bosun, body: { status: 'done' } })).status, 200);
+
+	assert.equal((await call('DELETE', '/api/account', { cookie: leaver })).status, 200);
+
+	// The operator, who sees everything, sees no trace of the account.
+	const inbox = await json(await call('GET', '/api/feedback', { cookie: bosun }));
+	const whole = inbox.entries.find(e => e.id === id);
+	assert.ok(whole, 'the post stays');
+	assert.equal(whole.text, `Before I go\n\n![it](attachment:${file.id})`, 'its words stay');
+	assert.equal(whole.status, 'done', 'and its answer');
+	assert.equal(whole.page, 'map');
+	assert.equal(whole.username, null, 'the name is gone');
+	assert.equal(whole.userId, null, 'the account id is gone');
+	assert.equal(whole.contact, null, 'the contact is gone');
+	assert.equal(whole.agent, null, 'the device is gone');
+	assert.equal(whole.former, true, 'and it is marked as a former sailor\'s, not a visitor\'s');
+	assert.deepEqual(whole.files.map(f => f.id), [file.id], 'its picture stays');
+
+	// Everybody reads it as before, picture and all, by a former sailor.
+	const out = await json(await call('GET', '/api/feedback'));
+	const pub = out.entries.find(e => e.id === id);
+	assert.equal(pub.username, null);
+	assert.equal(pub.former, true);
+	const shot = await call('GET', `/api/feedback/file/${file.id}`);
+	assert.equal(shot.status, 200, 'the picture is still served');
+	await shot.arrayBuffer();
+
+	// Somebody else's posts are untouched.
+	assert.ok(inbox.entries.filter(e => e.username === 'Sailor').every(e => e.former === false && e.userId === '3002'));
 });

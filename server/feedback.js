@@ -71,7 +71,7 @@ function publicEntry(entry, uid) {
 		id: entry.id, kind: entry.kind, status: entry.status,
 		text: entry.text, format: entry.format,
 		page: entry.page, version: entry.version,
-		username: entry.username, createdAt: entry.createdAt,
+		username: entry.username, former: entry.former, createdAt: entry.createdAt,
 		files: entry.files, mine: Boolean(uid) && entry.userId === uid
 	};
 }

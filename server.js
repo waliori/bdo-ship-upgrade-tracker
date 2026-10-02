@@ -144,7 +144,8 @@ app.use((req, res, next) => {
 // another -- so a plain `npm start` needs a stamp as much as the Docker
 // image does. In order: APP_VERSION when the operator set one, the
 // commit when there is a checkout to ask, whatever the Docker build
-// wrote into sw.js, and failing all of that the package version with
+// wrote into sw.js (the version and a fingerprint of the shell, see
+// tools/build-stamp.mjs), and failing all of that the package version with
 // the moment this process started, which at least turns over on
 // restart.
 function buildStamp() {
@@ -167,6 +168,19 @@ function buildStamp() {
 // It lands inside a quoted string in the worker, so only characters that
 // cannot end the quote are kept.
 export const VERSION = buildStamp().replace(/[^A-Za-z0-9._-]/g, '').slice(0, 64) || 'dev';
+// When the image was made, which the stamp no longer says: it is a
+// fingerprint of what the build holds (tools/build-stamp.mjs), the same
+// for two builds of the same files. The build writes the moment beside
+// it; a plain checkout has no such file, and no build date to tell.
+function builtAt() {
+	try {
+		const { built } = JSON.parse(fs.readFileSync(path.join(__dirname, 'build-info.json'), 'utf8'));
+		return typeof built === 'string' && !Number.isNaN(Date.parse(built)) ? built : null;
+	} catch {
+		return null;
+	}
+}
+export const BUILT = builtAt();
 
 // Filled in below when a database is configured; /healthz reads them.
 let dbPing = null;
@@ -299,6 +313,7 @@ app.get('/healthz', async (req, res) => {
 		queued: held.queued,
 		uptime: Math.round((Date.now() - started) / 1000),
 		version: VERSION,
+		built: BUILT,
 		counters
 	});
 });
@@ -440,7 +455,7 @@ app.use((err, req, res, next) => {
 if (process.env.NODE_ENV !== 'test') {
 	app.listen(config.port, () => {
 		console.log(`Sailor’s Log running at http://localhost:${config.port}`);
-		console.log(`${describe()} -- build ${VERSION}`);
+		console.log(`${describe()} -- build ${VERSION}${BUILT ? `, built ${BUILT}` : ''}`);
 		if (ephemeralSecret) {
 			console.warn('[config] No SESSION_SECRET set -- sign-ins will not survive a restart.');
 		}

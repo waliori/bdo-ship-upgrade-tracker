@@ -463,6 +463,17 @@ export const MIGRATIONS = [
 			// under its account, the next time it asks for a chime.
 			await run('DELETE FROM push_subs WHERE user_id IS NULL');
 		}
+	},
+	{
+		version: 16,
+		up: async run => {
+			// An account deleted leaves its posts in the box, as a forum's
+			// stay, but with nothing left on them that says whose they
+			// were. This marks such a post, so the box can call its author
+			// "a former sailor" -- not "a visitor", who never had an
+			// account to delete.
+			await run('ALTER TABLE feedback ADD COLUMN former INTEGER NOT NULL DEFAULT 0');
+		}
 	}
 ];
 
@@ -807,8 +818,12 @@ export async function writeSave(userId, { rev, payload, updatedAt, device }) {
  * pictures it uploaded and never sent. Each table by name: on Turso the
  * foreign keys are not enforced, and a cascade that never ran left the
  * reminders chiming to a deleted account's devices. Its feedback posts
- * stay in the inbox, as a forum's do. Returns the pictures dropped, for
- * their files to go too.
+ * stay in the inbox, as a forum's do -- the words, the pictures, the
+ * status -- but blanked of everything that pointed back at the account:
+ * the name, the id, the contact it left and the browser it wrote from.
+ * The pictures sent with them lose their owner too; once sent, a
+ * picture is served as its post is, and needs none. Returns the
+ * pictures dropped (the unsent ones), for their files to go too.
  */
 export async function deleteAccount(userId) {
 	await migrate();
@@ -822,6 +837,8 @@ export async function deleteAccount(userId) {
 		'DELETE FROM barter_board_seen WHERE board_id IN (SELECT id FROM barter_boards WHERE user_id = ?)',
 		'DELETE FROM barter_boards WHERE user_id = ?',
 		'DELETE FROM feedback_files WHERE user_id = ? AND feedback_id IS NULL',
+		"UPDATE feedback_files SET user_id = '' WHERE user_id = ?",
+		'UPDATE feedback SET user_id = NULL, username = NULL, contact = NULL, agent = NULL, former = 1 WHERE user_id = ?',
 		'DELETE FROM saves WHERE user_id = ?',
 		'DELETE FROM users WHERE id = ?'
 	]) await exec({ sql, args: [userId] });
@@ -846,14 +863,14 @@ const entryOf = r => ({
 	id: Number(r.id), userId: r.user_id || null, username: r.username || null, kind: r.kind, text: r.text,
 	format: r.format || 'plain',
 	page: r.page || null, contact: r.contact || null, version: r.version || null, agent: r.agent || null,
-	status: r.status, createdAt: Number(r.created_at), files: []
+	former: Number(r.former) === 1, status: r.status, createdAt: Number(r.created_at), files: []
 });
 
 /** The newest entries, open ones first, each with its screenshots. */
 export async function listFeedback(limit = 200) {
 	await migrate();
 	const { rows } = await exec({
-		sql: `SELECT id, user_id, username, kind, text, format, page, contact, version, agent, status, created_at
+		sql: `SELECT id, user_id, username, kind, text, format, page, contact, version, agent, former, status, created_at
 		      FROM feedback ORDER BY (status = 'open') DESC, created_at DESC LIMIT ?`,
 		args: [limit]
 	});

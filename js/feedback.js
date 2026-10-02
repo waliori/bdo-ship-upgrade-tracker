@@ -636,7 +636,7 @@ function paintInbox(host, entries, only, admin) {
 	const row = e => `<div class="fb-entry ${esc(e.kind)}${e.status === 'open' ? '' : ' done'}" data-id="${e.id}">
 		<div class="fb-entry-head">
 			<span class="fb-entry-kind">${esc(said(KIND_WORD[e.kind]) || e.kind)}</span>
-			<span class="fb-entry-who">${e.username ? esc(e.username) : T('a visitor')}${admin && e.contact ? ` · ${esc(e.contact)}` : ''}${e.mine ? ` · <b>${T('yours')}</b>` : ''}</span>
+			<span class="fb-entry-who">${e.username ? esc(e.username) : e.former ? T('a former sailor') : T('a visitor')}${admin && e.contact ? ` · ${esc(e.contact)}` : ''}${e.mine ? ` · <b>${T('yours')}</b>` : ''}</span>
 			<span class="fb-entry-when">#${e.id} · ${when(e.createdAt)}${e.status === 'done' ? ` · ${T('answered')}` : e.status === 'hidden' ? ` · ${T('hidden')}` : ''}</span>
 		</div>
 		${postHTML(e)}
