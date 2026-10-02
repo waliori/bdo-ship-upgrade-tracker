@@ -126,6 +126,13 @@ let transient = false;
 // Set when another tab saves mid-tour, so restore() knows the capture it
 // holds is older than the disk and yields to it.
 let staleWhileTransient = false;
+// The save text this tab last read from the disk or wrote there. A disk
+// that no longer says this has had another tab's write land on it, and
+// an Undo looks at that before it takes anything back -- see catchUp().
+let lastText = null;
+// An Undo or Redo already on screen whose write is waiting for the
+// 'sail-undo' lock -- see settle().
+let owed = false;
 
 /* ------------------------------------------------------------------ *
  * Persistence
@@ -253,6 +260,21 @@ function normalise(input) {
 	return s;
 }
 
+/** The id an entry saved without one is known by: the same in every tab. */
+function legacyId(e) {
+	const text = `${e.t}|${e.type}|${e.label}`;
+	let h = 5381;
+	for (let i = 0; i < text.length; i++) h = ((h * 33) ^ text.charCodeAt(i)) >>> 0;
+	return 'h' + e.t.toString(36) + h.toString(36);
+}
+
+/** Whether a history entry is the one an Undo named. The id first; the
+ *  time, kind and label for a copy written by an older build in another
+ *  tab, which drops the id and so has its entries named afresh on read. */
+function sameChange(e, u) {
+	return (!!u.id && e.id === u.id) || (e.t === u.t && e.type === u.type && e.label === u.label);
+}
+
 /**
  * The undo stack, believed only as far as it can be verified.
  *
@@ -267,6 +289,11 @@ function readHistory(raw) {
 	for (const e of raw.slice(-HISTORY_CAP)) {
 		if (!e || typeof e !== 'object') continue;
 		const entry = { t: Number(e.t) || 0, type: String(e.type || 'stock'), label: String(e.label || '') };
+		// Every entry carries an id, so two tabs can agree on which change
+		// an Undo took back. Entries saved before ids existed are given one
+		// here, on read: worked out from what the entry already says, so
+		// every tab that reads the same old save gives it the same id.
+		entry.id = typeof e.id === 'string' && e.id ? e.id.slice(0, 40) : legacyId(entry);
 		if (e.delta && typeof e.delta === 'object') {
 			const delta = {};
 			for (const [item, diff] of Object.entries(e.delta)) {
@@ -379,7 +406,9 @@ function serialise() {
 /** Put the state on the disk, and say how it went. */
 function write() {
 	try {
-		localStorage.setItem(KEY, serialise());
+		const text = serialise();
+		localStorage.setItem(KEY, text);
+		lastText = text;
 		pending = [];
 		written = { targets: JSON.stringify(state.targets), strategy: JSON.stringify(state.strategy) };
 		if (!health.ok) {
@@ -404,7 +433,8 @@ function persist() {
 	if (writeTimer) clearTimeout(writeTimer);
 	writeTimer = setTimeout(() => {
 		writeTimer = null;
-		write();
+		if (owed) settleNow();
+		else write();
 	}, 150);
 }
 
@@ -416,9 +446,62 @@ function persist() {
  * our in-memory state would silently overwrite that.
  */
 export function flush() {
-	if (transient || !writeTimer) return;
+	if (transient) return;
+	if (owed) return settleNow();
+	if (!writeTimer) return;
 	clearTimeout(writeTimer);
 	writeTimer = null;
+	write();
+}
+
+/** The save text on the disk now, or null if there is none to read. */
+function diskText() {
+	try { return localStorage.getItem(KEY); } catch { return null; }
+}
+
+/**
+ * Take in another tab's write that has landed on the disk but whose
+ * storage event has not reached this tab yet. An Undo is decided on the
+ * newest copy there is: the other tab may already have taken the same
+ * change back.
+ */
+function catchUp() {
+	if (diskText() !== lastText) reload();
+}
+
+/**
+ * Put an Undo or Redo on the disk at once rather than after the debounce,
+ * so another tab sees it before it can take back the same change.
+ *
+ * The change is already made here when this runs -- the toast, the screens
+ * and anything the caller reads next see it straight away, as they always
+ * have. Where the browser has Web Locks, the write itself waits for the
+ * 'sail-undo' lock, which every tab of this origin takes for the same
+ * step: the disk is read again under it, and a copy on which another tab
+ * has undone the same entry first is taken as it stands, with this tab's
+ * undo of it dropped (reload() tells the two apart by the entry's id).
+ * Without the lock the same steps run now.
+ */
+function settle() {
+	owed = true;
+	const locks = typeof navigator !== 'undefined' && navigator.locks && typeof navigator.locks.request === 'function' ? navigator.locks : null;
+	if (!locks) return settleNow();
+	const then = () => { if (owed) settleNow(); };
+	try {
+		locks.request('sail-undo', then).catch(then);
+	} catch {
+		then();
+	}
+}
+
+function settleNow() {
+	owed = false;
+	if (transient) return;
+	catchUp();
+	if (writeTimer) {
+		clearTimeout(writeTimer);
+		writeTimer = null;
+	}
 	write();
 }
 
@@ -479,7 +562,7 @@ function commitReal(type, label, mutate, extra = null) {
 
 	mutate();
 
-	const entry = { t: Date.now(), type, label, ...(extra || {}) };
+	const entry = { id: makeId(), t: Date.now(), type, label, ...(extra || {}) };
 
 	// Stock is undone by its inverse delta, so only changed keys are kept.
 	const delta = {};
@@ -547,12 +630,22 @@ export function undo() {
 	// The history is real; the stock on show mid-tour is not. Undoing a
 	// real entry against demo quantities would lose the entry for good.
 	if (transient) return null;
+	// The change on show when Undo was pressed, then the disk read again:
+	// if another tab has taken that change back already, it is not taken
+	// back a second time here -- nor is the one beneath it, which nobody
+	// asked to undo.
+	const wanted = lastChange();
+	catchUp();
+	if (wanted && !state.history.some(e => sameChange(e, wanted))) {
+		announce('tracker-undo-gone', { label: wanted.label });
+		return null;
+	}
 	const entry = state.history.pop();
 	if (!entry) return null;
 
 	// Captured before the revert touches anything: the values this undo
 	// is about to replace are exactly what redo will need.
-	const redoEntry = { type: entry.type, label: entry.label };
+	const redoEntry = { of: entry.id, type: entry.type, label: entry.label };
 	if (entry.delta) redoEntry.delta = entry.delta;
 	if (entry.prevTargets) redoEntry.nextTargets = state.targets;
 	if (entry.prevStrategy) redoEntry.nextStrategy = state.strategy;
@@ -562,11 +655,11 @@ export function undo() {
 	future.push(redoEntry);
 
 	// Undo is replayed as the change it made, with no entry of its own,
-	// and names the entry it took off: another tab's save that lands
-	// inside the debounce still has that entry, and taking its history
-	// with the entry left in would let a second Undo reverse the same
-	// change twice.
-	const replay = { undone: { t: entry.t, type: entry.type, label: entry.label } };
+	// and names the entry it took off by its id: another tab's save that
+	// lands before this one's still has that entry, and taking its
+	// history with the entry left in would let a second Undo reverse the
+	// same change twice.
+	const replay = { undone: { id: entry.id, t: entry.t, type: entry.type, label: entry.label } };
 	if (entry.delta) {
 		replay.delta = {};
 		for (const [item, diff] of Object.entries(entry.delta)) {
@@ -585,7 +678,7 @@ export function undo() {
 	}
 	queue(replay);
 
-	persist();
+	settle();
 	notify('undo');
 	return entry.label || T('Change');
 }
@@ -593,12 +686,15 @@ export function undo() {
 /** Put back the most recently undone change, itself undoable again. */
 export function redo() {
 	if (transient) return null;
+	// Another tab's write taken in first: if it changed what the redo
+	// rests on, reload() lets the redo go rather than replay it there.
+	catchUp();
 	const entry = future.pop();
 	if (!entry) return null;
 
 	// Rebuilt as a history entry as it goes back on, so redo and undo
 	// can trade the same change back and forth indefinitely.
-	const hist = { t: Date.now(), type: entry.type, label: entry.label };
+	const hist = { id: makeId(), t: Date.now(), type: entry.type, label: entry.label };
 	const replay = { entry: hist };
 	if (entry.delta) {
 		hist.delta = entry.delta;
@@ -632,7 +728,7 @@ export function redo() {
 	if (state.history.length > HISTORY_CAP) state.history.shift();
 	queue(replay);
 
-	persist();
+	settle();
 	notify('redo');
 	return entry.label || T('Change');
 }
@@ -1638,6 +1734,7 @@ export function applyTransient(json) {
 	// only land carrying example data. Written here, it is on the disk
 	// whatever happens next -- another tab saving mid-look used to make
 	// restore() take the disk copy, which never had it.
+	if (!transient && owed) settleNow();
 	if (!transient && writeTimer) {
 		clearTimeout(writeTimer);
 		writeTimer = null;
@@ -1867,6 +1964,7 @@ function reload() {
 		writeTimer = null;
 	}
 	const before = JSON.stringify(saveShape());
+	lastText = diskText();
 	const theirs = normalise(readRaw());
 	const untouched = {
 		targets: JSON.stringify(theirs.targets) === written.targets,
@@ -1874,6 +1972,20 @@ function reload() {
 	};
 	state = theirs;
 	for (const r of queued) {
+		// An Undo made here and not yet written takes its entry off the
+		// history it now stands on. If that history no longer has the
+		// entry, another tab undid the same change first: theirs already
+		// shows it reversed, so this one is dropped whole -- the delta
+		// laid on again would reverse it twice -- and so is its redo.
+		if (r.undone) {
+			const at = state.history.findLastIndex(e => sameChange(e, r.undone));
+			if (at < 0) {
+				future = future.filter(f => f.of !== r.undone.id);
+				announce('tracker-undo-gone', { label: r.undone.label });
+				continue;
+			}
+			state.history.splice(at, 1);
+		}
 		if (r.delta) {
 			for (const [item, diff] of Object.entries(r.delta)) {
 				const next = Math.min(STOCK_CAP, Math.max(0, (state.stock[item] || 0) + diff));
@@ -1889,16 +2001,6 @@ function reload() {
 			state.history.push(r.entry);
 			if (state.history.length > HISTORY_CAP) state.history.shift();
 		}
-		if (r.undone) {
-			const u = r.undone;
-			for (let i = state.history.length - 1; i >= 0; i--) {
-				const e = state.history[i];
-				if (e.t === u.t && e.type === u.type && e.label === u.label) {
-					state.history.splice(i, 1);
-					break;
-				}
-			}
-		}
 	}
 	if (JSON.stringify(saveShape()) !== before) future = [];
 	if (queued.length) persist();
@@ -1906,6 +2008,7 @@ function reload() {
 }
 
 export function init() {
+	lastText = diskText();
 	state = normalise(readRaw());
 	written = { targets: JSON.stringify(state.targets), strategy: JSON.stringify(state.strategy) };
 	pending = [];

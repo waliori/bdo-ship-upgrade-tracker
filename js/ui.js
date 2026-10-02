@@ -774,6 +774,9 @@ function wireSaveHealth() {
 			: T('This browser is not keeping the save — export a file before you close the tab'));
 	});
 	window.addEventListener('tracker-save-ok', () => saveBadge(false));
+	// Another tab took the change back first. Said after the caller's own
+	// toast ("Nothing to undo"), which would otherwise cover it.
+	window.addEventListener('tracker-undo-gone', () => setTimeout(() => toast(T('Already undone in another tab')), 0));
 	const health = store.saveHealth();
 	if (!health.ok) saveBadge(true, health.reason);
 	if (health.broken) offerBrokenSave();
