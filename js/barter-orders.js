@@ -61,7 +61,7 @@ export const SAIL_PRESETS = [
 		// has never touched this step is on a card with a name, not on
 		// "my own way" with a line of settings they never made.
 		id: 'quick', label: TT('Light and fast'),
-		sub: TT('The ship stays light and fast: only what the hold carries under its limit, and no detours to a wharf.'),
+		sub: TT('The ship stays light and fast: only what the hold carries under its limit, and a wharf only when one lies on the way and pays for the minute it costs.'),
 		orders: { pace: 'fast', hours: 0, vouchers: 'use', buy: true, landFrom: 'buy', way: 'sea' }
 	},
 	{

@@ -1,7 +1,7 @@
 // The silver, stock and coin plan laid out: the numbered parts of the
 // plan, the run the ticks come to, and the dock along the foot.
 
-import { esc, F, FC } from '../fmt.js';
+import { esc, F, FC, FD } from '../fmt.js';
 import { T, said, gameName } from '../i18n.js';
 import * as store from '../state.js';
 import { img } from '../ui-bits.js';
@@ -30,6 +30,7 @@ import { loadingNote } from '../loading.js';
 import { coinsOf, coinRange, bonusNote, coinPurseHTML, shortSummary, shortHTML, canAppearHTML } from './short.js';
 import { takenNote } from './today.js';
 import { editsBy, persist } from './view.js';
+import { lvChips } from '../lv-chips.js';
 
 // Each card's figure for the chains ticked by hand, by its inputs.
 const mineBy = new Map();
@@ -311,7 +312,7 @@ export function silverParts(me, b) {
 			<span class="proposal-sub">${p.ids.length === 1 ? T('{n} chain', { n: p.ids.length }) : T('{n} chains', { n: p.ids.length })} · ${isl === 1 ? T('{n} island', { n: isl }) : T('{n} islands', { n: isl })} · ${T('{n} trades', { n: F(p.run.trades) })}${p.run.cost ? ` · ${T('{silver} of land goods', { silver: FC(Math.round(p.run.cost)) })}` : ''}</span>
 		</button>`;
 	}).join('');
-	const budgetText = T('best found in {n} s', { n: (SEARCH_BUDGET_MS / 1000).toLocaleString(undefined, { maximumFractionDigits: 1 }) });
+	const budgetText = T('best found in {n} s', { n: FD(SEARCH_BUDGET_MS / 1000, 1) });
 	const proposals = `<div class="proposals${V.proposed.working ? ' working' : ''}">
 		<div class="proposals-head"><span>${T('Runs worth sailing')}</span><span class="faint">${V.proposed.working ? T('working out the runs…') : `${T('found on today’s board under these orders')}${o.hours ? `, ${o.hours === 1 ? T('within {n} hour', { n: o.hours }) : T('within {n} hours', { n: o.hours })}` : ''}${V.proposed.partial ? ` · ${budgetText}` : ''}`} · ${T('the value counts silver net of land goods and the goods kept')}</span></div>
 		${cards ? `<div class="proposal-cards">${cards}</div>` : V.proposed.working ? `<div class="proposal-cards"><div class="proposal placeholder" aria-busy="true"><span class="proposal-k">${loadingNote(T('Working out the runs…'))}</span><b>&nbsp;</b><span class="proposal-sub">${T('the board’s chains, searched in the background')}</span></div></div>` : `<p class="empty">${stocking ? T('Nothing on this board climbs toward the stock under these orders.') : T('Nothing on this board pays under these orders.')}</p>`}
@@ -430,6 +431,7 @@ export function silverParts(me, b) {
 		held: F(f.held), floor: F(f.floor),
 		kinds: f.kinds === 1 ? T('{n} kind of [Level {lv}]', { n: f.kinds, lv: f.lv }) : T('{n} kinds of [Level {lv}]', { n: f.kinds, lv: f.lv })
 	})).join('; ');
+	const floorSaid = lvChips(floorWhy);
 	// A floor at the level a coin day cashes is the one that costs most
 	// and shows least: the run climbs, the trades happen, and the purse
 	// says nothing at all, because a [Level 4] kept back is a [Level 4]
@@ -441,17 +443,17 @@ export function silverParts(me, b) {
 	const floorNote = !shutByFloor.length ? '' : stocking
 		? `<div class="barter-shut floors"><b>${one
 			? T('A level is being filled, not climbed off')
-			: T('{n} levels are being filled, not climbed off', { n: shutByFloor.length })}</b> — ${floorWhy}. ${one
+			: T('{n} levels are being filled, not climbed off', { n: shutByFloor.length })}</b> — ${floorSaid}. ${one
 			? T('Nothing climbs from it until the stock is made up, which is what the target is for.')
 			: T('Nothing climbs from them until the stock is made up, which is what the targets are for.')} ${T('For a run that climbs straight past them, set the lower targets to none.')}</div>`
 		: cashShut
-			? `<div class="barter-shut floors"><b>${T('Nothing will be cashed for coins')}</b> — ${T('you hold <b>{held}</b> of {kinds} against a floor of <b>{floor}</b>, and a [Level {lv}] kept back is a [Level {lv}] not handed to a coin island. The climbing happens, the purse stays empty.', {
+			? `<div class="barter-shut floors"><b>${T('Nothing will be cashed for coins')}</b> — ${lvChips(T('you hold <b>{held}</b> of {kinds} against a floor of <b>{floor}</b>, and a [Level {lv}] kept back is a [Level {lv}] not handed to a coin island. The climbing happens, the purse stays empty.', {
 				held: F(cashShut.held), floor: F(cashShut.floor), lv: cashShut.lv,
 				kinds: cashShut.kinds === 1 ? T('{n} kind of [Level {lv}]', { n: cashShut.kinds, lv: cashShut.lv }) : T('{n} kinds of [Level {lv}]', { n: cashShut.kinds, lv: cashShut.lv })
-			})} ${dropFloors(shutByFloor.map(f => f.lv))}</div>`
+			}))} ${dropFloors(shutByFloor.map(f => f.lv))}</div>`
 			: `<div class="barter-shut floors"><b>${one
 				? T('A floor is holding the run back')
-				: T('{n} floors are holding the run back', { n: shutByFloor.length })}</b> — ${floorWhy}. ${one
+				: T('{n} floors are holding the run back', { n: shutByFloor.length })}</b> — ${floorSaid}. ${one
 				? T('There is none of it to spend, so no chain can start from it.')
 				: T('There is none of them to spend, so no chain can start from them.')} ${dropFloors(shutByFloor.map(f => f.lv))}</div>`;
 	const bodyOf = groups => `<div class="barter-chains">${heldNote}${chainActs(fillable)}${floorNote}${shutNote}${reachBar}${V.reach ? '' : `${pickHelp}${proposals}<!--minevs-->`}${all.length ? chainFilters : ''}<div class="chain-list">${groups || `<p class="empty">${!all.length ? (o.landFrom === 'stock' && o.buy ? T('No chain on this board starts from a shore good you keep. Let the run buy its land goods ashore, or add what you have with ＋ A good.') : o.buy ? T('Nothing climbs on this board.') : T('Nothing held climbs on this board. Let the run buy land goods, or load a good ashore.')) : T('No chain matches.')}</p>`}</div></div>`;
@@ -551,14 +553,14 @@ export function silverParts(me, b) {
 	// far. Both, where both are true.
 	const notice = `${heavy ? `<p class="run-notice warn">${T('The hold is at {text}, over the limit, and a fast run makes no wharf call — so nothing trades. Switch the pace to a <b>full</b> one to call at a wharf first, or leave {lt} LT ashore.', { text: esc(atStart.text), lt: F(Math.round(atStart.total - atStart.limit)) })}</p>` : ''}${heavy ? '' : cutsHTML(plan, pace, chainName)}`;
 	const soldLevels = [...new Set(plan.sold.map(x => levelOf(x.item)))].sort((a, b2) => b2 - a);
-	const soldWhat = soldLevels.length ? (soldLevels.length === 1 ? T('the [Level {lv}]s', { lv: soldLevels[0] }) : T('Level {from} to {to}', { from: soldLevels[soldLevels.length - 1], to: soldLevels[0] })) : '';
+	const soldWhat = soldLevels.length ? (soldLevels.length === 1 ? lvChips(T('the [Level {lv}]s', { lv: soldLevels[0] })) : T('Level {from} to {to}', { from: soldLevels[soldLevels.length - 1], to: soldLevels[0] })) : '';
 	const tile = (k, v, sub, cls = '') => `<div><div class="summary-k">${k}</div><div class="summary-v${cls ? ` ${cls}` : ''}">${v}</div><div class="summary-sub">${sub}</div></div>`;
 	// What a stock run is worth, in goods rather than silver: what it
 	// banks toward the targets, level by level, and what it leaves the
 	// pile standing at.
 	const gains = stocking ? stockGains(plan, stock) : null;
 	const tiles = coining ? `<div class="run-tiles">
-		${tile(`${img(COIN, 'tile-icon')}${T('Crow Coins')}`, plan.coins ? coinRange(purse.min, purse.max, '+') : '—', plan.coins ? `${bonusNote(purse)} · ${plan.stops.filter(s => s.item === COIN).length === 1 ? T('{n} island paying', { n: F(plan.stops.filter(s => s.item === COIN).length) }) : T('{n} islands paying', { n: F(plan.stops.filter(s => s.item === COIN).length) })}` : chosen.length ? (cashFloorNow() ? T('every [Level {lv}] you hold is under the floor of {floor} you keep back, so none is cashed', { lv: COIN_LEVEL, floor: F(cashFloorNow()) }) : T('no chain ticked cashes a [Level 4] for coins')) : T('pick a chain'), 'gold')}
+		${tile(`${img(COIN, 'tile-icon')}${T('Crow Coins')}`, plan.coins ? coinRange(purse.min, purse.max, '+') : '—', plan.coins ? `${bonusNote(purse)} · ${plan.stops.filter(s => s.item === COIN).length === 1 ? T('{n} island paying', { n: F(plan.stops.filter(s => s.item === COIN).length) }) : T('{n} islands paying', { n: F(plan.stops.filter(s => s.item === COIN).length) })}` : chosen.length ? (cashFloorNow() ? lvChips(T('every [Level {lv}] you hold is under the floor of {floor} you keep back, so none is cashed', { lv: COIN_LEVEL, floor: F(cashFloorNow()) })) : lvChips(T('no chain ticked cashes a [Level 4] for coins'))) : T('pick a chain'), 'gold')}
 		${tile(T('Trades'), plan.trades ? F(plan.trades) : '—', plan.trades ? `${T('{spent} Parley of {bar}', { spent: F(Math.round(plan.parleyUsed)), bar: F(plan.parleyBar) })} · ${T('{n} barters behind you, {after} after', { n: F(prof.barterCount), after: F(prof.barterCount + plan.trades) })}${plan.coins && plan.parleyUsed ? ` · ${T('{n} coins a Parley unit', { n: F(Math.round(purse.min / (plan.parleyUsed / PARLEY_UNIT))) })}` : ''}` : T('one barter counts as one, whatever it trades'), 'gold')}
 		${tile(T('Hold at its fullest'), plan.stops.length ? esc(peak.text) : '—', `${peak.note || T('under the limit')} · ${peak.deal === peak.max ? T('barters and moves to {max}', { max: F(peak.max) }) : T('barters to {deal} · moves to {max}', { deal: F(peak.deal), max: F(peak.max) })}`, peak.state === 'heavy' || peak.state === 'dead' ? 'warn' : peak.state === 'over' ? 'amber' : 'teal')}
 		${tile(T('Parley at the end'), plan.stops.length ? F(book.end) : '—', `${T('{spent} spent from {held}', { spent: F(book.spent), held: F(parley.held) })}${parleyGuessed(prof) ? ` · ${T('a full bar, taken as read — type yours under Before you sail')}` : ''}${prof.vouchers ? ` · ${prof.vouchers === 1 ? T('{used} of {of} voucher drawn on', { used: book.vouchersUsed, of: prof.vouchers }) : T('{used} of {of} vouchers drawn on', { used: book.vouchersUsed, of: prof.vouchers })}` : ''}${book.waited ? ` · <b class="amber">${T('waits {n} min for a cooldown', { n: F(book.waited) })}</b>` : ''}${book.short ? ` · <b class="warn">${T('runs dry at stop {n}', { n: book.dryAt + 1 })}</b>` : ''}`, book.short ? 'warn' : book.waited ? 'amber' : book.end < PARLEY.max * 0.1 ? 'amber' : 'teal')}
@@ -665,7 +667,7 @@ export function silverParts(me, b) {
 			const t = tripAt.get(k);
 			if (!t) return '';
 			const l7 = s.sale ? s.sale.items.filter(i => levelOf(i.item) === 7).reduce((a, i) => a + i.n, 0) : 0;
-			return `<div class="run-trip-head"><b>${T('Trip {n} begins', { n: t.n })}</b><span>${T('load {goods}', { goods: t.loads.map(l => `${n1(l.n)}× ${esc(gameName(l.item))}`).join(', ') })}${l7 ? ` · ${T('sell {n} [Level 7]', { n: n1(l7) })}` : ''}</span></div>`;
+			return `<div class="run-trip-head"><b>${T('Trip {n} begins', { n: t.n })}</b><span>${lvChips(T('load {goods}', { goods: t.loads.map(l => `${n1(l.n)}× ${esc(gameName(l.item))}`).join(', ') }))}${l7 ? ` · ${lvChips(T('sell {n} [Level 7]', { n: n1(l7) }))}` : ''}</span></div>`;
 		};
 		const oneRoute = o.way === 'sea' && plan.order.length > 1;
 		// What each chain sold. The sale at the end of the run is filed

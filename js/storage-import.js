@@ -27,6 +27,7 @@ import * as store from './state.js';
 import { openDialog, closeDialog, toast } from './dialogs.js';
 import { LIMITS, triage, readStorageShots, wireShotIntake, close as closeReader } from './shot-reader.js';
 import { allItems, img } from './ui-bits.js';
+import { isLandGood } from './land_goods.js';
 import { TOWNS } from './screen-inventory.js';
 import { stacks, slotsHeld } from './barter-plan.js';
 import { levelOf } from './barter.js';
@@ -58,13 +59,24 @@ function knownName(row, known) {
 	return names.find(n => known.has(n)) || null;
 }
 
+/** A good the game keeps as one stack: a trade good under [Level 5]
+ *  and the shore goods a chain starts from. The game never splits a
+ *  stack, a thousand of it or ten thousand (owner's rule, 2026-10-02),
+ *  so a stack is one slot whatever its figure. Everything else is left
+ *  to add up slot by slot -- a ship part is one to a slot, and so are
+ *  the goods that do not stack. */
+const oneStack = name => (levelOf(name) !== null ? stacks(name) : isLandGood(name));
+
 /**
  * The reading, gathered: one line an item, counting every slot it was
  * seen in.
  *
  * A storage is read a screenful at a time, so several shots are one
- * storage and their slots add up. Two slots of the same thing add up
- * too -- the game splits a stack over slots once it passes a thousand.
+ * storage and their slots add up. A stack is the exception: the game
+ * never splits one, so a good that stacks seen in two slots is the same
+ * stack seen twice -- two shots that overlap where the overlap was not
+ * found -- or an icon misread. Its largest figure is kept, as one slot,
+ * and the line is marked to be checked.
  */
 export function gather(results, known) {
 	const by = new Map();
@@ -72,16 +84,25 @@ export function gather(results, known) {
 		for (const row of shot.rows || []) {
 			const name = knownName(row, known);
 			if (!name) continue;
-			if (!by.has(name)) by.set(name, { item: name, n: 0, slots: 0, guessed: 0, shots: [] });
+			if (!by.has(name)) by.set(name, { item: name, n: 0, slots: 0, seen: 0, guessed: 0, shots: [] });
 			const line = by.get(name);
-			// A good that does not stack -- a [Level 5] and up, the [Great
-			// Ocean] goods, the rare pays -- is one to a slot in the game, so
-			// each slot of it is one, whatever figure the reader thought it
-			// saw on it.
-			const one = levelOf(name) !== null && !stacks(name);
-			line.n += one ? 1 : Math.max(0, Number(row.qty) || 0);
-			line.slots++;
-			if (!row.sure) line.guessed++;
+			const qty = Math.max(0, Number(row.qty) || 0);
+			line.seen++;
+			if (oneStack(name)) {
+				line.n = Math.max(line.n, qty);
+				line.slots = 1;
+				// one slot to check: unsure of its figure, or seen twice
+				if (!row.sure || line.seen > 1) line.guessed = 1;
+			} else {
+				// A good that does not stack -- a [Level 5] and up, the [Great
+				// Ocean] goods, the rare pays -- is one to a slot in the game, so
+				// each slot of it is one, whatever figure the reader thought it
+				// saw on it.
+				const one = levelOf(name) !== null && !stacks(name);
+				line.n += one ? 1 : qty;
+				line.slots++;
+				if (!row.sure) line.guessed++;
+			}
 			// the doubtful slots' corners first: they are the ones to look at
 			if (row.corner) { if (row.sure) line.shots.push(row.corner); else line.shots.unshift(row.corner); }
 		}
@@ -182,7 +203,7 @@ export function openStorageImport(after = () => {}, handOff = null) {
 		const move = r.n - have;
 		return `<tr class="shot-row${r.take === false ? ' off' : ''}">
 			<td><input type="checkbox" data-take="${i}"${r.take === false ? '' : ' checked'} aria-label="${T('Write this one in')}"></td>
-			<td class="shot-item">${img(r.item, 'row-icon')}<span>${esc(gameName(r.item))}</span>${r.slots > 1 ? `<span class="row-sub">${T('{n} slots', { n: r.slots })}</span>` : ''}</td>
+			<td class="shot-item">${img(r.item, 'row-icon')}<span>${esc(gameName(r.item))}</span>${r.slots > 1 ? `<span class="row-sub">${T('{n} slots', { n: r.slots })}</span>` : ''}${r.seen > r.slots ? `<span class="row-sub">${T('seen in {n} slots: the game keeps it as one stack, so the largest figure is written', { n: r.seen })}</span>` : ''}</td>
 			<td><input class="purse-inline narrow" data-n="${i}" value="${r.n}" inputmode="numeric" aria-label="${T('How many of {item}', { item: esc(gameName(r.item)) })}"></td>
 			<td class="shot-note">${have === r.n ? `<span class="quiet">${T('already right')}</span>` : `${F(have)} → <b>${F(r.n)}</b>${move > 0 ? ` <span class="quiet">(+${F(move)})</span>` : ` <span class="quiet">(${F(move)})</span>`}`}</td>
 			<td class="shot-note shot-proof">${r.shots.slice(0, 4).map(src => `<img class="shot-corner" src="${esc(src)}" alt="${T('the corner of the slot as the screenshot had it')}">`).join('')}${r.shots.length > 4 ? `<span class="quiet">+${r.shots.length - 4}</span>` : ''}${r.guessed

@@ -32,6 +32,7 @@ import { aboardStock } from './hold.js';
 import { ordersNow } from './plan.js';
 import { sailing, stopKey, ticked, owesCount, paidAsk } from './sail.js';
 import { VOUCHER, legsCache } from './view.js';
+import { lvChips } from '../lv-chips.js';
 
 // Where goods can be left on the way: the harbours with a storage
 // keeper beside the wharf manager. The Morning Light pair are named
@@ -504,13 +505,37 @@ export function fourNote(s, board) {
 	return T(', or another of the island’s four — it paid this {n} of {total} times', { n: F(k.seen[shown] || 0), total: F(k.total) });
 }
 
+/** Why a fast run calls at a wharf it promised not to: the call on the
+ *  way (barter-chains.js, ON_WAY_S), said with what it sells, the time it
+ *  adds and what that buys -- the slots it frees and the trades they let
+ *  in. The sale is said by level, as the wharf's own figures are. */
+export function onWayHTML(s) {
+	if (!s.wharf || !s.onWay) return '';
+	const by = new Map();
+	for (const i of (s.sale && s.sale.items) || []) {
+		const lv = levelOf(i.item);
+		const key = lv ? `[Level ${lv}]` : gameName(i.item);
+		by.set(key, (by.get(key) || 0) + i.n);
+	}
+	const what = [...by].map(([k, n]) => `${F(n)} ${esc(k)}`).join(', ');
+	const o = s.onWay;
+	const time = T('{s} s', { s: F(Math.max(0, o.added ?? o.secs)) });
+	const wharf = esc(gameName(s.wharf.at));
+	const line = o.more > 0 && o.slots > 0
+		? T('{wharf} wharf, on the way (+{time}): sells {what}, which frees {slots} for {trades}', { wharf, time, what, slots: o.slots === 1 ? T('one slot') : T('{n} slots', { n: F(o.slots) }), trades: o.more === 1 ? T('one more trade') : T('{n} more trades', { n: F(o.more) }) })
+		: o.more > 0
+			? T('{wharf} wharf, on the way (+{time}): sells {what}, which makes room for {trades}', { wharf, time, what, trades: o.more === 1 ? T('one more trade') : T('{n} more trades', { n: F(o.more) }) })
+			: T('{wharf} wharf, on the way (+{time}): sells {what}', { wharf, time, what });
+	return `<div class="run-onway">⚓ <span>${lvChips(line)}</span></div>`;
+}
+
 /** What happens at a stop: the exchange at an island, the loads, the
  *  goods left and the sale at a wharf, nothing at a quest stop. */
 export function stopDid(s, board = false) {
 	if (s.quest) return '';
 	// A wait trades nothing: it stands still for a voucher's cooldown.
 	if (s.wait) return `<div class="run-trade">${img(VOUCHER, 'row-icon sm')}<span>${T('Wait {n} min', { n: F(s.wait) })} — ${T('the voucher’s cooldown, then one is drawn and the run goes on')}</span></div>`;
-	if (s.wharf) return `${s.pool && s.pool.take > 0 ? `<div class="run-supply">🍞 <span>${s.refill ? T('Put in for rations: Buy Supplies at the wharf manager, {n} back to full', { n: esc(fmtRations(s.pool.take)) }) : T('Buy Supplies while here: {n} back to full', { n: esc(fmtRations(s.pool.take)) })}</span></div>` : ''}${bagMovesHTML(s)}${s.loads && s.loads.length ? `<div class="run-leave"><span class="run-leave-k">${T('Loads from storage')}</span>${s.loads.map(d => `<span class="run-leave-good">${img(d.item, 'row-icon sm')}<b>${n1(d.n)}×</b>${esc(gameName(d.item))}</span>`).join('')}</div>` : ''}${s.dropped.length ? `<div class="run-leave"><span class="run-leave-k">${T('Leaves in storage')}</span>${s.dropped.map(d => `<span class="run-leave-good">${img(d.item, 'row-icon sm')}<b>${n1(d.n)}×</b>${esc(gameName(d.item))}</span>`).join('')}${storeSlotsNote(s.dropped)}</div>` : ''}${s.sale ? `<div class="run-sell">${T('sells {n} {what} here for {silver}', { n: n1(s.sale.n), what: s.sale.levels && s.sale.levels.length === 1 ? `[Level ${s.sale.levels[0]}]` : T('goods'), silver: FC(Math.round(s.sale.total)) })}</div>` : ''}`;
+	if (s.wharf) return `${onWayHTML(s)}${s.pool && s.pool.take > 0 ? `<div class="run-supply">🍞 <span>${s.refill ? T('Put in for rations: Buy Supplies at the wharf manager, {n} back to full', { n: esc(fmtRations(s.pool.take)) }) : T('Buy Supplies while here: {n} back to full', { n: esc(fmtRations(s.pool.take)) })}</span></div>` : ''}${bagMovesHTML(s)}${s.loads && s.loads.length ? `<div class="run-leave"><span class="run-leave-k">${T('Loads from storage')}</span>${s.loads.map(d => `<span class="run-leave-good">${img(d.item, 'row-icon sm')}<b>${n1(d.n)}×</b>${esc(gameName(d.item))}</span>`).join('')}</div>` : ''}${s.dropped.length ? `<div class="run-leave"><span class="run-leave-k">${T('Leaves in storage')}</span>${s.dropped.map(d => `<span class="run-leave-good">${img(d.item, 'row-icon sm')}<b>${n1(d.n)}×</b>${esc(gameName(d.item))}</span>`).join('')}${storeSlotsNote(s.dropped)}</div>` : ''}${s.sale ? `<div class="run-sell">${T('sells {n} {what} here for {silver}', { n: n1(s.sale.n), what: s.sale.levels && s.sale.levels.length === 1 ? `[Level ${s.sale.levels[0]}]` : T('goods'), silver: FC(Math.round(s.sale.total)) })}</div>` : ''}`;
 	return `<div class="run-trade">${img(s.give, 'row-icon sm')}<span>${esc(s.giveText)}× ${esc(gameName(s.give))}</span><span class="run-arrow">→</span><span class="run-to" style="--tier:${TIER(levelOf(s.item))}"><i></i>${esc(s.recvText)}× ${esc(gameName(sevenOf(s)))}${fourNote(s, board)}</span><span class="run-got"><span class="run-times">×${s.times}</span>${img(sevenOf(s), 'row-icon sm')}</span></div>`;
 }
 
@@ -787,7 +812,8 @@ export function cutsHTML(plan, pace, name) {
 			: T('never starts');
 		// What it was that stopped the climb, in the words of the thing
 		// that stopped it.
-		const why = c.why === 'hold'
+		// A level it names is drawn as the level's chip.
+		const why = lvChips(c.why === 'hold'
 			? (pace === 'fast'
 				? T('the trade at {where} puts on <b>{need} LT</b> and the hold has <b>{free}</b> left under the limit', { where, need: F(c.need), free: F(c.free) })
 				: T('the trade at {where} puts on <b>{need} LT</b> and the hold has <b>{free}</b> left under the barter ceiling', { where, need: F(c.need), free: F(c.free) }))
@@ -813,7 +839,7 @@ export function cutsHTML(plan, pace, name) {
 									? T('you took {where} off the route', { where })
 									: spentBy(c)
 										? T('another ticked chain hands the {icon}<b>{good}</b> over first, at {other} — both start from the same goods, and there are not enough for two', { icon: img(c.give, 'row-icon xs'), good: esc(gameName(c.give)), other: esc(spentBy(c)) })
-										: T('there is nothing left to hand over at {where}', { where });
+										: T('there is nothing left to hand over at {where}', { where }));
 		// The way out, where there is one: a pace that calls at a wharf,
 		// or the weight to put ashore before casting off.
 		// A good the Market is out of may still be in a storage of the

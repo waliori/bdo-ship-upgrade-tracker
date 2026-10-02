@@ -1,7 +1,7 @@
 // The hold as it stands: what is aboard, what waits ashore by harbour,
 // the floors that hold goods back, and the bar and sheet that show it.
 
-import { esc, F, FC } from '../fmt.js';
+import { esc, F, FC, FD } from '../fmt.js';
 import { T, said, gameName } from '../i18n.js';
 import * as store from '../state.js';
 import { img, codexName, amountInput } from '../ui-bits.js';
@@ -209,7 +209,7 @@ export function holdBarHTML(me, tickedLT = 0, slotsUsed = null) {
 					${prof.vouchers ? `<span class="hold-purse-n"><b>${F(prof.vouchers)}</b><span>${prof.vouchers === 1 ? T('voucher') : T('vouchers')}</span></span>` : ''}
 					<span class="hold-purse-n"><b>${F(V.goal === 'material' ? Math.floor(PARLEY.perMaterialTrade * parleyOf(prof).rate) : parleyOf(prof).perTrade)}</b><span>${V.goal === 'material' ? T('a material trade') : T('a trade')}</span></span>
 				</div>
-				<div class="hold-purse-sub">${esc(prof.level || T('no level set'))} · −${(levelDiscount(prof.level) * 100).toFixed(2)}%${prof.valuePack ? ` ${T('−10% pack')}` : ''}${prof.crew ? ` ${T('−10% crew')}` : ''}</div>
+				<div class="hold-purse-sub">${esc(prof.level || T('no level set'))} · −${FD(levelDiscount(prof.level) * 100, 2)}%${prof.valuePack ? ` ${T('−10% pack')}` : ''}${prof.crew ? ` ${T('−10% crew')}` : ''}</div>
 			</section>
 		</div>
 		${clock ? `<div class="hold-bar-timer">${clock}</div>` : ''}
@@ -310,7 +310,7 @@ function holdHTML(me) {
 		<div class="summary-sub${state ? ' warn' : ''}">${sub}${worth ? ` · ${T('worth {silver} to a barterer as it is', { silver: FC(worth) })}` : ''}</div>
 		${goods.length || shore.length ? `<div class="hold-all"><span class="panel-sub">${T('{n} goods aboard', { n: F(n) })}</span><span class="panel-spacer"></span><button class="ghost-btn sm" data-act="barter-unload-all" title="${unloadTo() ? T('Every good aboard into the storage at {town}', { town: esc(gameName(unloadTo())) }) : T('Every good aboard into a storage you choose')}">${T('Unload all')}</button></div>` : ''}
 		${goods.length || ashore().length ? filters : ''}
-		${shore.length ? `<div class="hold-shore"><span class="ashore-k">${T('Shore goods aboard')}</span>${shore.map(g => `<div class="barter-good">${img(g.name, 'row-icon')}<span class="map-row-main"><span class="map-row-name">${codexName(g.name)}</span><span class="map-row-sub">${T('{n} aboard · {lt} LT', { n: F(g.n), lt: (Math.round(g.weight * 10) / 10).toLocaleString() })}</span></span><button class="ghost-btn sm" data-act="barter-unload" data-item="${esc(g.name)}" data-n="${g.n}" title="${unloadTitle()}">${T('Unload')}</button></div>`).join('')}</div>` : ''}
+		${shore.length ? `<div class="hold-shore"><span class="ashore-k">${T('Shore goods aboard')}</span>${shore.map(g => `<div class="barter-good">${img(g.name, 'row-icon')}<span class="map-row-main"><span class="map-row-name">${codexName(g.name)}</span><span class="map-row-sub">${T('{n} aboard · {lt} LT', { n: F(g.n), lt: FD(g.weight, 1) })}</span></span><button class="ghost-btn sm" data-act="barter-unload" data-item="${esc(g.name)}" data-n="${g.n}" title="${unloadTitle()}">${T('Unload')}</button></div>`).join('')}</div>` : ''}
 		${rows ? `<div class="barter-goods">${shore.length ? `<span class="ashore-k">${T('Trade goods aboard')}</span>` : ''}${rows}</div>` : goods.length ? `<p class="empty">${T('Nothing aboard matches.')}</p>` : shore.length ? '' : `<p class="empty">${T('Nothing recorded aboard. Add a good, or log the trip that brought them back — the counts are the Inventory’s, under Trade goods.')}</p>`}
 		${ashoreHTML(passes)}
 	</section>`;

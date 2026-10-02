@@ -121,3 +121,30 @@ test('a packing tick loads only what the hold has slots for, and hands back what
 	assert.equal(holdSlotsUsed(), 20, 'never past the slots');
 	store.setProfile('crewShip', null);
 });
+
+// A later trip's card says whether its goods would fit at the start. A
+// kind that stacks and is aboard already takes no new slot for more of
+// it -- the count the hold itself keeps -- so a Volante at 20 of 20 with
+// a stack of [Level 2]s aboard is not "over" for five more of them.
+test('a later trip of a stacking kind already aboard is not counted a new slot on a full hold', async () => {
+	const { tripsHTML } = await import('../js/barter/packing.js');
+	const L2 = '[Level 2] Big Stone Slab';
+	const goodsStart = [{ item: L2, n: 300 }, ...Array.from({ length: 19 }, (_, i) => ({ item: `[Level 5] Spare ${i}`, n: 1 }))];
+	const plan = {
+		order: [{ id: 'a', rungs: [{ npcId: 58922, npc: 'Akenisi' }] }, { id: 'b', rungs: [{ npcId: 58979, npc: 'b' }] }],
+		lots: [[0], [1]],
+		stops: [
+			{ npcId: 58922, chain: 0, weightAfter: 2000, slotsAfter: 20 },
+			{ wharf: { at: 'Iliya Island' }, loads: [{ item: L2, n: 5, lot: 1 }], weightAfter: 2000, slotsAfter: 20 },
+			{ npcId: 58979, chain: 1, weightAfter: 1500, slotsAfter: 20 }
+		],
+		loaded: [], bought: [], taken: [], weightStart: 2000, slotsStart: 20, goodsStart
+	};
+	const hold = { limit: 15000, deal: 15000, max: 25500, slots: 20 };
+	const html = tripsHTML(plan, { name: 'Iliya Island' }, [], hold);
+	assert.doesNotMatch(html, /21 \/ 20 slots/, 'five more of a stack aboard add no slot');
+	assert.match(html, /it would fit at the start/);
+	// The same trip of a kind not aboard does take one more, and says so.
+	const fresh = { ...plan, stops: plan.stops.map(s => (s.loads ? { ...s, loads: [{ item: '[Level 2] Conch Shell Ornament', n: 5, lot: 1 }] } : s)) };
+	assert.match(tripsHTML(fresh, { name: 'Iliya Island' }, [], hold), /21 \/ 20 slots, more than it has/);
+});

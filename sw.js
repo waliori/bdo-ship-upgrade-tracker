@@ -153,6 +153,7 @@ const SHELL = [
 	'/js/layouts-view.js',
 	'/js/links.js',
 	'/js/loading.js',
+	'/js/lv-chips.js',
 	'/js/map.js',
 	'/js/map/actions.js',
 	'/js/map/errands.js',

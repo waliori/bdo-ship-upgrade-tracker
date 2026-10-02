@@ -1,7 +1,7 @@
 // The plan: what the day is for, the ladder, the ways of sailing and the
 // orders, Before you sail, and the chains on offer with their runs alone.
 
-import { esc, F, FC } from '../fmt.js';
+import { esc, F, FC, FD } from '../fmt.js';
 import { T, said, gameName } from '../i18n.js';
 import * as store from '../state.js';
 import { img, amountInput } from '../ui-bits.js';
@@ -19,6 +19,7 @@ import { chainRun } from '../barter-chains.js';
 import { seaDist, routeLength } from '../barter-route.js';
 import { bagFigures, bagRoom, BAG_OVER } from '../bag-shot.js';
 import { toast, openDialog, closeDialog } from '../dialogs.js';
+import { lvChips } from '../lv-chips.js';
 import { V } from './state.js';
 import { boardNow, fromPort, sailCal } from './board.js';
 import { everythingHeld } from './hold.js';
@@ -400,7 +401,7 @@ export function goalCardsHTML() {
 	return `<div class="goal-cards" role="group" aria-label="${T('What the run is for')}">
 		${card('silver', img(SILVER, 'goal-icon'), T('Silver'), T('The chains of today’s board, climbed and sold'), board)}
 		${card('stock', '<span class="goal-emoji" aria-hidden="true">📦</span>', T('A stock'), T('The same board, sailed to fill the storage: nothing sold'), board)}
-		${card('coin', img(COIN, 'goal-icon'), T('Crow Coins'), T('The same board, climbed to [Level 4] for the coin islands'), board)}
+		${card('coin', img(COIN, 'goal-icon'), T('Crow Coins'), lvChips(T('The same board, climbed to [Level 4] for the coin islands')), board)}
 		${card('material', '<span class="goal-emoji" aria-hidden="true">⚓</span>', T('A material'), T('Ship materials, from the islands that deal them'), T('reads: the ship material list'))}
 	</div>`;
 }
@@ -504,7 +505,7 @@ export function ladderHTML(o, { fits = null, tickedN = 0 } = {}) {
 		<p class="ladder-hint">${stocking
 		? T('A target is what to keep of <b>every</b> good at that level, and it is a floor as well: the run fills it and never spends below it, so a level fills before anything climbs from it and only the surplus goes up. Nothing is sold at a wharf while the stock is the goal.')
 		: coining
-			? T('a floor is held back from the coin islands too: a [Level 4] kept is a [Level 4] not cashed, so a floor at 4 is what this day pays for in coins')
+			? lvChips(T('a floor is held back from the coin islands too: a [Level 4] kept is a [Level 4] not cashed, so a floor at 4 is what this day pays for in coins'))
 			: T('Tap <b class="gold">sold</b> / <b class="teal">kept</b> to flip what the wharf does with a level. A keep number is never sold or handed on.')}</p>
 		${aims}
 		<div class="ladder-foot">
@@ -526,7 +527,7 @@ function bagRowHTML() {
 	const b = bagSet();
 	const r = bagRoom(b);
 	const chips = `<span class="chips">${[['off', T('not used')], ['on', T('a second hold')]].map(([v, t]) => `<button class="chip tiny${(b.on ? 'on' : 'off') === v ? ' active' : ''}" aria-pressed="${(b.on ? 'on' : 'off') === v ? 'true' : 'false'}" data-act="barter-order" data-k="barter-bag" data-v="${v}">${t}</button>`).join('')}</span>`;
-	const box = (k, v, label, tenths = false) => `<input class="amt purse-inline" type="text" inputmode="${tenths ? 'decimal' : 'numeric'}" autocomplete="off" value="${v > 0 ? esc((tenths ? Math.round(v * 10) / 10 : v).toLocaleString()) : ''}" placeholder="0" data-act="barter-bag-set" data-k="${k}" aria-label="${esc(label)}">`;
+	const box = (k, v, label, tenths = false) => `<input class="amt purse-inline" type="text" inputmode="${tenths ? 'decimal' : 'numeric'}" autocomplete="off" value="${v > 0 ? esc(tenths ? FD(v, 1) : F(v)) : ''}" placeholder="0" data-act="barter-bag-set" data-k="${k}" aria-label="${esc(label)}">`;
 	const bars = b.on ? `<div class="bag-bars">
 		<label class="run-pause"><span>${T('Weight')}</span>${box('now', b.now, T('The weight your inventory holds now'), true)}<span>/</span>${box('max', b.max, T('Your weight limit'))}<span>LT</span></label>
 		<label class="run-pause"><span>${T('Inventory Slot')}</span>${box('used', b.used, T('The inventory slots filled'))}<span>/</span>${box('slots', b.slots, T('The inventory slots you have'))}</label>
@@ -539,7 +540,7 @@ function bagRowHTML() {
 }
 
 /** A weight as the Inventory window prints it, to the tenth. */
-const LT1 = n => (Math.round(n * 10) / 10).toLocaleString(undefined, { maximumFractionDigits: 1 });
+const LT1 = n => FD(n, 1);
 
 /**
  * The Inventory window's two bars, read off a screenshot of it, in a
@@ -864,7 +865,7 @@ export function chainRow(c, on, solo, dockName, from, ladder = null, shut = null
 		</span>
 		<span class="chain-right">
 			<b class="${solo.silver ? '' : 'none'}${solo.net < 0 ? ' warn' : ''}">${solo.silver ? FC(Math.round(solo.net)) : dry ? T('cannot start') : '—'}</b>
-			${!solo.silver && !dry ? `<span class="chain-why">${soloWhy(c, solo)}</span>` : ''}
+			${!solo.silver && !dry ? `<span class="chain-why">${lvChips(soloWhy(c, solo))}</span>` : ''}
 			${solo.silver && solo.net < 0 ? `<span class="chain-why">${T('loses silver: the land goods cost more than the wharf pays')}</span>` : ''}
 			${solo.silver ? `<span class="chain-yard">${[solo.yard.perUnit ? `<em>${esc(perUnitText(solo.yard.perUnit))}</em>` : '', solo.yard.perHour ? esc(perHourText(solo.yard.perHour)) : ''].filter(Boolean).join(' · ')}</span>` : ''}
 			${outOf ? `<span class="warn" title="${outOf.listed

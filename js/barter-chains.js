@@ -237,6 +237,19 @@ const ROUTES = new Map();
 // about a billion an hour at full speed.
 const AT_HAND = 1600;
 const DETOUR_WORTH = 25000;
+// A fast run promises no detours, but a wharf a minute or so off a leg
+// can still pay: selling what the climbs made there frees the weight and
+// the slots for more trades further up the lot. So a fast run tries such
+// a call -- one at a time, the wharf no more than ON_WAY_S seconds round
+// by it, the call's own pause counted in -- and keeps it only when the
+// run is worth more an hour for it (goods an hour on a stock run) and
+// still sails fast: no more than ON_WAY_S longer for each call kept, and
+// within the hours the orders allow. The run's own time is what is held
+// to that, not the leg's detour alone -- by sea a later call the sale
+// makes unneeded can have been a short cut. ON_WAY_TRIES bounds how many
+// such calls are tried: each is a laying of the whole run.
+const ON_WAY_S = 75;
+const ON_WAY_TRIES = 6;
 
 /** Whether `short` climbs the top of `long`'s ladder: its rungs are
  *  the last of `long`'s, island for island. */
@@ -298,7 +311,7 @@ export function tailOf(long, short) {
  * hold is too heavy for the next island, and taken out again before
  * the island that wants them.
  */
-function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley, npcById, start = null, stashes = [], prefer = null, pace = 'full', orders = PLAIN_ORDERS, prices = {}, seen = {}, keep = [], land = new Map(), owned = null, loadCap = null, landCap = null, skipIsles = [], nudge = {}, tripOrder = [], effort = 2, ship = null, bag = null, docks = null, aim = null, bought = null } = {}) {
+function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley, npcById, start = null, stashes = [], prefer = null, pace = 'full', orders = PLAIN_ORDERS, prices = {}, seen = {}, keep = [], land = new Map(), owned = null, loadCap = null, landCap = null, skipIsles = [], nudge = {}, tripOrder = [], effort = 2, ship = null, bag = null, docks = null, aim = null, bought = null, onWay: onWayOn = true } = {}) {
 	// What an island was seen to pay this run, tapped on the checklist,
 	// replaces the range the table gives for it: counted and weighed at
 	// that, no longer at the least and the most.
@@ -915,7 +928,10 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 	// The run laid along a sequence of rungs: the stops, the sales, the
 	// wharf calls and the hold after each. Everything the laying moves
 	// is its own, so a sequence can be laid more than once.
-	const lay = (rungsIn, early = false, nudged = false) => {
+	// `onWay` is the fast run's calls on the way (ON_WAY_S): { probe,
+	// found } lists the islands after which one could be made, { at } makes
+	// one after each island named.
+	const lay = (rungsIn, early = false, nudged = false, onWay = null) => {
 	// The later lots whose goods came aboard before their lot began.
 	const earlyLoaded = new Set();
 	const rungs = rungsIn.slice();
@@ -938,6 +954,10 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 	let coins = 0, coinsMax = 0, weight = weightStart, peak = weightStart, spent = 0, at = start;
 	// The slots the hold takes, at the start and at its fullest.
 	let slotsStart = slotsHeld(heldMax), slotsPeak = slotsStart;
+	// And what takes them, kept for the wharf step: a later trip's goods
+	// of a kind already aboard at the start add no slot when they stack,
+	// so its card counts them on these, the way the hold does.
+	let goodsStart = [...heldMax];
 	const rungsLeft = c => c.rungs.filter(r => !used.has(r.npcId) && !dup.has(r));
 	// A stop the sailor moved sooner or later, a step at a time, never
 	// past a rung of its own chain -- a good is not handed over before it
@@ -1201,7 +1221,7 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 			const e = fromHold.find(x => x.item === name);
 			if (e) e.n += n; else fromHold.push({ item: name, n });
 		}
-		if (park.length) { weight = startW = weightHeld(heldMax); peak = weight; bagPeak = Math.max(bagPeak, weightHeld(baggedMax)); slotsStart = slotsPeak = slotsHeld(heldMax); }
+		if (park.length) { weight = startW = weightHeld(heldMax); peak = weight; bagPeak = Math.max(bagPeak, weightHeld(baggedMax)); slotsStart = slotsPeak = slotsHeld(heldMax); goodsStart = [...heldMax]; }
 	}
 
 	let lotNow = -1;   // the lot under way
@@ -1498,6 +1518,22 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 				if (near && to && near.detour <= AT_HAND + allowed) {
 					const drop = pace !== 'fast' && (!prefer || near.w === prefer) ? spare(held, needFrom(i + 1)).filter(([name]) => !sale.some(([x]) => x === name)) : [];
 					call(near.w, drop, chain, sale);
+				} else if (pace === 'fast' && onWay && near && to) {
+					// A fast run's call on the way: a minute or so round, tried
+					// in a laying of its own and kept only when it pays. The
+					// lot's share of the hold is taken again from what the sale
+					// leaves, so the room it frees goes to the rungs ahead.
+					const secs = near.detour * METRES_PER_PX / metresASecond + (pause.call || 0);
+					if (secs <= ON_WAY_S) {
+						if (onWay.probe) onWay.found.push(r.npcId);
+						else if (onWay.at && onWay.at.has(r.npcId)) {
+							const slots0 = slotsHeld(heldMax), w0 = weight;
+							call(near.w, [], chain, sale);
+							const stop = stops[stops.length - 1];
+							stop.onWay = { after: r.npcId, secs: Math.round(secs), added: Math.round(secs), slots: Math.max(0, slots0 - slotsHeld(heldMax)), lt: Math.max(0, Math.round(w0 - weight)), more: 0 };
+							share(lots[lot].map(k => order[k]), hold.free, lot === lots.length - 1);
+						}
+					}
 				}
 			}
 		}
@@ -1620,6 +1656,7 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 		parleyBar: parley.bar,
 		weightStart: startW, weightPeak: peak, hold,
 		slotsStart, slotsPeak,
+		goodsStart: goodsStart.map(([item, n]) => ({ item, n })),
 		rungs
 	};
 	};
@@ -1686,8 +1723,33 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 		const soon = lay(best.rungs, true);
 		if (better(soon, best)) { best = soon; stitch(true); best.early = true; }
 	}
+	// A fast run's calls on the way, tried one at a time on the run as it
+	// stands and kept only when the run is worth more an hour for each,
+	// and still within the hours the orders allow. What each kept call
+	// let in -- the trades it is there for -- is said on its stop.
+	if (eff >= 2 && pace === 'fast' && onWayOn && stashes.length) {
+		const found = [];
+		lay(best.rungs, !!best.early, false, { probe: true, found });
+		const at = new Set();
+		const within = (plan, was) => hoursOf(plan) - hoursOf(was) <= ON_WAY_S / 3600 + 1e-9 && (!(orders.hours > 0) || hoursOf(plan) <= orders.hours + 1e-9);
+		for (const id of [...new Set(found)].slice(0, ON_WAY_TRIES)) {
+			const tried = new Set([...at, id]);
+			const cand = lay(best.rungs, !!best.early, false, { at: tried });
+			const stop = cand.stops.find(x => x.onWay && x.onWay.after === id);
+			if (!stop || !within(cand, best) || !better(cand, best)) continue;
+			// What it is there for, said on it: the trades it let in, and the
+			// time it adds to the run.
+			stop.onWay.more = Math.max(0, cand.trades - best.trades);
+			stop.onWay.added = Math.round((hoursOf(cand) - hoursOf(best)) * 3600);
+			for (const x of best.stops) if (x.onWay) { const y = cand.stops.find(z => z.onWay && z.onWay.after === x.onWay.after); if (y) Object.assign(y.onWay, { more: x.onWay.more, added: x.onWay.added }); }
+			cand.early = best.early;
+			cand.onWayAt = tried;
+			at.add(id);
+			best = cand;
+		}
+	}
 	const chosenLaying = best;
-	best.relay = () => lay(chosenLaying.rungs, !!chosenLaying.early, true);
+	best.relay = () => lay(chosenLaying.rungs, !!chosenLaying.early, true, chosenLaying.onWayAt ? { at: chosenLaying.onWayAt } : null);
 	return best;
 	};
 
@@ -1712,6 +1774,7 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 	if (Object.keys(nudge || {}).length && best.relay) best = best.relay();
 	delete best.relay;
 	delete best.early;
+	delete best.onWayAt;
 	best.hours = hoursOf(best);
 	return best;
 }

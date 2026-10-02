@@ -52,6 +52,7 @@
 import { oddsFor, oddsText } from './barter-odds.js';
 import { npcs } from './barter_npcs.js';
 import { T, gameName } from './i18n.js';
+import { F } from './fmt.js';
 
 /* ------------------------------------------------------------------ *
  * the game's numbers
@@ -1081,5 +1082,5 @@ export function explain(f) {
 }
 
 function fmt(n) {
-	return Math.round(n).toLocaleString('en-GB');
+	return F(n);
 }

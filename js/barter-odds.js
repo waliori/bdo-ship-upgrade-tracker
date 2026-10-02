@@ -51,6 +51,7 @@
 // Pure: no store, no screen, no fetch. Hand it the datasets.
 
 import { T } from './i18n.js';
+import { F } from './fmt.js';
 
 // The kind test is inlined rather than imported from barter.js, which
 // imports this: a leaf module cannot be half-evaluated by a cycle.
@@ -229,7 +230,7 @@ export function oddsText(odds) {
 			: T('on {seen} of the {of} boards recorded{where}', { seen: odds.seen, of: odds.of, where });
 	}
 	const pct = Math.round((odds.seen / odds.of) * 100);
-	return T('on about {pct}% of refreshes, over {n} recorded', { pct, n: odds.of.toLocaleString('en-GB') });
+	return T('on about {pct}% of refreshes, over {n} recorded', { pct, n: F(odds.of) });
 }
 
 /**

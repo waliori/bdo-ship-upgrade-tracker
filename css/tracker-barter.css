@@ -1578,3 +1578,12 @@ body.sail-scene-hold .sail-scene canvas { visibility: hidden; }
 .roll-blank { margin-left: auto; }
 .roll-row.blank .roll-options, .roll-row.blank .roll-pays { opacity: 0.4; }
 .barter-goods > .ashore-k { display: block; margin: 12px 0 4px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--teal); }
+
+/* A level named in the barter's prose (lv-chips.js): the tier chip the
+   shelves wear, sized to sit in a line of text. */
+.lv-chip { display: inline-block; padding: 0 4px; border-radius: 3px; background: var(--tier, var(--track)); color: var(--on-tint); font-family: var(--font-display); font-style: normal; font-size: 0.78em; font-weight: 700; line-height: 1.45; vertical-align: 0.08em; white-space: nowrap; }
+
+/* A fast run's wharf call on the way (route.js onWayHTML): why the stop
+   is there, on its own line above the sale. */
+.run-onway { margin-top: 6px; display: flex; align-items: baseline; gap: 6px; font-size: 12px; color: var(--teal); }
+.run-onway > span { color: var(--ink); }

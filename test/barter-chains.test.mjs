@@ -20,6 +20,7 @@ import { wharves } from '../js/wharves.js';
 import { PLAIN_ORDERS } from '../js/barter-orders.js';
 import { routeLength } from '../js/barter-route.js';
 import { fillOf } from '../js/barter-optimizer.js';
+import { landGoods } from '../js/land_goods.js';
 
 const barterData = JSON.parse(await readFile(new URL('../js/all_barter.json', import.meta.url), 'utf8'));
 const combos = useGame(await import('../js/barter_game.js')).combos;
@@ -947,4 +948,65 @@ test('the bag counts its slots the same way: a [Level 5] parked or loaded into i
 	assert.ok(inBag(tight) <= 3, `a bag of three slots takes no more than three of them: ${inBag(tight)}`);
 	assert.equal(tight.bagNote && tight.bagNote.why, 'small', 'and says the bag was too small');
 	assert.ok(slotsOver(roomy) <= 20 && slotsOver(tight) <= 20);
+});
+
+// A fast run's wharf on the way (ON_WAY_S): a call a minute or so off a
+// leg, kept only when the run is worth more an hour for it and stays
+// fast -- no more than the detour budget longer, and within the hours
+// the orders allow. Measured on the real boards with the 20-slot
+// Volante and the 40-slot Carrack: of 3,086 pairs of chains a stop paid
+// in 15, and on the sets the search itself picks, in none.
+const onWayRun = (id, ids, hull, extra = {}) => {
+	const l = combos.find(c => c.id === id);
+	const all = chains(boardData(l, barterData, npcById), {}, {}, 4006, 0);
+	const chosen = ids.map(x => all.find(c => c.id === x));
+	const docks = wharves.filter(w => w.kind === 'wharf');
+	const stores = docks.filter(w => ['Velia', 'Port Epheria', 'Iliya Island', 'Ancado Inner Harbor', "Oquilla's Eye"].includes(w.at));
+	const prices = new Proxy({}, { get: (t, name) => (landGoods[name] ? { each: landGoods[name], how: 'market' } : undefined) });
+	const opts = { chosen, stock: {}, dock: {}, hold: hull.hold, parley: { bar: 2e6, perTrade: 11755 }, npcById, start: ports.find(p => p.name === 'Iliya Island'), stashes: stores, docks, pace: 'fast', orders: { ...PLAIN_ORDERS, pace: 'fast', buy: true, landFrom: 'buy', way: 'sea', sell: 5, pause: { isle: 20, call: 30 }, ...extra }, prices, ship: hull.ship };
+	return { on: chainRun(opts), off: chainRun({ ...opts, onWay: false }) };
+};
+const VOLANTE = { hold: { free: 12000, deal: 21450, max: 25650, slots: 20 }, ship: { speed: 120 } };
+// Layout 16: Rakio's Elder Tree Plywood and Renilu's Copper Ingot, both
+// climbed to [Level 5].
+const L16_PAIR = ['land:Elder Tree Plywood:58918.58967.58902.58939.50826', 'land:Copper Ingot:58929.58943.58935.58968.58966'];
+
+test('a fast run calls at a wharf on the way when the sale frees the slots for more trades and the run is worth more an hour', async () => {
+	// Layout 16 on a Volante, the two chains climbed together: the four
+	// [Level 5] Rust Repair Tools the first is done with fill four of the
+	// twenty slots the other climb wants.
+	const { on, off } = onWayRun('16', L16_PAIR, VOLANTE);
+	const stops = on.stops.filter(s => s.onWay);
+	assert.equal(stops.length, 1, 'one call on the way');
+	assert.ok(!off.stops.some(s => s.onWay), 'none without it');
+	const s = stops[0];
+	assert.equal(s.wharf.at, "Oquilla's Eye");
+	assert.ok(s.onWay.secs <= 75 && s.onWay.added <= 75, `a small detour: ${s.onWay.secs} s, ${s.onWay.added} s on the run`);
+	assert.equal(s.onWay.slots, 4, 'frees four slots');
+	assert.equal(s.onWay.more, on.trades - off.trades);
+	assert.ok(s.onWay.more > 0, 'for more trades');
+	assert.ok(on.net / on.hours > off.net / off.hours, 'worth more an hour');
+	assert.ok(on.hours - off.hours <= 75 / 3600 + 1e-9, 'and still fast');
+	assert.ok(on.weightPeak <= VOLANTE.hold.free + 1e-6 && on.slotsPeak <= 20, 'never over the limit or the slots');
+	// The stop says why it is there.
+	const { onWayHTML } = await import('../js/barter/route.js');
+	const said = onWayHTML(s);
+	assert.match(said, /on the way \(\+\d+ s\): sells 4 <i class="lv-chip"[^>]*>L5<\/i>, which frees 4 slots for \d+ more trades/);
+});
+
+test('a call on the way that is not worth it is not made: no more an hour, or past the hours the orders allow', () => {
+	// Layout 31 on a Volante, the four chains the search picks: a wharf
+	// lies 71 s off the way after Serapu, but selling there lets in no
+	// more trades, so the call would only cost time.
+	const { on, off } = onWayRun('31', ['land:Fine Soft Hide:58930.58947.58906.58919.58940.58984.58979', "land:Sinner's Blood:58963.58955.58902.58939.58915.58978.58974", 'land:Cactus Thorn:58932.58962.58942.58956.58949.58981.58948', 'land:Grilled Bird Meat:58918.58914.58920.58907.58925.58971.58976'], VOLANTE);
+	assert.ok(!on.stops.some(s => s.onWay), 'no call on the way');
+	assert.equal(on.net, off.net);
+	assert.equal(on.hours, off.hours);
+	assert.equal(on.stops.length, off.stops.length);
+	// And the stop that pays on layout 16 is not made when the orders
+	// give the run no more hours than it takes without it.
+	const plain = onWayRun('16', L16_PAIR, VOLANTE).off;
+	const capped = onWayRun('16', L16_PAIR, VOLANTE, { hours: plain.hours + 1e-6 }).on;
+	assert.ok(!capped.stops.some(s => s.onWay), 'past the hours allowed');
+	assert.equal(capped.trades, plain.trades);
 });
