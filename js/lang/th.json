@@ -499,7 +499,6 @@
 	"Awareness": "ประสาทสัมผัส",
 	"Awareness: increases the ship’s Turn.": "ประสาทสัมผัส: เพิ่มแรงหมุนของเรือ",
 	"A–Z": "ก–ฮ",
-	"BDO Sailing on Discord — the community server (opens in a new tab)": "BDO Sailing บน Discord — เซิร์ฟเวอร์ชุมชน (เปิดในแท็บใหม่)",
 	"BDOCodex NPC pages": "หน้า NPC ของ BDOCodex",
 	"BDOCodex item and design pages, per slot": "หน้าของและหน้าแบบของ BDOCodex แยกตามช่อง",
 	"BDOCodex language": "ภาษาของ BDOCodex",
@@ -1922,7 +1921,6 @@
 	"PvX": "PvX",
 	"Quantities read the way your browser writes them, and item look-ups open BDOCodex in any of twelve languages.": "จำนวนถูกอ่านตามที่เบราว์เซอร์ของคุณเขียน และการค้นของเปิด BDOCodex ในสิบสองภาษาใดก็ได้",
 	"Quest reward": "รางวัลเควสต์",
-	"Questions, routes and anything the game has moved go to the sailors' server: {link} — the masthead's mark is the same door.": "คำถาม เส้นทาง และอะไรก็ตามที่เกมเลื่อนไป ไปที่เซิร์ฟเวอร์ของลูกเรือ: {link} — สัญลักษณ์บนหัวหน้าคือประตูเดียวกัน",
 	"Quests": "เควสต์",
 	"Quests & hunts": "เควสต์และการล่า",
 	"Quests and their rewards": "เควสต์และรางวัลของมัน",
@@ -2120,7 +2118,6 @@
 	"Sailed a run: {n} stops": "แล่นการออกเรือแล้ว: {n} จุด",
 	"Sailed on its own": "แล่นลำพัง",
 	"Sailed the setup \"{name}\"": "แล่นการจัด \"{name}\" แล้ว",
-	"Sailing Discord": "Discord เดินเรือ",
 	"Sailing Mastery as the game shows it: half a point of speed, acceleration, turn and brake per fifty up to 2,000, a quarter-point per fifty to 3,000": "ความชำนาญด้านการเดินเรือแบบที่เกมแสดง: ครึ่งแต้มของความเร็ว อัตราเร่ง การเลี้ยว และการเบรก ต่อห้าสิบแต้ม จนถึง 2,000 หลังจากนั้นหนึ่งในสี่แต้มต่อห้าสิบ จนถึง 3,000",
 	"Sailing Mastery, as the game shows it: half a point of speed, acceleration, turn and brake per fifty up to 2,000, a quarter-point per fifty to 3,000. It is set in the bar at the top of the page, where every screen reads it.": "ความชำนาญด้านการเดินเรือ แบบที่เกมแสดง: ครึ่งแต้มของความเร็ว อัตราเร่ง การเลี้ยว และการเบรก ต่อห้าสิบแต้ม จนถึง 2,000 หลังจากนั้นหนึ่งในสี่แต้มต่อห้าสิบ จนถึง 3,000 มันถูกตั้งในแถบด้านบนของหน้า ที่ที่ทุกหน้าจออ่านมัน",
 	"Sailing a saved setup is one change: the parts, crystal, seating and skin it replaces come back with one Undo, as does a ship taken in from a link. And the undo toast names what changed — the roster, who sits where, the sea crystal, the hull — instead of calling every one of them your barter profile.": "การแล่นการจัดที่บันทึกไว้เป็นการเปลี่ยนแปลงครั้งเดียว: ชิ้นส่วน คริสตัล ที่นั่ง และสกินที่มันแทนกลับมาด้วยย้อนกลับครั้งเดียว เหมือนเรือที่รับมาจากลิงก์ และข้อความย้อนกลับระบุว่าอะไรเปลี่ยน — รายชื่อ ใครนั่งที่ไหน คริสตัลมหาสมุทร ตัวเรือ — แทนที่จะเรียกทุกอย่างว่าโปรไฟล์แลกเปลี่ยนของคุณ",
@@ -4643,7 +4640,6 @@
 	"the run said ×{n}": "เที่ยวเรือบอก ×{n}",
 	"the run sails from here — its goods can be loaded": "การออกเรือออกจากที่นี่ — สินค้าของมันบรรทุกได้",
 	"the sailor's own skill switches on": "ทักษะของลูกเรือเองเปิดทำงาน",
-	"the sailors’ own server — discord.gg/bdo-sailing": "เซิร์ฟเวอร์ของลูกเรือเอง — discord.gg/bdo-sailing",
 	"the same inventory on every device, and a place on the boards": "คลังเดียวกันบนทุกเครื่อง และที่นั่งบนกระดาน",
 	"the seat switches on a named mate's skill — this sailor has none": "ที่นั่งเปิดทักษะของผู้ช่วยกัปตันที่มีชื่อ — ลูกเรือคนนี้ไม่มี",
 	"the second choice for bartering when the route is long enough that the sailing, not the hold, is the cost": "ตัวเลือกที่สองสำหรับการแลกเปลี่ยนเมื่อเส้นทางยาวพอจนการแล่น ไม่ใช่ระวาง เป็นต้นทุน",
@@ -5921,5 +5917,9 @@
 	"The hold counted only its weight, so a run could plan more [Level 5] goods than the hull has slots for.": "ระวางเคยนับแค่น้ำหนัก การออกเรือจึงวางแผนของ [ระดับ 5] ได้มากกว่าจำนวนช่องที่ตัวเรือมี",
 	"The hold counts its slots": "ระวางนับช่องของมัน",
 	"The little ship on the chart looped round the whole route on its own, whatever the run was doing.": "เรือลำเล็กบนแผนที่เคยวนรอบเส้นทางทั้งหมดเอง ไม่ว่าการออกเรือจะเป็นอย่างไร",
-	"The picture a shared ship shows in a chat: the Ship tab with its figures and crew": "ภาพที่เรือที่แชร์แสดงในแชต: หน้าเรือพร้อมตัวเลขและลูกเรือ"
+	"The picture a shared ship shows in a chat: the Ship tab with its figures and crew": "ภาพที่เรือที่แชร์แสดงในแชต: หน้าเรือพร้อมตัวเลขและลูกเรือ",
+	"Sailor’s Log on Discord — the app’s own server (opens in a new tab)": "Sailor’s Log บน Discord — เซิร์ฟเวอร์ของแอปเอง (เปิดในแท็บใหม่)",
+	"Questions, bugs, ideas and every release as it lands are on the app's own Discord server: {link} — the masthead's mark is the same door.": "คำถาม ข้อผิดพลาด ไอเดีย และทุกเวอร์ชันใหม่ที่ออกมา อยู่ในเซิร์ฟเวอร์ Discord ของแอปเอง: {link} — สัญลักษณ์บนหัวหน้าคือประตูเดียวกัน",
+	"Sailor’s Log Discord": "Discord ของ Sailor’s Log",
+	"the app’s own server — questions, bugs, ideas and every release": "เซิร์ฟเวอร์ของแอปเอง — คำถาม ข้อผิดพลาด ไอเดีย และทุกเวอร์ชัน"
 }

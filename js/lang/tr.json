@@ -499,7 +499,6 @@
 	"Awareness": "Hassaslık",
 	"Awareness: increases the ship’s Turn.": "Hassaslık: geminin Dönüşünü artırır.",
 	"A–Z": "A–Z",
-	"BDO Sailing on Discord — the community server (opens in a new tab)": "Discord’da BDO Sailing — topluluk sunucusu (yeni sekmede açılır)",
 	"BDOCodex NPC pages": "BDOCodex NPC sayfaları",
 	"BDOCodex item and design pages, per slot": "BDOCodex eşya ve tasarım sayfaları, yuva başına",
 	"BDOCodex language": "BDOCodex dili",
@@ -1922,7 +1921,6 @@
 	"PvX": "PvX",
 	"Quantities read the way your browser writes them, and item look-ups open BDOCodex in any of twelve languages.": "Miktarlar tarayıcının yazdığı gibi okunur ve eşya aramaları BDOCodex'i on iki dilden herhangi birinde açar.",
 	"Quest reward": "Görev ödülü",
-	"Questions, routes and anything the game has moved go to the sailors' server: {link} — the masthead's mark is the same door.": "Sorular, yollar ve oyunun kıpırdattığı her şey gemicilerin sunucusuna gider: {link} — üst başlıktaki işaret de aynı kapıdır.",
 	"Quests": "Görevler",
 	"Quests & hunts": "Görevler ve avlar",
 	"Quests and their rewards": "Görevler ve ödülleri",
@@ -2120,7 +2118,6 @@
 	"Sailed a run: {n} stops": "Bir sefer yelkenlendi: {n} durak",
 	"Sailed on its own": "Tek başına",
 	"Sailed the setup \"{name}\"": "\"{name}\" düzeniyle yelken açıldı",
-	"Sailing Discord": "Yelken Discord'u",
 	"Sailing Mastery as the game shows it: half a point of speed, acceleration, turn and brake per fifty up to 2,000, a quarter-point per fifty to 3,000": "Denizcilik Becerisi oyunun gösterdiği gibi: 2.000'e kadar her elli için yarım puan hız, ivme, dönüş ve fren, 3.000'e kadar her elli için çeyrek puan",
 	"Sailing Mastery, as the game shows it: half a point of speed, acceleration, turn and brake per fifty up to 2,000, a quarter-point per fifty to 3,000. It is set in the bar at the top of the page, where every screen reads it.": "Denizcilik Becerisi, oyunun gösterdiği gibi: 2.000'e kadar her elli için yarım puan hız, ivme, dönüş ve fren, 3.000'e kadar her elli için çeyrek puan. Sayfanın tepesindeki çubukta ayarlanır ve her ekran onu okur.",
 	"Sailing a saved setup is one change: the parts, crystal, seating and skin it replaces come back with one Undo, as does a ship taken in from a link. And the undo toast names what changed — the roster, who sits where, the sea crystal, the hull — instead of calling every one of them your barter profile.": "Kayıtlı bir düzenle yelken açmak tek bir değişikliktir: yerine geçtiği parçalar, kristal, oturma düzeni ve kaplama tek bir Geri Al ile geri gelir, bir bağlantıdan alınan bir gemi de öyle. Ve geri alma bildirimi neyin değiştiğini adlandırır — mürettebat listesi, kimin nerede oturduğu, deniz kristali, gövde — hepsine birden takas profilin demek yerine.",
@@ -4643,7 +4640,6 @@
 	"the run said ×{n}": "sefer ×{n} diyordu",
 	"the run sails from here — its goods can be loaded": "sefer buradan yelken açıyor — malları yüklenebilir",
 	"the sailor's own skill switches on": "gemicinin kendi yeteneği açılır",
-	"the sailors’ own server — discord.gg/bdo-sailing": "gemicilerin kendi sunucusu — discord.gg/bdo-sailing",
 	"the same inventory on every device, and a place on the boards": "her aygıtta aynı envanter ve panolarda bir sıra",
 	"the seat switches on a named mate's skill — this sailor has none": "koltuk, adlandırılmış bir ikinci kaptanın yeteneğini açar — bu gemicinin öyle bir yeteneği yok",
 	"the second choice for bartering when the route is long enough that the sailing, not the hold, is the cost": "yolun, ambarın değil yelkenin bedel olacağı kadar uzun olduğunda takas için ikinci seçim",
@@ -5921,5 +5917,9 @@
 	"The hold counted only its weight, so a run could plan more [Level 5] goods than the hull has slots for.": "Ambar yalnızca ağırlığını sayıyordu, bu yüzden bir sefer gövdenin slotlarından fazla [+5] mal planlayabiliyordu.",
 	"The hold counts its slots": "Ambar slotlarını sayar",
 	"The little ship on the chart looped round the whole route on its own, whatever the run was doing.": "Haritadaki küçük gemi, sefer ne yaparsa yapsın bütün rotayı kendi başına dolaşıyordu.",
-	"The picture a shared ship shows in a chat: the Ship tab with its figures and crew": "Paylaşılan bir geminin sohbette gösterdiği resim: rakamları ve mürettebatıyla Gemi sekmesi"
+	"The picture a shared ship shows in a chat: the Ship tab with its figures and crew": "Paylaşılan bir geminin sohbette gösterdiği resim: rakamları ve mürettebatıyla Gemi sekmesi",
+	"Sailor’s Log on Discord — the app’s own server (opens in a new tab)": "Discord’da Sailor’s Log — uygulamanın kendi sunucusu (yeni sekmede açılır)",
+	"Questions, bugs, ideas and every release as it lands are on the app's own Discord server: {link} — the masthead's mark is the same door.": "Sorular, hatalar, fikirler ve çıkar çıkmaz her yeni sürüm uygulamanın kendi Discord sunucusunda: {link} — üst başlıktaki işaret de aynı kapıdır.",
+	"Sailor’s Log Discord": "Sailor’s Log Discord’u",
+	"the app’s own server — questions, bugs, ideas and every release": "uygulamanın kendi sunucusu — sorular, hatalar, fikirler ve her sürüm"
 }

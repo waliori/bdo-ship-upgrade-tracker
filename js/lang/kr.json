@@ -499,7 +499,6 @@
 	"Awareness": "감각",
 	"Awareness: increases the ship’s Turn.": "감각: 배의 회전력을 높입니다.",
 	"A–Z": "가나다순",
-	"BDO Sailing on Discord — the community server (opens in a new tab)": "Discord의 BDO Sailing — 커뮤니티 서버 (새 탭에서 열림)",
 	"BDOCodex NPC pages": "BDOCodex NPC 페이지",
 	"BDOCodex item and design pages, per slot": "BDOCodex 아이템 및 설계도 페이지, 칸별",
 	"BDOCodex language": "BDOCodex 언어",
@@ -1922,7 +1921,6 @@
 	"PvX": "PvX",
 	"Quantities read the way your browser writes them, and item look-ups open BDOCodex in any of twelve languages.": "수량은 브라우저가 쓰는 방식대로 표시되고, 아이템 조회는 열두 언어 중 아무거나로 BDOCodex를 엽니다.",
 	"Quest reward": "의뢰 보상",
-	"Questions, routes and anything the game has moved go to the sailors' server: {link} — the masthead's mark is the same door.": "질문, 항로, 게임이 옮긴 것은 선원들의 서버로: {link} — 머리글의 표식도 같은 문입니다.",
 	"Quests": "의뢰",
 	"Quests & hunts": "의뢰와 사냥",
 	"Quests and their rewards": "의뢰와 그 보상",
@@ -2120,7 +2118,6 @@
 	"Sailed a run: {n} stops": "항해를 마쳤습니다: 정박지 {n}곳",
 	"Sailed on its own": "단독 항해",
 	"Sailed the setup \"{name}\"": "\"{name}\" 편성으로 항해했습니다",
-	"Sailing Discord": "항해 디스코드",
 	"Sailing Mastery as the game shows it: half a point of speed, acceleration, turn and brake per fifty up to 2,000, a quarter-point per fifty to 3,000": "게임이 표시하는 대로의 항해 숙련도: 2,000까지는 50마다 속도·가속·선회·제동 0.5, 3,000까지는 50마다 0.25",
 	"Sailing Mastery, as the game shows it: half a point of speed, acceleration, turn and brake per fifty up to 2,000, a quarter-point per fifty to 3,000. It is set in the bar at the top of the page, where every screen reads it.": "게임이 표시하는 대로의 항해 숙련도: 2,000까지는 50마다 속도·가속·선회·제동 0.5, 3,000까지는 50마다 0.25. 페이지 상단 바에서 설정하며, 모든 화면이 그것을 읽습니다.",
 	"Sailing a saved setup is one change: the parts, crystal, seating and skin it replaces come back with one Undo, as does a ship taken in from a link. And the undo toast names what changed — the roster, who sits where, the sea crystal, the hull — instead of calling every one of them your barter profile.": "저장한 편성으로 항해하는 것은 하나의 변경입니다: 그것이 대체하는 부품, 결정, 자리 배치, 외형이 되돌리기 한 번으로 돌아오며, 링크로 받아들인 배도 마찬가지입니다. 그리고 되돌리기 알림은 무엇이 바뀌었는지 — 명단, 자리 배치, 대양 결정, 선체 — 를 밝힙니다. 그 전부를 물물교환 프로필이라고 부르는 대신에요.",
@@ -4643,7 +4640,6 @@
 	"the run said ×{n}": "항해 계획은 ×{n}",
 	"the run sails from here — its goods can be loaded": "항해가 여기서 출항합니다 — 그 물품을 실을 수 있습니다",
 	"the sailor's own skill switches on": "선원 자신의 능력이 켜집니다",
-	"the sailors’ own server — discord.gg/bdo-sailing": "선원들 자신의 서버 — discord.gg/bdo-sailing",
 	"the same inventory on every device, and a place on the boards": "모든 기기에서 같은 인벤토리, 그리고 게시판의 자리",
 	"the seat switches on a named mate's skill — this sailor has none": "이 자리는 이름 있는 부선장의 능력을 켭니다 — 이 선원에게는 없습니다",
 	"the second choice for bartering when the route is long enough that the sailing, not the hold, is the cost": "적재량이 아니라 항해가 비용이 될 만큼 항로가 긴 경우, 물물교환의 두 번째 선택",
@@ -5921,5 +5917,9 @@
 	"The hold counted only its weight, so a run could plan more [Level 5] goods than the hull has slots for.": "화물칸은 무게만 셌기 때문에, 항해가 선체의 슬롯보다 많은 [5단계] 교역품을 계획할 수 있었습니다.",
 	"The hold counts its slots": "화물칸이 슬롯을 셉니다",
 	"The little ship on the chart looped round the whole route on its own, whatever the run was doing.": "해도 위의 작은 배는 항해가 어떻든 혼자서 항로 전체를 빙빙 돌았습니다.",
-	"The picture a shared ship shows in a chat: the Ship tab with its figures and crew": "공유한 배가 채팅에서 보여 주는 그림: 수치와 선원이 담긴 배 탭"
+	"The picture a shared ship shows in a chat: the Ship tab with its figures and crew": "공유한 배가 채팅에서 보여 주는 그림: 수치와 선원이 담긴 배 탭",
+	"Sailor’s Log on Discord — the app’s own server (opens in a new tab)": "Discord의 Sailor’s Log — 앱 전용 서버 (새 탭에서 열림)",
+	"Questions, bugs, ideas and every release as it lands are on the app's own Discord server: {link} — the masthead's mark is the same door.": "질문, 버그, 아이디어, 그리고 새 버전 소식은 앱 전용 Discord 서버에 있습니다: {link} — 머리글의 표식도 같은 문입니다.",
+	"Sailor’s Log Discord": "Sailor’s Log 디스코드",
+	"the app’s own server — questions, bugs, ideas and every release": "앱 전용 서버 — 질문, 버그, 아이디어, 새 버전 소식"
 }

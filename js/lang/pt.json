@@ -550,7 +550,6 @@
 	"Awareness": "Sentido",
 	"Awareness: increases the ship’s Turn.": "Sentido: aumenta a Curva do navio.",
 	"A–Z": "A–Z",
-	"BDO Sailing on Discord — the community server (opens in a new tab)": "BDO Sailing no Discord — o servidor da comunidade (abre em uma nova aba)",
 	"BDOCodex NPC pages": "Páginas de NPC do BDOCodex",
 	"BDOCodex item and design pages, per slot": "Páginas de item e de projeto do BDOCodex, por espaço",
 	"BDOCodex language": "Idioma do BDOCodex",
@@ -1988,7 +1987,6 @@
 	"PvX": "PvX",
 	"Quantities read the way your browser writes them, and item look-ups open BDOCodex in any of twelve languages.": "As quantidades aparecem do jeito que seu navegador as escreve, e a consulta de um item abre o BDOCodex em qualquer uma de doze línguas.",
 	"Quest reward": "Recompensa de missão",
-	"Questions, routes and anything the game has moved go to the sailors' server: {link} — the masthead's mark is the same door.": "Dúvidas, rotas e qualquer coisa que o jogo tenha mudado de lugar vão para o servidor dos marinheiros: {link} — o ícone lá no topo é a mesma porta.",
 	"Quests": "Missões",
 	"Quests & hunts": "Missões e caçadas",
 	"Quests and their rewards": "Missões e suas recompensas",
@@ -2186,7 +2184,6 @@
 	"Sailed a run: {n} stops": "Viagem feita: {n} paradas",
 	"Sailed on its own": "Navegada sozinha",
 	"Sailed the setup \"{name}\"": "Navegou com a montagem \"{name}\"",
-	"Sailing Discord": "Discord de navegação",
 	"Sailing Mastery as the game shows it: half a point of speed, acceleration, turn and brake per fifty up to 2,000, a quarter-point per fifty to 3,000": "Maestria em Navegação como o jogo mostra: meio ponto de velocidade, aceleração, curva e freio a cada cinquenta até 2.000, um quarto de ponto a cada cinquenta até 3.000",
 	"Sailing Mastery, as the game shows it: half a point of speed, acceleration, turn and brake per fifty up to 2,000, a quarter-point per fifty to 3,000. It is set in the bar at the top of the page, where every screen reads it.": "Maestria em Navegação, como o jogo mostra: meio ponto de velocidade, aceleração, curva e freio a cada cinquenta até 2.000, um quarto de ponto a cada cinquenta até 3.000. Ela é definida na barra no topo da página, onde todas as telas a leem.",
 	"Sailing a saved setup is one change: the parts, crystal, seating and skin it replaces come back with one Undo, as does a ship taken in from a link. And the undo toast names what changed — the roster, who sits where, the sea crystal, the hull — instead of calling every one of them your barter profile.": "Navegar com uma montagem salva é uma mudança só: as peças, a pedra, os assentos e o visual que ela substitui voltam com um Desfazer, assim como um navio trazido de um link. E o aviso de desfazer diz o que mudou — a tripulação, quem senta onde, a Pedra do Marinheiro, o barco — em vez de chamar tudo isso de perfil de permuta.",
@@ -4730,7 +4727,6 @@
 	"the run said ×{n}": "a viagem dizia ×{n}",
 	"the run sails from here — its goods can be loaded": "a viagem parte daqui — as mercadorias dela podem ser carregadas",
 	"the sailor's own skill switches on": "a habilidade do próprio marinheiro é ligada",
-	"the sailors’ own server — discord.gg/bdo-sailing": "o servidor dos próprios marinheiros — discord.gg/bdo-sailing",
 	"the same inventory on every device, and a place on the boards": "o mesmo inventário em todo dispositivo, e um lugar nos quadros",
 	"the seat switches on a named mate's skill — this sailor has none": "o posto liga a habilidade de um vice-capitão com nome — este marinheiro não tem",
 	"the second choice for bartering when the route is long enough that the sailing, not the hold, is the cost": "a segunda escolha para permutar quando a rota é longa o bastante para a navegação, não o porão, ser o custo",
@@ -6017,5 +6013,9 @@
 	"The hold counted only its weight, so a run could plan more [Level 5] goods than the hull has slots for.": "O porão contava só o peso, então uma viagem podia planejar mais mercadorias [Nível 5] do que o casco tem espaços.",
 	"The hold counts its slots": "O porão conta os seus espaços",
 	"The little ship on the chart looped round the whole route on its own, whatever the run was doing.": "O naviozinho da carta dava voltas pela rota inteira sozinho, fizesse a viagem o que fizesse.",
-	"The picture a shared ship shows in a chat: the Ship tab with its figures and crew": "A imagem que um navio compartilhado mostra num chat: a aba Navio com os seus números e a sua tripulação"
+	"The picture a shared ship shows in a chat: the Ship tab with its figures and crew": "A imagem que um navio compartilhado mostra num chat: a aba Navio com os seus números e a sua tripulação",
+	"Sailor’s Log on Discord — the app’s own server (opens in a new tab)": "Sailor’s Log no Discord — o servidor do próprio app (abre em uma nova aba)",
+	"Questions, bugs, ideas and every release as it lands are on the app's own Discord server: {link} — the masthead's mark is the same door.": "Dúvidas, bugs, ideias e cada versão assim que sai estão no servidor do Discord do próprio app: {link} — o ícone lá no topo é a mesma porta.",
+	"Sailor’s Log Discord": "Discord do Sailor’s Log",
+	"the app’s own server — questions, bugs, ideas and every release": "o servidor do próprio app — dúvidas, bugs, ideias e cada versão"
 }

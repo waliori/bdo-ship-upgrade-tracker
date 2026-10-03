@@ -116,7 +116,7 @@ const THUMB_TABS = ['plan', 'inventory', 'map', 'barter'];
 /* The sailors' own server (412710365475110953) -- the room this app was
    written for. The masthead links it on every screen; this is the same
    door for the menu and for anywhere else that wants to point at it. */
-export const DISCORD_INVITE = 'https://discord.gg/bdo-sailing';
+export const DISCORD_INVITE = 'https://discord.gg/nAhfqxZRhf';
 
 /**
  * Everything that is not a section, in the one menu the app has. The
@@ -146,7 +146,7 @@ const MENU = [
 		{ act: 'tables', icon: '▤', label: TT('Enhancement tables'), hint: TT('the seven tables, lit at your stack') },
 		{ act: 'tour', icon: '➤', label: TT('Tour'), hint: TT('a walk through your own screen') },
 		{ act: 'feedback', icon: '✎', label: TT('Feedback'), hint: TT('something wrong, or something you want') },
-		{ act: 'discord', icon: '◉', label: TT('Sailing Discord'), hint: TT('the sailors’ own server — discord.gg/bdo-sailing') },
+		{ act: 'discord', icon: '◉', label: TT('Sailor’s Log Discord'), hint: TT('the app’s own server — questions, bugs, ideas and every release') },
 		{ act: 'inbox', icon: '✉', label: () => (me() && me().admin ? T('Feedback inbox') : T('What people wrote in')), hint: TT('every report sent in, and which have been answered'), when: () => feature('feedback') }
 	] },
 	{ group: TT('The page'), items: [
@@ -2641,7 +2641,7 @@ async function openHelp(by = null) {
 			<div class="help-data">${DATA.map(d => `<div class="kv-row"><span>${esc(said(d.what))}</span><span class="n">${esc(d.asOf)}${d.from ? ` · ${esc(said(d.from))}` : ''}</span></div>`).join('')}</div>
 			<p class="dialog-copy">${T('A patch can move any of these. The Market prices are live; everything else is a snapshot the app was checked against on the date shown.')}</p>
 		</details>
-		<p class="dialog-copy">${T("Questions, routes and anything the game has moved go to the sailors' server: {link} — the masthead's mark is the same door.", { link: `<a href="${DISCORD_INVITE}" target="_blank" rel="noopener">discord.gg/bdo-sailing</a>` })}</p>
+		<p class="dialog-copy">${T("Questions, bugs, ideas and every release as it lands are on the app's own Discord server: {link} — the masthead's mark is the same door.", { link: `<a href="${DISCORD_INVITE}" target="_blank" rel="noopener">discord.gg/nAhfqxZRhf</a>` })}</p>
 		<p class="dialog-copy help-credit">${T('Built by <b>waliori</b> · {source}, free to use and to fork under {license} — which asks that a fork keep this line.', { source: `<a href="https://github.com/waliori/bdo-ship-upgrade-tracker" target="_blank" rel="noopener">${T('the source')}</a>`, license: '<a href="https://github.com/waliori/bdo-ship-upgrade-tracker/blob/main/LICENSE" target="_blank" rel="noopener">MIT with Attribution</a>' })}</p>
 		<div class="dialog-actions">
 			<button class="act quiet" data-close>${T('Close')}</button>

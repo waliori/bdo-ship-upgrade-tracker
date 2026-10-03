@@ -499,7 +499,6 @@
 	"Awareness": "感觉",
 	"Awareness: increases the ship’s Turn.": "感觉：提升船的转向力。",
 	"A–Z": "A 到 Z",
-	"BDO Sailing on Discord — the community server (opens in a new tab)": "Discord 上的 BDO Sailing — 社区服务器（在新标签页打开）",
 	"BDOCodex NPC pages": "BDOCodex 的 NPC 页面",
 	"BDOCodex item and design pages, per slot": "BDOCodex 的物品与设计图页面，按槽位",
 	"BDOCodex language": "BDOCodex 语言",
@@ -1922,7 +1921,6 @@
 	"PvX": "PvX",
 	"Quantities read the way your browser writes them, and item look-ups open BDOCodex in any of twelve languages.": "数量按你的浏览器的书写方式显示，而物品查询可用十二种语言中的任意一种打开 BDOCodex。",
 	"Quest reward": "任务奖励",
-	"Questions, routes and anything the game has moved go to the sailors' server: {link} — the masthead's mark is the same door.": "问题、航线以及游戏挪动过的任何东西都去船员们的服务器：{link} — 页眉上的标记是同一道门。",
 	"Quests": "任务",
 	"Quests & hunts": "任务与狩猎",
 	"Quests and their rewards": "任务及其奖励",
@@ -2120,7 +2118,6 @@
 	"Sailed a run: {n} stops": "航行了一个航次：{n} 站",
 	"Sailed on its own": "单独航行",
 	"Sailed the setup \"{name}\"": "航行了编排 \"{name}\"",
-	"Sailing Discord": "航海 Discord",
 	"Sailing Mastery as the game shows it: half a point of speed, acceleration, turn and brake per fifty up to 2,000, a quarter-point per fifty to 3,000": "航海熟练度按游戏显示的方式：每五十点提升半点速度、加速、转向和制动，直到 2,000，此后每五十点四分之一点，直到 3,000",
 	"Sailing Mastery, as the game shows it: half a point of speed, acceleration, turn and brake per fifty up to 2,000, a quarter-point per fifty to 3,000. It is set in the bar at the top of the page, where every screen reads it.": "航海熟练度，按游戏显示的方式：每五十点提升半点速度、加速、转向和制动，直到 2,000，此后每五十点四分之一点，直到 3,000。它在页面顶部那条栏里设定，每个画面都从那里读取。",
 	"Sailing a saved setup is one change: the parts, crystal, seating and skin it replaces come back with one Undo, as does a ship taken in from a link. And the undo toast names what changed — the roster, who sits where, the sea crystal, the hull — instead of calling every one of them your barter profile.": "航行一个已保存的编排是一次更改：它所替换的部件、结晶、座位安排和外观都会随一次撤销回来，从链接接收进来的船也一样。而撤销提示会点名改变了什么 — 名单、谁坐哪里、大洋结晶、船体 — 而不是把它们每一个都叫做你的物品交换配置。",
@@ -4643,7 +4640,6 @@
 	"the run said ×{n}": "航次原定 ×{n}",
 	"the run sails from here — its goods can be loaded": "航次从这里出航 — 它的货物可以装载",
 	"the sailor's own skill switches on": "船员自己的技能会开启",
-	"the sailors’ own server — discord.gg/bdo-sailing": "船员们自己的服务器 — discord.gg/bdo-sailing",
 	"the same inventory on every device, and a place on the boards": "每台设备上同一份库存，以及榜单上的一个位置",
 	"the seat switches on a named mate's skill — this sailor has none": "这个席位会开启一位有名字的副船长的技能 — 这位船员没有",
 	"the second choice for bartering when the route is long enough that the sailing, not the hold, is the cost": "当航线足够长、以致航行而不是船舱才是成本时，物品交换的第二选择",
@@ -5921,5 +5917,9 @@
 	"The hold counted only its weight, so a run could plan more [Level 5] goods than the hull has slots for.": "船舱以前只算重量，所以航次可能规划出比船体格数还多的 [5阶段] 货物。",
 	"The hold counts its slots": "船舱会计算格数",
 	"The little ship on the chart looped round the whole route on its own, whatever the run was doing.": "海图上的小船以前会自己沿整条航线绕圈，不管航次进行到哪里。",
-	"The picture a shared ship shows in a chat: the Ship tab with its figures and crew": "分享的船只在聊天中显示的图片：带有数值和船员的船只页"
+	"The picture a shared ship shows in a chat: the Ship tab with its figures and crew": "分享的船只在聊天中显示的图片：带有数值和船员的船只页",
+	"Sailor’s Log on Discord — the app’s own server (opens in a new tab)": "Discord 上的 Sailor’s Log — 本应用自己的服务器（在新标签页打开）",
+	"Questions, bugs, ideas and every release as it lands are on the app's own Discord server: {link} — the masthead's mark is the same door.": "问题、错误反馈、点子，以及每个新版本一推出的消息，都在本应用自己的 Discord 服务器：{link} — 页眉上的标记是同一道门。",
+	"Sailor’s Log Discord": "Sailor’s Log Discord",
+	"the app’s own server — questions, bugs, ideas and every release": "本应用自己的服务器 — 问题、错误反馈、点子与每个版本"
 }

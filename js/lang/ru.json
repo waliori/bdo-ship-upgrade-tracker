@@ -659,7 +659,6 @@
 	"Awareness": "Чутьё",
 	"Awareness: increases the ship’s Turn.": "Чутьё: увеличивает Поворот корабля.",
 	"A–Z": "А–Я",
-	"BDO Sailing on Discord — the community server (opens in a new tab)": "BDO Sailing в Discord — сервер сообщества (откроется в новой вкладке)",
 	"BDOCodex NPC pages": "Страницы NPC на BDOCodex",
 	"BDOCodex item and design pages, per slot": "Страницы предметов и чертежей BDOCodex, по слотам",
 	"BDOCodex language": "Язык BDOCodex",
@@ -2207,7 +2206,6 @@
 	"PvX": "PvX",
 	"Quantities read the way your browser writes them, and item look-ups open BDOCodex in any of twelve languages.": "Количества пишутся так, как их пишет ваш браузер, а поиск вещи открывает BDOCodex на любом из двенадцати языков.",
 	"Quest reward": "Награда за задание",
-	"Questions, routes and anything the game has moved go to the sailors' server: {link} — the masthead's mark is the same door.": "Вопросы, маршруты и всё, что сдвинула игра, идут на сервер моряков: {link} — значок в шапке ведёт в ту же дверь.",
 	"Quests": "Задания",
 	"Quests & hunts": "Задания и охота",
 	"Quests and their rewards": "Задания и их награды",
@@ -2540,7 +2538,6 @@
 	},
 	"Sailed on its own": "Отдельно",
 	"Sailed the setup \"{name}\"": "Вышли сборкой «{name}»",
-	"Sailing Discord": "Discord моряков",
 	"Sailing Mastery as the game shows it: half a point of speed, acceleration, turn and brake per fifty up to 2,000, a quarter-point per fifty to 3,000": "Мастерство судоходства, как его показывает игра: полпункта скорости, разгона, поворота и торможения за каждые пятьдесят до 2 000 и четверть пункта за каждые пятьдесят до 3 000",
 	"Sailing Mastery, as the game shows it: half a point of speed, acceleration, turn and brake per fifty up to 2,000, a quarter-point per fifty to 3,000. It is set in the bar at the top of the page, where every screen reads it.": "Мастерство судоходства, как его показывает игра: полпункта скорости, разгона, поворота и торможения за каждые пятьдесят до 2 000 и четверть пункта за каждые пятьдесят до 3 000. Оно задаётся в полосе наверху страницы, откуда его читает каждый экран.",
 	"Sailing a saved setup is one change: the parts, crystal, seating and skin it replaces come back with one Undo, as does a ship taken in from a link. And the undo toast names what changed — the roster, who sits where, the sea crystal, the hull — instead of calling every one of them your barter profile.": "Выйти сохранённой сборкой — это одна запись: детали, камень, расстановка и облик, которые она заменяет, возвращаются одной отменой, как и корабль, принятый по ссылке. И сообщение об отмене называет, что изменилось — команда, кто где сидит, морской камень, корпус, — а не зовёт каждое из них вашим профилем бартера.",
@@ -5353,7 +5350,6 @@
 	"the run said ×{n}": "рейс предлагал ×{n}",
 	"the run sails from here — its goods can be loaded": "рейс уходит отсюда — его товары можно погрузить",
 	"the sailor's own skill switches on": "включается собственное умение матроса",
-	"the sailors’ own server — discord.gg/bdo-sailing": "сервер самих моряков — discord.gg/bdo-sailing",
 	"the same inventory on every device, and a place on the boards": "один инвентарь на всех устройствах и место на досках",
 	"the seat switches on a named mate's skill — this sailor has none": "место включает умение именного штабс-капитана — у этого матроса его нет",
 	"the second choice for bartering when the route is long enough that the sailing, not the hold, is the cost": "второй выбор для бартера, когда маршрут так длинен, что цена — в плавании, а не в трюме",
@@ -8066,5 +8062,9 @@
 	"The hold counted only its weight, so a run could plan more [Level 5] goods than the hull has slots for.": "Трюм считал только свой вес, так что рейс мог запланировать больше товаров [5 ур.], чем у корпуса слотов.",
 	"The hold counts its slots": "Трюм считает свои слоты",
 	"The little ship on the chart looped round the whole route on its own, whatever the run was doing.": "Кораблик на карте сам по себе кружил по всему маршруту, что бы ни делал рейс.",
-	"The picture a shared ship shows in a chat: the Ship tab with its figures and crew": "Картинка, которую общий корабль показывает в чате: вкладка «Корабль» с его цифрами и экипажем"
+	"The picture a shared ship shows in a chat: the Ship tab with its figures and crew": "Картинка, которую общий корабль показывает в чате: вкладка «Корабль» с его цифрами и экипажем",
+	"Sailor’s Log on Discord — the app’s own server (opens in a new tab)": "Sailor’s Log в Discord — собственный сервер приложения (откроется в новой вкладке)",
+	"Questions, bugs, ideas and every release as it lands are on the app's own Discord server: {link} — the masthead's mark is the same door.": "Вопросы, ошибки, идеи и каждая новая версия, как только она выходит, — на собственном Discord-сервере приложения: {link} — значок в шапке ведёт в ту же дверь.",
+	"Sailor’s Log Discord": "Discord Sailor’s Log",
+	"the app’s own server — questions, bugs, ideas and every release": "собственный сервер приложения — вопросы, ошибки, идеи и каждая версия"
 }

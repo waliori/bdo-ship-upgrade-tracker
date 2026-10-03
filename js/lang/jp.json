@@ -499,7 +499,6 @@
 	"Awareness": "感覚",
 	"Awareness: increases the ship’s Turn.": "感覚：船の回転力を上げます。",
 	"A–Z": "あ→ん",
-	"BDO Sailing on Discord — the community server (opens in a new tab)": "Discord の BDO Sailing — コミュニティサーバー（新しいタブで開きます）",
 	"BDOCodex NPC pages": "BDOCodexのNPCページ",
 	"BDOCodex item and design pages, per slot": "BDOCodexのアイテムページと設計図ページ、枠ごと",
 	"BDOCodex language": "BDOCodexの言語",
@@ -1922,7 +1921,6 @@
 	"PvX": "PvX",
 	"Quantities read the way your browser writes them, and item look-ups open BDOCodex in any of twelve languages.": "数量はブラウザの書式どおりに読み取られ、アイテムの照会は12の言語のいずれかでBDOCodexを開きます。",
 	"Quest reward": "依頼の報酬",
-	"Questions, routes and anything the game has moved go to the sailors' server: {link} — the masthead's mark is the same door.": "質問、航路、ゲーム側で動いたことは船員たちのサーバーへ：{link} — 見出しのマークも同じ入口です。",
 	"Quests": "依頼",
 	"Quests & hunts": "依頼と狩り",
 	"Quests and their rewards": "依頼とその報酬",
@@ -2120,7 +2118,6 @@
 	"Sailed a run: {n} stops": "航海に出た：寄港地{n}件",
 	"Sailed on its own": "単独で航海",
 	"Sailed the setup \"{name}\"": "編成「{name}」で航海しました",
-	"Sailing Discord": "航海Discord",
 	"Sailing Mastery as the game shows it: half a point of speed, acceleration, turn and brake per fifty up to 2,000, a quarter-point per fifty to 3,000": "ゲームの表示どおりの航海熟練度：2,000までは50ごとに速度・加速・旋回・制動が0.5ポイント、3,000までは50ごとに0.25ポイント",
 	"Sailing Mastery, as the game shows it: half a point of speed, acceleration, turn and brake per fifty up to 2,000, a quarter-point per fifty to 3,000. It is set in the bar at the top of the page, where every screen reads it.": "ゲームの表示どおりの航海熟練度：2,000までは50ごとに速度・加速・旋回・制動が0.5ポイント、3,000までは50ごとに0.25ポイント。ページ上部のバーで設定し、すべての画面がそれを参照します。",
 	"Sailing a saved setup is one change: the parts, crystal, seating and skin it replaces come back with one Undo, as does a ship taken in from a link. And the undo toast names what changed — the roster, who sits where, the sea crystal, the hull — instead of calling every one of them your barter profile.": "保存した編成で航海するのは1つの変更です：置き換えられた部品、結晶、座席、外観は1回の「元に戻す」で戻ります。リンクから取り込んだ船も同じです。そして元に戻す際の通知は、何が変わったのか — 名簿、座席、海洋結晶、船体 — を名指しします。以前はどれもこれも「物々交換プロフィール」と呼んでいました。",
@@ -4643,7 +4640,6 @@
 	"the run said ×{n}": "航海の予定は ×{n}",
 	"the run sails from here — its goods can be loaded": "航海はここから出発します — ここの品を積めます",
 	"the sailor's own skill switches on": "船員自身の固有能力が有効になります",
-	"the sailors’ own server — discord.gg/bdo-sailing": "船員たち自身のサーバー — discord.gg/bdo-sailing",
 	"the same inventory on every device, and a place on the boards": "どの端末でも同じインベントリ、そして掲示板での順位",
 	"the seat switches on a named mate's skill — this sailor has none": "この席は名前付き副船長の固有能力を有効にします — この船員は持っていません",
 	"the second choice for bartering when the route is long enough that the sailing, not the hold, is the cost": "航路が長く、船倉ではなく航行時間が費用になる場合の、物々交換の第2候補",
@@ -5921,5 +5917,9 @@
 	"The hold counted only its weight, so a run could plan more [Level 5] goods than the hull has slots for.": "船倉は重量しか数えていなかったので、航海が船体のスロット数を超える[5段階]の交易品を計画することがありました。",
 	"The hold counts its slots": "船倉がスロットを数える",
 	"The little ship on the chart looped round the whole route on its own, whatever the run was doing.": "海図上の小さな船は、航海の状況に関係なく、勝手に航路全体をぐるぐる回っていました。",
-	"The picture a shared ship shows in a chat: the Ship tab with its figures and crew": "共有した船がチャットで表示する画像：数値と乗組員が載った船タブ"
+	"The picture a shared ship shows in a chat: the Ship tab with its figures and crew": "共有した船がチャットで表示する画像：数値と乗組員が載った船タブ",
+	"Sailor’s Log on Discord — the app’s own server (opens in a new tab)": "Discord の Sailor’s Log — アプリ専用のサーバー（新しいタブで開きます）",
+	"Questions, bugs, ideas and every release as it lands are on the app's own Discord server: {link} — the masthead's mark is the same door.": "質問、不具合、アイデア、そして新しいバージョンのお知らせは、アプリ専用の Discord サーバーへ：{link} — 見出しのマークも同じ入口です。",
+	"Sailor’s Log Discord": "Sailor’s Log の Discord",
+	"the app’s own server — questions, bugs, ideas and every release": "アプリ専用のサーバー — 質問、不具合、アイデア、各バージョンのお知らせ"
 }
