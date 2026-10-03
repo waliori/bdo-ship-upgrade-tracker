@@ -29,6 +29,22 @@ globalThis.window = {
 };
 globalThis.document = { addEventListener() {}, visibilityState: 'visible' };
 
+// Every browser has Web Locks; Node only from 24, and the CI and the
+// Docker image run 22. Where it is missing, a stand-in with the one
+// promise the store leans on -- requests for one name run one after
+// another, in the order asked -- so the locks path is tested on any Node.
+if (!(globalThis.navigator && globalThis.navigator.locks)) {
+	const queues = new Map();
+	const locks = {
+		request(name, fn) {
+			const run = (queues.get(name) || Promise.resolve()).then(() => fn());
+			queues.set(name, run.catch(() => {}));
+			return run;
+		}
+	};
+	Object.defineProperty(globalThis, 'navigator', { value: { ...(globalThis.navigator || {}), locks }, configurable: true, writable: true });
+}
+
 const KEY = 'bdo-tracker/v2';
 const disk = () => JSON.parse(localStorage.getItem(KEY));
 
