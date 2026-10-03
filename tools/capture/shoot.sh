@@ -16,6 +16,8 @@ OUT=docs/media
 mkdir -p "$RAW" "$OUT"
 
 echo "== scenes"
+# Every clip and still, and the link-preview cards: the `og` still
+# writes og/*.png (one per card in server/preview.js) and og.png.
 node tools/capture/scenes.mjs "$RAW"
 
 # The walkthrough is no longer shot here. It is the six narrated
@@ -40,12 +42,20 @@ echo "== webm -> gif"
 gif_size() {
 	case "$1" in
 		claim-a-quest|fit-a-ship|the-boards|share-a-ship|the-way|a-call-in-hand) echo "780 10" ;;
-		plan-a-run|share-a-drawing|todays-errands) echo "720 8" ;;
+		# The run now packs, casts off and flies to the chart: half a
+		# minute of whole-frame changes, so it goes slower again.
+		plan-a-run) echo "640 6" ;;
+		share-a-drawing|todays-errands) echo "720 8" ;;
 		# The 1.4 clips are dialogs full of small pictures that scroll: a
 		# narrower frame and fewer of them, or the book alone is three megabytes.
 		read-a-storage|read-the-window) echo "780 9" ;;
 		the-layout-book) echo "780 8" ;;
 		a-dry-chain) echo "900 10" ;;
+		# The barter steps: each press opens a new page of the tab, and
+		# a stock, a coin run and a short trip end on figures further
+		# down it, so every one of these repaints most of the frame.
+		a-stock|crow-coins|a-short-trip|four-steps|the-clock) echo "720 8" ;;
+		the-slots|two-shelves) echo "780 9" ;;
 		# A tilting heightmap is the worst case a GIF can be handed:
 		# every pixel of every frame is new, and there is no flat colour
 		# anywhere to pay for it.
@@ -65,7 +75,11 @@ for f in "$RAW"/*.webm; do
 done
 
 echo "== stills"
-cp "$RAW"/*.png "$OUT"/
+# Not the screenshots a failed scene leaves behind (<name>.failed.png).
+for f in "$RAW"/*.png; do
+	case "$f" in *.failed.png) continue ;; esac
+	cp "$f" "$OUT"/
+done
 
 # The app itself serves a few of these -- the What's New dialog shows one
 # per headline -- and those travel inside the Docker image, so they get a
@@ -76,12 +90,20 @@ mkdir -p "$OUT/small"
 for name in chart-the-loop draw-a-route fit-a-ship share-a-ship; do
 	./tools/capture/togif.sh "$RAW/$name.webm" "$OUT/small/$name.gif" 560 9
 done
-for name in plan-a-run share-a-drawing your-own-board a-call-in-hand; do
+./tools/capture/togif.sh "$RAW/plan-a-run.webm" "$OUT/small/plan-a-run.gif" 420 5
+for name in share-a-drawing your-own-board a-call-in-hand; do
 	./tools/capture/togif.sh "$RAW/$name.webm" "$OUT/small/$name.gif" 480 7
 done
 # The errands panel redraws its whole list at once and then the chart
 # under it, so it goes narrower and slower again.
 for name in read-a-storage read-the-window; do
+	./tools/capture/togif.sh "$RAW/$name.webm" "$OUT/small/$name.gif" 480 7
+done
+# The 1.2 barter clips the What's New dialog serves.
+for name in a-stock crow-coins the-clock; do
+	./tools/capture/togif.sh "$RAW/$name.webm" "$OUT/small/$name.gif" 440 6
+done
+for name in two-shelves todays-boards; do
 	./tools/capture/togif.sh "$RAW/$name.webm" "$OUT/small/$name.gif" 480 7
 done
 ./tools/capture/togif.sh "$RAW/the-layout-book.webm" "$OUT/small/the-layout-book.gif" 480 6
@@ -91,10 +113,15 @@ done
 # and one of the pictures the dialog itself serves -- so the narrow copy
 # goes narrower and slower again. At the settings above it is a
 # two-megabyte headline on a phone.
-./tools/capture/togif.sh "$RAW/stand-it-up.webm" "$OUT/small/stand-it-up.gif" 440 5
+./tools/capture/togif.sh "$RAW/stand-it-up.webm" "$OUT/small/stand-it-up.gif" 400 4
 for name in hero map quests community the-plan; do
 	ffmpeg -v error -y -i "$OUT/$name.png" -vf scale=560:-2 "$OUT/small/$name.png"
 	ls -la "$OUT/small/$name.png"
 done
+
+# The link-preview cards: the og still above wrote them, each already
+# held under 600 KB, and og.png beside them.
+echo "== the link-preview cards"
+ls -la og/*.png og.png
 
 echo "done -- $OUT"
