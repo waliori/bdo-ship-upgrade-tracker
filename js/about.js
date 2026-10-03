@@ -179,6 +179,7 @@ export const RELEASES = [
 					TT('Undo with two tabs open takes a change back once; the other tab says it is already undone.'),
 					TT('A deleted account’s posts keep their words and lose its name.'),
 					TT('The Central Market’s prices come through again.'),
+					TT('The guided tour fits a phone as well as a desktop, points at what is really on the screen, and covers the hold’s slots, the sailing clock and the menu.'),
 					TT('One button style across the app, and a button that deletes or abandons something looks like it.'),
 					TT('A lighter first load — the parts you have not opened yet arrive when you do — and a thin loading thread wherever the app is waiting.'),
 					TT('<b>The Vell timer is gone</b>: its countdown on the Plan and the Map, its own times and its reminder.')

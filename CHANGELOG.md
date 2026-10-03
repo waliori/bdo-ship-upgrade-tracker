@@ -112,6 +112,7 @@ The diary of 14 September said **Total Barters adds a percent to every exchange*
 - Undo with two tabs open takes a change back once; the other tab says it is already undone.
 - A deleted account’s posts keep their words and lose its name.
 - The Central Market’s prices come through again.
+- The guided tour fits a phone as well as a desktop, points at what is really on the screen, and covers the hold’s slots, the sailing clock and the menu.
 - One button style across the app, and a button that deletes or abandons something looks like it.
 - A lighter first load — the parts you have not opened yet arrive when you do — and a thin loading thread wherever the app is waiting.
 - **The Vell timer is gone**: its countdown on the Plan and the Map, its own times and its reminder.
