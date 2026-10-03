@@ -1289,6 +1289,39 @@ test('the tour library is not run until the tour is asked for', async () => {
 	await context.close();
 });
 
+test('the tour under a finger: 44 px buttons, the focus on Next, and its text is not a button', async () => {
+	// Driver.js unsets its buttons whole, so the touch halo every control
+	// grows hung itself on the popover instead, and a press anywhere on
+	// the step's words was a press on Next. And the focus landed on the
+	// close cross, so Enter -- the key anyone presses to go on -- ended
+	// the tour.
+	const { page, context, errors } = await open('#plan', { touch: true });
+	await page.evaluate(async () => { const { guidedTour } = await import('/js/guided-tour.js'); await guidedTour.startTour(); });
+	await wait(1500);
+	const got = await page.evaluate(() => {
+		const pop = document.querySelector('.driver-popover');
+		const size = sel => { const r = pop.querySelector(sel).getBoundingClientRect(); return Math.min(r.width, r.height); };
+		const words = pop.querySelector('.driver-popover-description').getBoundingClientRect();
+		const hit = document.elementFromPoint(words.left + 20, words.top + 10);
+		return {
+			next: size('.driver-popover-next-btn') >= 44,
+			back: size('.driver-popover-prev-btn') >= 44,
+			close: size('.driver-popover-close-btn') >= 44,
+			words: !hit.closest('button'),
+			focus: document.activeElement.classList.contains('driver-popover-next-btn'),
+			dialog: pop.getAttribute('role') === 'dialog'
+		};
+	});
+	assert.deepEqual(got, { next: true, back: true, close: true, words: true, focus: true, dialog: true });
+	// Enter goes on, and Escape puts the example away.
+	await page.keyboard.press('Enter'); await wait(1500);
+	assert.match(await page.$eval('.driver-popover-progress-text', el => el.textContent), /^2 /);
+	await page.keyboard.press('Escape'); await wait(900);
+	assert.equal(await page.evaluate(async () => (await import('/js/state.js')).isTransient()), false, 'the example was left in');
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
 test('the water shader is only started when it is switched on', async () => {
 	// It is off by default, so a static import made every visitor parse a
 	// canvas most of them never see. The module is imported by waterOn().

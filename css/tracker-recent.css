@@ -1004,6 +1004,19 @@ img.comm-silver { width: 1.25em; height: 1.25em; vertical-align: -0.25em; object
 .sail-tour .driver-popover-arrow-side-right { border-right-color: var(--sheet-solid); }
 .sail-tour .driver-popover-arrow-side-top { border-top-color: var(--sheet-solid); }
 .sail-tour .driver-popover-arrow-side-bottom { border-bottom-color: var(--sheet-solid); }
+/* Where a section is on a phone when it is not at the thumb: "☰ Menu ›
+   Builds", above the step's words. */
+.sail-tour .tour-where { display: block; margin-bottom: 4px; font-family: var(--font-display); font-size: 12px; letter-spacing: 0.03em; color: var(--ink-faint); }
+/* Driver.js unsets its buttons whole, position included, so the touch
+   halo (tracker-sea.css) hung itself on the popover and Next took a
+   press anywhere on the step. Each button anchors its own again, and
+   under a finger is drawn the full 44 pixels. */
+.sail-tour .driver-popover-footer-btn { position: relative; }
+@media (pointer: coarse) {
+  .sail-tour .driver-popover-footer-btn { min-height: 44px; min-width: 64px; }
+  .sail-tour .driver-popover-close-btn { width: 44px; height: 44px; line-height: 44px; top: 2px; right: 2px; }
+  .sail-tour .driver-popover-title { padding-right: 40px; }
+}
 
 /* On a phone the step is a sheet at the thumb, the width of the screen,
    rather than a box over the middle of it; a step about the bar at the

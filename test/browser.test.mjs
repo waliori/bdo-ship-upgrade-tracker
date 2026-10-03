@@ -441,20 +441,22 @@ test('taking the other copy is undoable', async () => {
 });
 
 /**
- * The tour points at things that exist.
+ * The tour points at things that are there, on a desk and on a phone.
  *
  * Worth a test because the way it breaks is silent: a renamed class
  * leaves the step pointing at nothing, and Driver.js answers a selector
  * that matches nothing by centring the popover -- which still reads as a
  * perfectly good tour to whoever wrote it. `.crew-ship` outlived the
- * markup it named by a week that way.
+ * markup it named by a week that way. And a phone breaks it a second
+ * way: the element is in the page but not on the screen -- the tab row
+ * is hidden there, the chart's panel folded -- or it is on the screen
+ * under the step's own sheet.
  *
- * What is checked is each step's own selector, on the screen that step
- * navigates to, with a save in place that gives every screen something
- * to show. Driver.js is deliberately not in the loop: whether the
- * highlight has landed at the instant you look is a question about
- * animation frames and whatever repainted last, and asserting on it
- * turned out to be a coin toss rather than a test.
+ * So the real tour is walked, Next by Next, and at every step that has
+ * a target the highlighted element must be drawn, inside the screen,
+ * and clear of the popover. Each step is given time to land: a repaint
+ * behind a tab change is the tour's to recover from (it looks again),
+ * and what is asserted is where it ends up.
  */
 const FURNISHED = JSON.stringify({
 	v: 2,
@@ -478,8 +480,50 @@ const FURNISHED = JSON.stringify({
 	settings: {}
 });
 
-for (const [where, size] of [['a wide screen', { width: 1280, height: 900 }], ['a phone', { width: 390, height: 844 }]]) {
-	test(`every step of the guided tour names something that is there, on ${where}`, async () => {
+/** Where step `n` of the tour stands once it has settled, read in the page. */
+const stepAt = (page, n) => page.evaluate(async want => {
+	const wait = ms => new Promise(r => setTimeout(r, ms));
+	let last = null;
+	for (let t = 0; t < 60; t++) {
+		await wait(150);
+		const pop = document.querySelector('.driver-popover');
+		const progress = pop && pop.querySelector('.driver-popover-progress-text');
+		if (!progress || !progress.textContent.startsWith(`${want} `)) continue;
+		const el = document.querySelector('.driver-active-element');
+		const p = pop.getBoundingClientRect();
+		const title = pop.querySelector('.driver-popover-title').textContent;
+		if (!el || el.id === 'driver-dummy-element') {
+			last = { title, centred: true };
+			if (t > 6) return last;
+			continue;
+		}
+		const r = el.getBoundingClientRect();
+		// The part of the target on the screen, and how much of it the
+		// popover is over.
+		const top = Math.max(r.top, 0);
+		const bottom = Math.min(r.bottom, window.innerHeight);
+		const over = Math.max(0, Math.min(r.right, p.right) - Math.max(r.left, p.left))
+			* Math.max(0, Math.min(bottom, p.bottom) - Math.max(top, p.top));
+		last = {
+			title,
+			connected: el.isConnected,
+			drawn: r.width > 0 && r.height > 0,
+			onScreen: r.bottom > 0 && r.top < window.innerHeight && r.right > 0 && r.left < window.innerWidth,
+			covered: over > 16,
+			focusInside: pop.contains(document.activeElement)
+		};
+		if (last.connected && last.drawn && last.onScreen && !last.covered) return last;
+	}
+	return last;
+}, n);
+
+const VIEWPORTS = [
+	['a wide screen', { width: 1440, height: 900 }],
+	['a phone', { width: 390, height: 844, isMobile: true, hasTouch: true }]
+];
+
+for (const [where, size] of VIEWPORTS) {
+	test(`every step of the guided tour shows its target, clear of the popover, on ${where}`, async () => {
 		const mine = await open({
 			storage: { 'bdo-tracker/v2': FURNISHED, 'bdo_ship_upgrade-tour_completed': 'true', 'bdo-tracker/release': RELEASE }
 		});
@@ -487,21 +531,84 @@ for (const [where, size] of [['a wide screen', { width: 1280, height: 900 }], ['
 		// Let the icon mapping and the barter catalogue land, so a screen
 		// is not measured while it is still filling in.
 		await new Promise(r => setTimeout(r, 2500));
-
-		const missing = await mine.page.evaluate(async () => {
-			const wait = ms => new Promise(r => setTimeout(r, ms));
+		await mine.page.evaluate(async () => {
 			const { guidedTour } = await import('/js/guided-tour.js');
-			const gone = [];
-			for (const step of guidedTour.steps()) {
-				if (step.before) step.before();
-				await wait(350);
-				if (!step.element) continue;
-				if (!document.querySelector(step.element)) gone.push(`${step.popover.title} -> ${step.element}`);
-			}
-			return gone;
+			await guidedTour.startTour();
 		});
+		const total = await mine.page.evaluate(async () => {
+			const { guidedTour } = await import('/js/guided-tour.js');
+			return guidedTour.list.length;
+		});
+		assert.ok(total >= 10 && total <= 15, `the tour is short: ${total} steps`);
 
-		assert.deepEqual(missing, [], 'these steps name an element no longer on the page');
+		const wrong = [];
+		let centred = 0;
+		for (let n = 1; n <= total; n++) {
+			const got = await stepAt(mine.page, n);
+			if (!got) wrong.push(`step ${n} never came up`);
+			else if (got.centred) centred += 1;
+			else {
+				for (const k of ['connected', 'drawn', 'onScreen']) if (!got[k]) wrong.push(`${n} ${got.title}: not ${k}`);
+				if (got.covered) wrong.push(`${n} ${got.title}: the popover is over its target`);
+				if (!got.focusInside) wrong.push(`${n} ${got.title}: the focus is not in the popover`);
+			}
+			await mine.page.evaluate(() => document.querySelector('.driver-popover-next-btn').click());
+		}
+		assert.deepEqual(wrong, [], 'these steps do not show what they talk about');
+		assert.equal(centred, 1, 'only the welcome stands in the middle of the screen');
+
+		// Finished: the real save is on screen and on the disk, untouched.
+		await new Promise(r => setTimeout(r, 1200));
+		const after = await mine.page.evaluate(async () => {
+			const store = await import('/js/state.js');
+			return {
+				up: !!document.querySelector('.driver-popover'),
+				transient: store.isTransient(),
+				plywood: store.getStock('Violent Wave Plywood'),
+				valor: store.getTargets().some(t => t.id === 'demo-1'),
+				disk: JSON.parse(localStorage.getItem('bdo-tracker/v2')).stock['Violent Sea Monster\'s Bone']
+			};
+		});
+		assert.deepEqual(after, { up: false, transient: false, plywood: 120, valor: false, disk: 300 });
+		await mine.context.close();
+	});
+
+	test(`closing the guided tour part-way puts the real save back, on ${where}`, async () => {
+		const mine = await open({
+			storage: { 'bdo-tracker/v2': FURNISHED, 'bdo_ship_upgrade-tour_completed': 'true', 'bdo-tracker/release': RELEASE },
+			hash: '#inventory'
+		});
+		await mine.page.setViewport(size);
+		await new Promise(r => setTimeout(r, 2000));
+		await mine.page.evaluate(async () => {
+			const { guidedTour } = await import('/js/guided-tour.js');
+			await guidedTour.startTour();
+		});
+		// Into the Barter tab's Load step and the chart's panel, then away
+		// with Escape -- the keyboard's way out. Keys go to the page in
+		// front, so this one is brought there.
+		await mine.page.bringToFront();
+		for (let n = 1; n <= 11; n++) {
+			await stepAt(mine.page, n);
+			await mine.page.keyboard.press('ArrowRight');
+		}
+		const onMap = await stepAt(mine.page, 12);
+		assert.ok(onMap, 'the arrow keys walk the tour');
+		await mine.page.keyboard.press('Escape');
+		await new Promise(r => setTimeout(r, 1200));
+		const after = await mine.page.evaluate(async () => {
+			const store = await import('/js/state.js');
+			return {
+				up: !!document.querySelector('.driver-popover'),
+				transient: store.isTransient(),
+				bone: store.getStock('Violent Sea Monster\'s Bone'),
+				targets: store.getTargets().map(t => t.id).join(','),
+				view: document.body.dataset.view,
+				step: localStorage.getItem('barter-step')
+			};
+		});
+		assert.deepEqual(after, { up: false, transient: false, bone: 300, targets: 'a,b', view: 'inventory', step: null },
+			'the save, the tab and the Barter step are back as they were');
 		await mine.context.close();
 	});
 }
