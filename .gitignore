@@ -30,3 +30,5 @@ tools/capture/voice/
 .hive-mind/
 
 tools/rpit/
+# A chapter's .srt: written beside the .vtt by mix.mjs, read by nothing.
+docs/media/**/*.srt
