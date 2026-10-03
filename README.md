@@ -179,7 +179,7 @@ to follow it.
 
 ### 4. Take the list shopping
 
-![Three goals, and the day count moving under each one](docs/media/the-way.gif)
+![The day count moving with what changes it: three days a week, the dailies switched off, then back to every day](docs/media/the-way.gif)
 
 It opens on **Still to get**: the icons and the numbers of everything
 short, biggest first, tinted by the money each one wants — and a press
@@ -817,9 +817,20 @@ of them) as favourites.
 
 **Short links when you are signed in.** A plan, a ship setup, a drawing
 or a route is kept on the server under ten characters and the address
-is `#s/<id>`, open to anyone holding it. Signed out, the thing still
+is `?s=<id>`, open to anyone holding it. Signed out, the thing still
 rides whole in the address as before — three of the four packed shorter
-than they were — and every older link form still opens.
+than they were — and every older link form, `#s/<id>` included, still
+opens.
+
+**A link says what it is in a chat.** Discord, WhatsApp and the rest
+show a card for a link, read from the page without running it and
+without the part after `#`. So the server writes that card for each
+link (`server/preview.js`): a ship reads as that hull with its parts and
+crew, a drawing by its name and what is on it, a route by its stops and
+trades, a plan by its builds — each with a picture of that part of the
+app, shot by the capture harness into `og/`. A long link carries its kind
+as `?l=ship` for the same reason. The bare address keeps its words and
+changes its picture by the day.
 
 Up to twenty traces live on a shelf below, each drawn small with what
 it holds and when it was kept: open one to draw on it, rename it, copy
@@ -870,6 +881,8 @@ one run. A run is four steps, one on the page at a time:
   Undo. A run stopped part-way can be **continued**: the board keeps
   the attempts each island dealt until it is refreshed in game.
 
+![The four steps of a run: the plan with today's board read and the run along its foot, the wharf's packing list ticked aboard, the cockpit at sea, and the results](docs/media/four-steps.gif)
+
 **The clock rings, wherever you are.** Beside the clock the chimes are
 chosen: at **each stop** (and three at the end) or once for **the whole
 run**, as a ship's bell, three beeps or nothing. Signed in, **my devices
@@ -906,6 +919,8 @@ the hold sheet. What already happened is written as it is — a trade
 recorded at sea, a sync, a screenshot of the game, a hull swapped for a
 smaller one — and the hold simply shows over. A storage's slots are
 shown and never capped.
+
+![A Carrack: Volante's twenty slots on the Load gauge: each [Level 5] good a slot of its own, a [Level 3] stack one slot however many, and two more Azure Quartz moving the count](docs/media/the-slots.gif)
 
 **Where a [Great Ocean] good ranks.** The five [Great Ocean] goods are
 worth more than a [Level 5] and less than a [Level 6] or [Level 7], and
@@ -1051,6 +1066,8 @@ hold *could* be traded, with how many of the layouts still standing
 carry each trade — marked as a maybe, never as today's board. It came
 from Oni, who wanted to fetch the one good the storage was low on
 without planning a day around it.
+
+![Short trip: every trade on the board with its minutes there and back, one picked, taken one island further, and a trade that fits round it added](docs/media/a-short-trip.gif)
 
 ### The harbour
 
@@ -1790,7 +1807,7 @@ js/
   planner.js          pure planning — netting, explosion, costing, enhancement
   sync.js             optional device sync: pull, push, conflict
   share.js            a plan in a link
-  links.js            one link, short where it can be (#s/<id> when signed in)
+  links.js            one link, short where it can be (?s=<id> when signed in)
   release.js          the release's name and the newest diary line, written by
                       tools/build-changelog.mjs so the boot need not load about.js
   loading.js          the one thread of light wherever the app waits
@@ -1960,6 +1977,7 @@ server/               the Market relay and presence always; the rest only once
   api.js              /api/me and /api/state
   saves.js            where a save lives while the server is up
   links.js            /api/links — a thing shared as a short link
+  preview.js          the card a chat app shows for a link, written per link
   community.js        /api/community — the boards, built from the digests
   boards.js           /api/boards — what the fleet saw of today's barter board
   feedback.js         /api/feedback — posts, screenshots, the inbox, a webhook
@@ -1976,7 +1994,8 @@ test/                 npm test — the server, the planners, and a browser
 test/fixtures/        recorded inputs: screenshots read, count slots, the Market
 icons/                item and ship icons (WebP)
 icon_mapping.json     item -> icon file and BDOCodex page
-og.png                the social preview card
+og.png                the preview card a page with no tags of its own shows
+og/                   a preview picture per kind of link and tab
 docs/media/           the images and clips in this README
 docs/media/small/     the narrow copies the app itself serves
 docs/media/guide/     the seven narrated chapters, with their captions
