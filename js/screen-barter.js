@@ -33,7 +33,7 @@ import { toldHTML } from './barter/packing.js';
 
 export { barterAction, barterChange, barterType, chartFragment } from './barter/actions.js';
 
-export { runSheetHTML, sailChart, sailCurrent, sailJump, sailIds, sailFor } from './barter/sail.js';
+export { runSheetHTML, sailChart, sailCurrent, sailStop, sailJump, sailIds, sailFor } from './barter/sail.js';
 export { plannedChart } from './barter/plan.js';
 export { barterWritingView } from './barter/view.js';
 

@@ -48,8 +48,8 @@ import { openGuide, wireGuide } from './guide.js';
 import { renderPlan } from './screen-plan.js';
 import { renderBuilds, openBuildPicker, askRoute, toggleBlockers, askMade, flyToBuilds } from './screen-builds.js';
 import { renderInventory } from './screen-inventory.js';
-import { renderBarter, barterAction, barterChange, barterType, chartFragment, runSheetHTML, sailChart, sailCurrent, sailJump, plannedChart, sailIds, barterWritingView } from './screen-barter.js';
-import { tickTimer, watchTimer } from './sail-timer.js';
+import { renderBarter, barterAction, barterChange, barterType, chartFragment, runSheetHTML, sailChart, sailCurrent, sailStop, sailJump, plannedChart, sailIds, barterWritingView } from './screen-barter.js';
+import { tickTimer, watchTimer, timerState } from './sail-timer.js';
 import { legNow } from './sail-scene.js';
 import { renderTree, pickTreeTarget, folded, setTreeTarget, collapseAll } from './screen-tree.js';
 import { renderWorkshop, pendingEnhancements, toggleBlocked } from './screen-workshop.js';
@@ -2827,8 +2827,14 @@ export async function init() {
 	setLiveShip(() => {
 		const ids = sailIds();
 		if (!ids || ids.join(',') !== routeIds(marksNow()).join(',')) return null;
-		const leg = legNow();
-		const cur = leg ? sailCurrent() : null;
+		// The leg is the clock's: the stop its next mark is for, which at
+		// the island a run starts from is already the second -- the ship
+		// on the chart and the chimes go to the same place.
+		const t = timerState();
+		const leg = t ? legNow(t) : null;
+		if (!leg) return null;
+		const mark = t.marks[leg.leg];
+		const cur = mark && Number.isFinite(mark.k) ? sailStop(mark.k) : sailCurrent();
 		return cur ? { cur, p: leg.p } : null;
 	});
 	window.addEventListener('hashchange', applyHash);

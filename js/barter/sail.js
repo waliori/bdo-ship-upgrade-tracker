@@ -817,8 +817,19 @@ export function sailCurrent() {
 	const on = sailing();
 	const plan = on ? sailedPlan() : null;
 	if (!plan) return null;
-	const at = stopAt(plan, on);
-	if (at < 0) return null;
+	return stopRef(plan, stopAt(plan, on));
+}
+
+/** Stop `at` of the run being sailed, described as sailCurrent describes
+ *  the one the cockpit stands at -- for the clock's own next stop, which
+ *  runs ahead of the cockpit at the island a run starts from. */
+export function sailStop(at) {
+	const plan = sailing() ? sailedPlan() : null;
+	return plan ? stopRef(plan, at) : null;
+}
+
+function stopRef(plan, at) {
+	if (!(at >= 0) || at >= plan.stops.length) return null;
 	const s = plan.stops[at];
 	return { at, npcId: s.npcId || null, wharfAt: s.wharf ? s.wharf.at : s.quest && s.place ? s.place.name : null, before: plan.stops.slice(0, at).filter(x => x.npcId).length };
 }
