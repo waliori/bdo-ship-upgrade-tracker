@@ -5855,16 +5855,17 @@
 	"<b>Plan</b>: say what the day is for, tell it today’s board — one island, or a screenshot of the barter window — and tick the chains. <b>Load</b> packs the hold, <b>Sail</b> goes one stop at a time, and <b>Results</b> records the trip as one change.": "<b>계획</b>: 하루의 목적을 말하고, 오늘의 보드를 알려 주고 — 섬 하나, 또는 물물교환 정보 창의 스크린샷 — 연쇄를 체크하세요. <b>적재</b>가 화물칸을 채우고, <b>항해</b>는 한 번에 한 정박지씩 나아가며, <b>결산</b>은 항해를 하나의 변경으로 기록합니다.",
 	"<b>Sign in</b> keeps one save on every device and puts you on the <b>Community</b> boards — only numbers are shared.": "<b>로그인</b>하면 모든 기기에서 하나의 저장을 쓰고, <b>커뮤니티</b> 게시판에 올라갑니다 — 숫자만 공유됩니다.",
 	"<b>Sign in</b> keeps one save on every device.": "<b>로그인</b>하면 모든 기기에서 하나의 저장을 씁니다.",
-	"A run keeps to the hull’s weight and to its slots: every [Level 5] good and above takes a slot of its own, so a Carrack: Valor holds twenty whatever they weigh. A tick on the packing list loads it for real, and never more than fits.": "항해는 선체의 무게와 슬롯을 함께 지킵니다: [레벨 5] 이상의 교역품은 하나에 한 칸을 차지하므로, 에페리아 중범선 : 용맹은 무게와 상관없이 스무 개를 싣습니다. 적재 목록에 체크하면 실제로 싣고, 들어가는 양보다 많이 싣지는 않습니다.",
 	"Add a ship, part or material. When stock is short the build nearest the top gets it first; ▲▼ re-order, ⏸ parks one. The <b>Workshop</b> crafts and enhances what you have the materials for.": "배, 부품, 재료를 추가하세요. 재고가 부족하면 위에 있는 건조가 먼저 가져갑니다. ▲▼로 순서를 바꾸고, ⏸로 하나를 잠시 멈춥니다. <b>공방</b>은 재료가 갖춰진 것을 제작하고 강화합니다.",
 	"Every change can be undone, and the flag picks the language. <b>Help</b> plays a film of the whole app; <b>Menu</b> (M) holds the rest: Find (Ctrl+K), Export and Import, the theme.": "모든 변경은 되돌릴 수 있고, 깃발로 언어를 고릅니다. <b>도움말</b>은 앱 전체를 담은 영상을 재생하고, <b>메뉴</b>(M)에는 나머지가 있습니다: 찾기(Ctrl+K), 내보내기와 가져오기, 테마.",
 	"Every change can be undone, and the flag picks the language. <b>⋯</b>, or the last seat of the bar, opens the <b>Menu</b>: every section, Help’s film, Find, Export and Import, the theme.": "모든 변경은 되돌릴 수 있고, 깃발로 언어를 고릅니다. <b>⋯</b> 또는 바의 마지막 자리가 <b>메뉴</b>를 엽니다: 모든 섹션, 도움말 영상, 찾기, 내보내기와 가져오기, 테마.",
 	"Every section, at your thumb": "모든 섹션을 엄지 아래에",
 	"Everything still missing, and <b>the way to get it</b>: one way for each thing — quests, the Crow Coin Shop, barter, the Market — in the order it is done, with the days it takes.": "아직 부족한 모든 것과 <b>얻는 방법</b>: 각각에 하나의 경로 — 의뢰, 까마귀 주화 상점, 물물교환, 거래소 — 를 하는 순서대로, 걸리는 날수와 함께.",
-	"Once you cast off, a clock counts each leg, waits at every island until you press <b>Traded</b>, and chimes when the ship should be in. These choose the chime.": "출항하면 시계가 구간마다 시간을 재고, <b>거래함</b>을 누를 때까지 섬마다 기다리며, 배가 도착할 때쯤 알림을 울립니다. 여기서 알림 소리를 고릅니다.",
 	"The guided tour fits a phone as well as a desktop, points at what is really on the screen, and covers the hold’s slots, the sailing clock and the menu.": "가이드 투어가 휴대폰에도 데스크톱에도 맞고, 화면에 실제로 있는 것을 가리키며, 화물칸의 슬롯, 항해 시계, 메뉴까지 다룹니다.",
 	"The hold: LT and slots": "화물칸: LT와 슬롯",
 	"The sailing clock": "항해 시계",
 	"Type a count on any tile, or <b>📷 Read a storage</b> off screenshots of the game’s window — read in this browser, nothing uploaded. The Ship tab reads Manage Sailors and the Barter tab the barter window the same way.": "아무 타일에나 수량을 입력하거나, <b>📷 창고 읽기</b>로 게임 창의 스크린샷에서 읽으세요 — 이 브라우저 안에서 읽고, 아무것도 업로드하지 않습니다. 배 탭은 선원 관리를, 물물교환 탭은 물물교환 정보 창을 같은 방식으로 읽습니다.",
-	"Undo, the language and the menu": "되돌리기, 언어, 메뉴"
+	"Undo, the language and the menu": "되돌리기, 언어, 메뉴",
+	"A tick on the packing list loads it for real, and never more than fits.": "적재 목록에 체크하면 실제로 싣고, 들어가는 양보다 많이 싣지는 않습니다.",
+	"Here the example run has cast off. The clock counts down to the next island and waits there until you press <b>Traded</b>. It chimes when the ship should be in; the chips beside it choose how.": "여기서는 예시 항해가 이미 출항했습니다. 시계는 다음 섬까지 카운트다운하고, <b>거래함</b>을 누를 때까지 그곳에서 기다립니다. 배가 도착할 때쯤 알림을 울리며, 옆의 버튼으로 울리는 방식을 고릅니다.",
+	"The gauge weighs the hold against the hull’s limit and counts its slots. Every [Level 5] good and up takes a slot of its own: {used} of {slots} here.": "게이지는 적재량을 선체의 한도와 비교하고 슬롯을 셉니다. [레벨 5] 이상의 교역품은 하나에 한 칸을 차지합니다: 여기서는 {slots}칸 중 {used}칸."
 }

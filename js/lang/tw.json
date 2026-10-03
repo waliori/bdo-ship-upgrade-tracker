@@ -5855,16 +5855,17 @@
 	"<b>Plan</b>: say what the day is for, tell it today’s board — one island, or a screenshot of the barter window — and tick the chains. <b>Load</b> packs the hold, <b>Sail</b> goes one stop at a time, and <b>Results</b> records the trip as one change.": "<b>計劃</b>：說出這一天是為了什麼，告訴它今天的面板 — 一座島，或物品交換資訊視窗的截圖 — 並勾選鏈條。<b>裝貨</b>把貨艙裝好，<b>航行</b>一次一站，<b>結算</b>把這趟行程記為一次更改。",
 	"<b>Sign in</b> keeps one save on every device and puts you on the <b>Community</b> boards — only numbers are shared.": "<b>登入</b>讓每台裝置共用一份存檔，並把你放上<b>社區</b>榜單 — 只分享數字。",
 	"<b>Sign in</b> keeps one save on every device.": "<b>登入</b>讓每台裝置共用一份存檔。",
-	"A run keeps to the hull’s weight and to its slots: every [Level 5] good and above takes a slot of its own, so a Carrack: Valor holds twenty whatever they weigh. A tick on the packing list loads it for real, and never more than fits.": "航次既要守住船體的重量，也要守住它的欄位：每件 [5階段] 及以上的貨物各佔一格，所以艾裴莉雅重帆船 : 勇猛無論貨物多重都只裝二十件。裝貨清單上的勾選會真正裝貨，而且絕不會超過裝得下的量。",
 	"Add a ship, part or material. When stock is short the build nearest the top gets it first; ▲▼ re-order, ⏸ parks one. The <b>Workshop</b> crafts and enhances what you have the materials for.": "加入一艘船、部件或材料。存貨不足時，最靠上的建造先拿；▲▼ 重新排序，⏸ 暫停一個。<b>工坊</b>會製作並強化你有材料的東西。",
 	"Every change can be undone, and the flag picks the language. <b>Help</b> plays a film of the whole app; <b>Menu</b> (M) holds the rest: Find (Ctrl+K), Export and Import, the theme.": "每一次更改都可以復原，旗幟用來選擇語言。<b>幫助</b>會播放一部貫穿整個應用的影片；<b>菜單</b>(M) 收著其餘的：查找 (Ctrl+K)、匯出與匯入、主題。",
 	"Every change can be undone, and the flag picks the language. <b>⋯</b>, or the last seat of the bar, opens the <b>Menu</b>: every section, Help’s film, Find, Export and Import, the theme.": "每一次更改都可以復原，旗幟用來選擇語言。<b>⋯</b>，或欄上最後一個位置，會打開<b>菜單</b>：所有板塊、幫助的影片、查找、匯出與匯入、主題。",
 	"Every section, at your thumb": "所有板塊，就在拇指下",
 	"Everything still missing, and <b>the way to get it</b>: one way for each thing — quests, the Crow Coin Shop, barter, the Market — in the order it is done, with the days it takes.": "仍然缺的一切，以及<b>獲取方式</b>：每件東西一種方式 — 任務、烏鴉硬幣商店、物品交換、交易所 — 按完成的順序排列，並附上所需天數。",
-	"Once you cast off, a clock counts each leg, waits at every island until you press <b>Traded</b>, and chimes when the ship should be in. These choose the chime.": "一旦起航，計時器會為每段航程計時，在每座島等你按下<b>已交易</b>，並在船應該抵達時敲鐘。這裡選擇鐘聲。",
 	"The guided tour fits a phone as well as a desktop, points at what is really on the screen, and covers the hold’s slots, the sailing clock and the menu.": "引導導覽在手機和電腦上都合適，指向螢幕上真正存在的東西，並涵蓋船艙的欄位、航行計時器和菜單。",
 	"The hold: LT and slots": "船艙：LT 與欄位",
 	"The sailing clock": "航行計時器",
 	"Type a count on any tile, or <b>📷 Read a storage</b> off screenshots of the game’s window — read in this browser, nothing uploaded. The Ship tab reads Manage Sailors and the Barter tab the barter window the same way.": "在任意方塊上輸入數量，或用<b>📷 讀取一個倉庫</b>從遊戲視窗的截圖讀取 — 在這個瀏覽器裡讀取，什麼都不上傳。船隻頁以同樣的方式讀取船員管理，物品交換頁讀取物品交換資訊視窗。",
-	"Undo, the language and the menu": "復原、語言與菜單"
+	"Undo, the language and the menu": "復原、語言與菜單",
+	"A tick on the packing list loads it for real, and never more than fits.": "裝貨清單上的勾選會真正裝貨，而且絕不會超過裝得下的量。",
+	"Here the example run has cast off. The clock counts down to the next island and waits there until you press <b>Traded</b>. It chimes when the ship should be in; the chips beside it choose how.": "這裡的示例航次已經起航。計時器倒數到下一座島，並在那裡等你按下<b>已交易</b>。船應該抵達時它會敲鐘；旁邊的選項決定怎麼敲。",
+	"The gauge weighs the hold against the hull’s limit and counts its slots. Every [Level 5] good and up takes a slot of its own: {used} of {slots} here.": "這個刻度把船艙的重量與船體的上限相比，並清點它的欄位。每件 [5階段] 及以上的貨物各佔一格：這裡是 {used} / {slots}。"
 }

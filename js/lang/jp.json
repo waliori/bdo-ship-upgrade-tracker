@@ -5855,16 +5855,17 @@
 	"<b>Plan</b>: say what the day is for, tell it today’s board — one island, or a screenshot of the barter window — and tick the chains. <b>Load</b> packs the hold, <b>Sail</b> goes one stop at a time, and <b>Results</b> records the trip as one change.": "<b>計画</b>：その日の目的を伝え、今日のボードを教えます — 島1つ、または物々交換情報ウィンドウのスクリーンショット — そして連鎖にチェックを入れます。<b>積み込み</b>で船倉に積み、<b>航海</b>は寄港地をひとつずつ進み、<b>収支</b>は航海をひとつの変更として記録します。",
 	"<b>Sign in</b> keeps one save on every device and puts you on the <b>Community</b> boards — only numbers are shared.": "<b>ログイン</b>すると、どの端末でも1つのセーブを使え、<b>コミュニティ</b>のランキングに載ります — 共有されるのは数字だけです。",
 	"<b>Sign in</b> keeps one save on every device.": "<b>ログイン</b>すると、どの端末でも1つのセーブを使えます。",
-	"A run keeps to the hull’s weight and to its slots: every [Level 5] good and above takes a slot of its own, so a Carrack: Valor holds twenty whatever they weigh. A tick on the packing list loads it for real, and never more than fits.": "航海は船体の重量とスロットの両方を守ります：[レベル5]以上の交易品は1個で1マスを取るので、エフェリア重帆船：バロールは重さにかかわらず20個しか積めません。積み込みリストのチェックは実際に積み込み、入りきる以上は決して積みません。",
 	"Add a ship, part or material. When stock is short the build nearest the top gets it first; ▲▼ re-order, ⏸ parks one. The <b>Workshop</b> crafts and enhances what you have the materials for.": "船、部品、素材を追加します。在庫が足りないときは上にある建造から先に取ります。▲▼で並べ替え、⏸で一時停止します。<b>工房</b>では素材がそろっているものを製作・強化します。",
 	"Every change can be undone, and the flag picks the language. <b>Help</b> plays a film of the whole app; <b>Menu</b> (M) holds the rest: Find (Ctrl+K), Export and Import, the theme.": "どの変更も取り消せ、旗で言語を選べます。<b>ヘルプ</b>はアプリ全体の映像を再生し、<b>メニュー</b>（M）には残りがあります：検索（Ctrl+K）、書き出しと読み込み、テーマ。",
 	"Every change can be undone, and the flag picks the language. <b>⋯</b>, or the last seat of the bar, opens the <b>Menu</b>: every section, Help’s film, Find, Export and Import, the theme.": "どの変更も取り消せ、旗で言語を選べます。<b>⋯</b>、またはバーの最後の席で<b>メニュー</b>が開きます：全セクション、ヘルプの映像、検索、書き出しと読み込み、テーマ。",
 	"Every section, at your thumb": "すべてのセクションを親指の位置に",
 	"Everything still missing, and <b>the way to get it</b>: one way for each thing — quests, the Crow Coin Shop, barter, the Market — in the order it is done, with the days it takes.": "不足しているものすべてと、<b>入手方法</b>：それぞれに1つの入手先 — 依頼、カラスコイン商店、物々交換、取引所 — を、こなす順に、所要日数とともに。",
-	"Once you cast off, a clock counts each leg, waits at every island until you press <b>Traded</b>, and chimes when the ship should be in. These choose the chime.": "出航すると、時計が各区間を数え、<b>取引</b>を押すまで島ごとに待ち、船が着くはずの時に鳴ります。ここで鳴らし方を選びます。",
 	"The guided tour fits a phone as well as a desktop, points at what is really on the screen, and covers the hold’s slots, the sailing clock and the menu.": "ガイドツアーがスマートフォンにもデスクトップにも収まり、画面に実際にあるものを指し、船倉のスロット、航海時計、メニューも案内するようになった。",
 	"The hold: LT and slots": "船倉：LTとスロット",
 	"The sailing clock": "航海時計",
 	"Type a count on any tile, or <b>📷 Read a storage</b> off screenshots of the game’s window — read in this browser, nothing uploaded. The Ship tab reads Manage Sailors and the Barter tab the barter window the same way.": "どのタイルにも個数を入力できます。または<b>📷 倉庫を読み取る</b>でゲームのウィンドウのスクリーンショットから読み取ります — このブラウザ内で読み取り、何もアップロードされません。船タブは船員管理を、物々交換タブは物々交換情報ウィンドウを同じように読み取ります。",
-	"Undo, the language and the menu": "元に戻す、言語、メニュー"
+	"Undo, the language and the menu": "元に戻す、言語、メニュー",
+	"A tick on the packing list loads it for real, and never more than fits.": "積み込みリストのチェックは実際に積み込み、入りきる以上は決して積みません。",
+	"Here the example run has cast off. The clock counts down to the next island and waits there until you press <b>Traded</b>. It chimes when the ship should be in; the chips beside it choose how.": "ここでは例の航海が出航済みです。時計は次の島までカウントダウンし、<b>取引</b>を押すまでそこで待ちます。船が着くはずの時に鳴り、横のボタンで鳴らし方を選びます。",
+	"The gauge weighs the hold against the hull’s limit and counts its slots. Every [Level 5] good and up takes a slot of its own: {used} of {slots} here.": "ゲージは船倉の重さを船体の上限と比べ、スロットを数えます。[レベル5]以上の交易品は1個で1マスを取ります：ここでは{slots}マス中{used}マス。"
 }
