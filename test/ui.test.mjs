@@ -2468,6 +2468,40 @@ test('abandoned keeping what was traded, the stops ticked are recorded: the coun
 	await context.close();
 });
 
+test('a run ticked off with All done that spent past the bar is recorded as having drawn its vouchers, not as a bar at nothing', async () => {
+	const { page, context, errors } = await open('#barter');
+	await page.waitForSelector('.barter-screen', { timeout: 15000 }); await wait(600);
+	await page.evaluate(async () => {
+		const { barterKey } = await import('/js/clock.js');
+		const store = await import('/js/state.js');
+		store.setView('barter', { goal: 'silver', port: 1002, planSec: 'all', advOpen: true, board: { day: barterKey(), answers: [{ npcId: 58948, give: '[Level 6] Top-Quality Coconut Syrup', recv: "[Level 7] Artisan's Seashell Necklace" }, { npcId: 58901, give: 'Vinegar', recv: '[Level 1] Cherry Tree Seed Pouch' }] } });
+		store.setProfileMany({ barterCount: 1, parleyHeld: 1000, vouchers: 2 });
+		store.flush();
+	});
+	await page.reload({ waitUntil: 'domcontentloaded' });
+	await page.waitForSelector('.chain', { timeout: 15000 });
+	await page.evaluate(async () => { const store = await import('/js/state.js'); store.addTarget('Carrack (Advance)', 1); store.setProfile('crewShip', 'Carrack (Advance)'); });
+	await page.waitForFunction(() => document.querySelector('[data-act="barter-cast-off"]:not([disabled]), .run-dock'), { timeout: 20000 });
+	await laidOut(page);
+	await page.evaluate(() => document.querySelector('[data-act="barter-cast-off"]').click()); await wait(2500);
+	// Every stop ticked at once: nobody pressed Drawn at the stop the
+	// voucher was planned for.
+	await page.evaluate(() => document.querySelector('.cockpit-foot [data-act="barter-sail-all"]').click()); await wait(600);
+	await page.evaluate(() => document.querySelector('.cockpit-foot [data-act="barter-sail-all-go"]').click()); await wait(1500);
+	await page.evaluate(() => [...document.querySelectorAll('[data-act="barter-step"][data-id="results"]')].find(e => e.getBoundingClientRect().width > 0).click()); await wait(1500);
+	await page.evaluate(() => document.querySelector('[data-act="barter-record"]').click()); await wait(1500);
+	const r = await page.evaluate(async () => {
+		const store = await import('/js/state.js');
+		const runs = store.getProfile('runs', []) || [];
+		return { parley: store.getProfile('parleyHeld', 0), vouchers: store.getProfile('vouchers', 0), spent: runs.length ? runs[runs.length - 1].parley : 0, drew: runs.length ? runs[runs.length - 1].vouchers : 0 };
+	});
+	assert.ok(r.spent > 1000, `the run spent past the bar it started with: ${r.spent}`);
+	assert.ok(r.drew >= 1 && r.vouchers === 2 - r.drew, `the vouchers it needed came out of the bags: ${JSON.stringify(r)}`);
+	assert.ok(r.parley > 1, `the bar is what the vouchers left, not nothing: ${r.parley}`);
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
 test('the running clock draws the sailor’s own ship crossing the leg', async () => {
 	const { page, context, errors } = await open('#barter');
 	await page.waitForSelector('.barter-screen', { timeout: 15000 }); await wait(600);

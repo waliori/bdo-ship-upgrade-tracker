@@ -902,7 +902,16 @@ export function recordTrip(plan, from, on = sailing(), { abandoned = false } = {
 		if (s.wait) return { k: 'v', p: names.place, t: Math.round(s.wait) };
 		return { k: 'q', p: names.place, w: names.who };
 	}).filter(Boolean).slice(0, 300);
-	const drawnOn = plan.stops.reduce((n, s, k) => n + (ticked(on.done, s, k, plan.stops) ? (bookOf.rows[k] && bookOf.rows[k].drawn) || 0 : 0), 0);
+	const said = plan.stops.reduce((n, s, k) => n + (ticked(on.done, s, k, plan.stops) ? (bookOf.rows[k] && bookOf.rows[k].drawn) || 0 : 0), 0);
+	// A stop ticked was traded, and a run that traded past the bar it
+	// started with drew vouchers to do it, whether or not anyone pressed
+	// Drawn on the way -- "All done" ticks the lot without asking. So the
+	// vouchers drawn on are at least the ones the Parley spent needs,
+	// never more than are carried; otherwise the bar is written down
+	// at nothing and the next run planned against an empty one.
+	const startBar = prof.parleyHeld > 0 ? Math.min(PARLEY.max, prof.parleyHeld) : PARLEY.max;
+	const needed = Math.max(0, Math.ceil((parleySpent - startBar) / PARLEY.voucher));
+	const drawnOn = Math.min(Math.max(0, Math.floor(Number(prof.vouchers) || 0)), Math.max(ordersNow().vouchers !== 'keep' ? said : 0, needed));
 	const runs = [...(store.getProfile('runs', []) || []), {
 		day: barterKey(), at: Date.now(), silver: trip.silver, cost: trip.spent || Math.round(plan.cost || 0), net: trip.silver - (trip.spent || 0), trades: trip.trades, parley: parleySpent, coins: Math.round(trip.delta[COIN] || 0), vouchers: drawnOn,
 		stops: on.done.length, goal: on.goal || V.goal, item: on.goal ? on.item || '' : V.goal === 'material' ? itemNow() || '' : '',
@@ -965,11 +974,11 @@ export function recordTrip(plan, from, on = sailing(), { abandoned = false } = {
 	// spent from 1,000,000" -- and then the next run was laid against the
 	// same million, because nothing wrote the answer down. It stays
 	// down until a Barter Refresh fills it; the day turning does not.
-	const bar = prof.parleyHeld > 0 ? Math.min(PARLEY.max, prof.parleyHeld) : PARLEY.max;
-	// The vouchers drawn on are the ledger's: the ones the ticked stops
-	// drew, whether the bar as typed needed them or not, never more
-	// than are carried.
-	const drawn = ordersNow().vouchers !== 'keep' ? Math.min(prof.vouchers, drawnOn) : 0;
+	const bar = startBar;
+	// The vouchers drawn on: the ones the ticked stops drew, whether the
+	// bar as typed needed them or not, and at least the ones the Parley
+	// spent could not have been paid without (above).
+	const drawn = drawnOn;
 	// Never nought: nought is how "nobody has said" is written.
 	// A bar read off the game's window mid-run is the truer start: the
 	// ledger counted from it, after the last stop ticked, is what is left.
