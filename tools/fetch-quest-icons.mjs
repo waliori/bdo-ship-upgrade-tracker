@@ -36,7 +36,7 @@ console.log('reading the quest dump…');
 const res = await fetch(`${BASE}/query.php?a=quests&l=us`, { headers: HEADERS });
 if (!res.ok) throw new Error(`quest dump: ${res.status}`);
 // The dump is served with a BOM, which JSON.parse will not have.
-const rows = JSON.parse((await res.text()).replace(/^﻿/, '')).aaData;
+const rows = JSON.parse((await res.text()).replace(/^\uFEFF/, '')).aaData;
 const byId = new Map(rows.map(r => [r[0].display, r]));
 console.log(`  ${rows.length} quests`);
 

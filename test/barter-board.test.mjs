@@ -6,14 +6,14 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
 import { candidates, offersAt, askable, boardData, offersOf } from '../js/barter-board.js';
-import { materialPlan } from '../js/barter-plan.js';
 import { chains, chainRun } from '../js/barter-chains.js';
 import { ladder, levelOf, triesFor, TRIES_BY_RUNG } from '../js/barter.js';
 import { npcById, ports } from '../js/barter_npcs.js';
 import { tradeGoodNames } from '../js/trade_goods.js';
+import { useGame } from '../js/barter-layouts.js';
 
 const barterData = JSON.parse(await readFile(new URL('../js/all_barter.json', import.meta.url), 'utf8'));
-const record = JSON.parse(await readFile(new URL('../js/barter_combos.json', import.meta.url), 'utf8'));
+const record = useGame(await import('../js/barter_game.js'));
 const combos = record.combos;
 const known = new Set();
 for (const e of barterData) { known.add(e.name); for (const s of e.sources) known.add(s.give.name); }
@@ -23,7 +23,7 @@ test('the record: forty layouts, every offer at a barterer we know, every name o
 	assert.equal(new Set(combos.map(c => c.id)).size, 40);
 	assert.equal(combos.reduce((a, c) => a + c.seen, 0), record.sample.refreshes);
 	for (const c of combos) {
-		assert.ok(c.offers.length >= 80, `layout ${c.id} has ${c.offers.length} offers`);
+		assert.ok(c.offers.length >= 75, `layout ${c.id} has ${c.offers.length} offers`);
 		assert.equal(new Set(c.offers.map(o => o[0])).size, c.offers.length, `layout ${c.id} lists an island twice`);
 		for (const [id, give, qty, recv] of c.offers) {
 			assert.ok(npcById.has(id), `${id} in layout ${c.id}`);
@@ -61,23 +61,36 @@ test('the island worth asking about leaves the fewest layouts standing, and one 
 	assert.equal(offers.reduce((a, o) => a + o.ids.length, 0), combos.filter(c => offersOf(c).has(ask[0].npcId)).length);
 });
 
-test('a layout reads as a barter table: one offer an island, the codex’s attempts where it has the exchange, the materials from the whole table', () => {
+test('a layout reads as a barter table: one offer an island, the game\u2019s own attempts, pay and Parley, and the materials its own islands pay', () => {
 	const combo = combos[0];
 	const data = boardData(combo, barterData, npcById);
 	const goods = data.filter(e => levelOf(e.name) !== null || e.name === 'Crow Coin');
 	const dealt = goods.flatMap(e => e.sources.map(s => s.npc_id));
 	assert.equal(new Set(dealt).size, dealt.length, 'an island deals one trade exchange today');
 	assert.equal(dealt.length, combo.offers.filter(o => levelOf(o[3]) !== null || o[3] === 'Crow Coin').length);
-	const codex = new Map();
-	for (const e of barterData) for (const s of e.sources) codex.set(`${s.npc_id}|${s.give.name}|${e.name}`, s);
+	const info = new Map(combo.offers.map(o => [o[0], o[4]]));
 	for (const e of goods) for (const s of e.sources) {
-		const c = codex.get(`${s.npc_id}|${s.give.name}|${e.name}`);
-		if (c) { assert.equal(s.attempts_available, c.attempts_available); assert.equal(s.quantity_received, c.quantity_received); assert.equal(s.give.quantity, c.give.quantity); }
-		else assert.equal(s.quantity_received, '1');
+		const o = info.get(s.npc_id);
+		assert.equal(s.attempts_available, o.perDay);
+		assert.equal(s.quantity_received, o.recvMin === o.recvMax ? String(o.recvMin) : `${o.recvMin}-${o.recvMax}`);
+		assert.equal(s.parley, o.parley);
 	}
-	const brilliant = data.find(e => e.name === 'Brilliant Pearl Shard');
-	assert.ok(brilliant && brilliant.sources.length === barterData.find(e => e.name === 'Brilliant Pearl Shard').sources.length, 'material islands roll on their own');
-	assert.ok(ladder('Brilliant Pearl Shard', data), 'the ladder climbs the board to the material');
+	// What else the board pays is the layout's own: its fixed slots -- a
+	// Brilliant, a Lost Trade Box -- and nothing from the whole table.
+	const other = data.filter(e => levelOf(e.name) === null && e.name !== 'Crow Coin');
+	const fixedOther = combo.offers.filter(o => levelOf(o[3]) === null && o[3] !== 'Crow Coin');
+	assert.equal(other.reduce((a, e) => a + e.sources.length, 0), fixedOther.length, 'no material from the whole table');
+	// The pools are named, each with what it may show, and nothing is on
+	// the board from them until one is read.
+	assert.ok(Object.keys(combo.pools).length >= 3, 'every layout has its pool islands');
+	for (const pool of Object.values(combo.pools)) assert.ok(pool.options.length > 1 && pool.options.some(o => levelOf(o.recv) === null));
+	const [npcId, pool] = Object.entries(combo.pools)[0];
+	const o = pool.options.find(x => levelOf(x.recv) === null);
+	const read = boardData(combo, barterData, npcById, [{ npcId: Number(npcId), give: o.give, recv: o.recv }]);
+	const got = read.find(e => e.name === o.recv);
+	assert.ok(got && got.sources.some(s => s.npc_id === Number(npcId) && s.attempts_available === o.perDay), 'a pool read today is on the board, at the game\u2019s figures');
+	const withBrilliant = combos.find(c => c.offers.some(x => x[3] === 'Brilliant Pearl Shard'));
+	assert.ok(ladder('Brilliant Pearl Shard', boardData(withBrilliant, barterData, npcById)), 'the ladder climbs a board to a material it pays');
 });
 
 test('a run planned on the board only calls at islands the board deals, and the caps by rung stand in for the codex’s zeros', () => {
@@ -94,9 +107,6 @@ test('a run planned on the board only calls at islands the board deals, and the 
 		const o = board.get(s.npcId);
 		assert.ok(o && o.give === s.give && o.recv === s.item, `${s.npc} deals ${s.give} -> ${s.item} today`);
 	}
-	const m = materialPlan({ item: 'Brilliant Pearl Shard', qty: 2, stock: {}, barterData: data, npcById });
-	assert.ok(m && m.stops.length > 0);
-	for (const s of m.stops) if (levelOf(s.item) !== null) assert.equal(board.get(s.npcId).recv, s.item);
 	assert.equal(triesFor('[Level 7] Golden Flour Sack', 0), TRIES_BY_RUNG[7]);
 	assert.equal(triesFor('[Level 5] Azure Quartz', 4), 4);
 	assert.equal(triesFor('Crow Coin', 0), TRIES_BY_RUNG.coin);
@@ -122,25 +132,24 @@ test('the board’s [Level 6] offers are the layout’s; what a [Level 7] island
 	assert.ok(data.some(e => e.name === '[Level 6] Valencian Desert Fine Sword' && e.sources[0].npc_name === 'Roshina'));
 });
 
-test('an island a layout has no row for neither rules it out nor is left off its board', () => {
-	// Layout 19 lists no offer for Padix Island. Seen showing something
-	// there, the layout still stands -- the record says nothing about
-	// it, not something else -- and the offer seen goes on the board.
-	const padix = [...npcById.values()].find(n => n.at === 'Padix Island').id;
-	const layout = combos.find(c => c.id === '19');
-	assert.equal(offersOf(layout).has(padix), false);
-	const codex = barterData.flatMap(e => e.sources.filter(s => s.npc_id === padix).map(s => ({ give: s.give.name, recv: e.name, qty: s.give.quantity })))
-		.find(x => levelOf(x.recv));
-	const answer = { npcId: padix, give: codex.give, recv: codex.recv };
+test('an offer that shows only some days neither names the layout nor goes on the board until it is seen', () => {
+	// The Wandering Merchant's Ship shows three days in a hundred on
+	// layout 31. Seen or not, the layout stands; seen, it is on the board.
+	const ship = [...npcById.values()].find(n => n.at === 'Wandering Merchant\u2019s Ship' || n.at === "Wandering Merchant's Ship").id;
+	const layout = combos.find(c => c.id === '31');
+	const rare = layout.rare[ship];
+	assert.ok(rare && rare.chance < 0.5);
+	assert.equal(offersOf(layout).has(ship), false);
+	const answer = { npcId: ship, give: rare.give, recv: rare.recv };
 	assert.ok(candidates(combos, [answer]).includes(layout));
-	// Without the answer the board deals no trade good at Padix -- the
-	// material exchanges ride along from the whole table -- and with
-	// it, the exchange seen, at the codex's quantity.
-	const rows = data => data.filter(e => levelOf(e.name)).flatMap(e => e.sources.filter(s => s.npc_id === padix).map(s => [s.give.name, s.give.quantity, e.name]));
+	assert.equal(candidates([layout], [{ npcId: ship, give: rare.give, recv: '[Level 5] Azure Quartz' }]).length, 0, 'but not something else');
+	const trade = data => data.filter(e => levelOf(e.name) !== null || e.name === 'Crow Coin');
+	const rows = data => trade(data).flatMap(e => e.sources.filter(s => s.npc_id === ship).map(s => [s.give.name, e.name]));
 	assert.deepEqual(rows(boardData(layout, barterData, npcById)), []);
-	assert.deepEqual(rows(boardData(layout, barterData, npcById, [answer])), [[codex.give, codex.qty, codex.recv]]);
+	assert.deepEqual(rows(boardData(layout, barterData, npcById, [answer])), [[rare.give, rare.recv]]);
+	assert.equal(askable(combos, npcById).some(x => x.npcId === ship), false, 'never asked about');
 	// An answer at an island the layout does list still has to match.
-	const listed = layout.offers[0];
+	const listed = layout.offers.find(o => !layout.rolls[o[0]] && o[3] !== 'Crow Coin');
 	assert.equal(candidates([layout], [{ npcId: listed[0], give: listed[1], recv: listed[3] }]).length, 1);
 	assert.equal(candidates([layout], [{ npcId: listed[0], give: listed[1], recv: 'Crow Coin' }]).length, 0);
 });
@@ -199,38 +208,28 @@ test('a chain that climbs through a shut exchange is not proposed', () => {
 });
 
 /* ------------------------------------------------------------------ *
- * the record made whole from the client
+ * the slots the game fills at random
  * ------------------------------------------------------------------ */
 
-test('a row the record lacks is filled from the client, and says so', async () => {
-	const { completed, clientOffer, offersOf: rowsOf, NEVER } = await import('../js/barter-board.js');
-	const whole = completed(record);
-	assert.equal(whole.combos.length, record.combos.length);
-	let filled = 0;
-	for (let i = 0; i < record.combos.length; i++) {
-		const was = record.combos[i], now = whole.combos[i];
-		// what players saw dealt is never overwritten
-		for (const o of was.offers) assert.deepEqual(rowsOf(now).get(o[0]), { give: o[1], qty: o[2], recv: o[3] });
-		for (const id of now.filled || []) {
-			filled++;
-			assert.equal(was.offers.some(o => o[0] === id), false);
-			const o = clientOffer(was, id);
-			assert.deepEqual(rowsOf(now).get(id), { give: o.give, qty: o.qty, recv: o.recv });
-			// an island the game shuts on this layout for everybody is not a gap
-			assert.ok(o.gate < NEVER, `${id} on layout ${was.id} opens at ${o.gate}`);
-			// a layout says nothing about the material islands
-			assert.ok(/^\[Level \d\]/.test(o.recv) || o.recv === 'Crow Coin', o.recv);
-		}
-	}
-	assert.ok(filled >= 5 && filled < 30, `${filled} rows filled`);
+test('a random slot names one of its options, and whatever option was seen keeps the layout and goes on the board', () => {
+	// Layout 31 at Ajir: a [Level 5] Statue\u2019s Tear or 40-60 Crow Coins.
+	const ajir = [...npcById.values()].find(n => n.at === 'Ajir Island').id;
+	const layout = combos.find(c => c.id === '31');
+	const roll = layout.rolls[ajir];
+	assert.deepEqual(roll.options.map(o => o.recv).sort(), ['Crow Coin', "[Level 5] Statue's Tear"]);
+	assert.ok(roll.options.some(o => `${o.give}|${o.recv}` === layout.picks[ajir]), 'the layout names one of them');
+	const coins = roll.options.find(o => o.recv === 'Crow Coin');
+	const seen = { npcId: ajir, give: coins.give, recv: coins.recv };
+	assert.ok(candidates(combos, [seen]).includes(layout), 'either option keeps the layout');
+	assert.equal(candidates([layout], [{ npcId: ajir, give: coins.give, recv: '[Level 5] Azure Quartz' }]).length, 0, 'what no option is rules it out');
+	const at = data => data.filter(e => levelOf(e.name) !== null || e.name === 'Crow Coin').flatMap(e => e.sources.filter(s => s.npc_id === ajir).map(s => [e.name, s.attempts_available, s.quantity_received, s.parley]));
+	assert.deepEqual(at(boardData(layout, barterData, npcById, [seen])), [['Crow Coin', 4, '40-60', 21650]]);
+	assert.equal(askable(combos, npcById).some(x => x.npcId === ajir), false, 'a random slot is never the island to ask');
 });
 
-test('a row the client filled carries the client\'s gate', async () => {
-	const { completed, exchangeGate: gateOf, clientOffer } = await import('../js/barter-board.js');
-	const whole = completed(record);
-	const combo = whole.combos.find(c => (c.filled || []).length);
-	const id = combo.filled[0];
-	assert.equal(gateOf(combo, id), clientOffer(combo, id).gate);
+test('every offer on a layout carries the game\u2019s own gate', async () => {
+	const { exchangeGate } = await import('../js/barter-board.js');
+	for (const c of combos) for (const [id] of c.offers) assert.equal(typeof exchangeGate(c, id), 'number', `layout ${c.id}, ${id}`);
 });
 
 test('what the game deals at an island is known, wherever it was seen; what it never has is not', async () => {

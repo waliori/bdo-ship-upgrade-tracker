@@ -1,18 +1,17 @@
-// A run planned from the hold for a material, on the pinned table and
-// the real islands, and the readings of the table it shares with the
-// run for silver.
+// The hold and the goods: the readings of the table every barter
+// planner shares, what a good weighs and pays, and the slots it takes.
 //
-// What can go wrong: an island dealt twice in one run, a ladder
-// counted without what is already aboard, a stock read with the
-// materials in it.
+// What can go wrong: a stock read with the materials in it, a [Great
+// Ocean] good priced as a plain [Level 5], a rare pay priced at
+// nothing, or a bag that stacks goods the game does not.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-import { materialPlan, exchanges, goodsHeld, weightOf, sellOf } from '../js/barter-plan.js';
-import { npcById, ports } from '../js/barter_npcs.js';
-import { GOODS, ladder } from '../js/barter.js';
+import { exchanges, goodsHeld, weightOf, sellOf, stacks, bagSlotsOf, slotsHeld, slotFit, fitInto, rankOf, isGreatOcean } from '../js/barter-plan.js';
+import { GOODS } from '../js/barter.js';
+import { sellable, PLAIN_ORDERS } from '../js/barter-orders.js';
 
 const barterData = JSON.parse(await readFile(new URL('../js/all_barter.json', import.meta.url), 'utf8'));
 
@@ -27,72 +26,125 @@ test('the table flattens to one row an exchange, and a stock to its goods', () =
 	assert.equal(sellOf('Tidal Black Stone'), 0);
 });
 
-test('a material with nothing aboard starts ashore, at the floor of its ladder', () => {
-	const top = ladder('Brilliant Pearl Shard', barterData);
-	const p = materialPlan({ item: 'Brilliant Pearl Shard', qty: 10, stock: {}, barterData, npcById, start: ports[0] });
-	assert.ok(p && !p.covered);
-	assert.equal(p.rungs[0].item, 'Brilliant Pearl Shard');
-	assert.equal(p.rungs[0].give, top.give);
-	assert.ok(p.first && p.first.ashore, 'the first thing to get is bought on land');
-	assert.equal(p.first.item, top.seed.item);
-	// The stops climb: the seed's island first, the top rung last.
-	const levels = p.stops.map(s => s.level);
-	assert.deepEqual(levels, [...levels].sort((a, b) => a - b));
-	const islands = p.stops.map(s => s.npcId);
-	assert.equal(new Set(islands).size, islands.length);
-	assert.ok(p.stops.every(s => s.times <= s.tries));
-	// Ten shards at two a draw from four islands is more than one refresh.
-	assert.ok(p.refreshes >= 2);
+test('the [Great Ocean] goods and the rare pays sell at their own price', () => {
+	// BDOCodex 800073: a Rust Repair Tool sells for 25,000,000, a plain
+	// [Level 5] (Statue's Tear, 800061) for 10,000,000.
+	assert.equal(sellOf('[Level 5] Rust Repair Tool'), 25000000);
+	assert.equal(sellOf("[Level 5] Cox Pirates' Journal"), 25000000);
+	assert.equal(sellOf("[Level 5] Statue's Tear"), GOODS[5].sell);
+	// The rare pays have no level and used to read as worth nothing.
+	assert.equal(sellOf('Golden Galley Figurine'), 100000000);
+	assert.equal(sellOf('Elaborate Pearl Necklace'), 30000000);
+	assert.equal(sellOf('Obsidian Crystal Bracelet'), 50000000);
+	assert.equal(weightOf('Obsidian Crystal Bracelet'), 0.1);
+	assert.equal(weightOf('[Level 5] Rust Repair Tool'), GOODS[5].weight);
+	// They sell at a wharf as a [Level 7] does.
+	assert.ok(sellable('Golden Galley Figurine', { ...PLAIN_ORDERS, sell: 7 }));
+	assert.ok(!sellable('Tidal Black Stone', { ...PLAIN_ORDERS, sell: 3 }));
 });
 
-test('what is aboard shortens the ladder: the top give in the hold covers the run', () => {
-	const top = ladder('Brilliant Pearl Shard', barterData);
-	const p = materialPlan({ item: 'Brilliant Pearl Shard', qty: 4, stock: { [top.give]: 10 }, barterData, npcById });
-	assert.ok(p.covered);
-	assert.equal(p.rungs.length, 1);
-	assert.equal(p.first, null);
-	assert.ok(p.stops.every(s => s.item === 'Brilliant Pearl Shard'));
-	assert.equal(p.stops.reduce((a, s) => a + s.times, 0), 4);
-	// Part of it aboard: the hold's part is one rung, the shortfall
-	// another beside it, and the rung below is only asked for the rest.
-	const part = materialPlan({ item: 'Brilliant Pearl Shard', qty: 4, stock: { [top.give]: 2 }, barterData, npcById });
-	assert.ok(!part.covered);
-	assert.equal(part.rungs[0].have, 2);
-	assert.equal(part.rungs[0].short, 0);
-	assert.equal(part.rungs[0].trades, 2);
-	assert.equal(part.rungs[1].item, 'Brilliant Pearl Shard');
-	assert.equal(part.rungs[1].short, 2);
-	assert.equal(part.rungs[2].need, 2);
-	// A good held on another path is spent before anything is bought:
-	// three Azure Quartz cover forty Tidal Black Stone in two trades.
-	const side = materialPlan({ item: 'Tidal Black Stone', qty: 40, stock: { '[Level 5] Azure Quartz': 3 }, barterData, npcById });
-	assert.ok(side.covered);
-	assert.equal(side.trades, 2);
-	assert.equal(side.rungs[0].give, '[Level 5] Azure Quartz');
+test('a [Level 5] and up takes a slot a unit; the levels under it stack', () => {
+	assert.ok(stacks('[Level 4] Old Chest with Gold Coins'));
+	assert.ok(!stacks("[Level 5] Statue's Tear"));
+	assert.ok(!stacks('[Level 7] Heidelian Wine'));
+	assert.ok(!stacks('Obsidian Crystal Bracelet'));
+	const bag = new Map([['[Level 4] Old Chest with Gold Coins', 12], ["[Level 5] Statue's Tear", 3], ['[Level 6] Brass Bowl Crate', 2], ['[Level 3] Ancient Orders', 0]]);
+	assert.equal(bagSlotsOf(bag), 1 + 3 + 2, 'twelve chests in one slot, every [Level 5] and [Level 6] in its own');
 });
 
-test('nothing bartered, no plan', () => {
-	assert.equal(materialPlan({ item: 'Steel', qty: 1, stock: {}, barterData, npcById }), null);
+test('the hold and a storage count slots as the bag does, and a load fits as far as the slots go', () => {
+	const hold = new Map([['[Level 4] Old Chest with Gold Coins', 40], ["[Level 5] Statue's Tear", 18], ['Cactus Rind', 300]]);
+	assert.equal(slotsHeld(hold), 1 + 18 + 1, 'a kind of [Level 4] and of a shore good, a slot each [Level 5]');
+	// A Volante: twenty slots, all of them taken by the hold above, so
+	// no other [Level 5] -- but any number more of the chests.
+	assert.equal(slotFit("[Level 5] Statue's Tear", 5, 18, 20, 20), 0, 'no slot left for another');
+	assert.equal(slotFit("[Level 5] Azure Quartz", 5, 0, 18, 20), 2, 'two free slots, two more');
+	assert.equal(slotFit('[Level 4] Old Chest with Gold Coins', 500, 40, 20, 20), 500, 'a kind already aboard stacks on');
+	assert.equal(slotFit('[Level 4] Panacea', 5, 0, 20, 20), 0, 'a new kind wants a slot of its own');
+	assert.equal(slotFit('[Level 4] Panacea', 5, 0, 19, 20), 5);
+	assert.equal(slotFit("[Level 5] Statue's Tear", 5, 0, 0, Infinity), 5, 'no cap, no limit');
 });
 
-test('the material list, once ticked, is all a material rung may use; what no island deals waits', () => {
-	const at = name => [...npcById.values()].find(n => n.at === name).id;
-	// Board B, 2026-09-04: Paratama and Duch dealt the Glue.
-	const showing = [
-		{ npcId: at('Paratama Island'), give: '[Level 3] Skull Decorated Teacup', recv: 'Deep Sea Memory Filled Glue' },
-		{ npcId: at('Duch Island'), give: '[Level 3] Old Hourglass', recv: 'Deep Sea Memory Filled Glue' }
-	];
-	const stock = { '[Level 3] Skull Decorated Teacup': 4, '[Level 3] Old Hourglass': 2 };
-	const p = materialPlan({ item: 'Deep Sea Memory Filled Glue', qty: 6, stock, barterData, npcById, showing });
-	assert.ok(p);
-	const isles = new Set(p.stops.map(s => s.npcId));
-	assert.deepEqual([...isles].sort(), showing.map(a => a.npcId).sort(), 'only the islands ticked are sailed to');
-	assert.equal(p.trades, 4, 'two attempts at each');
-	assert.equal(p.waits, 2, 'the rest waits for another refresh');
-	assert.ok(!p.covered);
-	assert.ok(!p.rungs.some(r => r.seed), 'nothing is bought for a rung no island deals today');
-	// Nothing ticked: the whole table, as before.
-	const all = materialPlan({ item: 'Deep Sea Memory Filled Glue', qty: 6, stock, barterData, npcById });
-	assert.equal(all.waits, 0);
-	assert.ok(all.covered);
+test('a [Great Ocean] good stands above a [Level 5] and below a [Level 6] in every order the planner keeps', () => {
+	const ocean = "[Level 5] Cox Pirates' Journal";
+	assert.ok(isGreatOcean(ocean) && isGreatOcean("[Great Ocean] Cox Pirates' Journal"));
+	assert.ok(!isGreatOcean("[Level 5] Statue's Tear"));
+	assert.ok(rankOf("[Level 5] Statue's Tear") < rankOf(ocean), 'above a [Level 5]');
+	assert.ok(rankOf(ocean) < rankOf('[Level 6] Brass Bowl Crate'), 'below a [Level 6]');
+	assert.ok(rankOf('[Level 6] Brass Bowl Crate') < rankOf('[Level 7] Golden Flour Sack'));
+	assert.ok(!stacks(ocean), 'and a slot each, as a [Level 5]');
+	const sorted = ['[Level 7] Golden Flour Sack', "[Level 5] Statue's Tear", '[Level 6] Brass Bowl Crate', ocean].sort((a, b) => rankOf(b) - rankOf(a));
+	assert.deepEqual(sorted, ['[Level 7] Golden Flour Sack', '[Level 6] Brass Bowl Crate', ocean, "[Level 5] Statue's Tear"]);
+	// The orders' "sell from Level N": kept from Level 6 up, sold from 5.
+	assert.ok(sellable(ocean, { ...PLAIN_ORDERS, sell: 5 }));
+	assert.ok(!sellable(ocean, { ...PLAIN_ORDERS, sell: 6 }), 'a wharf selling from Level 6 keeps it');
+	assert.ok(sellable('[Level 6] Brass Bowl Crate', { ...PLAIN_ORDERS, sell: 6 }));
+});
+
+test('goods put into a hold take its free slots in turn: a stack whole or not at all, a [Level 5] a unit a slot', () => {
+	const L5 = "[Level 5] Statue's Tear", L5b = '[Level 5] Azure Quartz', L3 = '[Level 3] Ancient Orders', L3b = '[Level 3] Narvo Sword';
+	const held = new Map([[L5, 17], [L3, 4]]);          // 18 of 20 slots
+	const r = fitInto(held, [[L3, 50], [L5b, 3], [L3b, 2]], 20);
+	assert.equal(r.free, 2);
+	assert.deepEqual(r.fit, [[L3, 50], [L5b, 2]], 'more of a stack aboard takes no slot; two [Level 5]s take the last two');
+	assert.deepEqual(r.left, [[L5b, 1], [L3b, 2]], 'a new stack finds no slot');
+	assert.deepEqual(held.get(L3), 4, 'the hold handed in is not written');
+	assert.deepEqual(fitInto(held, [[L5b, 9]], Infinity).left, [], 'a hold without slots takes everything');
+});
+
+test('a packing tick loads only what the hold has slots for, and hands back what did not go aboard', async () => {
+	const store = await import('../js/state.js');
+	const { packApply } = await import('../js/barter/packing.js');
+	const { holdSlotsUsed } = await import('../js/hold-room.js');
+	const L5 = "[Level 5] Statue's Tear", L5b = '[Level 5] Azure Quartz', L5c = '[Level 5] Luxury Patterned Fabric';
+	store.setHome('goods', '');
+	store.removeItems(Object.keys(store.getAllStock()), 'clear');
+	store.setProfile('crewShip', 'Carrack (Volante)');   // twenty slots
+	store.addStock(L5, 18, null, false);
+	store.setStockAt(L5b, 'Iliya Island', 5);
+	store.setStockAt(L5c, 'Iliya Island', 4);
+	const from = { name: 'Iliya Island' };
+	// One row: two of the five fit.
+	const one = packApply([{ key: `l|${L5b}`, item: L5b, n: 5 }], true, from);
+	assert.ok(one.done);
+	assert.deepEqual(one.left, [[L5b, 3]]);
+	assert.equal(one.free, 2);
+	assert.equal(store.stockAt(L5b, ''), 2, 'two aboard');
+	assert.equal(store.stockAt(L5b, 'Iliya Island'), 3, 'three wait ashore');
+	assert.equal(holdSlotsUsed(), 20);
+	// "Tick them all" on a full hold: nothing loads, and all of it is said.
+	const all = packApply([{ key: `l|${L5b}`, item: L5b, n: 3 }, { key: `l|${L5c}`, item: L5c, n: 4 }], true, from);
+	assert.equal(all.done, false);
+	assert.deepEqual(all.left, [[L5b, 3], [L5c, 4]]);
+	assert.equal(all.free, 0);
+	assert.equal(store.stockAt(L5c, 'Iliya Island'), 4);
+	assert.equal(holdSlotsUsed(), 20, 'never past the slots');
+	store.setProfile('crewShip', null);
+});
+
+// A later trip's card says whether its goods would fit at the start. A
+// kind that stacks and is aboard already takes no new slot for more of
+// it -- the count the hold itself keeps -- so a Volante at 20 of 20 with
+// a stack of [Level 2]s aboard is not "over" for five more of them.
+test('a later trip of a stacking kind already aboard is not counted a new slot on a full hold', async () => {
+	const { tripsHTML } = await import('../js/barter/packing.js');
+	const L2 = '[Level 2] Big Stone Slab';
+	const goodsStart = [{ item: L2, n: 300 }, ...Array.from({ length: 19 }, (_, i) => ({ item: `[Level 5] Spare ${i}`, n: 1 }))];
+	const plan = {
+		order: [{ id: 'a', rungs: [{ npcId: 58922, npc: 'Akenisi' }] }, { id: 'b', rungs: [{ npcId: 58979, npc: 'b' }] }],
+		lots: [[0], [1]],
+		stops: [
+			{ npcId: 58922, chain: 0, weightAfter: 2000, slotsAfter: 20 },
+			{ wharf: { at: 'Iliya Island' }, loads: [{ item: L2, n: 5, lot: 1 }], weightAfter: 2000, slotsAfter: 20 },
+			{ npcId: 58979, chain: 1, weightAfter: 1500, slotsAfter: 20 }
+		],
+		loaded: [], bought: [], taken: [], weightStart: 2000, slotsStart: 20, goodsStart
+	};
+	const hold = { limit: 15000, deal: 15000, max: 25500, slots: 20 };
+	const html = tripsHTML(plan, { name: 'Iliya Island' }, [], hold);
+	assert.doesNotMatch(html, /21 \/ 20 slots/, 'five more of a stack aboard add no slot');
+	assert.match(html, /it would fit at the start/);
+	// The same trip of a kind not aboard does take one more, and says so.
+	const fresh = { ...plan, stops: plan.stops.map(s => (s.loads ? { ...s, loads: [{ item: '[Level 2] Conch Shell Ornament', n: 5, lot: 1 }] } : s)) };
+	assert.match(tripsHTML(fresh, { name: 'Iliya Island' }, [], hold), /21 \/ 20 slots, more than it has/);
 });

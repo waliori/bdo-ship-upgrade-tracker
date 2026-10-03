@@ -38,7 +38,7 @@ import path from 'node:path';
 import { config, uploadsEnabled } from './config.js';
 import {
 	insertFeedback, listFeedback, setFeedbackStatus, deleteFeedback, feedbackStanding, feedbackShown,
-	insertFile, getFile, pendingFiles, attachFiles, deleteFile, staleFiles
+	insertFile, getFile, pendingFiles, attachFiles, deleteFile, staleFiles, getUser, uploadedBytes
 } from './db.js';
 import { sniff, EXTENSION } from './images.js';
 import { sessionUser, requireUser } from './session.js';
@@ -71,7 +71,7 @@ function publicEntry(entry, uid) {
 		id: entry.id, kind: entry.kind, status: entry.status,
 		text: entry.text, format: entry.format,
 		page: entry.page, version: entry.version,
-		username: entry.username, createdAt: entry.createdAt,
+		username: entry.username, former: entry.former, createdAt: entry.createdAt,
 		files: entry.files, mine: Boolean(uid) && entry.userId === uid
 	};
 }
@@ -86,6 +86,11 @@ export function requireAdmin(req, res, next) {
 
 /** Where one picture's bytes are. */
 const onDisk = file => path.resolve(config.uploadDir, `${file.id}.${EXTENSION[file.mime] || 'bin'}`);
+
+/** The files of pictures dropped from the table, gone from the disk. */
+export async function unlinkAll(files) {
+	for (const file of files || []) await unlink(file);
+}
 
 /** Unlink a picture, and do not care if it was already gone -- the row
  *  is the record, and a file the disk has lost is not worth an error. */
@@ -167,35 +172,62 @@ async function standing(userId) {
  * is on the far side of the internet, so the wait has a deadline.
  *
  * The words go across as they were written. Discord's own markup is
- * near enough the box's that bold stays bold and a list stays a list --
- * the pictures are the part that cannot travel through a webhook, so
- * they are counted instead and read in the box itself.
+ * near enough the box's that bold stays bold and a list stays a list.
+ * The pictures go as attachments, as many as fit under what one
+ * webhook call may carry; the rest are counted and read in the box.
  */
+const WEBHOOK_BYTES = 9 * 1024 * 1024;
+
+async function pictures(ids, feedbackId) {
+	const out = [];
+	let total = 0;
+	for (const id of ids) {
+		const file = await getFile(id);
+		if (!file || Number(file.feedbackId) !== Number(feedbackId)) continue;
+		if (total + file.bytes > WEBHOOK_BYTES) continue;
+		try {
+			const data = await fs.readFile(onDisk(file));
+			out.push({ name: `${feedbackId}-${out.length + 1}.${EXTENSION[file.mime] || 'bin'}`, mime: file.mime, data });
+			total += data.length;
+		} catch (err) {
+			if (err.code !== 'ENOENT') console.warn('[feedback] could not read an image for the webhook:', err.message);
+		}
+	}
+	return out;
+}
+
 async function ping(entry, id) {
 	if (!config.feedbackWebhook) return;
 	const label = { bug: 'Something is wrong', idea: 'An idea', other: 'Something else' }[entry.kind] || entry.kind;
 	const who = entry.username ? `${entry.username} (${entry.userId})` : `account ${entry.userId}`;
-	const shots = entry.ids.length
-		? `${entry.ids.length} image${entry.ids.length === 1 ? '' : 's'} attached — in the box`
-		: '';
-	const lines = [
-		`**${label}** #${id} from ${who}`,
-		entry.page ? `on: ${entry.page}` : '',
-		entry.version ? `build: ${entry.version}` : '',
-		entry.contact ? `reach: ${entry.contact}` : '',
-		shots,
-		'',
-		entry.text.length > 1800 ? `${entry.text.slice(0, 1800)}…` : entry.text
-	].filter(Boolean);
 	try {
-		await fetch(config.feedbackWebhook, {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			// Discord renders markdown, and a stranger's text must not be
-			// allowed to ping a role or everyone by writing @here.
-			body: JSON.stringify({ content: lines.join('\n'), allowed_mentions: { parse: [] } }),
-			signal: AbortSignal.timeout(8000)
-		});
+		const shots = entry.ids.length ? await pictures(entry.ids, id) : [];
+		const left = entry.ids.length - shots.length;
+		const lines = [
+			`**${label}** #${id} from ${who}`,
+			entry.page ? `on: ${entry.page}` : '',
+			entry.version ? `build: ${entry.version}` : '',
+			entry.contact ? `reach: ${entry.contact}` : '',
+			entry.agent ? `device: ${entry.agent}` : '',
+			left > 0 ? `${left} more image${left === 1 ? '' : 's'} — in the box` : '',
+			'',
+			entry.text.length > 1800 ? `${entry.text.slice(0, 1800)}…` : entry.text
+		].filter((l, i) => l || i === 6).join('\n');
+		// Discord renders markdown, and a stranger's text must not be
+		// allowed to ping a role or everyone by writing @here.
+		const payload = { content: lines.trim(), allowed_mentions: { parse: [] } };
+		let init;
+		if (shots.length) {
+			const form = new FormData();
+			payload.attachments = shots.map((f, i) => ({ id: i, filename: f.name }));
+			form.append('payload_json', JSON.stringify(payload));
+			shots.forEach((f, i) => form.append(`files[${i}]`, new Blob([f.data], { type: f.mime }), f.name));
+			init = { method: 'POST', body: form };
+		} else {
+			init = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) };
+		}
+		const res = await fetch(config.feedbackWebhook, { ...init, signal: AbortSignal.timeout(20000) });
+		if (!res.ok) console.warn('[feedback] the webhook answered', res.status);
 	} catch (err) {
 		console.warn('[feedback] the webhook did not take it:', err.message);
 	}
@@ -255,7 +287,37 @@ export function feedbackRoutes() {
 	 */
 	const image = express.raw({ type: Object.keys(EXTENSION), limit: config.maxImageBytes });
 
-	router.post('/feedback/image', requireUser, perAccount(40, 'That is a lot of images at once; try again in a minute.'), image, wrap(async (req, res) => {
+	// One upload in the air per account, and a handful across the
+	// process, taken before the body is read. The pending-picture ceiling
+	// below is a question asked of the table, and forty uploads sent at
+	// once all asked it before any of them had written a row -- so all
+	// forty got in, with four megabytes each held in memory meanwhile.
+	// The browser sends a report's pictures one after another, so a
+	// second one in flight is never the app.
+	const uploading = new Set();
+	let inFlight = 0;
+	const MAX_IN_FLIGHT = 8;
+	const oneAtATime = (req, res, next) => {
+		if (uploading.has(req.userId)) return res.status(429).json({ error: 'One image at a time, please.' });
+		if (inFlight >= MAX_IN_FLIGHT) {
+			res.set('Retry-After', '5');
+			return res.status(503).json({ error: 'The box is busy with other pictures; try again in a moment.' });
+		}
+		uploading.add(req.userId);
+		inFlight++;
+		let done = false;
+		const release = () => {
+			if (done) return;
+			done = true;
+			uploading.delete(req.userId);
+			inFlight--;
+		};
+		res.on('finish', release);
+		res.on('close', release);
+		next();
+	};
+
+	router.post('/feedback/image', requireUser, perAccount(20, 'That is a lot of images at once; try again in a minute.'), oneAtATime, image, wrap(async (req, res) => {
 		if (!uploadsEnabled) return res.status(503).json({ error: 'This copy of the app cannot take images.' });
 		const buf = Buffer.isBuffer(req.body) ? req.body : null;
 		if (!buf || !buf.length) return res.status(415).json({ error: 'Send the image itself, as image/png, image/jpeg, image/gif or image/webp.' });
@@ -269,6 +331,10 @@ export function feedbackRoutes() {
 		const held = await pendingFiles(req.userId);
 		if (held.length >= config.maxFilesPerEntry * 2) {
 			return res.status(429).json({ error: 'There are already that many images waiting to be sent. Send the report, or take one off.' });
+		}
+		if (await uploadedBytes() + buf.length > config.maxUploadBytes) {
+			console.warn('[feedback] the picture store is full; MAX_UPLOAD_BYTES refused an upload');
+			return res.status(507).json({ error: 'The box has no room for more pictures right now. Send the report without it, or try again later.' });
 		}
 
 		const id = crypto.randomBytes(12).toString('base64url');
@@ -349,10 +415,11 @@ export function feedbackRoutes() {
 		}
 
 		entry.userId = req.userId;
-		// The name rides in from the client's own /me answer: a user row
-		// lookup here would be one more query on the way in, and the id
-		// is the part that is verified.
-		entry.username = typeof req.body.username === 'string' ? req.body.username.slice(0, 40) : null;
+		// The name is the account's own, from its row: the inbox shows it
+		// to everyone, and a name the browser sent was any name at all --
+		// the admin's included.
+		const user = await getUser(req.userId);
+		entry.username = user && user.username ? String(user.username).slice(0, 40) : null;
 		entry.agent = typeof req.headers['user-agent'] === 'string' ? req.headers['user-agent'].slice(0, 200) : null;
 		const id = await insertFeedback(entry);
 		// Only this account's own unsent pictures can be attached, so an

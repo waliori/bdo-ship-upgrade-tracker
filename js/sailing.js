@@ -9,14 +9,18 @@
 // lets a player who has timed a leg replace it with their own -- one
 // timed leg calibrates every other.
 
-import { shipStats } from './ship_stats.js';
-import { loadout } from './part_stats.js';
-import { families } from './enhancement.js';
-import { crewTotals, fitSeats } from './sailors.js';
+import { T } from './i18n.js';
+import { FD } from './fmt.js';
 
 export const METRES_PER_PX = 0.25;
-// Metres a second at 100% speed. An estimate: replace it by timing a leg.
-export const DEFAULT_CAL = 11;
+// Metres a second at 100% speed, and the seconds every leg costs apart
+// from the sailing -- the turn out of the wharf, the run up to speed, the
+// approach. Fitted on 23 September 2026 from five legs of a Carrack timed
+// in game (3 to 14 km, every one within 17 s); it was 11 m/s with no cost
+// a leg before, and the clock rang a minute or two early. A ship's own
+// timed legs replace both (js/ship-pace.js).
+export const DEFAULT_CAL = 8.75;
+export const DEFAULT_LAG = 23;
 
 /** Metres along a polyline of chart points. */
 export function pathLength(points) {
@@ -45,26 +49,17 @@ export function legLengths(points) {
 	return legs;
 }
 
-/**
- * The speed a hull actually sails at: its own figure, the best part in
- * each slot, and the crew in the sail seats -- the same sum the Crew
- * screen shows, so the two never disagree.
- */
-export function speedPct(ship, stock = {}, roster = [], seats = {}) {
-	const s = shipStats[ship];
-	if (!s) return null;
-	const fit = loadout(ship, stock, families);
-	const crew = crewTotals(roster, fitSeats(ship, seats, s), s);
-	const parts = Number(fit.total.speed) || 0;
-	return { hull: s.speed, parts, crew: crew.speed, total: Math.round((s.speed + parts + crew.speed) * 10) / 10 };
-}
-
 export const speedMs = (pct, cal = DEFAULT_CAL) => cal * pct / 100;
 
 /* How much of its speed a hull keeps at the most it will move under.
-   An estimate: the game says an overweight ship is slower and gives no
-   curve, so the chart takes it as a straight line from full speed at
-   the limit to half at the overload cap. Replace when someone times it. */
+   ASSUMED, not measured: the game says an overweight ship is slower and
+   gives no curve, and nobody has timed a leg sailed heavy, so the chart
+   takes it as a straight line from full speed at the limit to half at
+   the overload cap. Every leg time sailed past the limit, and the worth
+   an hour of the "Full, loaded" pace, rests on it -- which is why such
+   a leg says "an estimate" where its time is shown, and why a leg timed
+   with Arrived while overweight teaches the ship's speed nothing. To
+   measure it: time one leg at about 150% with Arrived and fit the curve. */
 export const OVERLOAD_SLOWEST = 0.5;
 
 /**
@@ -101,9 +96,9 @@ export function sailRange(metres, pct, cal = DEFAULT_CAL, measured = false) {
 export function fmtRange(fast, slow) {
 	if (!Number.isFinite(fast) || !Number.isFinite(slow)) return '';
 	const a = Math.round(fast / 60), b = Math.round(slow / 60);
-	if (b < 1) return 'under a minute';
+	if (b < 1) return T('under a minute');
 	if (a === b) return fmtDuration(slow);
-	if (b < 60) return `${Math.max(1, a)}–${b} min`;
+	if (b < 60) return T('{a}–{b} min', { a: Math.max(1, a), b });
 	return `${fmtDuration(fast)} – ${fmtDuration(slow)}`;
 }
 
@@ -119,15 +114,50 @@ export function calibrate(metres, seconds, pct) {
 	return Math.round((metres / seconds) / (pct / 100) * 100) / 100;
 }
 
+/**
+ * What the legs a sailor timed say about their ship: metres a second at
+ * 100%, and the seconds every leg costs apart from the sailing -- the
+ * turn out of the wharf, the run up to speed, the slow approach. Each
+ * sample is { m, s, pct }: a leg's metres, the seconds from the press
+ * that sent the ship off to the press that said it had arrived, and the
+ * speed it sailed at.
+ *
+ * With legs of different lengths the two are told apart by a straight
+ * line through them -- seconds against metres at 100% -- whose slope is
+ * the speed and whose foot is the cost a leg. With fewer, or legs all of
+ * a length, the middle leg's speed stands for both. Null when no sample
+ * is usable.
+ */
+export function learnSpeed(samples = []) {
+	const pts = samples
+		.filter(x => x && x.m > 0 && x.s > 0 && x.pct > 0)
+		.map(x => ({ x: x.m / (x.pct / 100), y: x.s }))
+		.filter(p => p.x / p.y >= 2 && p.x / p.y <= 40);
+	const n = pts.length;
+	if (!n) return null;
+	const r2 = v => Math.round(v * 100) / 100;
+	if (n >= 4) {
+		const xs = pts.map(p => p.x);
+		const mx = xs.reduce((a, v) => a + v, 0) / n, my = pts.reduce((a, p) => a + p.y, 0) / n;
+		let sxx = 0, sxy = 0;
+		for (const p of pts) { sxx += (p.x - mx) ** 2; sxy += (p.x - mx) * (p.y - my); }
+		const b = sxx > 0 ? sxy / sxx : 0, a = my - b * mx;
+		if (Math.max(...xs) >= Math.min(...xs) * 1.8 && b > 0 && a >= 0 && a <= 120 && 1 / b >= 2 && 1 / b <= 40) return { cal: r2(1 / b), lag: Math.round(a), n };
+	}
+	const rates = pts.map(p => p.x / p.y).sort((a, b) => a - b);
+	const mid = n % 2 ? rates[(n - 1) / 2] : (rates[n / 2 - 1] + rates[n / 2]) / 2;
+	return { cal: r2(mid), lag: 0, n };
+}
+
 export function fmtDistance(m) {
 	if (!(m >= 0)) return '';
-	return m < 950 ? `${Math.round(m / 10) * 10} m` : `${(m / 1000).toFixed(m < 9950 ? 1 : 0)} km`;
+	return m < 950 ? T('{n} m', { n: Math.round(m / 10) * 10 }) : T('{n} km', { n: FD(m / 1000, m < 9950 ? 1 : 0) });
 }
 
 export function fmtDuration(s) {
 	if (!Number.isFinite(s) || s < 0) return '';
 	const min = Math.round(s / 60);
-	if (min < 1) return 'under a minute';
-	if (min < 60) return `${min} min`;
-	return `${Math.floor(min / 60)} h ${String(min % 60).padStart(2, '0')} min`;
+	if (min < 1) return T('under a minute');
+	if (min < 60) return T('{n} min', { n: min });
+	return T('{h} h {m} min', { h: Math.floor(min / 60), m: String(min % 60).padStart(2, '0') });
 }

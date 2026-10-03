@@ -2,6 +2,7 @@
 // sits in the shell above the tabs instead of belonging to one screen.
 
 import { esc, F, FC } from './fmt.js';
+import { T, gameName } from './i18n.js';
 import * as store from './state.js';
 import { img } from './ui-bits.js';
 import { rows, totalsToGo, CROW_COIN, SILVER, SANGPYEONG, STONES } from './ui-state.js';
@@ -21,8 +22,8 @@ function purses() {
 	const totals = totalsToGo();
 
 	const entries = [
-		{ item: CROW_COIN, label: 'Crow Coins', need: totals.coins, where: "Crow Coin Shop, Oquilla's Eye" },
-		{ item: SILVER, label: 'Silver', need: totals.silver, where: 'Falasi, port of Epheria', glyph: '◉' }
+		{ item: CROW_COIN, label: T('Crow Coins'), need: totals.coins, where: T("Crow Coin Shop, Oquilla's Eye") },
+		{ item: SILVER, label: T('Silver'), need: totals.silver, where: T('Falasi, port of Epheria') }
 	];
 
 	const carried = (item, label, where) => {
@@ -30,8 +31,8 @@ function purses() {
 		return { item, label, need, where };
 	};
 
-	const optional = [carried(SANGPYEONG, 'Sangpyeong Coins', 'Moodle Village dailies')];
-	STONES.forEach(item => optional.push(carried(item, item, 'spent on enhancement attempts')));
+	const optional = [carried(SANGPYEONG, T('Sangpyeong Coins'), T('Moodle Village dailies'))];
+	STONES.forEach(item => optional.push(carried(item, item, T('spent on enhancement attempts'))));
 
 	optional
 		.filter(e => e.need > 0 || store.getStock(e.item) > 0)
@@ -50,23 +51,23 @@ function purseFacts(e) {
 		short,
 		state: !e.need ? 'idle' : short ? 'short' : 'ok',
 		sub: !e.need
-			? 'none needed yet'
+			? T('none needed yet')
 			: short
-				? `${FC(short)} short of ${FC(e.need)}`
-				: `enough for all ${FC(e.need)}`
+				? T('{short} short of {need}', { short: FC(short), need: FC(e.need) })
+				: T('enough for all {need}', { need: FC(e.need) })
 	};
 }
 
 /** One purse, as a chip with the number in it typed straight over. */
 function purseChip(e) {
 	const { held, state, sub } = purseFacts(e);
-	return `<label class="pouch-item ${state}" title="${esc(e.item)} — ${esc(e.where)}">
+	return `<label class="pouch-item ${state}" title="${esc(gameName(e.item))} — ${esc(e.where)}">
 		${e.glyph ? `<span class="pouch-glyph" aria-hidden="true">${e.glyph}</span>` : img(e.item, 'pouch-icon')}
 		<span class="pouch-body">
-			<span class="pouch-k">${esc(e.label)}</span>
+			<span class="pouch-k">${esc(gameName(e.label))}</span>
 			<input class="pouch-input" type="text" inputmode="numeric" value="${FC(held)}"
 				data-act="purse" data-item="${esc(e.item)}" data-exact="${held}" title="${F(held)}"
-				aria-label="${esc(e.label)} you hold">
+				aria-label="${T('{name} you hold', { name: esc(gameName(e.label)) })}">
 			<span class="pouch-need">${esc(sub)}</span>
 		</span>
 	</label>`;
@@ -81,7 +82,7 @@ function purseChip(e) {
  * once and every screen then reads.
  */
 function barHTML() {
-	return `<span class="pouch-title">Carrying</span><div class="pouch-list">${purses().map(purseChip).join('')}${profileHTML()}</div>`;
+	return `<span class="pouch-title">${T('Carrying')}</span><div class="pouch-list">${purses().map(purseChip).join('')}${profileHTML()}</div>`;
 }
 
 /**
@@ -100,8 +101,8 @@ function peekHTML() {
 	const said = [];
 	const bit = e => {
 		const { held, short, state, sub } = purseFacts(e);
-		said.push(`${e.label} ${F(held)}, ${sub}`);
-		return `<span class="peek-bit ${state}" title="${esc(e.label)} — ${esc(sub)}">${e.glyph
+		said.push(`${gameName(e.label)} ${F(held)}, ${sub}`);
+		return `<span class="peek-bit ${state}" title="${esc(gameName(e.label))} — ${esc(sub)}">${e.glyph
 			? `<span class="peek-glyph" aria-hidden="true">${e.glyph}</span>`
 			: img(e.item, 'peek-icon')}<b>${FC(held)}</b>${short ? `<i>−${FC(short)}</i>` : ''}</span>`;
 	};
@@ -111,10 +112,10 @@ function peekHTML() {
 	// enhancing, which is to say inside the sheet, not in passing.
 	const rest = list.slice(2);
 	return `<button class="pouch-peek" data-act="pouch"
-		title="What you are carrying, and the numbers about you — press to set them"
-		aria-label="Carrying: ${esc(said.join('; '))}. Press to set these and the numbers about you.">
+		title="${T('What you are carrying, and the numbers about you — press to set them')}"
+		aria-label="${T('Carrying: {list}. Press to set these and the numbers about you.', { list: esc(said.join('; ')) })}">
 		${head}
-		${rest.length ? `<span class="peek-bit more" title="${esc(rest.map(e => `${e.label} ${F(store.getStock(e.item))}`).join(' · '))}">+${rest.length}</span>` : ''}
+		${rest.length ? `<span class="peek-bit more" role="img" aria-label="${esc(T('{n} more carried: {list}', { n: rest.length, list: rest.map(e => `${gameName(e.label)} ${F(store.getStock(e.item))}`).join(' · ') }))}" title="${esc(rest.map(e => `${gameName(e.label)} ${F(store.getStock(e.item))}`).join(' · '))}">+${rest.length}</span>` : ''}
 		${profilePeekHTML()}
 		<span class="pouch-fold" aria-hidden="true">✎</span>
 	</button>`;
@@ -145,10 +146,10 @@ export function pouchHTML() {
  * that is already a press from being gone.
  */
 export function openPouch() {
-	const host = openDialog(`<h2>Carrying</h2>
-		<p class="dialog-copy">What is in the bags, and what is true of you as a sailor. Every screen plans from these; they are typed here once and read everywhere.</p>
+	const host = openDialog(`<h2>${T('Carrying')}</h2>
+		<p class="dialog-copy">${T('What is in the bags, and what is true of you as a sailor. Every screen plans from these; they are typed here once and read everywhere.')}</p>
 		<div class="pouch-sheet">${sheetHTML()}</div>
-		<div class="dialog-actions"><button class="act" data-close>Done</button></div>`);
+		<div class="dialog-actions"><button class="act" data-close>${T('Done')}</button></div>`);
 	// The dialog gives the keyboard to its first field, which here would
 	// throw up a phone's keyboard over the sheet before it has been
 	// read. Done is the safe landing, and the fields are a tap away.
@@ -226,7 +227,6 @@ export function paintPouch({ force = false } = {}) {
 		// of its own -- a fold, a blur -- lands between two beats of the
 		// minute hand. Without this the figure is blank until the next.
 		tickClocks();
-		measurePouch();
 	} finally {
 		painting = false;
 	}
@@ -262,13 +262,3 @@ function holdFocus(host) {
 	};
 }
 
-/**
- * Publish the pouch's height so anything else that sticks (the inventory
- * detail panel) can clear it instead of sliding underneath.
- */
-export function measurePouch() {
-	const host = document.getElementById('pouch');
-	if (!host) return;
-	const h = getComputedStyle(host).position === 'sticky' ? host.offsetHeight : 0;
-	document.documentElement.style.setProperty('--pouch-h', `${h}px`);
-}

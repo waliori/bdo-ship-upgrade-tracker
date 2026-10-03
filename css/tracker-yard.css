@@ -35,6 +35,9 @@
 .row-main { flex: 1 1 200px; min-width: 0; }
 .row-name { font-weight: 600; font-size: 13.5px; color: var(--ink-row); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .row-sub { font-size: 11.5px; color: var(--ink-mute); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* The plan row's reason may take two lines: cut at one, the half that
+   named the build actually short was the half that went. */
+.row-sub.plan-why { white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; }
 .row-meter { flex: 2 1 220px; min-width: 160px; }
 .row-tail { flex: 0 0 auto; display: flex; align-items: center; gap: 10px; }
 
@@ -62,17 +65,7 @@
 .badge.red { color: var(--red); }
 .badge.blue { color: var(--blue); }
 
-.mini-btn {
-  background: var(--blue-glow);
-  border: 1px solid var(--blue-edge);
-  color: var(--blue);
-  border-radius: var(--r-sm);
-  padding: 5px 13px;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.mini-btn:hover:not(:disabled) { background: rgba(var(--blue-rgb), 0.25); }
+/* .mini-btn is a primary button, drawn in tracker-base.css. */
 
 /* ---- builds ------------------------------------------------------- */
 
@@ -108,26 +101,27 @@
 .build-state { font-size: 11.5px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--blue); }
 .build-state.done { color: var(--teal); }
 .build-state.paused { color: var(--ink-off); }
+.build-state.held { color: var(--teal-hi); }
+/* The build's own item is already in the inventory: nothing to craft,
+   only to say it is done. */
+.build-held {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px;
+  margin-top: 8px; padding: 7px 10px;
+  border: 1px solid rgba(78, 201, 174, 0.3); border-radius: var(--r-sm);
+  background: rgba(78, 201, 174, 0.08);
+  font-size: 12px; color: var(--ink);
+}
+.build-held span { flex: 1 1 180px; }
+.build-held .act { flex: none; white-space: nowrap; padding: 7px 16px; }
 .build .bar { margin: 9px 0 6px; }
 .build-meta { font-size: 11.5px; color: var(--ink-mute); }
 .build-meta .n { font-family: var(--font-display); color: var(--ink-dim); }
 .build-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.build-actions .build-remove { display: inline-flex; align-items: center; justify-content: center; margin-left: 10px; position: relative; }
+.build-actions .build-remove::before { content: ''; position: absolute; left: -9px; top: 20%; bottom: 20%; border-left: 1px solid var(--line-btn); }
 
-.sq-btn {
-  width: 30px;
-  height: 30px;
-  background: none;
-  border: 1px solid rgba(var(--line-rgb), 0.2);
-  color: var(--ink-dim);
-  border-radius: var(--r-sm);
-  font-size: 11px;
-  display: grid;
-  place-items: center;
-}
-
-.sq-btn:hover:not(:disabled) { border-color: var(--line-btn-hi); color: var(--ink-hi); }
-.sq-btn.danger { border-color: rgba(232, 122, 109, 0.25); color: var(--red-soft); }
-.sq-btn.danger:hover { border-color: rgba(232, 122, 109, 0.6); color: var(--red); }
+/* .sq-btn, the framed icon button, is drawn in tracker-base.css. */
+.sq-btn { font-size: 11px; }
 
 .stepper {
   display: flex;
@@ -165,6 +159,13 @@
 .inv-left { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 
 .inv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px; }
+/* A band a level: the head spans the grid, the tiles under it carry the level on their top edge. */
+.inv-band { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; margin-top: 6px; padding: 4px 0 2px; border-bottom: 1px solid color-mix(in srgb, var(--tier, var(--line)) 45%, transparent); font-size: 12px; color: var(--ink-mute); }
+.inv-band:first-child { margin-top: 0; }
+.inv-band > i { display: inline-flex; align-items: center; justify-content: center; min-width: 26px; height: 20px; padding: 0 6px; border-radius: 5px; font-family: var(--font-display); font-style: normal; font-size: 11px; font-weight: 700; color: var(--tier); background: color-mix(in srgb, var(--tier) 14%, transparent); border: 1px solid color-mix(in srgb, var(--tier) 55%, transparent); }
+.inv-band > b { font-family: var(--font-display); font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--tier, var(--ink-mid)); }
+.inv-band.plain { --tier: var(--ink-mute); }
+.tile.tiered { border-top: 2px solid color-mix(in srgb, var(--tier) 75%, transparent); }
 
 .tile {
   position: relative;
@@ -186,6 +187,10 @@
 .tile img { width: 38px; height: 38px; border-radius: var(--r-icon); object-fit: contain; }
 .tile-qty { font-family: var(--font-display); font-size: 14px; font-weight: 700; color: var(--ink-hi); }
 .tile-name { font-size: 10px; color: var(--ink-soft); line-height: 1.25; height: 25px; overflow: hidden; }
+/* A trade good's name wears its level's colour, the way the tier is read everywhere else in the app. */
+.tile-name.tiered { color: var(--tier); font-weight: 600; height: auto; max-height: 38px; }
+.tile-tier { display: inline-block; margin-right: 4px; padding: 0 4px; border-radius: 4px; font-family: var(--font-display); font-size: 9px; font-weight: 700; font-style: normal; line-height: 14px; color: var(--tier); border: 1px solid color-mix(in srgb, var(--tier) 55%, transparent); background: color-mix(in srgb, var(--tier) 12%, transparent); vertical-align: 1px; }
+.detail-name.tiered { color: var(--tier); }
 .tile .bar { width: 100%; height: 4px; border-radius: 2px; background: rgba(var(--line-rgb), 0.12); }
 
 .detail {
@@ -195,8 +200,7 @@
   padding: 20px;
   backdrop-filter: blur(8px);
   position: sticky;
-  /* Clear the pouch, which sticks above it. */
-  top: calc(var(--pouch-h, 0px) + 16px);
+  top: 16px;
 }
 
 .detail-head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
@@ -205,19 +209,19 @@
 
 .qty-row { display: flex; align-items: center; gap: 6px; margin-bottom: 18px; }
 
+/* A secondary button (tracker-base.css) cut to the stepper's height. */
 .qty-btn {
   height: 32px;
   min-width: 32px;
   padding: 0 10px;
-  background: none;
-  border: 1px solid rgba(var(--line-rgb), 0.25);
-  color: var(--ink-dim);
-  border-radius: var(--r-sm);
   font-size: 12px;
-  font-weight: 600;
 }
-
-.qty-btn:hover { color: var(--ink-hi); border-color: var(--line-btn-hi); }
+.qty-btn.sm { min-width: 34px; padding: 3px 6px; font-size: 11.5px; }
+/* Six steps round the figure: the buttons give up their padding so the
+   figure keeps room for four digits. */
+.qty-row.wide { gap: 4px; }
+.qty-row.wide .qty-btn { padding: 0 7px; }
+.qty-row.wide .qty-val { min-width: 56px; }
 .qty-val {
   flex: 1;
   min-width: 0;
@@ -274,7 +278,7 @@
   background: rgba(var(--shade-rgb), 0.35);
 }
 
-.detail-note { font-size: 11px; color: var(--ink-faint); line-height: 1.5; }
+.detail-note { font-size: 11px; font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--ink-faint); line-height: 1.5; }
 
 .act.wide { width: 100%; justify-content: center; margin-bottom: 16px; }
 
@@ -317,24 +321,8 @@
 
 .detail-actions { display: flex; gap: 8px; }
 
-.act {
-  flex: 1;
-  background: rgba(var(--blue-rgb), 0.15);
-  border: 1px solid rgba(var(--blue-rgb), 0.45);
-  color: var(--blue-hi);
-  border-radius: var(--r-btn);
-  padding: 9px 0;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.act:hover:not(:disabled) { background: rgba(var(--blue-rgb), 0.3); }
-.act.quiet { background: none; border-color: rgba(var(--line-rgb), 0.25); color: var(--ink-dim); font-weight: 600; }
-.act.quiet:hover:not(:disabled) { border-color: var(--line-btn-hi); color: var(--ink-hi); }
-
-/* For the one action in the app that cannot be undone. */
-.act.bad { background: rgba(232, 122, 109, 0.16); border-color: var(--red-edge); color: var(--red-soft); }
-.act.bad:hover:not(:disabled) { background: rgba(232, 122, 109, 0.3); }
+/* .act, the primary button, and its quiet, danger and go spellings are
+   drawn with every other kind under "buttons" in tracker-base.css. */
 
 /* ---- workshop ----------------------------------------------------- */
 
@@ -384,34 +372,17 @@
   color: var(--ink-hi);
 }
 
-.act.go {
-  background: rgba(78, 201, 174, 0.14);
-  border-color: var(--teal-edge);
-  color: var(--teal-hi);
-  padding: 7px 0;
-  font-size: 12.5px;
-}
-
-.act.go:hover:not(:disabled) { background: rgba(78, 201, 174, 0.28); }
+/* Craft and All sit beside the count field, at its height. */
+.craft-actions .act { padding: var(--btn-pad-md); font-size: var(--btn-fs-md); }
 
 .enh-level { font-family: var(--font-display); font-size: 13px; color: var(--ink-dim); flex-shrink: 0; }
 .enh-cost { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--ink-mute); flex-shrink: 0; min-width: 70px; }
 .enh-cost img { width: 18px; height: 18px; border-radius: 3px; object-fit: contain; }
-.enh-actions { display: flex; gap: 7px; flex-shrink: 0; }
+/* A yellow row has three verdicts; they wrap inside their column rather
+   than shoving the column under the row. */
+.enh-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; flex-shrink: 0; max-width: 250px; }
 
-.pill-btn {
-  border-radius: var(--r-sm);
-  padding: 6px 14px;
-  font-size: 12px;
-  font-weight: 700;
-  background: var(--teal-glow);
-  border: 1px solid var(--teal-edge);
-  color: var(--teal-hi);
-}
-
-.pill-btn:hover:not(:disabled) { background: rgba(78, 201, 174, 0.26); }
-.pill-btn.bad { background: rgba(232, 122, 109, 0.08); border-color: var(--red-edge); color: var(--red-soft); }
-.pill-btn.bad:hover:not(:disabled) { background: rgba(232, 122, 109, 0.2); }
+/* .pill-btn (and .pill-btn.bad) are drawn in tracker-base.css. */
 
 /* ---- to get ------------------------------------------------------- */
 
@@ -473,7 +444,7 @@
    something", and two lines cut every one of them at the same word. */
 .want-name { font-size: 10px; color: var(--ink-soft); line-height: 1.2; max-height: 36px; overflow: hidden; }
 .want-of { font-size: 9.5px; color: var(--ink-faint); }
-.want-more { align-self: center; padding: 0 8px; }
+.want-more { align-self: center; }
 
 /* A save that is not reaching the disk: said in red under the header
    for as long as it lasts, with Export in reach. */
@@ -510,6 +481,9 @@
 
 .group-total { font-family: var(--font-display); font-size: 12.5px; }
 
+.held-box { display: inline-flex; align-items: center; gap: 6px; flex: none; font-size: 11.5px; color: var(--ink-faint); }
+.held-box .own-input { width: 64px; }
+.held-box + .qty-out, .held-box + .way-qty { min-width: 84px; text-align: right; }
 .qty-out { font-family: var(--font-display); font-size: 13.5px; font-weight: 600; color: var(--red); }
 
 
@@ -523,3 +497,54 @@
 .buy-sum.over { background: rgba(232, 122, 109, 0.1); border-color: var(--red-edge); }
 .buy-sum.over b { color: var(--red); }
 .coin-block .coin-buy { width: 100%; justify-content: center; margin-top: 6px; }
+
+/* To Get: today's board. */
+.get-today .way-step-body { padding: 6px 18px 14px; }
+.get-today-pick { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; font-size: 12.5px; color: var(--ink-mid); }
+.get-today-empty, .get-today-off { margin: 4px 0; font-size: 12.5px; color: var(--ink-mute); }
+.get-today-item { padding: 10px 0; border-top: 1px solid var(--line-soft); }
+.get-today-item:first-child { border-top: 0; }
+.get-today-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.get-today-name { font-weight: 600; color: var(--ink-hi); }
+.get-today-need { margin-left: auto; font-size: 12px; color: var(--ink-mute); }
+.get-today-need b { color: var(--amber); font-weight: 600; }
+.get-today-need b.good { color: var(--teal); }
+.get-today-deal { display: grid; grid-template-columns: 24px minmax(120px, 1fr) minmax(160px, 1.3fr) minmax(170px, 1.4fr); gap: 4px 12px; align-items: center; padding: 6px 0 6px 34px; font-size: 12.5px; color: var(--ink-mid); }
+.get-today-deal.done { opacity: 0.5; }
+.get-today-tick { width: 22px; height: 22px; border-radius: 6px; border: 1px solid var(--line-btn); background: none; color: var(--teal); font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.get-today-deal.done .get-today-tick { border-color: var(--teal); background: var(--teal-glow); }
+.get-today-isle b { color: var(--ink-hi); font-weight: 600; }
+.get-today-trade { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.get-today-roll { font-style: normal; font-size: 11px; color: var(--amber); }
+.get-today-left { font-size: 11.5px; color: var(--ink-faint); }
+.get-today-left .warn { color: var(--red); font-weight: 600; }
+.get-today-foot { display: flex; justify-content: flex-end; align-items: center; gap: 8px; padding-top: 8px; }
+.way-today { color: var(--blue); }
+.way-today.off { color: var(--ink-faint); }
+@media (max-width: 720px) {
+  .get-today-deal { grid-template-columns: 24px 1fr; padding-left: 0; }
+  .get-today-deal > :nth-child(n+3) { grid-column: 2; }
+  .get-today-need { margin-left: 0; width: 100%; }
+  .row .held-box { order: 5; }
+}
+
+.get-today-deal.draw { opacity: 0.8; }
+.get-today-deal.draw .get-today-tick { visibility: hidden; }
+.get-today-done { margin: 4px 0 10px; padding: 8px 12px; border-radius: 8px; background: color-mix(in srgb, var(--amber) 10%, transparent); border: 1px solid color-mix(in srgb, var(--amber) 35%, transparent); font-size: 12.5px; color: var(--ink-mid); }
+.get-blocked { display: flex; flex-direction: column; gap: 6px; }
+.get-blocked-row { display: grid; grid-template-columns: minmax(120px, 0.8fr) minmax(200px, 1.5fr) minmax(160px, 1.2fr); gap: 10px; align-items: center; padding: 8px 10px; border-radius: 8px; background: var(--panel-inset); border-left: 3px solid var(--red); font-size: 12.5px; }
+.get-blocked-row.gate { border-left-color: var(--ink-faint); }
+.get-blocked-row.done { border-left-color: var(--teal); }
+.get-blocked-isle { display: flex; flex-direction: column; }
+.get-blocked-isle small { color: var(--ink-faint); }
+.get-blocked-swap { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.get-blocked-why { color: var(--ink-mute); }
+@media (max-width: 720px) { .get-blocked-row { grid-template-columns: 1fr; } }
+
+.est-badge { display: inline-flex; align-items: center; margin-left: 6px; padding: 0 7px; border-radius: 999px; border: 1px dashed color-mix(in srgb, var(--amber) 55%, transparent); color: var(--amber); font-size: 10.5px; font-weight: 600; letter-spacing: 0.02em; vertical-align: 2px; }
+/* The slots the goods take, storage by storage (Inventory). */
+.inv-slots { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin: 6px 0 2px; font-size: 12px; color: var(--ink-mute); }
+.inv-slots-k { font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
+.inv-slot-at { display: inline-flex; gap: 5px; align-items: baseline; }
+.inv-slot-at > b { font-family: var(--font-display); color: var(--ink-mid); }
+.inv-slot-at.warn > b { color: var(--red); }

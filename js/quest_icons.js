@@ -40,6 +40,8 @@ export const QUEST_ICONS = {
 	'3727/1': 'robinia.webp',
 	'3727/2': 'robinia.webp',
 	'3736/12': 'newsea_001.webp',
+	'3736/6': 'newsea_001.webp',
+	'3736/7': 'newsea_001.webp',
 	'3736/9': 'newsea_001.webp',
 	'3736/10': '00043797.webp',
 	'3736/11': '00043797.webp',

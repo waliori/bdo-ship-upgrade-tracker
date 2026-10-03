@@ -1,0 +1,35 @@
+This is the Workshop. It makes what you have the materials for, and records the enhancement attempts you make in game.
+Ready to craft lists every recipe your stock covers, and how many of each you could make right now.
+The chips under each name are its ingredients: what you hold, over what one craft takes.
+Type a batch size and press Craft. Here, ten Violent Wave Plywood.
+Crafting moves real stock. The scales come out, and the plywood goes in.
+All makes as many as the stock allows, in one press.
+Where the game has a Mass Process for a recipe, tick it, and the extra it yields is counted too.
+Crafted the wrong thing? Undo steps it back, and Redo puts it forward.
+Enhancement is kept apart, because an attempt can fail.
+Each row is a part you own that can go higher: the next level, what it adds to the ship, and the stones one attempt takes.
+The chance is your real one at the failstack you type, and the line under it says what finishing the part should cost, and the most it could.
+Type your failstack, and the chance moves with it.
+Then record what happened in game. Failed takes the stones; a blue or green part keeps its level.
+Succeeded takes the stones too, and moves the part up a level.
+Yellow parts are different: a failure drops a level unless Cron Stones held it, so their rows ask which.
+The Inventory is one tile per thing you hold, or still need.
+Filter it to what is needed, short, owned, or free to spend.
+Or by kind: materials, ship parts, trade goods, and each barter level from one to seven.
+Type a name to find one thing.
+Open its tile, and the panel says where it is held, which builds have reserved it, and which quests pay it.
+The count can be set here too, a step at a time or typed straight in.
+A count can be kept per storage. Add one, and the total is your bags plus every storage you have noted it at.
+Further down, every way of getting it, priced.
+The Crow Coin Shop price, against what making it costs, with its own ingredients priced all the way down.
+Anything the Crow Coin Shop sells has a Buy. It asks how many, shows what is left of the purse, and records the goods and the coins as one change.
+Already levelled a part in game? Find it in the Inventory.
+A part and all its levels are one tile. Pick the level you reached.
+Then move one to it.
+The tile now holds one at plus seven. No stones were spent: this records what already happened.
+The Tree shows why a build needs what it needs.
+Pick a build, and its recipe opens as a tree: the part, over what it is made from, over what those are made from.
+Fold any branch away, or expand them all at once.
+Every line carries your count, and it can be typed in place, as on the Plan.
+The map pin beside a sea material opens the Map on where it comes from.
+That is the Workshop. Next, To Get: one plan for everything still missing.

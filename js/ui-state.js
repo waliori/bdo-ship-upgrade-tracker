@@ -7,6 +7,7 @@
 // recompute() go through the setters below, because an imported
 // binding cannot be assigned from the importing side.
 
+import { T, TT, said } from './i18n.js';
 import { recipes as allRecipes } from './recipes.js';
 import { coins } from './sea_coins.js';
 import { falasi } from './falasi_vendor.js';
@@ -15,6 +16,7 @@ import * as store from './state.js';
 import { plan, craftableNow, stockForCrafting, parseEnhanced, resolveRoutes, ownedLevel } from './planner.js';
 import { parleyOff } from './ship.js';
 import { readOdds } from './barter-odds.js';
+import { materialPages } from './barter-layouts.js';
 
 // The recipe book as the user's chosen routes make it. An upgrade with
 // two ways in -- the Caravel, the Galleass -- reads here as whichever one
@@ -54,12 +56,21 @@ export let view = 'plan';
 export let query = '';
 export let planFilter = 'all';
 export let invFilter = 'all';
-export let invKind = 'all';     // all | materials | parts | goods
+/** Every answer the Inventory's chip rows can be set to. */
+export const INV_KINDS = ['all', 'materials', 'parts', 'goods', 'land', 'lv1', 'lv2', 'lv3', 'lv4', 'lv5', 'lv6', 'lv7'];
+
+// all | materials | parts | goods | land | lv1..lv7. The first four are
+// what a thing *is* (kinds.js); the rest are the barter ladder read as
+// a filter, which is how a sailor thinks about a hold -- "show me my
+// Level 2s" -- and which used to mean typing "2" in the search box and
+// hoping. They share the one variable because they are one question
+// asked of the same list, and only one answer can be lit at a time.
+export let invKind = 'all';
 export let selected = null;
 export let snapshot = null;
 export let rows = {};
 export let barterData = null;
-export let combos = null;       // the forty barter boards, js/barter_combos.json, once read
+export let combos = null;       // the forty barter boards, from the game's tables (barter-layouts.js), once read
 export let matBoards = null;    // the material boards recorded, js/material_boards.json, once read
 
 export const setView = id => { view = id; };
@@ -69,7 +80,7 @@ export const setQuery = q => { query = q; };
 // caller redraws on its own and the settings listener would draw twice.
 export const setPlanFilter = f => { planFilter = f; store.setSetting('planFilter', f, true); };
 export const setInvFilter = f => { invFilter = f; store.setSetting('invFilter', f, true); };
-export const setInvKind = k => { invKind = k; store.setSetting('invKind', k, true); };
+export const setInvKind = k => { invKind = INV_KINDS.includes(k) ? k : 'all'; store.setSetting('invKind', invKind, true); };
 export const setSelected = item => { selected = item; };
 // The Inventory's select mode: several tiles ticked for one action --
 // moved to a storage together, or handed back to the bags.
@@ -101,13 +112,13 @@ function hydrate() {
 	if (SORTS.some(x => x.id === s)) sort = s;
 	planFilter = chip('planFilter', planFilter);
 	invFilter = chip('invFilter', invFilter);
-	invKind = ['all', 'materials', 'parts', 'goods'].includes(store.getSetting('invKind', null)) ? store.getSetting('invKind') : invKind;
+	invKind = INV_KINDS.includes(store.getSetting('invKind', null)) ? store.getSetting('invKind') : invKind;
 }
 export const SORTS = [
-	{ id: 'short', label: 'Short first' },
-	{ id: 'need', label: 'Most needed' },
-	{ id: 'have', label: 'Most owned' },
-	{ id: 'name', label: 'A to Z' }
+	{ id: 'short', label: TT('Short first') },
+	{ id: 'need', label: TT('Most needed') },
+	{ id: 'have', label: TT('Most owned') },
+	{ id: 'name', label: TT('A to Z') }
 ];
 
 /** A comparator over item names for the chosen order. */
@@ -124,8 +135,8 @@ export function sorter(mode, stock) {
 
 /** The sort control, the same on every screen that has one. */
 export function sortSelect() {
-	return `<select class="select" data-act="sort" aria-label="Order the rows by">${SORTS.map(s =>
-		`<option value="${s.id}"${s.id === sort ? ' selected' : ''}>${s.label}</option>`).join('')}</select>`;
+	return `<select class="select" data-act="sort" aria-label="${T('Order the rows by')}">${SORTS.map(s =>
+		`<option value="${s.id}"${s.id === sort ? ' selected' : ''}>${said(s.label)}</option>`).join('')}</select>`;
 }
 
 /* ------------------------------------------------------------------ *
@@ -215,7 +226,9 @@ let oddsMemo = null;
 export function oddsIndex() {
 	if (!combos && !matBoards) return null;
 	if (!oddsMemo || oddsMemo.combos !== combos || oddsMemo.boards !== matBoards) {
-		oddsMemo = { combos, boards: matBoards, index: readOdds({ boards: matBoards, combos }) };
+		// The material list's odds from the game's tables once they are
+		// loaded (they come with the layouts), else from the boards read.
+		oddsMemo = { combos, boards: matBoards, index: readOdds({ boards: matBoards, combos, pages: materialPages() }) };
 	}
 	return oddsMemo.index;
 }
@@ -234,7 +247,11 @@ export function barterProfile() {
 		crew: parleyOff() > 0,
 		level: store.getProfile('level', null),
 		vouchers: Number(store.getProfile('vouchers', 0)) || 0,
-		// Parley in the bar right now, for "can I afford this route".
+		// Parley in the bar right now, for "can I afford this route": the
+		// figure as it was last set or as the last run left it. It is not
+		// refilled by the calendar -- a sailor carrying a board over from
+		// yesterday carries its bar too -- and is typed again under Before
+		// you sail when the game says otherwise.
 		parleyHeld: Number(store.getProfile('parleyHeld', 0)) || 0
 	};
 }

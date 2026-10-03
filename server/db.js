@@ -374,11 +374,111 @@ export const MIGRATIONS = [
 			await run('CREATE INDEX IF NOT EXISTS barter_boards_when ON barter_boards (created_at)');
 			await run('CREATE INDEX IF NOT EXISTS barter_boards_owner ON barter_boards (user_id, day)');
 		}
+	},
+	{
+		version: 9,
+		up: async run => {
+			// The material list is read off the same window but is not one
+			// of the forty layouts: its islands roll on their own, and the
+			// only way to learn its boards is to keep what sailors read.
+			// The two lists share the table and never each other's rows.
+			await run("ALTER TABLE barter_boards ADD COLUMN list TEXT NOT NULL DEFAULT 'trade'");
+		}
+	},
+	{
+		version: 10,
+		up: async run => {
+			// A thing shared by a short link: a plan, a ship setup, a
+			// drawing or a route, as the JSON the long link would have
+			// carried in its address. The id is the whole address, so it
+			// is random and unguessable rather than a count; the server
+			// never reads the payload, the browser has the tables.
+			await run(`CREATE TABLE IF NOT EXISTS links (
+				id          TEXT PRIMARY KEY,
+				user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+				kind        TEXT NOT NULL,
+				payload     TEXT NOT NULL,
+				created_at  INTEGER NOT NULL,
+				opened      INTEGER NOT NULL DEFAULT 0,
+				opened_at   INTEGER
+			)`);
+			await run('CREATE INDEX IF NOT EXISTS links_owner ON links (user_id, created_at)');
+		}
+	},
+	{
+		version: 11,
+		up: async () => {
+			// Kept as a step that does nothing. For a day on develop this
+			// made the boards opt-in and took off everyone signing in had
+			// put there; that was undone before it reached a live database,
+			// and the boards stay opt-out -- signing in puts an account on
+			// them, and the Community tab takes it off. The number is kept so
+			// the steps after it keep theirs.
+		}
+	},
+	{
+		version: 12,
+		up: async run => {
+			// The sessions signed out of. A session is still a signed
+			// cookie and nothing else -- this is not a session table, only
+			// the short list of cookies that have been handed back, so a
+			// copy of one taken off a shared machine stops working the
+			// moment its owner signs out there. A row lives as long as the
+			// cookie it names would have, and no longer.
+			await run(`CREATE TABLE IF NOT EXISTS revoked_sessions (
+				sid         TEXT PRIMARY KEY,
+				until       INTEGER NOT NULL
+			)`);
+		}
+	},
+	{
+		version: 13,
+		up: async run => {
+			// The roll of browsers grew by one for every browser that ever
+			// opened the page, and was counted whole every twenty seconds.
+			// The ones not seen for months are swept now; this row keeps
+			// how many went, so "how many ever" still means ever.
+			await run(`CREATE TABLE IF NOT EXISTS presence_swept (
+				id          INTEGER PRIMARY KEY,
+				n           INTEGER NOT NULL
+			)`);
+			await run('INSERT OR IGNORE INTO presence_swept (id, n) VALUES (1, 0)');
+		}
+	},
+	{
+		version: 14,
+		up: async run => {
+			// Whether the bot may message this account when a chime is due.
+			// Off for everyone until they switch it on themselves.
+			await run('ALTER TABLE users ADD COLUMN discord_alerts INTEGER NOT NULL DEFAULT 0');
+		}
+	},
+	{
+		version: 15,
+		up: async run => {
+			// The Vell reminder is gone, and with it the only thing a
+			// subscription with no account was ever for: such a row can
+			// never be sent anything again, and still counts against the
+			// cap on subscriptions. A signed-in device subscribes again,
+			// under its account, the next time it asks for a chime.
+			await run('DELETE FROM push_subs WHERE user_id IS NULL');
+		}
+	},
+	{
+		version: 16,
+		up: async run => {
+			// An account deleted leaves its posts in the box, as a forum's
+			// stay, but with nothing left on them that says whose they
+			// were. This marks such a post, so the box can call its author
+			// "a former sailor" -- not "a visitor", who never had an
+			// account to delete.
+			await run('ALTER TABLE feedback ADD COLUMN former INTEGER NOT NULL DEFAULT 0');
+		}
 	}
 ];
 
 /** The data tables, in the order a restore has to write them (parents first). */
-export const TABLES = ['users', 'saves', 'push_subs', 'push_alerts', 'feedback', 'feedback_files', 'community', 'presence', 'barter_boards', 'barter_board_seen'];
+export const TABLES = ['users', 'saves', 'push_subs', 'push_alerts', 'feedback', 'feedback_files', 'community', 'presence', 'barter_boards', 'barter_board_seen', 'links', 'revoked_sessions', 'presence_swept'];
 
 /**
  * Bring the database up to the newest version. Safe to run any number
@@ -393,9 +493,22 @@ export async function applyMigrations() {
 	)`);
 	const { rows } = await exec('SELECT MAX(version) AS v FROM schema_version');
 	const current = Number(rows[0] && rows[0].v) || 0;
+	// A step whose column went in and whose version row did not -- the
+	// answer lost to a timeout, the step run again -- would fail on
+	// "duplicate column" for ever after, and take every table with it.
+	// The column being there is the step having run.
+	const run = async (statement, tries) => {
+		try {
+			return await exec(statement, tries);
+		} catch (error) {
+			const sql = typeof statement === 'string' ? statement : statement.sql;
+			if (/^\s*ALTER TABLE\b[\s\S]*\bADD COLUMN\b/i.test(sql) && /duplicate column name/i.test(String(error && error.message))) return { rows: [] };
+			throw error;
+		}
+	};
 	for (const step of MIGRATIONS) {
 		if (step.version <= current) continue;
-		await step.up(exec);
+		await step.up(run);
 		await exec({
 			sql: 'INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (?, ?)',
 			args: [step.version, Date.now()]
@@ -448,10 +561,9 @@ export async function ping() {
  * ------------------------------------------------------------------ */
 
 /**
- * Keep a subscription, or bring it up to date. `vell` is whether the
- * Vell reminder is wanted through it; null leaves whatever the row
- * already said, so a device subscribing for its owner's chimes does
- * not turn the reminder off, or on.
+ * Keep a subscription, or bring it up to date. The `region` and `vell`
+ * columns are the Vell reminder's, which is gone: they are still
+ * written so the table keeps its shape, and nothing reads them.
  */
 export async function putPushSub(endpoint, sub, region, userId = null, vell = null) {
 	await migrate();
@@ -459,24 +571,23 @@ export async function putPushSub(endpoint, sub, region, userId = null, vell = nu
 		sql: `INSERT INTO push_subs (endpoint, sub, region, created_at, user_id, vell) VALUES (?, ?, ?, ?, ?, ?)
 			ON CONFLICT(endpoint) DO UPDATE SET sub = excluded.sub, region = excluded.region, user_id = excluded.user_id,
 				vell = COALESCE(?, push_subs.vell)`,
-		// Saying nothing means the Vell reminder, because that is all a
-		// subscription ever meant before there was anything else -- an
-		// older tab that has not reloaded must not quietly lose it. Only
-		// an explicit no makes a row that is not on the Vell round, and
-		// on an update saying nothing leaves the row as it was.
 		args: [endpoint, JSON.stringify(sub), region, Date.now(), userId, vell === false ? 0 : 1, vell === null ? null : (vell ? 1 : 0)]
 	});
+}
+
+/** One subscription as stored, with the account it is filed under. */
+export async function getPushSub(endpoint) {
+	await migrate();
+	const { rows } = await exec({ sql: 'SELECT sub, user_id FROM push_subs WHERE endpoint = ?', args: [endpoint] });
+	if (!rows[0]) return null;
+	let sub = null;
+	try { sub = JSON.parse(rows[0].sub); } catch { /* a row nobody can send to; treated as keyless */ }
+	return { sub, userId: rows[0].user_id || null };
 }
 
 export async function deletePushSub(endpoint) {
 	await migrate();
 	await exec({ sql: 'DELETE FROM push_subs WHERE endpoint = ?', args: [endpoint] });
-}
-
-export async function listPushSubs(region) {
-	await migrate();
-	const { rows } = await exec({ sql: 'SELECT endpoint, sub FROM push_subs WHERE region = ? AND vell = 1', args: [region] });
-	return rows.map(r => ({ endpoint: r.endpoint, sub: JSON.parse(r.sub) }));
 }
 
 /** Every subscription an account has: the devices a chime reaches. */
@@ -562,7 +673,7 @@ export async function countPresence(since) {
 	await migrate();
 	const { rows } = await exec({
 		sql: `SELECT (SELECT COUNT(*) FROM presence WHERE seen_at >= ?) AS online,
-			(SELECT COUNT(*) FROM presence) AS sailors,
+			(SELECT COUNT(*) FROM presence) + COALESCE((SELECT n FROM presence_swept WHERE id = 1), 0) AS sailors,
 			(SELECT COUNT(*) FROM users) AS crew`,
 		args: [since]
 	});
@@ -571,6 +682,20 @@ export async function countPresence(since) {
 		sailors: Number(rows[0] && rows[0].sailors) || 0,
 		crew: Number(rows[0] && rows[0].crew) || 0
 	};
+}
+
+/**
+ * Browsers not seen since `before`, off the roll and onto the count of
+ * those that went. One transaction, so a sweep cut short neither loses
+ * them from "ever" nor counts them twice.
+ */
+export async function sweepPresence(before) {
+	await migrate();
+	const results = await db().batch([
+		{ sql: 'UPDATE presence_swept SET n = n + (SELECT COUNT(*) FROM presence WHERE seen_at < ?) WHERE id = 1', args: [before] },
+		{ sql: 'DELETE FROM presence WHERE seen_at < ?', args: [before] }
+	], 'write');
+	return Number(results[1].rowsAffected) || 0;
 }
 
 /* ------------------------------------------------------------------ *
@@ -605,6 +730,39 @@ export async function getUser(id) {
 		args: [id]
 	});
 	return rows[0] || null;
+}
+
+/** Has this account asked for its chimes as Discord messages? */
+export async function getDiscordAlerts(id) {
+	await migrate();
+	const { rows } = await exec({ sql: 'SELECT discord_alerts FROM users WHERE id = ?', args: [id] });
+	return Boolean(rows[0] && Number(rows[0].discord_alerts));
+}
+
+export async function setDiscordAlerts(id, on) {
+	await migrate();
+	await exec({ sql: 'UPDATE users SET discord_alerts = ? WHERE id = ?', args: [on ? 1 : 0, id] });
+}
+
+/* ------------------------------------------------------------------ *
+ * Sessions signed out of
+ * ------------------------------------------------------------------ */
+
+/** A cookie handed back: refused from now until it would have lapsed. */
+export async function revokeSession(sid, until) {
+	await migrate();
+	await exec({
+		sql: 'INSERT INTO revoked_sessions (sid, until) VALUES (?, ?) ON CONFLICT(sid) DO UPDATE SET until = excluded.until',
+		args: [sid, until]
+	});
+}
+
+/** Every cookie still refused, the lapsed ones swept on the way. */
+export async function listRevokedSessions(now = Date.now()) {
+	await migrate();
+	await exec({ sql: 'DELETE FROM revoked_sessions WHERE until < ?', args: [now] });
+	const { rows } = await exec('SELECT sid, until FROM revoked_sessions');
+	return rows.map(r => ({ sid: r.sid, until: Number(r.until) }));
 }
 
 /* ------------------------------------------------------------------ *
@@ -653,12 +811,38 @@ export async function writeSave(userId, { rev, payload, updatedAt, device }) {
 	});
 }
 
-/** Forget an account entirely -- the save and its place on the boards go with it. */
+/**
+ * Forget an account entirely -- the save and its place on the boards go
+ * with it, and everything else filed under it: its reminders and push
+ * subscriptions, the barter boards it told the fleet, its links, and the
+ * pictures it uploaded and never sent. Each table by name: on Turso the
+ * foreign keys are not enforced, and a cascade that never ran left the
+ * reminders chiming to a deleted account's devices. Its feedback posts
+ * stay in the inbox, as a forum's do -- the words, the pictures, the
+ * status -- but blanked of everything that pointed back at the account:
+ * the name, the id, the contact it left and the browser it wrote from.
+ * The pictures sent with them lose their owner too; once sent, a
+ * picture is served as its post is, and needs none. Returns the
+ * pictures dropped (the unsent ones), for their files to go too.
+ */
 export async function deleteAccount(userId) {
 	await migrate();
-	await exec({ sql: 'DELETE FROM community WHERE user_id = ?', args: [userId] });
-	await exec({ sql: 'DELETE FROM saves WHERE user_id = ?', args: [userId] });
-	await exec({ sql: 'DELETE FROM users WHERE id = ?', args: [userId] });
+	const { rows: files } = await exec({ sql: 'SELECT id, mime FROM feedback_files WHERE user_id = ? AND feedback_id IS NULL', args: [userId] });
+	for (const sql of [
+		'DELETE FROM community WHERE user_id = ?',
+		'DELETE FROM links WHERE user_id = ?',
+		'DELETE FROM push_alerts WHERE user_id = ?',
+		'DELETE FROM push_subs WHERE user_id = ?',
+		'DELETE FROM barter_board_seen WHERE user_id = ?',
+		'DELETE FROM barter_board_seen WHERE board_id IN (SELECT id FROM barter_boards WHERE user_id = ?)',
+		'DELETE FROM barter_boards WHERE user_id = ?',
+		'DELETE FROM feedback_files WHERE user_id = ? AND feedback_id IS NULL',
+		"UPDATE feedback_files SET user_id = '' WHERE user_id = ?",
+		'UPDATE feedback SET user_id = NULL, username = NULL, contact = NULL, agent = NULL, former = 1 WHERE user_id = ?',
+		'DELETE FROM saves WHERE user_id = ?',
+		'DELETE FROM users WHERE id = ?'
+	]) await exec({ sql, args: [userId] });
+	return files.map(f => ({ id: f.id, mime: f.mime }));
 }
 
 /* ------------------------------------------------------------------ *
@@ -679,14 +863,14 @@ const entryOf = r => ({
 	id: Number(r.id), userId: r.user_id || null, username: r.username || null, kind: r.kind, text: r.text,
 	format: r.format || 'plain',
 	page: r.page || null, contact: r.contact || null, version: r.version || null, agent: r.agent || null,
-	status: r.status, createdAt: Number(r.created_at), files: []
+	former: Number(r.former) === 1, status: r.status, createdAt: Number(r.created_at), files: []
 });
 
 /** The newest entries, open ones first, each with its screenshots. */
 export async function listFeedback(limit = 200) {
 	await migrate();
 	const { rows } = await exec({
-		sql: `SELECT id, user_id, username, kind, text, format, page, contact, version, agent, status, created_at
+		sql: `SELECT id, user_id, username, kind, text, format, page, contact, version, agent, former, status, created_at
 		      FROM feedback ORDER BY (status = 'open') DESC, created_at DESC LIMIT ?`,
 		args: [limit]
 	});
@@ -739,12 +923,6 @@ export async function deleteFeedback(id) {
 	await exec({ sql: 'DELETE FROM feedback_files WHERE feedback_id = ?', args: [id] });
 	await exec({ sql: 'DELETE FROM feedback WHERE id = ?', args: [id] });
 	return rows.map(r => ({ id: String(r.id), mime: r.mime }));
-}
-
-export async function countFeedback(status = 'open') {
-	await migrate();
-	const { rows } = await exec({ sql: 'SELECT COUNT(*) AS n FROM feedback WHERE status = ?', args: [status] });
-	return Number(rows[0] && rows[0].n) || 0;
 }
 
 /**
@@ -833,6 +1011,13 @@ export async function deleteFile(id) {
 	await exec({ sql: 'DELETE FROM feedback_files WHERE id = ?', args: [id] });
 }
 
+/** How many bytes of pictures the table says are on disk. */
+export async function uploadedBytes() {
+	await migrate();
+	const { rows } = await exec('SELECT COALESCE(SUM(bytes), 0) AS n FROM feedback_files');
+	return Number(rows[0] && rows[0].n) || 0;
+}
+
 /** Uploads nobody ever sent, older than `before`. Swept on a timer. */
 export async function staleFiles(before) {
 	await migrate();
@@ -867,7 +1052,7 @@ export async function getShareState(userId) {
 	return { share: rows[0].share || null, off: Number(rows[0].off) === 1, known: true };
 }
 
-/** Remember that an account chose to be off the boards, or chose not to be. */
+/** Remember that the account left the boards, or came back. */
 export async function setCommunityOff(userId, off) {
 	await migrate();
 	await exec({ sql: 'UPDATE users SET community_off = ? WHERE id = ?', args: [off ? 1 : 0, userId] });
@@ -900,6 +1085,28 @@ export async function deleteCommunity(userId) {
 	await exec({ sql: 'DELETE FROM community WHERE user_id = ?', args: [userId] });
 }
 
+/** Many saves at once, as stored: a round trip a hundred accounts
+ *  rather than one an account. Not through saves.js's memory, which is
+ *  for the accounts in use -- this is for reading the fleet. */
+export async function getSaves(userIds) {
+	await migrate();
+	const out = new Map();
+	for (let i = 0; i < userIds.length; i += 100) {
+		const ids = userIds.slice(i, i + 100);
+		const { rows } = await exec({ sql: `SELECT user_id, rev, payload FROM saves WHERE user_id IN (${ids.map(() => '?').join(', ')})`, args: ids });
+		for (const r of rows) out.set(r.user_id, { rev: Number(r.rev) || 0, payload: r.payload });
+	}
+	return out;
+}
+
+/** Every account's save revision: which saves the fleet's barter
+ *  counts have to read again. */
+export async function listSaveRevs() {
+	await migrate();
+	const { rows } = await exec('SELECT user_id, rev FROM saves');
+	return rows.map(r => ({ userId: r.user_id, rev: Number(r.rev) || 0 }));
+}
+
 /**
  * Everyone on the boards, with the name and avatar to show for the
  * named ones, the digest held, and the revision of the save it was
@@ -916,12 +1123,6 @@ export async function listCommunity() {
 		userId: r.user_id, share: r.share, stats: r.stats, rev: Number(r.rev) || 0, joinedAt: Number(r.joined_at) || 0,
 		username: r.username, avatar: r.avatar || null, saveRev: r.save_rev === null || r.save_rev === undefined ? null : Number(r.save_rev)
 	}));
-}
-
-export async function countCommunity() {
-	await migrate();
-	const { rows } = await exec('SELECT COUNT(*) AS n FROM community');
-	return Number(rows[0] && rows[0].n) || 0;
 }
 
 /* ------------------------------------------------------------------ *
@@ -952,26 +1153,26 @@ function safeJSON(text) {
 }
 
 /** The sightings of the last few days, newest first. */
-export async function listSightings(since, limit = 200) {
+export async function listSightings(since, limit = 200, list = 'trade') {
 	await migrate();
 	const { rows } = await exec({
 		sql: `SELECT b.id, b.user_id, b.day, b.layout, b.offers, b.created_at, b.seen, u.username, c.share
 		      FROM barter_boards b
 		      LEFT JOIN users u ON u.id = b.user_id
 		      LEFT JOIN community c ON c.user_id = b.user_id
-		      WHERE b.created_at >= ? AND b.hidden = 0
+		      WHERE b.created_at >= ? AND b.hidden = 0 AND b.list = ?
 		      ORDER BY b.created_at DESC LIMIT ?`,
-		args: [since, limit]
+		args: [since, list, limit]
 	});
 	return rows.map(sightingOf);
 }
 
-/** What this account has already said about a day, if anything. */
-export async function getSighting(userId, day) {
+/** What this account has already said about a day's list, if anything. */
+export async function getSighting(userId, day, list = 'trade') {
 	await migrate();
 	const { rows } = await exec({
-		sql: 'SELECT id, user_id, day, layout, offers, created_at, seen FROM barter_boards WHERE user_id = ? AND day = ? AND hidden = 0',
-		args: [userId, day]
+		sql: 'SELECT id, user_id, day, layout, offers, created_at, seen FROM barter_boards WHERE user_id = ? AND day = ? AND list = ? AND hidden = 0',
+		args: [userId, day, list]
 	});
 	return rows[0] ? sightingOf(rows[0]) : null;
 }
@@ -987,11 +1188,11 @@ export async function getSightingById(id) {
 }
 
 /** `at` is when it was seen: now, except to a test that needs an old one. */
-export async function insertSighting(userId, { day, layout, offers }, at = Date.now()) {
+export async function insertSighting(userId, { day, layout, offers, list = 'trade' }, at = Date.now()) {
 	await migrate();
 	const { lastInsertRowid } = await exec({
-		sql: 'INSERT INTO barter_boards (user_id, day, layout, offers, created_at, seen, hidden) VALUES (?, ?, ?, ?, ?, 0, 0)',
-		args: [userId, day, layout ?? null, JSON.stringify(offers), at]
+		sql: 'INSERT INTO barter_boards (user_id, day, layout, offers, created_at, seen, hidden, list) VALUES (?, ?, ?, ?, ?, 0, 0, ?)',
+		args: [userId, day, layout ?? null, JSON.stringify(offers), at, list]
 	});
 	return Number(lastInsertRowid);
 }
@@ -1027,10 +1228,60 @@ export async function confirmSighting(id, userId) {
 	return true;
 }
 
-/** Sightings older than the boards they describe. */
-export async function sweepSightings(before) {
+/** Sightings of one list older than the boards they describe. */
+export async function sweepSightings(before, list = 'trade') {
 	await migrate();
-	await exec({ sql: 'DELETE FROM barter_board_seen WHERE board_id IN (SELECT id FROM barter_boards WHERE created_at < ?)', args: [before] });
-	const { rowsAffected } = await exec({ sql: 'DELETE FROM barter_boards WHERE created_at < ?', args: [before] });
+	await exec({ sql: 'DELETE FROM barter_board_seen WHERE board_id IN (SELECT id FROM barter_boards WHERE created_at < ? AND list = ?)', args: [before, list] });
+	const { rowsAffected } = await exec({ sql: 'DELETE FROM barter_boards WHERE created_at < ? AND list = ?', args: [before, list] });
 	return Number(rowsAffected || 0);
+}
+
+/* ------------------------------------------------------------------ *
+ * Short links
+ * ------------------------------------------------------------------ */
+
+/** Keep what a link carries under its id. False if the id is taken,
+ *  which the caller answers by drawing another. */
+export async function insertLink({ id, userId, kind, payload }, at = Date.now()) {
+	await migrate();
+	const { rowsAffected } = await exec({
+		sql: 'INSERT OR IGNORE INTO links (id, user_id, kind, payload, created_at) VALUES (?, ?, ?, ?, ?)',
+		args: [id, userId, kind, payload, at]
+	});
+	return rowsAffected > 0;
+}
+
+/** What a link carries, as stored, or null. */
+export async function getLink(id) {
+	await migrate();
+	const { rows } = await exec({ sql: 'SELECT id, user_id, kind, payload, created_at, opened FROM links WHERE id = ?', args: [id] });
+	const r = rows[0];
+	return r ? { id: r.id, userId: r.user_id, kind: r.kind, payload: r.payload, at: Number(r.created_at), opened: Number(r.opened) } : null;
+}
+
+/** Somebody opened it. A count, not a who: the link is public. */
+export async function touchLink(id, at = Date.now()) {
+	await migrate();
+	await exec({ sql: 'UPDATE links SET opened = opened + 1, opened_at = ? WHERE id = ?', args: [at, id] });
+}
+
+/** Drop an account's oldest links past `keep` of them, and past
+ *  `bytes` of payload between them: the count alone let one account
+ *  keep two thousand links at their largest, half a gigabyte. */
+export async function trimLinks(userId, keep, bytes = Infinity) {
+	await migrate();
+	await exec({
+		sql: `DELETE FROM links WHERE user_id = ? AND id NOT IN (
+			SELECT id FROM links WHERE user_id = ? ORDER BY created_at DESC, id DESC LIMIT ?)`,
+		args: [userId, userId, keep]
+	});
+	if (!Number.isFinite(bytes)) return;
+	const { rows } = await exec({ sql: 'SELECT id, length(payload) AS n FROM links WHERE user_id = ? ORDER BY created_at DESC, id DESC', args: [userId] });
+	let total = 0;
+	const gone = [];
+	for (const r of rows) { total += Number(r.n) || 0; if (total > bytes) gone.push(r.id); }
+	for (let i = 0; i < gone.length; i += 100) {
+		const ids = gone.slice(i, i + 100);
+		await exec({ sql: `DELETE FROM links WHERE id IN (${ids.map(() => '?').join(',')})`, args: ids });
+	}
 }

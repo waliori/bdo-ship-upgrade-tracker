@@ -19,20 +19,22 @@
 // the roster, they outrank every estimate here.
 
 import { sailorRolls } from './sailor_rolls.js';
+import { TT } from './i18n.js';
 
 /** The one item every sailor costs, and where it is sold. */
 export const contract = {
 	item: 'Sailor Contract Certificate',
 	silver: 3000000,
 	sellers: 'Philaberto Falasi (Port Epheria), Islin Bartali and Proix (Velia), and the wharf managers',
-	hireAt: 'the wharf managers at Velia, Port Epheria and Iliya Island'
+	hireAt: TT('the wharf managers at Velia, Port Epheria and Iliya Island')
 };
 
 /**
  * The hiring pool. The name a sailor is hired under is the type itself.
  *
  * `cabin` is the cabin space each one spends aboard; `appetite` how many
- * rations a day they eat; `weight` what they add to the hull's limit.
+ * rations they eat a tick of the ship's pool, about every 7 s under sail
+ * (js/rations.js); `weight` what they add to the hull's limit.
  * The four movement numbers and the three cannon numbers are the
  * level-1 base; `l10` is that stat's [min, avg, max] at level 10.
  * `at` is where the type turns up for hire.
@@ -48,7 +50,7 @@ export const pool = [
 		l10: { speed: [2.7, 3.1, 3.4], accel: [1.1, 1.3, 1.5], turn: [1.1, 1.3, 1.5], brake: [1.1, 1.3, 1.5] } },
 	{ type: 'Innocent', codex: 59055, race: 'Goblin', appetite: 150, cabin: 10, weight: 200, speed: 1.2, accel: 0.3, turn: 0.3, brake: 0.3, at: ['Velia', 'Epheria'],
 		l10: { speed: [2.8, 3.4, 4.0], accel: [1.2, 1.4, 1.6], turn: [1.4, 2.0, 2.5], brake: [1.4, 2.0, 2.5] },
-		note: 'Slower to start than an Ambitious one, and the best speed of any sailor by the time it is levelled.' },
+		note: TT('Slower to start than an Ambitious one, and the best speed of any sailor by the time it is levelled.') },
 	{ type: 'Experienced', codex: 59066, race: 'Human', appetite: 150, cabin: 10, weight: 250, speed: 1.0, accel: 1.0, turn: 0.3, brake: 0.3, at: ['Velia', 'Epheria'],
 		l10: { speed: [2.1, 2.5, 2.8], accel: [2.1, 2.5, 2.8], turn: [1.3, 1.5, 1.7], brake: [1.3, 1.5, 1.7] } },
 	{ type: 'Powerful', codex: 59069, race: 'Giant', appetite: 150, cabin: 8, weight: 500, speed: 1.0, accel: 1.0, turn: 1.0, brake: 1.0, at: ['Iliya'],
@@ -90,27 +92,12 @@ export const pool = [
 
 export const poolByType = Object.fromEntries(pool.map(s => [s.type, s]));
 
-/**
- * Where a sailor stands, and what standing there does with their stats
- * -- on the hulls that have positions at all, which is a Carrack and
- * the Panokseon. Everything smaller draws cabins only.
- */
-export const positions = [
-	{ name: 'Sail', effect: 'Endurance and Wits count double', for: 'speed and acceleration' },
-	{ name: 'Wheel', effect: 'Awareness and Strength count double', for: 'turning and braking' },
-	{ name: 'Cannon', effect: 'Focus, Force and Vision count double', for: 'cannon damage, reload and range -- the Panokseon has two more of these than a Carrack' },
-	{ name: 'Deck', effect: '+10,000 durability for every cabin the sailor costs', for: 'a ten-cabin sailor is a hundred thousand durability' },
-	{ name: 'Mess', effect: '+5,000 rations for every cabin the sailor costs', for: 'longer between ports' },
-	{ name: 'Fish', effect: 'auto-fishing with an Oceanbound Otter Fishing Rod aboard', for: 'a Carrack only; the gauge fills every 180 s under way' },
-	{ name: 'First Mate', effect: 'the sailor\'s own skill is switched on', for: 'the three named first mates below' }
-];
-
 /** Condition and sickness, and what mends each. */
 export const care = [
-	{ item: 'Raisin Bread', effect: '+1 condition', from: 'a wharf manager, for silver' },
-	{ item: 'Chowder', effect: '+10 condition', from: 'cooking: Dried Pearl Oyster Flesh ×1 (or Dried Shellfish ×5), Pepper ×2, Pork ×2, Milk ×1, Teff Bread ×1' },
-	{ item: 'Elixir of Regeneration', effect: 'cures a sick sailor and restores condition to 100%', from: 'alchemy: Mandragora Essence ×1, Essence of Nature ×1, Oil of Regeneration ×1, Troll Blood ×2, Grape ×4' },
-	{ item: 'Tears of the Star', effect: 'cures a sick sailor', from: 'the Pearl Shop, 50 pearls' }
+	{ item: 'Raisin Bread', effect: TT('+1 condition'), from: TT('a wharf manager, for silver') },
+	{ item: 'Chowder', effect: TT('+10 condition'), from: TT('cooking: Dried Pearl Oyster Flesh ×1 (or Dried Shellfish ×5), Pepper ×2, Pork ×2, Milk ×1, Teff Bread ×1') },
+	{ item: 'Elixir of Regeneration', effect: TT('cures a sick sailor and restores condition to 100%'), from: TT('alchemy: Mandragora Essence ×1, Essence of Nature ×1, Oil of Regeneration ×1, Troll Blood ×2, Grape ×4') },
+	{ item: 'Tears of the Star', effect: TT('cures a sick sailor'), from: TT('the Pearl Shop, 50 pearls') }
 ];
 
 /** Emergency rations, by the grade of food thrown at them. */
@@ -139,9 +126,9 @@ export const expSplit = [
 // `npc` is the first mate's page on BDOCodex (they are people before they
 // are sailors), which is where their portrait comes from.
 export const firstMates = [
-	{ name: 'Proix', npc: 58045, portrait: '/items/ui_artwork/ic_01463.webp', trait: 'Breezy Sail lasts longer', from: 'finish the "[The Great Expedition] In Search of Khan" questline' },
-	{ name: 'Cleia', npc: 41056, portrait: '/items/ui_artwork/ic_00496.webp', trait: 'Parley costs 10% less', parley: 0.1, from: 'obtain the Golden Pocket Watch from a Special Barter' },
-	{ name: 'Tranan Underfoe', npc: 40008, portrait: '/items/ui_artwork/ic_00008.webp', trait: 'the ship repairs itself from repair materials in its inventory', from: 'obtain the Fancy Figurehead where the Saltwater Crocodiles are' }
+	{ name: 'Proix', npc: 58045, portrait: '/items/ui_artwork/ic_01463.webp', trait: TT('Breezy Sail lasts longer'), from: TT('finish the "[The Great Expedition] In Search of Khan" questline') },
+	{ name: 'Cleia', npc: 41056, portrait: '/items/ui_artwork/ic_00496.webp', trait: TT('Parley costs 10% less'), parley: 0.1, from: TT('obtain the Golden Pocket Watch from a Special Barter') },
+	{ name: 'Tranan Underfoe', npc: 40008, portrait: '/items/ui_artwork/ic_00008.webp', trait: TT('the ship repairs itself from repair materials in its inventory'), from: TT('obtain the Fancy Figurehead where the Saltwater Crocodiles are') }
 ];
 
 /**
@@ -151,48 +138,13 @@ export const firstMates = [
  * and a Captain's Medallion for 7,000 Loyalties buys another.
  */
 export const slotSources = [
-	{ from: '[The Great Expedition] First Sailboat into Oquilla\'s Eye and the main sailing questline', oaths: 5 },
-	{ from: 'Chulong\'s Gift (Chulong, Moodle Village in Nampo)', oaths: 3 },
-	{ from: 'Captain\'s Medallion, 7,000 Loyalties', oaths: 1 }
+	{ from: TT('[The Great Expedition] First Sailboat into Oquilla\'s Eye and the main sailing questline'), oaths: 5 },
+	{ from: TT('Chulong\'s Gift (Chulong, Moodle Village in Nampo)'), oaths: 3 },
+	{ from: TT('Captain\'s Medallion, 7,000 Loyalties'), oaths: 1 }
 ];
 
 export const SAILOR_CAP = 60;
 
-
-/**
- * A crew plan against a hull: what it spends and what it grows.
- *
- * `crew` is `{ [type]: count }`. Returns the totals the Crew screen
- * reads, with both budgets -- sailors seated and cabin space -- measured
- * against the hull. Anything beyond either is a plan the game will
- * refuse, and is flagged rather than clamped so the row can say so.
- */
-export function planCrew(crew, ship) {
-	const totals = { sailors: 0, cabins: 0, weight: 0, appetite: 0, silver: 0,
-		speed: 0, accel: 0, turn: 0, brake: 0, force: 0, focus: 0, vision: 0 };
-	for (const [type, n] of Object.entries(crew || {})) {
-		const s = poolByType[type];
-		const count = Math.max(0, Math.floor(Number(n) || 0));
-		if (!s || !count) continue;
-		totals.sailors += count;
-		totals.cabins += s.cabin * count;
-		totals.weight += s.weight * count;
-		totals.appetite += s.appetite * count;
-		totals.silver += contract.silver * count;
-		for (const k of ['speed', 'accel', 'turn', 'brake', 'force', 'focus', 'vision']) {
-			totals[k] += (s[k] || 0) * count;
-		}
-	}
-	const seats = ship ? ship.crew : 0;
-	const space = ship ? ship.cabins : 0;
-	return {
-		...totals,
-		seats,
-		space,
-		overSeats: seats ? Math.max(0, totals.sailors - seats) : 0,
-		overSpace: space ? Math.max(0, totals.cabins - space) : 0
-	};
-}
 
 /* ------------------------------------------------------------------ *
  * The Manage Sailors board: seats, a roster, and what a crew adds up to
@@ -204,7 +156,7 @@ export function planCrew(crew, ship) {
  * the First Mate seat switches on.
  */
 // A mate's own figures, read off the game's Selected Sailor panel for
-// Proix (2026-09-09): 150 rations a day, 200 LT, no Cabin Cost line at
+// Proix (2026-09-09): an appetite of 150, 200 LT, no Cabin Cost line at
 // all -- and no growths. The panel a mate gets has no Endurance, Wits,
 // Awareness or Strength row on it; the seat pays their skill, not
 // numbers. (The app used to credit each mate half a point of all four,
@@ -221,13 +173,13 @@ export const anyType = Object.fromEntries([...pool, ...mateTypes].map(s => [s.ty
 
 /** The seats a hull has, in the order the board draws them. */
 const POSITIONS = [
-	{ pos: 'sail', label: 'Sail', n: 1, effect: 'speed and acceleration count double' },
-	{ pos: 'wheel', label: 'Wheel', n: 1, effect: 'turning and braking count double' },
-	{ pos: 'cannon', label: 'Cannon', n: 1, effect: 'cannon damage, reload and range' },
-	{ pos: 'deck', label: 'Deck', n: 1, effect: '+10,000 durability for every cabin the sailor costs' },
-	{ pos: 'mess', label: 'Mess', n: 1, effect: '+5,000 rations for every cabin the sailor costs' },
-	{ pos: 'firstmate', label: 'First Mate', n: 1, effect: "the sailor's own skill switches on" },
-	{ pos: 'fish', label: 'Fish', n: 1, effect: 'auto-fishing under way — a Carrack only' }
+	{ pos: 'sail', label: TT('seat|Sail'), n: 1, effect: TT('speed and acceleration count double') },
+	{ pos: 'wheel', label: TT('Wheel'), n: 1, effect: TT('turning and braking count double') },
+	{ pos: 'cannon', label: TT('seat|Cannon'), n: 1, effect: TT('cannon damage, reload and range') },
+	{ pos: 'deck', label: TT('Deck'), n: 1, effect: TT('+10,000 durability for every cabin the sailor costs') },
+	{ pos: 'mess', label: TT('Mess'), n: 1, effect: TT('+5,000 rations for every cabin the sailor costs') },
+	{ pos: 'firstmate', label: TT('First Mate'), n: 1, effect: TT("the sailor's own skill switches on") },
+	{ pos: 'fish', label: TT('Fish'), n: 1, effect: TT('auto-fishing under way — a Carrack only') }
 ];
 
 /**
@@ -261,7 +213,7 @@ const POSITIONED = new Set(['Carrack (Advance)', 'Carrack (Balance)', 'Carrack (
 /** Whether this hull has the named seats, or only cabins. */
 export const hasSeats = ship => POSITIONED.has(ship);
 
-const cabinSeat = i => ({ key: `cabin:${i}`, pos: 'cabin', label: 'Cabin', effect: 'no role, but aboard: weight and appetite count, and they level along' });
+const cabinSeat = i => ({ key: `cabin:${i}`, pos: 'cabin', label: TT('Cabin'), effect: TT('no role, but aboard: weight and appetite count, and they level along') });
 
 /**
  * Which seats a hull offers: the named positions first, as many as the
@@ -411,14 +363,14 @@ export const STAT_KEYS = ['speed', 'accel', 'turn', 'brake', 'patience', 'force'
  * can be read straight off the game, and the effect beside it.
  */
 export const STAT_NAMES = {
-	speed: { game: 'Endurance', means: 'speed', tip: 'Endurance: increases the ship’s Speed.' },
-	accel: { game: 'Wits', means: 'acceleration', tip: 'Wits: increases the ship’s Acceleration.' },
-	turn: { game: 'Awareness', means: 'turn', tip: 'Awareness: increases the ship’s Turn.' },
-	brake: { game: 'Strength', means: 'brake', tip: 'Strength: increases the ship’s Brake.' },
-	patience: { game: 'Patience', means: 'cannon reload', tip: 'Patience: reduces the reload cooldown of cannons.' },
-	force: { game: 'Force', means: 'FocusFire range', tip: 'Force: increases the range of FocusFire.' },
-	focus: { game: 'Focus', means: 'cannon spread', tip: 'Focus: reduces the cannon spread of FocusFire.' },
-	vision: { game: 'Vision', means: 'firing angle', tip: 'Vision: broadens the left and right firing angle of your cannons.' }
+	speed: { game: TT('Endurance'), means: TT('speed'), tip: TT('Endurance: increases the ship’s Speed.') },
+	accel: { game: TT('Wits'), means: TT('acceleration'), tip: TT('Wits: increases the ship’s Acceleration.') },
+	turn: { game: TT('Awareness'), means: TT('turn'), tip: TT('Awareness: increases the ship’s Turn.') },
+	brake: { game: TT('Strength'), means: TT('brake'), tip: TT('Strength: increases the ship’s Brake.') },
+	patience: { game: TT('Patience'), means: TT('cannon reload'), tip: TT('Patience: reduces the reload cooldown of cannons.') },
+	force: { game: TT('Force'), means: TT('FocusFire range'), tip: TT('Force: increases the range of FocusFire.') },
+	focus: { game: TT('Focus'), means: TT('cannon spread'), tip: TT('Focus: reduces the cannon spread of FocusFire.') },
+	vision: { game: TT('Vision'), means: TT('firing angle'), tip: TT('Vision: broadens the left and right firing angle of your cannons.') }
 };
 
 /** "Endurance (speed)", for a label that has room for both. */
@@ -471,7 +423,7 @@ export function levelSteps(sailor) {
 export function crewTotals(roster, seats, stats) {
 	const byId = new Map((roster || []).map(s => [s.id, s]));
 	const t = { seated: 0, cabins: 0, weight: 0, appetite: 0, speed: 0, accel: 0, turn: 0, brake: 0,
-		force: 0, focus: 0, vision: 0, durability: 0, rations: 0, sick: 0 };
+		force: 0, focus: 0, vision: 0, durability: 0, rations: 0, sick: 0, guessed: 0 };
 	for (const [key, id] of Object.entries(seats || {})) {
 		const s = byId.get(id);
 		const type = s && anyType[s.type];
@@ -488,6 +440,10 @@ export function crewTotals(roster, seats, stats) {
 			continue;
 		}
 		const m = (k, mult = 1) => statOf(s, k) * mult;
+		// A sailor whose own figures were never typed or read counts at the
+		// middle of what the level can roll: close, and never exact. Said,
+		// since it is where the last tenths between this and the game go.
+		if (!type.mate && !(s.stats && ['speed', 'accel', 'turn', 'brake'].every(k => Number.isFinite(s.stats[k])))) t.guessed++;
 		t.speed += m('speed', pos === 'sail' ? 2 : 1);
 		t.accel += m('accel', pos === 'sail' ? 2 : 1);
 		t.turn += m('turn', pos === 'wheel' ? 2 : 1);
@@ -537,12 +493,12 @@ export function mateAboard(roster, seats) {
  * below follows from it.
  */
 export const CREW_GOALS = [
-	{ id: 'speed', label: 'Speed', of: 'how fast the ship sails', weights: { speed: 1 } },
-	{ id: 'accel', label: 'Acceleration', of: 'how quickly it gets there', weights: { accel: 1 } },
-	{ id: 'turn', label: 'Turn', of: 'how tightly it comes round', weights: { turn: 1 } },
-	{ id: 'brake', label: 'Brake', of: 'how short it stops', weights: { brake: 1 } },
-	{ id: 'cannon', label: 'Cannons', of: 'range, spread and firing angle', weights: { force: 1, focus: 1, vision: 1 } },
-	{ id: 'balanced', label: 'All round', of: 'the four movement growths equally', weights: { speed: 1, accel: 1, turn: 1, brake: 1 } }
+	{ id: 'speed', label: TT('Speed'), of: TT('how fast the ship sails'), weights: { speed: 1 } },
+	{ id: 'accel', label: TT('Acceleration'), of: TT('how quickly it gets there'), weights: { accel: 1 } },
+	{ id: 'turn', label: TT('Turn'), of: TT('how tightly it comes round'), weights: { turn: 1 } },
+	{ id: 'brake', label: TT('Brake'), of: TT('how short it stops'), weights: { brake: 1 } },
+	{ id: 'cannon', label: TT('Cannons'), of: TT('range, spread and firing angle'), weights: { force: 1, focus: 1, vision: 1 } },
+	{ id: 'balanced', label: TT('All round'), of: TT('the four movement growths equally'), weights: { speed: 1, accel: 1, turn: 1, brake: 1 } }
 ];
 
 const goalOf = want => CREW_GOALS.find(g => g.id === want) || CREW_GOALS[CREW_GOALS.length - 1];
@@ -572,7 +528,10 @@ const DOUBLES = { sail: ['speed', 'accel'], wheel: ['turn', 'brake'], cannon: ['
 export function autoAssign(roster, ship, stats, want = 'balanced') {
 	const w = goalOf(want).weights;
 	const seats = seatsFor(ship, stats);
-	const all = [...(roster || [])].filter(s => anyType[s.type]);
+	// A sick sailor -- condition at nothing -- gives a seat nothing and
+	// still eats, weighs and takes a cabin, so is left ashore until mended.
+	// They were being seated at the Sail on figures they cannot give.
+	const all = [...(roster || [])].filter(s => anyType[s.type] && (s.cond ?? 100) > 0);
 	const t = s => anyType[s.type];
 	const out = {};
 

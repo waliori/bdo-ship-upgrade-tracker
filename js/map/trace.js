@@ -2,18 +2,19 @@
 // kept and their library, and a trace in a link or a file.
 
 import { esc } from '../fmt.js';
+import { T, TT, said } from '../i18n.js';
 import { routePath, project } from '../map.js';
 import { MAX_ZOOM } from '../barter_npcs.js';
 import { nearestWater } from '../searoute.js';
 import { openDialog, closeDialog, toast } from '../dialogs.js';
-import * as store from '../state.js';
 import { pathLength, sailRange, fmtRange, fmtDistance } from '../sailing.js';
-import { encodeAny, decodeAny } from '../share.js';
+import { encodeAny, decodeAny, linkAt } from '../share.js';
+import { buildLink, copyLink } from '../links.js';
 import { mv, TRACES_MAX, persist, traceClipNote, restore } from './state.js';
 import { seaBent } from './marks.js';
 import { paintMap, schedulePaint } from './paint.js';
 import { refreshSide } from './render.js';
-import { routeSpeed, sailCal } from './route.js';
+import { routeSpeed, sailCal, sailLag } from './route.js';
 import { atSea, toggleMeasure, hostSize, inBox } from './view.js';
 
 /* ------------------------------------------------------------------ *
@@ -33,8 +34,10 @@ const num = (v, lo, hi) => { const n = Number(v); return Number.isFinite(n) ? Ma
 // water, three pen widths, three sizes of writing. A closed set, so a
 // trace off a stranger's link can only carry ink this chart knows.
 export const INKS = ['#ffd77a', '#7ef0d4', '#7ec8f0', '#c6a0ff', '#ff8f8f', '#9ce87a', '#ff9de0', '#ffffff'];
-export const WIDTHS = [{ v: 1.5, label: 'Fine' }, { v: 2.5, label: 'Medium' }, { v: 4.5, label: 'Bold' }];
-export const SIZES = [{ v: 11, label: 'S' }, { v: 14, label: 'M' }, { v: 19, label: 'L' }];
+export const WIDTHS = [{ v: 1.5, label: TT('Fine') }, { v: 2.5, label: TT('Medium') }, { v: 4.5, label: TT('Bold') }];
+// One letter each, because they sit inside a 19-pixel button. A language
+// that abbreviates differently says so; one that does not leaves them.
+export const SIZES = [{ v: 11, label: TT('pen-size|S') }, { v: 14, label: TT('pen-size|M') }, { v: 19, label: TT('pen-size|L') }];
 const LINE_INK = '#7ef0d4';
 const inkOf = (c, fallback = INKS[0]) => (INKS.includes(c) ? c : fallback);
 const widthOf = w => (WIDTHS.some(x => x.v === Number(w)) ? Number(w) : 2.5);
@@ -58,10 +61,14 @@ export function cleanTrace(raw) {
 		if (x === null || y === null) return null;
 		const out = { x, y };
 		if (p.note && typeof p.note === 'string') out.note = p.note.slice(0, 120);
-		if (INKS.includes(p.colour)) out.colour = p.colour;
+		out.colour = INKS.includes(p.colour) ? p.colour : LINE_INK;
 		out.seq = stamp(p.seq);
 		return out;
 	}).filter(Boolean);
+	// Stops of one ink are one line. A trace from before that was one line
+	// whatever ink its stops wore, drawn in the first one's -- so it is
+	// read that way still, not broken where someone changed pen.
+	if (raw.inkLines !== true && points.length) for (const p of points) p.colour = points[0].colour;
 	const strokes = (Array.isArray(raw.strokes) ? raw.strokes : []).slice(0, TRACE_STROKES).map(st => {
 		const bare = Array.isArray(st);
 		const src = bare ? st : (st && Array.isArray(st.pts) ? st.pts : null);
@@ -105,13 +112,33 @@ export function cleanTrace(raw) {
 		notes: String(raw.notes || '').slice(0, 400),
 		points, strokes, texts, areas,
 		seq,
+		inkLines: true,
 		shown: raw.shown === true,
 		lane: raw.lane === true,
 		at: Number(raw.at) || Date.now()
 	};
 }
 
-const blankTrace = () => ({ name: '', notes: '', points: [], strokes: [], texts: [], areas: [], seq: 0, at: Date.now() });
+const blankTrace = () => ({ name: '', notes: '', points: [], strokes: [], texts: [], areas: [], seq: 0, inkLines: true, at: Date.now() });
+
+/**
+ * The stops as lines: one per ink, in the order each ink was first put
+ * down, every stop numbered within its own line. Picking another ink
+ * starts another line; picking one already on the chart carries that
+ * line on. `at` is each stop's place in the trace's own list, which is
+ * what the panel's fields and buttons point at.
+ */
+export function traceLines(t) {
+	const lines = [];
+	const byInk = new Map();
+	(t && t.points || []).forEach((p, at) => {
+		const colour = p.colour || LINE_INK;
+		let line = byInk.get(colour);
+		if (!line) { line = { colour, stops: [] }; byInk.set(colour, line); lines.push(line); }
+		line.stops.push({ p, at });
+	});
+	return lines;
+}
 
 /** The trace being drawn on, made if there is none, and always with
  *  every list a trace has -- one kept from an older version may not. */
@@ -159,27 +186,31 @@ function traceMarks(t) {
  * instead -- a search per frame of a drag is a search too many, and
  * the water comes back the moment it is set down.
  */
-function traceLine(t) {
-	if (!t || t.points.length < 2) return t ? t.points : [];
-	return mv.hugWater && !mv.markDrag ? seaBent(t.points) : t.points;
+function traceLine(points) {
+	if (points.length < 2) return points;
+	return mv.hugWater && !mv.markDrag ? seaBent(points) : points;
 }
 
-/** The traced stops as the route tab counts them: length and time --
- *  along the water when the legs are bent round the land. */
-function traceLength() {
-	if (!mv.trace || mv.trace.points.length < 2) return 0;
-	return pathLength(traceLine(mv.trace));
+/** One line of stops as the route tab counts it: its length -- along
+ *  the water when the legs are bent round the land. */
+function lineLength(line) {
+	return line.stops.length < 2 ? 0 : pathLength(traceLine(line.stops.map(s => s.p)));
+}
+
+/** A length as a sailing time at the ship's speed, or '' for none. */
+function lineTime(m, speed) {
+	return m ? fmtRange(...sailRange(m, speed.sea, sailCal(), true).map(x => x + sailLag())) : '';
 }
 
 /** How long ago something was kept, in the words a person would use. */
 function keptWhen(at) {
 	const days = Math.floor((Date.now() - (Number(at) || 0)) / 86400e3);
-	if (days <= 0) return 'today';
-	if (days === 1) return 'yesterday';
-	if (days < 7) return `${days} days ago`;
-	if (days < 14) return 'last week';
-	if (days < 60) return `${Math.round(days / 7)} weeks ago`;
-	return `${Math.round(days / 30)} months ago`;
+	if (days <= 0) return T('today');
+	if (days === 1) return T('yesterday');
+	if (days < 7) return T('{n} days ago', { n: days });
+	if (days < 14) return T('last week');
+	if (days < 60) return T('{n} weeks ago', { n: Math.round(days / 7) });
+	return T('{n} months ago', { n: Math.round(days / 30) });
 }
 
 /** A trace at a glance: the shape of it, drawn to fit a stamp. */
@@ -199,7 +230,7 @@ function traceThumb(t, w = 52, h = 34) {
 		return d;
 	};
 	let out = '';
-	if (t.points.length > 1) out += `<path d="${line(t.points.map(p => [p.x, p.y]))}" stroke="${t.points[0].colour || LINE_INK}" stroke-dasharray="3 2"></path>`;
+	for (const l of traceLines(t)) if (l.stops.length > 1) out += `<path d="${line(l.stops.map(s => [s.p.x, s.p.y]))}" stroke="${l.colour}" stroke-dasharray="3 2"></path>`;
 	for (const st of t.strokes || []) {
 		const a = Array.isArray(st) ? st : st.pts;
 		const list = [];
@@ -220,46 +251,48 @@ function traceThumb(t, w = 52, h = 34) {
  */
 function traceShelf() {
 	if (!mv.traces.length) {
-		return `<div class="map-courses-head">Kept traces</div>
-			<p class="map-hint">None kept yet. Draw a route, name it, and press <b>Keep</b> — up to ${TRACES_MAX} live on this browser, and any of them can be laid over the chart with its eye.</p>`;
+		return `<div class="map-courses-head">${T('Kept traces')}</div>
+			<p class="map-hint">${T('None kept yet. Draw a route, name it, and press <b>Keep</b> — up to {max} live on this browser, and any of them can be laid over the chart with its eye.', { max: TRACES_MAX })}</p>`;
 	}
 	const shown = mv.traces.filter(r => r.shown).length;
 	const SHELF = 4;
 	const near = mv.traces.filter((r, i) => r.shown || i < SHELF);
 	const rest = mv.traces.length - near.length;
 	const cards = near.map(r => traceCard(r, mv.traces.indexOf(r))).join('');
-	return `<div class="map-courses-head">Kept traces <span class="map-courses-credit">${mv.traces.length} of ${TRACES_MAX}${shown ? ` · ${shown} on the chart` : ''}</span></div>
+	return `<div class="map-courses-head">${T('Kept traces')} <span class="map-courses-credit">${T('{n} of {max}', { n: mv.traces.length, max: TRACES_MAX })}${shown ? ` · ${T('{n} on the chart', { n: shown })}` : ''}</span></div>
 		<div class="trace-shelf">${cards}</div>
 		<div class="map-side-btns">
-			<button class="ghost-btn wide" data-act="trace-library">${rest > 0 ? `Browse all ${mv.traces.length}…` : 'Browse the traces…'}</button>
-			${shown ? `<button class="ghost-btn" data-act="trace-eye-none">Clear the chart</button>` : ''}
+			<button class="ghost-btn wide" data-act="trace-library">${rest > 0 ? T('Browse all {n}…', { n: mv.traces.length }) : T('Browse the traces…')}</button>
+			${shown ? `<button class="ghost-btn" data-act="trace-eye-none">${T('Clear the chart')}</button>` : ''}
 		</div>`;
 }
 
 /** One trace as a card, on the shelf or in the library. */
 function traceCard(r, i) {
 	{
+		const lines = traceLines(r).length;
 		const bits = [
-			`${r.points.length} stop${r.points.length === 1 ? '' : 's'}`,
-			r.strokes.length ? `${r.strokes.length} stroke${r.strokes.length === 1 ? '' : 's'}` : '',
-			(r.texts || []).length ? `${r.texts.length} word${r.texts.length === 1 ? '' : 's'}` : ''
+			r.points.length === 1 ? T('{n} stop', { n: r.points.length }) : T('{n} stops', { n: r.points.length }),
+			lines > 1 ? T('{n} lines', { n: lines }) : '',
+			r.strokes.length ? (r.strokes.length === 1 ? T('{n} stroke', { n: r.strokes.length }) : T('{n} strokes', { n: r.strokes.length })) : '',
+			(r.texts || []).length ? (r.texts.length === 1 ? T('{n} word', { n: r.texts.length }) : T('{n} words', { n: r.texts.length })) : ''
 		].filter(Boolean).join(' · ');
 		const open = mv.trace && mv.trace.name && mv.trace.name === r.name;
 		return `<div class="trace-card${r.shown ? ' shown' : ''}${open ? ' open' : ''}" data-trace="${esc(r.name)}">
 			<button class="trace-eye" data-act="trace-eye" data-i="${i}" aria-pressed="${!!r.shown}"
-				title="${r.shown ? 'Take it off the chart' : 'Lay it over the chart'}" aria-label="${r.shown ? 'Hide' : 'Show'} ${esc(r.name || 'this trace')} on the chart">${r.shown ? '◉' : '○'}</button>
+				title="${r.shown ? T('Take it off the chart') : T('Lay it over the chart')}" aria-label="${r.shown ? T('Hide {name} on the chart', { name: esc(r.name || T('this trace')) }) : T('Show {name} on the chart', { name: esc(r.name || T('this trace')) })}">${r.shown ? '◉' : '○'}</button>
 			<span class="trace-thumb-box">${traceThumb(r)}</span>
 			<span class="trace-card-main">
-				<span class="trace-card-name">${esc(r.name || 'untitled')}${open ? '<span class="trace-card-tag">open</span>' : ''}${r.lane ? '<span class="trace-card-tag lane">lane</span>' : ''}</span>
-				<span class="trace-card-sub">${bits} · kept ${keptWhen(r.at)}</span>
+				<span class="trace-card-name">${esc(r.name || T('untitled'))}${open ? `<span class="trace-card-tag">${T('open')}</span>` : ''}${r.lane ? `<span class="trace-card-tag lane">${T('lane')}</span>` : ''}</span>
+				<span class="trace-card-sub">${bits} · ${T('kept {when}', { when: keptWhen(r.at) })}</span>
 				${r.notes ? `<span class="trace-card-note">${esc(r.notes)}</span>` : ''}
 			</span>
 			<span class="trace-card-btns">
-				<button class="ghost-btn tiny" data-act="trace-load" data-i="${i}" title="Open it to draw on">Open</button>
-				<button class="ghost-btn tiny${r.lane ? ' on' : ''}" data-act="trace-lane" data-i="${i}" aria-pressed="${!!r.lane}" title="${r.lane ? 'A lane the game sails: every route near it is drawn along it. Press to make it a plain trace again' : 'Mark it as a lane the game sails, so every route near it is drawn along it and timed as the game would sail it'}" aria-label="${r.lane ? 'Stop treating' : 'Treat'} ${esc(r.name || 'this trace')} as a lane the game sails">⚓</button>
-				<button class="ghost-btn tiny" data-act="trace-rename" data-i="${i}" title="Rename it" aria-label="Rename ${esc(r.name || 'this trace')}">✎</button>
-				<button class="ghost-btn tiny" data-act="trace-share" data-i="${i}" title="Copy a link to it" aria-label="Copy a link to ${esc(r.name || 'this trace')}">↗</button>
-				<button class="map-x" data-act="trace-del" data-i="${i}" aria-label="Forget ${esc(r.name || 'this trace')}">×</button>
+				<button class="ghost-btn tiny" data-act="trace-load" data-i="${i}" title="${T('Open it to draw on')}">${T('Open')}</button>
+				<button class="ghost-btn tiny${r.lane ? ' on' : ''}" data-act="trace-lane" data-i="${i}" aria-pressed="${!!r.lane}" title="${r.lane ? T('A lane the game sails: every route near it is drawn along it. Press to make it a plain trace again') : T('Mark it as a lane the game sails, so every route near it is drawn along it and timed as the game would sail it')}" aria-label="${r.lane ? T('Stop treating {name} as a lane the game sails', { name: esc(r.name || T('this trace')) }) : T('Treat {name} as a lane the game sails', { name: esc(r.name || T('this trace')) })}">⚓</button>
+				<button class="ghost-btn tiny" data-act="trace-rename" data-i="${i}" title="${T('Rename it')}" aria-label="${T('Rename {name}', { name: esc(r.name || T('this trace')) })}">✎</button>
+				<button class="ghost-btn tiny" data-act="trace-share" data-i="${i}" title="${T('Copy a link to it')}" aria-label="${T('Copy a link to {name}', { name: esc(r.name || T('this trace')) })}">↗</button>
+				<button class="map-x" data-act="trace-del" data-i="${i}" aria-label="${T('Forget {name}', { name: esc(r.name || T('this trace')) })}">×</button>
 			</span>
 		</div>`;
 	}
@@ -268,68 +301,89 @@ function traceCard(r, i) {
 export function traceHTML() {
 	const t = mv.trace || blankTrace();
 	const words = t.texts || [];
-	const dot = id => (id === 'point' ? LINE_INK : mv.inkColour);
+	const dot = () => mv.inkColour;
 	const tool = (id, label, hint) => `<button class="map-course${mv.traceTool === id ? ' on' : ''}" data-act="trace-tool" data-id="${id}" aria-pressed="${mv.traceTool === id}">
 		<span class="map-course-dot" style="background:${dot(id)}"></span>
 		<span class="map-row-main"><span class="map-row-name">${label}</span><span class="map-row-sub">${hint}</span></span></button>`;
-	const swatch = c => `<button class="map-ink${c === mv.inkColour ? ' on' : ''}" data-act="trace-ink" data-colour="${c}" style="--ink:${c}" aria-pressed="${c === mv.inkColour}" aria-label="Draw in ${c}" title="Draw in this colour"></button>`;
-	const pick = (act, list, now, unit) => list.map(o => `<button class="map-pen${o.v === now ? ' on' : ''}" data-act="${act}" data-v="${o.v}" aria-pressed="${o.v === now}" title="${o.label}">${
-		unit === 'pen' ? `<span class="map-pen-bar" style="height:${Math.max(2, o.v)}px;background:${mv.inkColour}"></span>` : `<span style="font-size:${Math.round(o.v * 0.8)}px">${o.label}</span>`
+	const swatch = c => `<button class="map-ink${c === mv.inkColour ? ' on' : ''}" data-act="trace-ink" data-colour="${c}" style="--ink:${c}" aria-pressed="${c === mv.inkColour}" aria-label="${T('Draw in {colour}', { colour: c })}" title="${T('Draw in this colour')}"></button>`;
+	const pick = (act, list, now, unit) => list.map(o => `<button class="map-pen${o.v === now ? ' on' : ''}" data-act="${act}" data-v="${o.v}" aria-pressed="${o.v === now}" title="${said(o.label)}">${
+		unit === 'pen' ? `<span class="map-pen-bar" style="height:${Math.max(2, o.v)}px;background:${mv.inkColour}"></span>` : `<span style="font-size:${Math.round(o.v * 0.8)}px">${said(o.label)}</span>`
 	}</button>`).join('');
-	const stops = t.points.map((p, i) => `<div class="map-trace-stop">
-		<span class="map-trace-n" style="border-color:${p.colour || LINE_INK};color:${p.colour || LINE_INK}">${i + 1}</span>
-		<input class="field small" type="text" maxlength="120" placeholder="a note for this stop" value="${esc(p.note || '')}" data-act="trace-point-note" data-i="${i}" aria-label="Note for stop ${i + 1}">
-		<button class="map-x" data-act="trace-point-del" data-i="${i}" aria-label="Remove stop ${i + 1}">×</button>
-	</div>`).join('');
-	const wordRows = words.map((w, i) => `<div class="map-trace-stop">
-		<button class="map-trace-n word" style="border-color:${w.colour};color:${w.colour}" data-act="trace-text-ink" data-i="${i}" aria-label="Restyle word ${i + 1}" title="Give this word the ink and size chosen above">✎</button>
-		<input class="field small" type="text" maxlength="60" placeholder="the word on the chart" value="${esc(w.text)}" data-act="trace-text" data-i="${i}" aria-label="Word ${i + 1}">
-		<button class="map-x" data-act="trace-text-del" data-i="${i}" aria-label="Remove word ${i + 1}">×</button>
-	</div>`).join('');
-	const m = traceLength();
+	const lines = traceLines(t);
 	const speed = routeSpeed();
-	const time = m ? fmtRange(...sailRange(m, speed.total, sailCal(), Number(store.getSetting('sailCal', null)) > 0)) : '';
+	const many = lines.length > 1;
+	const stopRow = (s, n, k) => `<div class="map-trace-stop">
+		<span class="map-trace-n" style="border-color:${s.p.colour || LINE_INK};color:${s.p.colour || LINE_INK}">${n}</span>
+		<input class="field small" type="text" maxlength="120" placeholder="${T('a note for this stop')}" value="${esc(s.p.note || '')}" data-act="trace-point-note" data-i="${s.at}" aria-label="${many ? T('Note for stop {n} of line {line}', { n, line: k }) : T('Note for stop {n}', { n })}">
+		<button class="map-x" data-act="trace-point-del" data-i="${s.at}" aria-label="${many ? T('Remove stop {n} of line {line}', { n, line: k }) : T('Remove stop {n}', { n })}">×</button>
+	</div>`;
+	// With more than one line, each is headed with its ink, its length and
+	// its time, and a button to give it the ink chosen above.
+	const lineHead = (l, k) => {
+		const m = lineLength(l);
+		const time = lineTime(m, speed);
+		const sub = [l.stops.length === 1 ? T('{n} stop', { n: 1 }) : T('{n} stops', { n: l.stops.length }), m ? fmtDistance(m) : '', time ? `≈ ${time}` : ''].filter(Boolean).join(' · ');
+		const same = l.colour === mv.inkColour;
+		return `<div class="map-trace-linehead" style="--line-ink:${l.colour}">
+			<span class="map-trace-lineswatch"></span>
+			<span class="map-trace-linename">${T('Line {n}', { n: k })}</span>
+			<span class="map-row-sub">${esc(sub)}</span>
+			<button class="ghost-btn tiny" data-act="trace-line-ink" data-colour="${l.colour}" ${same ? 'disabled' : ''} title="${same ? T('This line is already in the ink chosen above') : T('Give this line the ink chosen above')}" aria-label="${T('Recolour line {n}', { n: k })}">✎</button>
+		</div>`;
+	};
+	const stops = many
+		? lines.map((l, k) => `${lineHead(l, k + 1)}${l.stops.map((s, i) => stopRow(s, i + 1, k + 1)).join('')}`).join('')
+		: lines.map(l => l.stops.map((s, i) => stopRow(s, i + 1, 1)).join('')).join('');
+	const wordRows = words.map((w, i) => `<div class="map-trace-stop">
+		<button class="map-trace-n word" style="border-color:${w.colour};color:${w.colour}" data-act="trace-text-ink" data-i="${i}" aria-label="${T('Restyle word {n}', { n: i + 1 })}" title="${T('Give this word the ink and size chosen above')}">✎</button>
+		<input class="field small" type="text" maxlength="60" placeholder="${T('the word on the chart')}" value="${esc(w.text)}" data-act="trace-text" data-i="${i}" aria-label="${T('Word {n}', { n: i + 1 })}">
+		<button class="map-x" data-act="trace-text-del" data-i="${i}" aria-label="${T('Remove word {n}', { n: i + 1 })}">×</button>
+	</div>`).join('');
+	// One line is timed at the foot of its stops; several are timed each
+	// in its own head, since they are not sailed one after another.
+	const m = many ? 0 : lines.reduce((a, l) => a + lineLength(l), 0);
+	const time = lineTime(m, speed);
 	const has = traceHas(t) || Boolean(mv.areaDraft);
 	const areaRows = (t.areas || []).map((a, i) => `<div class="map-trace-stop">
 		<span class="map-trace-n area" style="border-color:${a.colour};color:${a.colour};background:${a.colour}22">▰</span>
-		<span class="map-row-sub">an area of ${a.pts.length / 2} corners</span>
-		<button class="map-x" data-act="trace-area-del" data-i="${i}" aria-label="Remove area ${i + 1}">×</button>
+		<span class="map-row-sub">${T('an area of {n} corners', { n: a.pts.length / 2 })}</span>
+		<button class="map-x" data-act="trace-area-del" data-i="${i}" aria-label="${T('Remove area {n}', { n: i + 1 })}">×</button>
 	</div>`).join('');
 	const saved = traceShelf();
 	return `<div class="map-courses">
-		<div class="map-courses-head">Tools <span class="map-courses-credit">the islands sit still while you draw</span></div>
-		${tool('point', 'Add stops', 'click the sea for a numbered stop; drag one to move it')}
-		${tool('pen', 'Draw', 'drag to draw a line; it stays with the chart')}
-		${tool('text', 'Write', 'click the sea and type; drag a word to move it, click it to retype')}
-		${tool('area', 'Shade an area', 'click its corners; click the first again to close it')}
-		${mv.areaDraft ? `<div class="map-side-btns map-area-draft"><span class="map-hint">${mv.areaDraft.length / 2} corner${mv.areaDraft.length === 2 ? '' : 's'} so far</span>
-			<button class="ghost-btn" data-act="trace-area-close" ${mv.areaDraft.length >= 6 ? '' : 'disabled'}>Close the shape</button>
-			<button class="ghost-btn danger" data-act="trace-area-drop">Drop it</button></div>` : ''}
-		<div class="map-inks" role="group" aria-label="Ink colour">${INKS.map(swatch).join('')}</div>
+		<div class="map-courses-head">${T('Tools')} <span class="map-courses-credit">${T('the islands sit still while you draw')}</span></div>
+		${tool('point', T('Add stops'), T('click the sea for a numbered stop; another ink starts another line'))}
+		${tool('pen', T('Draw'), T('drag to draw a line; it stays with the chart'))}
+		${tool('text', T('Write'), T('click the sea and type; drag a word to move it, click it to retype'))}
+		${tool('area', T('Shade an area'), T('click its corners; click the first again to close it'))}
+		${mv.areaDraft ? `<div class="map-side-btns map-area-draft"><span class="map-hint">${mv.areaDraft.length === 2 ? T('{n} corner so far', { n: mv.areaDraft.length / 2 }) : T('{n} corners so far', { n: mv.areaDraft.length / 2 })}</span>
+			<button class="ghost-btn" data-act="trace-area-close" ${mv.areaDraft.length >= 6 ? '' : 'disabled'}>${T('Close the shape')}</button>
+			<button class="ghost-btn danger" data-act="trace-area-drop">${T('Drop it')}</button></div>` : ''}
+		<div class="map-inks" role="group" aria-label="${T('Ink colour')}">${INKS.map(swatch).join('')}</div>
 		<div class="map-style-row">
-			<span class="map-style-label">Stroke</span><span class="map-pens">${pick('trace-width', WIDTHS, mv.inkWidth, 'pen')}</span>
-			<span class="map-style-label">Words</span><span class="map-pens">${pick('trace-size', SIZES, mv.inkSize, 'text')}</span>
-			<button class="map-pen wide${mv.inkPlate ? ' on' : ''}" data-act="trace-plate" aria-pressed="${mv.inkPlate}" title="A dark plate behind a word, to read it over bright water">plate</button>
+			<span class="map-style-label">${T('Stroke')}</span><span class="map-pens">${pick('trace-width', WIDTHS, mv.inkWidth, 'pen')}</span>
+			<span class="map-style-label">${T('Words')}</span><span class="map-pens">${pick('trace-size', SIZES, mv.inkSize, 'text')}</span>
+			<button class="map-pen wide${mv.inkPlate ? ' on' : ''}" data-act="trace-plate" aria-pressed="${mv.inkPlate}" title="${T('A dark plate behind a word, to read it over bright water')}">${T('plate')}</button>
 		</div>
 		<div class="map-side-btns">
-			<button class="ghost-btn" data-act="trace-undo" ${has ? '' : 'disabled'} title="Take back the last mark, whatever kind it was">↶ Undo</button>
-			<button class="ghost-btn" data-act="trace-clear" ${has ? '' : 'disabled'}>Clear</button>
-			<button class="ghost-btn${mv.tracesOn ? ' on' : ''}" data-act="map-traces" aria-pressed="${mv.tracesOn}" title="Show or hide everything traced, without losing any of it">${mv.tracesOn ? '◉ Shown' : '○ Hidden'}</button>
-			<button class="ghost-btn${mv.hugWater ? ' on' : ''}" data-act="trace-hug" aria-pressed="${mv.hugWater}" title="Bend each leg round the land between its stops, the way the barter route is drawn">${mv.hugWater ? '⛵ Round the land' : '↗ Straight legs'}</button>
+			<button class="ghost-btn" data-act="trace-undo" ${has ? '' : 'disabled'} title="${T('Take back the last mark, whatever kind it was')}">↶ ${T('Undo')}</button>
+			<button class="ghost-btn danger" data-act="trace-clear" ${has ? '' : 'disabled'}>${T('Clear')}</button>
+			<button class="ghost-btn${mv.tracesOn ? ' on' : ''}" data-act="map-traces" aria-pressed="${mv.tracesOn}" title="${T('Show or hide everything traced, without losing any of it')}">${mv.tracesOn ? `◉ ${T('Shown')}` : `○ ${T('Hidden')}`}</button>
+			<button class="ghost-btn${mv.hugWater ? ' on' : ''}" data-act="trace-hug" aria-pressed="${mv.hugWater}" title="${T('Bend each leg round the land between its stops, the way the barter route is drawn')}">${mv.hugWater ? `⛵ ${T('Round the land')}` : `↗ ${T('Straight legs')}`}</button>
 		</div>
 	</div>
 	<div class="map-courses">
-		<input class="field" type="text" maxlength="40" placeholder="Name this route" value="${esc(t.name)}" data-act="trace-name" aria-label="Name of the traced route">
-		<textarea class="field map-trace-notes" maxlength="400" rows="2" placeholder="Notes — what it is for, when to sail it, what to watch" data-act="trace-notes" aria-label="Notes">${esc(t.notes)}</textarea>
-		${t.points.length ? `<div class="map-trace-stops">${stops}</div>` : '<p class="map-hint">No stops yet. Pick <b>Add stops</b> and click the sea, <b>Draw</b> and drag to sketch, or <b>Write</b> and type on the water.</p>'}
-		${words.length ? `<div class="map-courses-head">Words on the chart</div><div class="map-trace-stops">${wordRows}</div>` : ''}
-		${areaRows ? `<div class="map-courses-head">Areas shaded</div><div class="map-trace-stops">${areaRows}</div>` : ''}
-		${m ? `<p class="map-hint">${esc(fmtDistance(m))} stop to stop${time ? ` · ≈ ${esc(time)} at ${speed.total}%` : ''}</p>` : ''}
+		<input class="field" type="text" maxlength="40" placeholder="${T('Name this route')}" value="${esc(t.name)}" data-act="trace-name" aria-label="${T('Name of the traced route')}">
+		<textarea class="field map-trace-notes" maxlength="400" rows="2" placeholder="${T('Notes — what it is for, when to sail it, what to watch')}" data-act="trace-notes" aria-label="${T('Notes')}">${esc(t.notes)}</textarea>
+		${t.points.length ? `<div class="map-trace-stops">${stops}</div>` : `<p class="map-hint">${T('No stops yet. Pick <b>Add stops</b> and click the sea, <b>Draw</b> and drag to sketch, or <b>Write</b> and type on the water.')}</p>`}
+		${words.length ? `<div class="map-courses-head">${T('Words on the chart')}</div><div class="map-trace-stops">${wordRows}</div>` : ''}
+		${areaRows ? `<div class="map-courses-head">${T('Areas shaded')}</div><div class="map-trace-stops">${areaRows}</div>` : ''}
+		${m ? `<p class="map-hint">${T('{distance} stop to stop', { distance: esc(fmtDistance(m)) })}${time ? ` · ${T('≈ {time} at {percent}%', { time: esc(time), percent: speed.total })}` : ''}</p>` : ''}
 		<div class="map-side-btns">
-			<button class="act small" data-act="trace-save" ${has ? '' : 'disabled'} title="Keep it on this browser, by name">Keep</button>
-			<button class="ghost-btn" data-act="trace-link" ${has ? '' : 'disabled'} title="A link that carries the whole trace — stops, notes, drawing and words">Copy link</button>
-			<button class="ghost-btn" data-act="trace-export" ${has ? '' : 'disabled'} title="A JSON file of it">File</button>
-			<button class="ghost-btn" data-act="map-game" data-source="trace" ${t.points.length ? '' : 'disabled'} title="Write the stops into the game's world map as favourites or a loop">⚑ To the game</button>
+			<button class="act small" data-act="trace-save" ${has ? '' : 'disabled'} title="${T('Keep it on this browser, by name')}">${T('Keep')}</button>
+			<button class="ghost-btn" data-act="trace-link" ${has ? '' : 'disabled'} title="${T('A link that carries the whole trace — stops, notes, drawing and words')}">${T('Copy link')}</button>
+			<button class="ghost-btn" data-act="trace-export" ${has ? '' : 'disabled'} title="${T('A JSON file of it')}">${T('File')}</button>
+			<button class="ghost-btn" data-act="map-game" data-source="trace" ${t.points.length ? '' : 'disabled'} title="${many ? T('Write the lines into the game\'s world map, a loop each, or one of them as favourites') : T('Write the stops into the game\'s world map as favourites or a loop')}">⚑ ${T('To the game')}</button>
 		</div>
 	</div>
 	${saved}`;
@@ -343,10 +397,11 @@ export function traceHTML() {
 function traceArt(t, size, live) {
 	let html = '';
 	const P = p => project(mv.mapState, size, p.x, p.y);
-	if (t.points.length > 1) {
-		const d = routePath(traceLine(t).map(P), size, mv.hugWater ? 0 : 0.16);
-		const c = t.points[0].colour || LINE_INK;
-		html += `<svg class="map-route map-trace-line"><path class="map-trace-glow" style="stroke:${c}" d="${d}"></path><path class="map-trace-path" style="stroke:${c}" d="${d}"></path></svg>`;
+	const lines = traceLines(t);
+	for (const l of lines) {
+		if (l.stops.length < 2) continue;
+		const d = routePath(traceLine(l.stops.map(s => s.p)).map(P), size, mv.hugWater ? 0 : 0.16);
+		html += `<svg class="map-route map-trace-line"><path class="map-trace-glow" style="stroke:${l.colour}" d="${d}"></path><path class="map-trace-path" style="stroke:${l.colour}" d="${d}"></path></svg>`;
 	}
 	// Areas first, under everything: a shaded water with its edge in the
 	// same ink, and the one being cornered as a dashed open line.
@@ -379,18 +434,19 @@ function traceArt(t, size, live) {
 		if (d) html += `<svg class="map-route map-trace-line"><path class="map-trace-stroke" style="stroke:${inkOf(st.colour)};stroke-width:${widthOf(st.width)}" d="${d}"></path></svg>`;
 	}
 	const onScreen = at => at.left > -40 && at.top > -40 && at.left < size.w + 40 && at.top < size.h + 40;
-	t.points.forEach((p, i) => {
+	lines.forEach((l, k) => l.stops.forEach(({ p }, i) => {
 		const at = P(p);
 		if (!onScreen(at)) return;
-		const c = p.colour || LINE_INK;
+		const c = l.colour;
 		const note = live && p.note ? `<span class="map-trace-note">${esc(p.note)}</span>` : '';
-		html += `<span class="map-trace-dot${p.note ? ' noted' : ''}"${live ? ` data-mark="stop" data-seq="${p.seq}"` : ''} style="left:${Math.round(at.left)}px;top:${Math.round(at.top)}px;border-color:${c};color:${c}" title="${esc(p.note || `stop ${i + 1}`)}${live && mv.mode === 'trace' ? ' · drag it to move it' : ''}">${i + 1}${note}</span>`;
-	});
+		const name = lines.length > 1 ? T('line {line}, stop {n}', { line: k + 1, n: i + 1 }) : T('stop {n}', { n: i + 1 });
+		html += `<span class="map-trace-dot${p.note ? ' noted' : ''}"${live ? ` data-mark="stop" data-seq="${p.seq}"` : ''} style="left:${Math.round(at.left)}px;top:${Math.round(at.top)}px;border-color:${c};color:${c}" title="${esc(p.note || name)}${live && mv.mode === 'trace' ? ` · ${T('drag it to move it')}` : ''}">${i + 1}${note}</span>`;
+	}));
 	for (const w of (t.texts || [])) {
 		if (live && w.seq === mv.editing) continue;          // that one is an input, below
 		const at = P(w);
 		if (!onScreen(at) || !w.text) continue;
-		html += `<span class="map-trace-word${w.plate ? ' plate' : ''}"${live ? ` data-mark="word" data-seq="${w.seq}" title="Drag it where it belongs · click to retype it"` : ''} style="left:${Math.round(at.left)}px;top:${Math.round(at.top)}px;color:${inkOf(w.colour)};font-size:${sizeOf(w.size)}px">${esc(w.text)}</span>`;
+		html += `<span class="map-trace-word${w.plate ? ' plate' : ''}"${live ? ` data-mark="word" data-seq="${w.seq}" title="${T('Drag it where it belongs · click to retype it')}"` : ''} style="left:${Math.round(at.left)}px;top:${Math.round(at.top)}px;color:${inkOf(w.colour)};font-size:${sizeOf(w.size)}px">${esc(w.text)}</span>`;
 	}
 	return html;
 }
@@ -445,8 +501,8 @@ function paintWriting(box, size) {
 		edit.className = 'map-trace-write';
 		edit.type = 'text';
 		edit.maxLength = 60;
-		edit.placeholder = 'write here';
-		edit.setAttribute('aria-label', 'Word on the chart');
+		edit.placeholder = T('write here');
+		edit.setAttribute('aria-label', T('Word on the chart'));
 		edit.value = item.text || '';
 		edit.addEventListener('input', () => { item.text = edit.value.slice(0, 60); });
 		edit.addEventListener('keydown', e => {
@@ -500,10 +556,10 @@ export function onWater(p) {
 
 export function traceAdd(host, clientX, clientY) {
 	const t = liveTrace();
-	if (t.points.length >= TRACE_STOPS) return toast(`${TRACE_STOPS} stops is the most a trace holds`);
+	if (t.points.length >= TRACE_STOPS) return toast(T('{n} stops is the most a trace holds', { n: TRACE_STOPS }));
 	const at = atSea(host, clientX, clientY);
 	const wet = onWater(at);
-	if (!wet) return toast('A stop belongs on the water');
+	if (!wet) return toast(T('A stop belongs on the water'));
 	t.points.push({ ...wet, colour: mv.inkColour, seq: bumpSeq() });
 	persist();
 	refreshSide();
@@ -515,7 +571,7 @@ export function textAdd(host, clientX, clientY) {
 	// Whatever was open and still blank was never a word.
 	mv.editing = 0;
 	dropBlankWords();
-	if (t.texts.length >= TRACE_WORDS) return toast(`${TRACE_WORDS} words is the most a trace holds`);
+	if (t.texts.length >= TRACE_WORDS) return toast(T('{n} words is the most a trace holds', { n: TRACE_WORDS }));
 	const w = { ...atSea(host, clientX, clientY), text: '', colour: mv.inkColour, size: mv.inkSize, plate: mv.inkPlate, seq: bumpSeq() };
 	t.texts.push(w);
 	mv.editing = w.seq;
@@ -545,7 +601,7 @@ export function penEnd() {
 	if (!mv.penStroke) return;
 	if (mv.penStroke.length >= 4) {
 		const t = liveTrace();
-		if (t.strokes.length >= TRACE_STROKES) toast(`${TRACE_STROKES} strokes is the most a trace holds`);
+		if (t.strokes.length >= TRACE_STROKES) toast(T('{n} strokes is the most a trace holds', { n: TRACE_STROKES }));
 		else t.strokes.push({ pts: mv.penStroke, colour: mv.inkColour, width: mv.inkWidth, seq: bumpSeq() });
 	}
 	mv.penStroke = null;
@@ -561,10 +617,10 @@ export function setTraceTool(id) {
 	// A shape half-cornered dies with the tool that was cornering it.
 	if (mv.traceTool !== 'area' && mv.areaDraft) { mv.areaDraft = null; paintMap(); }
 	markTraceHost();
-	if (mv.traceTool === 'point') toast('Click the sea to add a stop');
-	if (mv.traceTool === 'pen') toast('Drag on the sea to draw');
-	if (mv.traceTool === 'text') toast('Click the sea, then type');
-	if (mv.traceTool === 'area') toast('Click the corners of the water to shade; click the first one again to close it');
+	if (mv.traceTool === 'point') toast(T('Click the sea to add a stop'));
+	if (mv.traceTool === 'pen') toast(T('Drag on the sea to draw'));
+	if (mv.traceTool === 'text') toast(T('Click the sea, then type'));
+	if (mv.traceTool === 'area') toast(T('Click the corners of the water to shade; click the first one again to close it'));
 	refreshSide();
 }
 
@@ -578,7 +634,7 @@ export function areaAdd(host, clientX, clientY) {
 		if (Math.hypot(at.x - first.left, at.y - first.top) < 14) return areaClose();
 	}
 	if (!mv.areaDraft) mv.areaDraft = [];
-	if (mv.areaDraft.length >= AREA_CORNERS * 2) return toast(`${AREA_CORNERS} corners is the most an area holds`);
+	if (mv.areaDraft.length >= AREA_CORNERS * 2) return toast(T('{n} corners is the most an area holds', { n: AREA_CORNERS }));
 	mv.areaDraft.push(p.x, p.y);
 	refreshSide();
 	paintMap();
@@ -587,7 +643,7 @@ export function areaAdd(host, clientX, clientY) {
 function areaClose() {
 	if (!mv.areaDraft || mv.areaDraft.length < 6) return;
 	const t = liveTrace();
-	if (t.areas.length >= TRACE_AREAS) toast(`${TRACE_AREAS} areas is the most a trace holds`);
+	if (t.areas.length >= TRACE_AREAS) toast(T('{n} areas is the most a trace holds', { n: TRACE_AREAS }));
 	else t.areas.push({ pts: mv.areaDraft, colour: mv.inkColour, seq: bumpSeq() });
 	mv.areaDraft = null;
 	persist();
@@ -662,6 +718,16 @@ export function traceAction(act, el) {
 		}
 		case 'trace-clear': mv.trace = null; mv.traceTool = null; mv.editing = 0; mv.areaDraft = null; break;
 		case 'trace-point-del': if (mv.trace && mv.trace.points[i]) mv.trace.points.splice(i, 1); break;
+		case 'trace-line-ink': {
+			// A line is its ink, so giving it one another line already wears
+			// would fold the two into one -- a thing to do on purpose, not by
+			// a slip of the swatch.
+			const from = el.dataset.colour;
+			if (!mv.trace || from === mv.inkColour) return true;
+			if (mv.trace.points.some(p => p.colour === mv.inkColour)) { toast(T('Another line is already in that ink — pick one no line wears')); return true; }
+			for (const p of mv.trace.points) if (p.colour === from) p.colour = mv.inkColour;
+			break;
+		}
 		case 'trace-save': {
 			const t = mv.trace;
 			if (!traceHas(t)) return true;
@@ -671,7 +737,7 @@ export function traceAction(act, el) {
 			// while the next stroke goes on the one being drawn.
 			mv.traces = [{ ...JSON.parse(JSON.stringify(t)), at: Date.now() }, ...mv.traces.filter(r => r.name !== name)].slice(0, TRACES_MAX);
 			const clip = traceClipNote(t);
-			toast(clip ? `Kept “${name}” — ${clip}` : `Kept “${name}”`);
+			toast(clip ? T('Kept “{name}” — {clip}', { name, clip }) : T('Kept “{name}”', { name }));
 			break;
 		}
 		case 'trace-hug': mv.hugWater = !mv.hugWater; break;
@@ -681,9 +747,9 @@ export function traceAction(act, el) {
 		case 'trace-eye': if (mv.traces[i]) { mv.traces[i].shown = !mv.traces[i].shown; if (mv.traces[i].shown) mv.tracesOn = true; } break;
 		case 'trace-lane':
 			if (mv.traces[i]) {
-				if (!mv.traces[i].lane && mv.traces[i].points.length < 2) { toast('A lane needs at least two stops to run between'); return true; }
+				if (!mv.traces[i].lane && mv.traces[i].points.length < 2) { toast(T('A lane needs at least two stops to run between')); return true; }
 				mv.traces[i].lane = !mv.traces[i].lane;
-				toast(mv.traces[i].lane ? `Routes near “${mv.traces[i].name}” now follow it` : `“${mv.traces[i].name}” is a plain trace again`);
+				toast(mv.traces[i].lane ? T('Routes near “{name}” now follow it', { name: mv.traces[i].name }) : T('“{name}” is a plain trace again', { name: mv.traces[i].name }));
 			}
 			break;
 		case 'trace-eye-none': mv.traces = mv.traces.map(r => ({ ...r, shown: false })); break;
@@ -696,15 +762,10 @@ export function traceAction(act, el) {
 		case 'trace-share': {
 			const r = mv.traces[i];
 			if (!r) return true;
-			(async () => {
-				try {
-					await navigator.clipboard.writeText(traceLink(await encodeAny({
-						app: 'bdo-ship-upgrade-tracker', kind: 'trace', version: 2, exported: new Date().toISOString(),
-						name: r.name, notes: r.notes, points: r.points, strokes: r.strokes, texts: r.texts || []
-					})));
-					toast(`Link to “${r.name}” copied`);
-				} catch { toast('Could not reach the clipboard'); }
-			})();
+			shareTrace({
+				app: 'bdo-ship-upgrade-tracker', kind: 'trace', version: 2, exported: new Date().toISOString(),
+				name: r.name, notes: r.notes, points: r.points, strokes: r.strokes, texts: r.texts || [], areas: r.areas || [], inkLines: true
+			}, T('Link to “{name}” copied', { name: r.name }));
 			return true;
 		}
 		case 'trace-load':
@@ -714,12 +775,7 @@ export function traceAction(act, el) {
 			break;
 		case 'trace-del': mv.traces = mv.traces.filter((_, k) => k !== i); break;
 		case 'trace-link':
-			(async () => {
-				try {
-					await navigator.clipboard.writeText(traceLink(await encodeAny(traceExportObject())));
-					toast('Trace link copied');
-				} catch { toast('Could not reach the clipboard'); }
-			})();
+			shareTrace(traceExportObject(), T('Trace link copied'));
 			return true;
 		case 'trace-export': {
 			const blob = new Blob([JSON.stringify(traceExportObject(), null, 2)], { type: 'application/json' });
@@ -768,19 +824,19 @@ function libraryHTML() {
 	const chip = (act, id, now, label) => `<button class="chip tiny${now ? ' active' : ''}" data-act="${act}" data-id="${id}" aria-pressed="${now}">${label}</button>`;
 	const cards = list.length
 		? `<div class="trace-grid">${list.map(e => traceCard(e.r, e.i)).join('')}</div>`
-		: `<p class="dialog-copy">Nothing here answers to “${esc(mv.libQ)}”${mv.libOnly === 'shown' ? ', among the ones on the chart' : ''}.</p>`;
+		: `<p class="dialog-copy">${mv.libOnly === 'shown' ? T('Nothing here answers to “{q}”, among the ones on the chart.', { q: esc(mv.libQ) }) : T('Nothing here answers to “{q}”.', { q: esc(mv.libQ) })}</p>`;
 	return `<div class="lib-bar">
-			<input class="field" type="search" placeholder="Search names, notes, and the words written on them"
-				value="${esc(mv.libQ)}" data-lib-search aria-label="Search the traces">
+			<input class="field" type="search" placeholder="${T('Search names, notes, and the words written on them')}"
+				value="${esc(mv.libQ)}" data-lib-search aria-label="${T('Search the traces')}">
 		</div>
 		<div class="lib-bar">
-			<span class="lib-label">Sort</span>
-			${chip('trace-lib-sort', 'recent', mv.libSort === 'recent', 'newest')}
-			${chip('trace-lib-sort', 'name', mv.libSort === 'name', 'name')}
-			${chip('trace-lib-sort', 'size', mv.libSort === 'size', 'biggest')}
-			<span class="lib-label">Show</span>
-			${chip('trace-lib-only', 'all', mv.libOnly === 'all', `all ${mv.traces.length}`)}
-			${chip('trace-lib-only', 'shown', mv.libOnly === 'shown', `on the chart ${shown}`)}
+			<span class="lib-label">${T('Sort')}</span>
+			${chip('trace-lib-sort', 'recent', mv.libSort === 'recent', T('newest'))}
+			${chip('trace-lib-sort', 'name', mv.libSort === 'name', T('name'))}
+			${chip('trace-lib-sort', 'size', mv.libSort === 'size', T('biggest'))}
+			<span class="lib-label">${T('Show')}</span>
+			${chip('trace-lib-only', 'all', mv.libOnly === 'all', T('all {n}', { n: mv.traces.length }))}
+			${chip('trace-lib-only', 'shown', mv.libOnly === 'shown', T('on the chart {n}', { n: shown }))}
 		</div>
 		${cards}`;
 }
@@ -802,12 +858,12 @@ function refreshLibrary() {
 export function openTraceLibrary() {
 	mv.libOpen = true;
 	const host = openDialog(`
-		<h2>The traces you have kept</h2>
-		<p class="dialog-copy">${mv.traces.length} of ${TRACES_MAX} on this browser. Open one to draw on it, or open its eye to lay it over the chart beside whatever else you are drawing. Trace the way the game’s auto-path really sails a passage and press ⚓ to make it a lane: every route drawn near it follows it from then on, and is timed as the game sails it.</p>
+		<h2>${T('The traces you have kept')}</h2>
+		<p class="dialog-copy">${T('{n} of {max} on this browser. Open one to draw on it, or open its eye to lay it over the chart beside whatever else you are drawing. Trace the way the game’s auto-path really sails a passage and press ⚓ to make it a lane: every route drawn near it follows it from then on, and is timed as the game sails it.', { n: mv.traces.length, max: TRACES_MAX })}</p>
 		<div data-trace-lib>${libraryHTML()}</div>
 		<div class="dialog-actions">
-			${mv.traces.some(r => r.shown) ? '<button class="ghost-btn" data-act="trace-eye-none">Clear the chart</button>' : ''}
-			<button class="ghost-btn" data-close>Close</button>
+			${mv.traces.some(r => r.shown) ? `<button class="ghost-btn" data-act="trace-eye-none">${T('Clear the chart')}</button>` : ''}
+			<button class="ghost-btn" data-close>${T('Close')}</button>
 		</div>`, { onDismiss: () => { mv.libOpen = false; } });
 	// The one dialog in the app that wants the width: a grid of drawings
 	// reads three across, and two of them is a list with gaps.
@@ -831,27 +887,29 @@ function renameTraceDialog(i) {
 	const back = mv.libOpen;
 	mv.libOpen = false;
 	const host = openDialog(`
-		<h2>Rename this trace</h2>
-		<p class="dialog-copy">${esc(r.name || 'untitled')} — ${r.points.length} stop${r.points.length === 1 ? '' : 's'}, kept ${keptWhen(r.at)}.</p>
+		<h2>${T('Rename this trace')}</h2>
+		<p class="dialog-copy">${r.points.length === 1
+			? T('{name} — {n} stop, kept {when}.', { name: esc(r.name || T('untitled')), n: r.points.length, when: keptWhen(r.at) })
+			: T('{name} — {n} stops, kept {when}.', { name: esc(r.name || T('untitled')), n: r.points.length, when: keptWhen(r.at) })}</p>
 		<input class="field" type="text" maxlength="40" value="${esc(r.name || '')}" data-trace-name>
 		<div class="dialog-actions">
-			<button class="ghost-btn" data-close>Cancel</button>
-			<button class="act" data-trace-rename>Rename</button>
+			<button class="ghost-btn" data-close>${T('Cancel')}</button>
+			<button class="act" data-trace-rename>${T('Rename')}</button>
 		</div>`);
 	const input = host.querySelector('[data-trace-name]');
 	input.focus();
 	input.select();
 	const save = () => {
 		const name = input.value.trim();
-		if (!name) return toast('Give it a name');
-		if (mv.traces.some((o, k) => k !== i && o.name === name)) return toast('There is already a trace by that name');
+		if (!name) return toast(T('Give it a name'));
+		if (mv.traces.some((o, k) => k !== i && o.name === name)) return toast(T('There is already a trace by that name'));
 		if (mv.trace && mv.trace.name === r.name) mv.trace.name = name;
 		r.name = name;
 		persist();
 		closeDialog();
 		refreshSide();
 		paintMap();
-		toast(`Now “${name}”`);
+		toast(T('Now “{name}”', { name }));
 		if (back) openTraceLibrary();
 	};
 	host.querySelector('[data-trace-rename]').addEventListener('click', save);
@@ -898,17 +956,59 @@ export function currentMapData() {
 
 function traceExportObject() {
 	const t = mv.trace || blankTrace();
-	return { app: 'bdo-ship-upgrade-tracker', kind: 'trace', version: 2, exported: new Date().toISOString(), name: t.name, notes: t.notes, points: t.points, strokes: t.strokes, texts: t.texts || [], areas: t.areas || [] };
+	return { app: 'bdo-ship-upgrade-tracker', kind: 'trace', version: 2, exported: new Date().toISOString(), name: t.name, notes: t.notes, points: t.points, strokes: t.strokes, texts: t.texts || [], areas: t.areas || [], inkLines: true };
 }
 
 export function traceLink(payload) {
-	return `${location.origin}${location.pathname}#trace/${payload}`;
+	return `${linkAt('trace')}#trace/${payload}`;
+}
+
+/**
+ * A trace as a link carries it: each stroke's points as its first
+ * pair and then the step to each next. A pen point is a few units
+ * from the last, so the steps are small numbers where the positions
+ * were six figures, and they pack to half the size. `steps` says the
+ * strokes are written so; a trace without it is read as it stands.
+ */
+export function packTrace(obj) {
+	const strokes = (obj.strokes || []).map(st => {
+		const pts = Array.isArray(st) ? st : (st && Array.isArray(st.pts) ? st.pts : []);
+		const out = pts.slice(0, 2);
+		for (let i = 2; i + 1 < pts.length; i += 2) out.push(pts[i] - pts[i - 2], pts[i + 1] - pts[i - 1]);
+		return Array.isArray(st) ? out : { ...st, pts: out };
+	});
+	return { ...obj, version: 3, steps: true, strokes };
+}
+
+/** What packTrace did, undone; anything else is left as it is. */
+export function unpackTrace(obj) {
+	if (!obj || typeof obj !== 'object' || obj.steps !== true) return obj;
+	const strokes = (Array.isArray(obj.strokes) ? obj.strokes : []).map(st => {
+		const pts = Array.isArray(st) ? st : (st && Array.isArray(st.pts) ? st.pts : []);
+		const out = pts.slice(0, 2);
+		for (let i = 2; i + 1 < pts.length; i += 2) out.push(out[i - 2] + Number(pts[i]), out[i - 1] + Number(pts[i + 1]));
+		return Array.isArray(st) ? out : { ...st, pts: out };
+	});
+	const out = { ...obj, strokes };
+	delete out.steps;
+	return out;
+}
+
+/** The trace on the clipboard as a link: short where it can be had,
+ *  the whole drawing packed into the address where not. */
+async function shareTrace(obj, said) {
+	const packed = packTrace(obj);
+	let url, short;
+	try {
+		({ url, short } = await buildLink('trace', packed, () => encodeAny(packed).then(traceLink)));
+	} catch { return toast(T('Could not build or copy the link')); }
+	await copyLink(url, said, short);
 }
 
 /** A trace from a link or a file, onto the chart. Returns it, or null. */
 export async function applyTraceLink(payload) {
 	let data;
-	try { data = await decodeAny(payload); } catch { return null; }
+	try { data = unpackTrace(await decodeAny(payload)); } catch { return null; }
 	return applyTraceObject(data);
 }
 
@@ -925,12 +1025,27 @@ export function applyTraceObject(data) {
 	return t;
 }
 
-/** The traced marks for the game's map, numbered, named by their
- *  notes. A loop is sailed, so it takes the stops alone; favourites are
- *  places, so the words written on the chart come too. */
-export function tracePoints(withWords = false) {
+/** The traced lines for the game's map: each line's stops in order,
+ *  numbered as the chart numbers them -- "2.3" is line 2's third stop
+ *  once there is more than one line -- and named by their notes. */
+export function traceGameLines() {
 	if (!mv.trace) return [];
-	const stops = mv.trace.points.map((p, i) => ({ name: `${i + 1}: ${p.note || mv.trace.name || 'trace'}`.slice(0, 30), x: p.x, y: p.y }));
+	const lines = traceLines(mv.trace);
+	const tag = (k, i) => (lines.length > 1 ? `${k + 1}.${i + 1}` : `${i + 1}`);
+	return lines.map((l, k) => ({
+		colour: l.colour,
+		points: l.stops.map(({ p }, i) => ({ name: `${tag(k, i)}: ${p.note || mv.trace.name || 'trace'}`.slice(0, 30), x: p.x, y: p.y }))
+	}));
+}
+
+/** The traced marks for the game's map, numbered, named by their
+ *  notes: every line one after another, or line `line` alone. A loop is
+ *  sailed, so it takes the stops alone; favourites are places, so the
+ *  words written on the chart come too. */
+export function tracePoints(withWords = false, line = null) {
+	if (!mv.trace) return [];
+	const lines = traceGameLines();
+	const stops = Number.isInteger(line) && lines[line] ? lines[line].points : lines.flatMap(l => l.points);
 	if (!withWords) return stops;
 	return [...stops, ...(mv.trace.texts || []).map(w => ({ name: w.text.slice(0, 30), x: w.x, y: w.y }))];
 }

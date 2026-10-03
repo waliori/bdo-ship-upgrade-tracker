@@ -90,6 +90,14 @@ const vapid = {
 };
 export const pushEnabled = Boolean(vapid.publicKey && vapid.privateKey && turso.url);
 
+// Chimes as Discord messages ride on the same schedule as the push ones, so
+// they need what push needs, an account to message, and the bot's own token.
+// Slash commands are answered over Discord's interactions webhook, which
+// signs every call with the bot application's public key.
+export const botCommandsEnabled = Boolean(read('DISCORD_BOT_PUBLIC_KEY') && syncEnabled);
+
+export const dmEnabled = Boolean(read('DISCORD_BOT_TOKEN') && pushEnabled && syncEnabled);
+
 // Feedback needs only somewhere to keep it. A Discord webhook, when one
 // is given, gets a copy of each entry the moment it lands, so the
 // operator hears of a bug without opening the inbox.
@@ -138,8 +146,8 @@ const adminIds = new Set(read('ADMIN_IDS').split(',').map(s => s.trim()).filter(
 export const config = {
 	port: num('PORT', 8000),
 	vapid,
-	// How long before a spawn the reminder goes out.
-	pushBeforeMs: num('PUSH_BEFORE_MINUTES', 15) * 60 * 1000,
+	botToken: read('DISCORD_BOT_TOKEN'),
+	botPublicKey: read('DISCORD_BOT_PUBLIC_KEY'),
 	publicUrl,
 	publicOrigin,
 	discord: {
@@ -185,6 +193,11 @@ export const config = {
 	// Long enough that a double-press cannot send twice, short enough
 	// that remembering one more thing is not a punishment.
 	reportGapMs: num('REPORT_GAP_SECONDS', 60) * 1000,
+	// All the pictures on disk together, sent or not. Past it the box
+	// takes no more until some are swept or thrown away: a disk that
+	// fills up takes the database file down with it when both live in
+	// the same volume, which is the default.
+	maxUploadBytes: num('MAX_UPLOAD_BYTES', 2 * 1024 * 1024 * 1024),
 	// An image nobody ever attached to a report is swept after this.
 	uploadTtlMs: num('UPLOAD_TTL_HOURS', 24) * 3600_000,
 	// How long a quiet set of community boards is held between rebuilds:
@@ -211,6 +224,25 @@ export const config = {
 	// sail it -- so this is far above anything the app does and only
 	// bites something that is not the app.
 	maxBoardsPerMinute: num('MAX_BOARDS_PER_MINUTE', 20),
+	// Keeping a link. A player copies a link a few times a day at most,
+	// so this only bites a script; and what one link may carry is a
+	// drawing at its largest -- twenty-four strokes of a thousand
+	// points -- with room to spare, well under a save.
+	maxLinksPerMinute: num('MAX_LINKS_PER_MINUTE', 20),
+	maxLinkBytes: num('MAX_LINK_BYTES', 256 * 1024),
+	// How many links an account keeps. Past this the oldest go, so a
+	// player who shares a route every day for years never fills a
+	// table -- and never notices, since a link that old is a message
+	// nobody is reading any more.
+	maxLinksPerAccount: num('MAX_LINKS_PER_ACCOUNT', 2000),
+	// And how much they may weigh between them, the oldest going first.
+	maxLinkBytesPerAccount: num('MAX_LINK_BYTES_PER_ACCOUNT', 16 * 1024 * 1024),
+	// The header the proxy in front puts the player's own address in --
+	// `cf-connecting-ip` behind Cloudflare. Without it the limits kept
+	// per address counted the edge's addresses, one shared by many
+	// players. Only set it when the app cannot be reached but through
+	// that proxy: anyone reaching it directly could write the header.
+	clientIpHeader: read('CLIENT_IP_HEADER').toLowerCase(),
 
 	// How long a change waits before being written out. Long enough that
 	// typing "1", "12", "120" is one write rather than three; short enough

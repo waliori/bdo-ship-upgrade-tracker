@@ -12,11 +12,16 @@
 services:
   bdo-tracker:
     build: .
+    # Named, so the backup service below runs the same image rather than
+    # building a second copy of it.
+    image: bdo-tracker
     # A real init as PID 1, so SIGTERM reaches node cleanly and the
     # shutdown flush in server/saves.js actually gets to run.
     init: true
+    # BIND in .env picks the host address: 127.0.0.1 when the proxy runs
+    # on this machine, so the app is reached only through it.
     ports:
-      - "${PORT:-8000}:8000"
+      - "${BIND:-0.0.0.0}:${PORT:-8000}:8000"
     # `required: false` is what lets the file be absent. Everything in it
     # is passed straight into the container, so a new setting needs no
     # change here -- only a line in .env.
@@ -40,5 +45,32 @@ services:
       - tracker-data:/app/.data
     restart: unless-stopped
 
+  # A backup a day of every table and the feedback pictures, kept two
+  # weeks, in a volume of its own. Off unless asked for:
+  #   docker compose --profile backup up -d
+  # and read one out with
+  #   docker compose cp bdo-backup:/app/backups ./backups
+  bdo-backup:
+    # The tracker's own image: the backup tool is already in it, and a
+    # second build of three hundred megabytes of terrain is not wanted.
+    # `docker compose --profile backup up -d --build` builds it first.
+    image: bdo-tracker
+    profiles: ["backup"]
+    init: true
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      - NODE_ENV=production
+      - BACKUP_EVERY_HOURS=${BACKUP_EVERY_HOURS:-24}
+    volumes:
+      - tracker-data:/app/.data
+      - tracker-backups:/app/backups
+    entrypoint: ["sh", "-c", "while true; do node tools/backup.mjs backups/backup-$$(date -u +%Y-%m-%dT%H%M).json; find backups -maxdepth 1 -name 'backup-*' -mtime +14 -exec rm -rf {} +; sleep $$((BACKUP_EVERY_HOURS * 3600)); done"]
+    healthcheck:
+      disable: true
+    restart: unless-stopped
+
 volumes:
   tracker-data:
+  tracker-backups:

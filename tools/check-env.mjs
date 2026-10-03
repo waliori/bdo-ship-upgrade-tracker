@@ -11,7 +11,9 @@
 // except the database schema, which is created if missing -- that is the
 // same thing the server does on boot.
 
-import { config, syncEnabled } from '../server/config.js';
+import fs from 'node:fs';
+import path from 'node:path';
+import { config, syncEnabled, pushEnabled } from '../server/config.js';
 
 let failures = 0;
 const pass = (what, detail) => console.log(`  ok    ${what}${detail ? ` — ${detail}` : ''}`);
@@ -51,6 +53,46 @@ config.publicUrl.startsWith('https://')
 config.sessionSecret.length >= 32
 	? pass('session secret', `${config.sessionSecret.length} chars`)
 	: fail('session secret', 'want 32 or more characters');
+
+// The optional parts: said as notes when they are off, and failed only
+// when half set -- a key pair with one half, a webhook that is not one.
+console.log('\nOptional features');
+const v = config.vapid;
+if (pushEnabled) {
+	pass('push reminders', `public key ${mask(v.publicKey)}`);
+	v.subject ? pass('push contact', v.subject) : note('VAPID_SUBJECT is unset: the push services are given the site instead');
+} else if (v.publicKey || v.privateKey) {
+	fail('push reminders', 'VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY are both needed (npx web-push generate-vapid-keys)');
+} else note('push reminders are off: no VAPID keys');
+config.adminIds.size
+	? (![...config.adminIds].every(id => /^\d{17,20}$/.test(id))
+		? fail('ADMIN_IDS', 'Discord account ids are 17-20 digits, comma-separated')
+		: pass('feedback inbox', `${config.adminIds.size} admin${config.adminIds.size === 1 ? '' : 's'}`))
+	: note('ADMIN_IDS is unset: nobody can open the feedback inbox');
+config.feedbackWebhook
+	? (/^https:\/\/(?:\w+\.)?discord(?:app)?\.com\/api\/webhooks\//.test(config.feedbackWebhook)
+		? pass('feedback webhook', 'a Discord webhook')
+		: fail('feedback webhook', 'FEEDBACK_WEBHOOK_URL is not a Discord webhook address'))
+	: note('FEEDBACK_WEBHOOK_URL is unset: feedback lands in the inbox without a ping');
+if (config.uploadDir) {
+	try {
+		fs.mkdirSync(config.uploadDir, { recursive: true });
+		const probe = path.join(config.uploadDir, `.check-${process.pid}`);
+		fs.writeFileSync(probe, '');
+		fs.unlinkSync(probe);
+		pass('upload folder', config.uploadDir);
+	} catch (err) {
+		fail('upload folder', `${config.uploadDir} is not writable: ${err.code || err.message}`);
+	}
+}
+process.env.APP_VERSION ? pass('build name', process.env.APP_VERSION) : note('APP_VERSION is unset: the build is named from git or the image stamp');
+config.clientIpHeader ? pass('client address header', config.clientIpHeader) : note('CLIENT_IP_HEADER is unset: limits per address count whatever address reaches the app');
+// The two settings only work as a pair. Behind Cloudflare without the
+// header, every player reaching the app through one edge shares one
+// bucket; with the header but the port open to the world, anybody can
+// write it themselves and walk round the limit.
+if (config.cookieSecure && !config.clientIpHeader) note('  behind a proxy and a CDN that is every player through one edge in one bucket -- set CLIENT_IP_HEADER=cf-connecting-ip and BIND=127.0.0.1');
+if (config.clientIpHeader && process.env.BIND !== '127.0.0.1') note('  BIND is not 127.0.0.1: if the port is reachable directly, a caller can write that header themselves');
 
 note('');
 note(`register this redirect on the Discord application, exactly:`);

@@ -79,3 +79,47 @@ test('a profile heavy with diaries and traces packs plain without overflowing, a
 	assert.ok(!('profile' in slimShape({ stock: {}, profile: { views: {} } })), 'a profile that was only views goes entirely');
 	assert.equal(shareSize(undefined), 0);
 });
+
+test('a short link is ten characters, and the address knows one', async () => {
+	const { shortLinkId } = await import('../js/share.js');
+	assert.equal(shortLinkId('#s/AbCd-12_34'), 'AbCd-12_34');
+	assert.equal(shortLinkId('#s/short'), null);
+	assert.equal(shortLinkId('#share/AbCd-12_34'), null);
+	assert.equal(shortLinkId(''), null);
+	// As they are written now: the id in the query, where a chat app
+	// reading the link for its preview can see it.
+	assert.equal(shortLinkId('', '?s=AbCd-12_34'), 'AbCd-12_34');
+	assert.equal(shortLinkId('#plan', '?l=ship&s=AbCd-12_34'), 'AbCd-12_34');
+	assert.equal(shortLinkId('', '?s=short'), null);
+});
+
+test('an opened link leaves nothing in the address that would open it again', async () => {
+	const { plainSearch } = await import('../js/share.js');
+	assert.equal(plainSearch('?s=AbCd-12_34'), '');
+	assert.equal(plainSearch('?l=ship'), '');
+	assert.equal(plainSearch('?theirs&l=trace'), '?theirs=');
+	assert.equal(plainSearch(''), '');
+});
+
+test('a trace packed as steps unpacks to the same strokes, and packs to half the address', async () => {
+	const { packTrace, unpackTrace } = await import('../js/map/trace.js');
+	const { encodeAny } = await import('../js/share.js');
+	// A drawn line wanders, and so does what it packs to: from 0.66 to
+	// 0.71 of the address over many random strokes, so with Math.random
+	// one run in twenty-five came out over the line below. The strokes
+	// are drawn from a fixed seed instead -- the same wander every run,
+	// a typical one (about 0.68).
+	let seed = 0x5eed;
+	const random = () => { seed = (seed + 0x6d2b79f5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+	const rnd = (a, b) => a + Math.floor(random() * (b - a));
+	const stroke = n => { const p = []; let x = rnd(60000, 90000), y = rnd(50000, 80000); for (let i = 0; i < n; i++) { x += rnd(-40, 40); y += rnd(-40, 40); p.push(x, y); } return { pts: p, colour: '#ffd77a', width: 2.5, seq: 1 }; };
+	const trace = { kind: 'trace', version: 2, name: 'Reef', points: [{ x: 1, y: 2 }], strokes: [stroke(150), stroke(150), [1, 2, 3, 4]], texts: [], areas: [{ pts: [1, 2, 3, 4, 5, 6] }], inkLines: true };
+	const packed = packTrace(trace);
+	assert.equal(packed.steps, true);
+	assert.deepEqual(packed.strokes[0].pts.slice(0, 2), trace.strokes[0].pts.slice(0, 2), 'the first pair stands');
+	assert.deepEqual(packed.strokes[2], [1, 2, 2, 2], 'a bare stroke stays bare');
+	assert.deepEqual(unpackTrace(packed), { ...trace, version: 3 });
+	assert.deepEqual(unpackTrace(trace), trace, 'a trace not packed is left as it is');
+	const whole = (await encodeAny(trace)).length, less = (await encodeAny(packed)).length;
+	assert.ok(less < whole * 0.7, `${less} of ${whole}`);
+});

@@ -11,11 +11,12 @@
 // Pure: no store, no screen. The shape is read and cleaned in
 // profile-shape.js the same way the stash is.
 
-import { GOODS, levelOf } from './barter.js';
+import { GOODS, PARLEY, SELL_PRICES, goodSell, levelOf, rankOf } from './barter.js';
+import { TT } from './i18n.js';
 
 /** One normal trade's Parley at Beginner 1: the guide's "barter
  *  unit", which every silver-per-Parley figure is quoted in. */
-export const PARLEY_UNIT = 14286;
+export const PARLEY_UNIT = PARLEY.perGreatOceanTrade;
 
 /**
  * The presets, in the order they are offered. `sell` is the lowest
@@ -26,8 +27,8 @@ export const PARLEY_UNIT = 14286;
  */
 export const PRESETS = [
 	{
-		id: 'cash', label: 'Cash out today',
-		sub: 'the most silver at the wharf tonight, with what is aboard and at the harbour',
+		id: 'cash', label: TT('Cash out today'),
+		sub: TT('the most silver at the wharf tonight, with what is aboard and at the harbour'),
 		orders: { sell: 5, floors: {}, buy: true, pace: 'fast' }
 	},
 	{
@@ -35,11 +36,72 @@ export const PRESETS = [
 		// actually builds one. This is the other day: it sells, and the
 		// floors are there so that selling does not strip the pile. A
 		// save from before the rename is brought across in readOrders.
-		id: 'floor', label: 'Sell the top, keep a floor',
-		sub: 'finish every island, sell the top, keep a floor of every level for tomorrow’s board',
+		id: 'floor', label: TT('Sell the top, keep a floor'),
+		sub: TT('finish every island, sell the top, keep a floor of every level for tomorrow’s board'),
 		orders: { sell: 7, floors: { 1: 10, 2: 30, 3: 30, 4: 40, 5: 4 }, buy: true, pace: 'full' }
 	}
 ];
+
+/**
+ * How a run is sailed, as three ways of going about it.
+ *
+ * These set nothing the ladder sets. What a wharf sells and what is
+ * kept back are the day's goal -- they belong to the rung they are set
+ * on -- and a preset here that reached over and changed them was the
+ * second step quietly undoing the first: a sailor picked Level 7, came
+ * down to choose a pace, and found the climb had moved to Level 5.
+ *
+ * So a preset here is about the sailing and nothing else: how hard the
+ * hull is worked, where the first good comes from, how long the run may
+ * take, and whether the vouchers are drawn on.
+ */
+export const SAIL_PRESETS = [
+	{
+		// The orders a new sailor starts on, to the letter: somebody who
+		// has never touched this step is on a card with a name, not on
+		// "my own way" with a line of settings they never made.
+		id: 'quick', label: TT('Light and fast'),
+		sub: TT('The ship stays light and fast: only what the hold carries under its limit, and a wharf only when one lies on the way and pays for the minute it costs.'),
+		orders: { pace: 'fast', hours: 0, vouchers: 'use', buy: true, landFrom: 'buy', way: 'sea' }
+	},
+	{
+		// "Quick" was the first card's name, over a run the search was
+		// free to make eight hours long. Light is what that card is; the
+		// one that is actually short is the one with the hour on it.
+		id: 'hour', label: TT('An hour at most'),
+		sub: TT('The best run that fits in about an hour, the ship kept light and fast.'),
+		orders: { pace: 'fast', hours: 1, vouchers: 'use', buy: true, landFrom: 'buy', way: 'sea' }
+	},
+	{
+		id: 'steady', label: TT('The whole board, at full speed'),
+		sub: TT('Every trade the board offers. When the hold fills, the ship drops goods at a wharf and carries on — more stops, never slowed down.'),
+		orders: { pace: 'steady', hours: 0, vouchers: 'use', buy: true, landFrom: 'buy', way: 'sea' }
+	},
+	{
+		id: 'full', label: TT('The whole board, loaded heavy'),
+		sub: TT('Every trade the board offers: loaded at the wharf up to the limit, the exchanges then fill the hold past it — the ship sails slower, and stops at a wharf far less often.'),
+		orders: { pace: 'full', hours: 0, vouchers: 'use', buy: true, landFrom: 'buy', way: 'sea' }
+	},
+	{
+		id: 'own', label: TT('Spend no silver'),
+		sub: TT('Only goods you already own, aboard or in storage. Nothing is bought at the Market.'),
+		orders: { pace: 'steady', hours: 0, vouchers: 'use', buy: true, landFrom: 'stock', way: 'sea' }
+	}
+];
+
+/** The sailing preset these orders are on, or '' when they are on none
+ *  of them: matched on the sailing alone, since that is all one sets. */
+export function sailPresetOf(o) {
+	const hit = SAIL_PRESETS.find(p => p.orders.pace === o.pace
+		&& p.orders.hours === o.hours
+		&& p.orders.vouchers === o.vouchers
+		&& p.orders.buy === o.buy
+		&& p.orders.landFrom === (o.landFrom || 'buy')
+		// Every card sails the shortest way: chain by chain is a way of
+		// one's own.
+		&& p.orders.way === (o.way || 'sea'));
+	return hit ? hit.id : '';
+}
 
 /** What a preset was called before, so a save that names the old one
  *  still lands on the same set of orders. */
@@ -53,8 +115,8 @@ const RENAMED = { stock: 'floor' };
  * a short round trip needs none, and a long one lives on them.
  */
 export const VOUCHER_CHOICES = [
-	['use', 'drawn on when needed', 'A voucher goes in as soon as the run is going to need it and a whole quarter fits — which starts its two-hour cooldown as early as possible'],
-	['keep', 'kept back', 'The run is planned on the bar alone; where that runs out, the sheet says so']
+	['use', TT('drawn on when needed'), TT('A voucher goes in as soon as the run is going to need it and a whole quarter fits — which starts its two-hour cooldown as early as possible')],
+	['keep', TT('kept back'), TT('The run is planned on the bar alone; where that runs out, the route says so')]
 ];
 
 /**
@@ -70,7 +132,15 @@ export const VOUCHER_CHOICES = [
 export const DEFAULT_PAUSE = { isle: 45, call: 120 };
 export const PAUSE_MAX = 30 * 60;
 
-export const DEFAULT_ORDERS = { preset: 'cash', ...PRESETS[0].orders, landFrom: 'buy', vouchers: 'use', pause: { ...DEFAULT_PAUSE }, hours: 0, count: 'least', way: 'sea', quests: 'near' };
+/**
+ * What else a run on the trade board may aim at, beside the climbs: the
+ * materials the builds are short of that its islands pay, the Great
+ * Ocean goods (a [Level 5] nothing takes further, sold like a [Level
+ * 7]), and the Lost Trade Boxes, whose goods are a draw of their own.
+ */
+export const DEFAULT_SIDE = { mats: false, ocean: true, boxes: false };
+
+export const DEFAULT_ORDERS = { preset: 'cash', ...PRESETS[0].orders, landFrom: 'buy', vouchers: 'use', pause: { ...DEFAULT_PAUSE }, hours: 0, way: 'sea', quests: 'near', side: { ...DEFAULT_SIDE } };
 
 /** The way round the chains ticked: one route through every rung, each
  *  after the rung beneath it in its chain, or chain after chain. */
@@ -80,31 +150,24 @@ export const DEFAULT_ORDERS = { preset: 'cash', ...PRESETS[0].orders, landFrom: 
  *  taker a short way off the route; or those and the hunts too, when
  *  their grounds lie on the way. */
 export const QUEST_CHOICES = [
-	['no', 'none', 'No quests on the run'],
-	['near', 'on the way', 'Handed in only where the run passes a taker anyway; no stop put in'],
-	['yes', 'short way round', 'A stop put in for a taker a short way off the route'],
-	['hunts', 'and the hunts', 'Those, and a hunt at a stop of its own on its grounds when they lie on the way']
+	['no', TT('none'), TT('No quests on the run')],
+	['near', TT('on the way'), TT('Handed in only where the run passes a taker anyway; no stop put in')],
+	['yes', TT('short way round'), TT('A stop put in for a taker a short way off the route')],
+	['hunts', TT('and the hunts'), TT('Those, and a hunt at a stop of its own on its grounds when they lie on the way')]
 ];
 
 export const WAY_CHOICES = [
-	['sea', 'shortest way', 'Every chain climbed at once: one route through every rung, the nearest islands first whatever chain they belong to'],
-	['chain', 'chain by chain', 'Each chain climbed to its top before the next']
+	['sea', TT('shortest way'), TT('Every chain climbed at once: one route through every rung, the nearest islands first whatever chain they belong to')],
+	['chain', TT('chain by chain'), TT('Each chain climbed to its top before the next')]
 ];
 
 /** The orders a run has when none are given: the [Level 7]s sold and
  *  nothing else, no floors -- the run as it was before there were
  *  orders, and what the tests pin. */
-export const PLAIN_ORDERS = { preset: 'cash', sell: 7, floors: {}, buy: true, landFrom: 'buy', vouchers: 'use', pause: { isle: 0, call: 0 }, pace: 'fast', hours: 0, count: 'least', way: 'chain', quests: 'no' };
-
-/** How an exchange that pays a range is counted. */
-export const COUNT_CHOICES = [
-	['least', 'at the least', 'A 2-3 counts as 2'],
-	['average', 'at the average', 'A 2-3 counts as 2.5'],
-	['seen', 'as seen', 'As your own runs recorded it']
-];
+export const PLAIN_ORDERS = { preset: 'cash', sell: 7, floors: {}, buy: true, landFrom: 'buy', vouchers: 'use', pause: { isle: 0, call: 0 }, pace: 'fast', hours: 0, way: 'chain', quests: 'no' };
 
 /** The caps on time under way a sailor can set, in hours; 0 is none. */
-export const HOUR_CHOICES = [[0, 'no limit'], [1, 'an hour'], [2, 'two hours'], [3, 'three hours'], [4, 'four hours'], [6, 'six hours']];
+export const HOUR_CHOICES = [[0, TT('no limit')], [1, TT('an hour')], [2, TT('two hours')], [3, TT('three hours')], [4, TT('four hours')], [6, TT('six hours')]];
 
 /**
  * Where the first good of a land chain comes from: bought ashore every
@@ -114,9 +177,9 @@ export const HOUR_CHOICES = [[0, 'no limit'], [1, 'an hour'], [2, 'two hours'], 
  * sitting in their storage is a plan they cannot follow.
  */
 export const LAND_CHOICES = [
-	['buy', 'bought ashore', 'A chain that starts on land buys its first good ashore'],
-	['stock', 'from my storage', 'The shore goods you already keep, and no more chains than they cover'],
-	['no', 'only what is held', 'No land chains: only the [Level N] goods already held']
+	['buy', TT('bought ashore'), TT('A chain that starts on land buys its first good ashore')],
+	['stock', TT('from my storage'), TT('The shore goods you already keep, and no more chains than they cover')],
+	['no', TT('only what is held'), TT('No land chains: only the [Level N] goods already held')]
 ];
 
 /** The choices a sailor can make for what a wharf sells. `NOTHING` is
@@ -126,11 +189,11 @@ export const LAND_CHOICES = [
 export const NOTHING = 8;
 
 export const SELL_CHOICES = [
-	[7, '[Level 7] only'],
-	[6, 'Level 6 and up'],
-	[5, 'Level 5 and up'],
-	[3, 'everything that pays'],
-	[NOTHING, 'nothing at all']
+	[7, TT('[Level 7] only')],
+	[6, TT('Level 6 and up')],
+	[5, TT('Level 5 and up')],
+	[3, TT('everything that pays')],
+	[NOTHING, TT('nothing at all')]
 ];
 
 /**
@@ -166,16 +229,17 @@ export function readOrders(raw) {
 	if (raw.landFrom === 'stock' || raw.landFrom === 'buy') o.landFrom = raw.landFrom;
 	if (raw.pace === 'full' || raw.pace === 'fast' || raw.pace === 'steady') o.pace = raw.pace;
 	if (HOUR_CHOICES.some(([h]) => h === Number(raw.hours))) o.hours = Number(raw.hours);
-	if (COUNT_CHOICES.some(([c]) => c === raw.count)) o.count = raw.count;
 	if (WAY_CHOICES.some(([w]) => w === raw.way)) o.way = raw.way;
 	if (QUEST_CHOICES.some(([q]) => q === raw.quests)) o.quests = raw.quests;
+	o.side = { ...DEFAULT_SIDE };
+	if (raw.side && typeof raw.side === 'object') for (const k of Object.keys(DEFAULT_SIDE)) if (typeof raw.side[k] === 'boolean') o.side[k] = raw.side[k];
 	return o;
 }
 
 /** The orders a preset sets, keeping nothing of the old ones. */
 export function presetOrders(id) {
 	const p = PRESETS.find(x => x.id === id) || PRESETS[0];
-	return { preset: p.id, ...p.orders, floors: { ...p.orders.floors }, landFrom: 'buy', vouchers: 'use', pause: { ...DEFAULT_PAUSE }, hours: 0, count: 'least', way: 'sea', quests: 'near' };
+	return { preset: p.id, ...p.orders, floors: { ...p.orders.floors }, landFrom: 'buy', vouchers: 'use', pause: { ...DEFAULT_PAUSE }, hours: 0, way: 'sea', quests: 'near', side: { ...DEFAULT_SIDE } };
 }
 
 /** Whether the saved orders still match their preset to the letter. */
@@ -186,10 +250,14 @@ export function onPreset(orders) {
 		&& JSON.stringify(p.floors) === JSON.stringify(orders.floors || {});
 }
 
-/** Whether a wharf call sells this good under the orders. */
+/** Whether a wharf call sells this good under the orders. The rare
+ *  pays of the trade board have no level and nothing takes them: they
+ *  sell as a [Level 7] does. Measured by `rankOf`, so a [Great Ocean]
+ *  good sells under "from Level 5" and is kept under "from Level 6". */
 export function sellable(name, orders) {
 	const lv = levelOf(name);
-	return lv !== null && !!GOODS[lv] && GOODS[lv].sell > 0 && lv >= orders.sell;
+	if (lv === null) return SELL_PRICES[name] > 0 && rankOf(name) >= orders.sell;
+	return !!GOODS[lv] && goodSell(name) > 0 && rankOf(name) >= orders.sell;
 }
 
 /** How many of a good to keep back, under the orders. */
@@ -200,23 +268,6 @@ export function floorOf(name, orders) {
 
 /** The key an exchange's ratios are recorded under. */
 export const ratioKey = r => `${r.npcId}|${r.give}|${r.item}`;
-
-/**
- * What to count an exchange as, under the orders: the count seen most
- * often on the sailor's own runs, the average, or nothing (the least,
- * which is the run's own default). `ratios` is the profile's record.
- */
-export function countAs(r, orders, ratios = {}) {
-	if (!r || r.recvMin === r.recvMax) return null;
-	if (orders.count === 'average') return r.recv;
-	if (orders.count === 'seen') {
-		const seen = ratios[ratioKey(r)];
-		if (!seen) return null;
-		const top = Object.entries(seen).sort((a, b) => b[1] - a[1] || Number(a[0]) - Number(b[0]))[0];
-		return top ? Number(top[0]) : null;
-	}
-	return null;
-}
 
 /**
  * The yardsticks of a run: silver a Parley unit and silver an hour,
@@ -253,8 +304,8 @@ export const STOCK_LEVELS = [1, 2, 3, 4, 5, 6, 7];
 /** What a stock run is for: the goods, or the count of barters behind
  *  you -- a sailor rushing the unlocks trades whatever is nearest. */
 export const AIM_CHOICES = [
-	['fill', 'the stock', 'The run that banks the most, counting every good up to its target and no further'],
-	['trades', 'the barter count', 'The run that trades the most, whatever it trades: every barter counts as one toward the next unlock']
+	['fill', TT('the stock'), TT('The run that banks the most, counting every good up to its target and no further')],
+	['trades', TT('the barter count'), TT('The run that trades the most, whatever it trades: every barter counts as one toward the next unlock')]
 ];
 
 /** A clean stock goal from whatever was saved. */

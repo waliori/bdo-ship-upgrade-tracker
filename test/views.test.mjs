@@ -73,17 +73,28 @@ test('each list is held to what its screen draws', () => {
 		board: { day: 'd', answers: many(200) }, matBoard: { day: 'd', answers: many(200) },
 		wants: Object.fromEntries(many(90).map(i => [`i${i}`, 1])),
 		routes: { key: 'k', ids: many(60).map(String) },
-		sail: { key: 'k', done: many(100).map(String), stops: many(100) },
+		sail: { key: 'k', done: many(400).map(String), stops: many(400) },
 		questSkip: { day: 'd', ids: many(150).map(String) }, questPull: { day: 'd', ids: many(150).map(String) }
 	});
 	assert.equal(barter.board.answers.length, 120);
 	assert.equal(barter.matBoard.answers.length, 120);
 	assert.equal(Object.keys(barter.wants).length, 60);
 	assert.equal(barter.routes.ids.length, 40);
-	assert.equal(barter.sail.stops.length, 80);
-	assert.equal(barter.sail.done.length, 80);
+	// A run's checklist is every call, not just the islands: a long one
+	// past eighty stops used to come back cut after a reload.
+	assert.equal(barter.sail.stops.length, 300);
+	assert.equal(barter.sail.done.length, 300);
 	assert.equal(barter.questSkip.ids.length, 100);
 	assert.equal(barter.questPull.ids.length, 100);
+});
+
+test('a route edit keeps its key whole, so the edits find their run after a reload', () => {
+	// The key is a digest of the board and the chains ticked: the full
+	// text ran past the string cap with three chains, and the edits came
+	// back filed under a key nothing matched.
+	const key = `${'2026-10-01'.padEnd(24, 'x')}:${'f'.repeat(8)}`;
+	const routeEdit = { key, skip: [3, 7], nudge: { 12: 2 }, trips: ['a', 'b'] };
+	assert.deepEqual(readView('barter', { routeEdit }).routeEdit, routeEdit);
 });
 
 test('a view within every cap and still too big loses the oldest of its heaviest lists', () => {

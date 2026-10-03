@@ -7,7 +7,7 @@
 // out of port before the first exchange can be made at all. Pure, so
 // the panel's numbers can be checked without a chart.
 
-import { GOODS, levelOf } from './barter.js';
+import { GOODS, goodSell, levelOf } from './barter.js';
 import { overweightFactor } from './sailing.js';
 
 /**
@@ -49,12 +49,12 @@ export function routeLedger({ stops = [], tradesAt, timesAt = () => 1, aboard = 
 			if (t.give && giveN) out.carry.set(t.give, (out.carry.get(t.give) || 0) + giveN);
 			if (giveLv && GOODS[giveLv]) {
 				change -= giveN * GOODS[giveLv].weight;
-				out.outValue += giveN * GOODS[giveLv].sell;
+				out.outValue += giveN * goodSell(t.give);
 				out.goodsOut += giveN;
 			}
 			if (getLv && GOODS[getLv]) {
 				change += recvN * GOODS[getLv].weight;
-				out.inValue += recvN * GOODS[getLv].sell;
+				out.inValue += recvN * goodSell(t.item);
 				out.goodsIn += recvN;
 			} else if (recvN) {
 				out.mats += recvN;

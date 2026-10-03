@@ -1,30 +1,104 @@
 // What a route eats: the ship's rations over its legs.
 //
-// Every hull has a ration pool, every sailor an appetite, and the Route
-// tab knows how long each leg takes. What the game never publishes is
-// how fast the pool falls under sail, so that figure is modelled the
-// way speed is: a working estimate a player can replace by watching
-// one leg -- "the pool fell N over M minutes" -- with every figure kept
-// as a range until they have. Durability is a separate matter and is
-// not modelled here.
+// Every hull has a ration pool and a take a tick, every sailor an
+// appetite, and the route knows how long each leg takes. A player can
+// still replace the rate by watching one leg -- "the pool fell N over M
+// minutes". Durability is a separate matter and is not modelled here.
 //
 // Pure: minutes and pools in, ranges out, so the arithmetic can be
 // checked without a chart.
 
-/**
- * Rations a minute under full sail. An estimate, and an order of
- * magnitude more than a measurement: with it a Carrack's 1.3 M pool
- * lasts about three and a half hours of continuous sailing, which is
- * the sort of day a player reports refilling after. Replace it by
- * watching one leg.
- */
-export const DEFAULT_RATION_RATE = 6000;
+import { FD } from './fmt.js';
 
-// How far to trust the rate: half either way around the estimate --
-// it is a guess at the order of magnitude -- and a seventh either way
-// around a leg someone actually watched, since the pool's counter is
-// read by eye at the start and the end.
-export const RATION_BAND_ESTIMATE = 0.5;
+/**
+ * How the pool falls, as the game was watched doing it (2026-09-28, an
+ * Epheria Carrack: Advance, Volante and a Bartali Sailboat): a tick
+ * about every seven seconds under sail, and each tick takes the hull's
+ * own figure and the appetite of every sailor aboard, the First Mate's
+ * included. Parts, the crystal, the skin and the speed change nothing;
+ * a sailor's appetite, which the sailor panel prints, is what they eat
+ * a tick. None of it is in the game's files -- the server keeps it --
+ * so the figures are the ones read off the pool, a hull at a time.
+ */
+export const TICK_SECONDS = 7;
+
+// What a hull takes a tick with nobody aboard, and whether it was read
+// that way. Only the Advance and the Volante were read empty (1,200
+// each, 2026-09-28). The Balance and the Valor are the same Carrack and
+// are taken at the same figure, but nobody has read them, so they say
+// so. The Bartali Sailboat read 1,500 with two sailors aboard (Menio,
+// 150, and Polnis, 100): the hull's own take is likely the 1,250 left
+// when their appetite is taken off, and is unconfirmed until it is
+// read with nobody aboard.
+const HULL_TICK = {
+	'Carrack (Advance)': { n: 1200, measured: true },
+	'Carrack (Volante)': { n: 1200, measured: true },
+	'Carrack (Balance)': { n: 1200, measured: false },
+	'Carrack (Valor)': { n: 1200, measured: false },
+	'Bartali Sailboat': { n: 1250, measured: false }
+};
+/** A hull nobody has read yet is taken at a Carrack's. */
+export const HULL_TICK_GUESS = 1200;
+
+/** The hull's own take a tick, and whether it was read in game. */
+export function hullTick(name) {
+	const h = HULL_TICK[name];
+	return h ? { ...h } : { n: HULL_TICK_GUESS, measured: false };
+}
+
+// BreezySail, used over and over ("Continuously use BreezySail", from
+// Sailing Skilled 1): the game's own skill text asks 8,150 rations a
+// use. How often a use comes is read off the pool rather than timed by
+// eye: a 6 m 58 s leg with a full crew (3,050 a tick) fell 249,100,
+// which is 596 a second -- 436 of it the ticks, the rest one BreezySail
+// every fifty seconds or so (the 20 s first guessed ate a third too
+// much over three legs). The speed it gives is already in the leg
+// times, which were timed with it on; only what it eats is added here.
+// The game will not use it with the hold past its limit, so a leg
+// sailed that heavy has none.
+export const BREEZY_RATIONS = 8150;
+export const BREEZY_EVERY = 50;
+
+/** What `seconds` under sail eat: the ticks, at `tick` each, and the
+ *  BreezySails, one each `breezy` seconds (0: none). */
+export function rationsOver(seconds, { tick = HULL_TICK_GUESS, breezy = 0 } = {}) {
+	if (!(seconds > 0)) return 0;
+	return seconds / TICK_SECONDS * tick + (breezy > 0 ? Math.floor(seconds / breezy) * BREEZY_RATIONS : 0);
+}
+
+/** The same drain in rations a minute. */
+export const perMinute = ({ tick = HULL_TICK_GUESS, breezy = 0 } = {}) => rationsOver(60, { tick }) + (breezy > 0 ? BREEZY_RATIONS * 60 / breezy : 0);
+
+/**
+ * Rations a minute under sail, by the one rule the Map's Rations tile
+ * and the barter planner's supply calls both use -- they had a rule
+ * each, and the calls one put in disagreed with the warnings the other
+ * showed.
+ *
+ * `drain` is the ship's (ship.js rationDrain): the take a tick, the
+ * BreezySail interval or 0, and `cal`, the rations a minute the sailor
+ * watched the pool fall for this ship, or 0. A watched figure outranks
+ * the ticks, since it is the game's own answer. A leg sailed with the
+ * hold past its limit has no BreezySail -- the game will not use it --
+ * so its share comes off, from a watched figure too, which was watched
+ * with it on; never below what the ticks alone take.
+ */
+export function drainRate({ tick = HULL_TICK_GUESS, breezy = 0, cal = 0 } = {}, { overweight = false } = {}) {
+	const ticks = tick * 60 / TICK_SECONDS;
+	const sail = breezy > 0 ? BREEZY_RATIONS * 60 / breezy : 0;
+	if (cal > 0) return overweight && sail ? Math.max(ticks, cal - sail) : cal;
+	return ticks + (overweight ? 0 : sail);
+}
+
+/** What `seconds` under sail eat by that rule. */
+export function drainOver(seconds, drain, opts) {
+	return seconds > 0 ? seconds / 60 * drainRate(drain, opts) : 0;
+}
+
+// How far to trust the rate: a tenth either way around what the ticks
+// say -- the tick is timed by hand -- and a seventh around a leg
+// someone watched, the pool read by eye at both ends.
+export const RATION_BAND_ESTIMATE = 0.1;
 export const RATION_BAND_MEASURED = 0.15;
 
 /** Below this share of the full pool a run is called low: enough left
@@ -32,35 +106,31 @@ export const RATION_BAND_MEASURED = 0.15;
 export const RATION_RESERVE = 0.1;
 
 /** The slow and quick ends of the drain, in rations a minute. */
-export function rateRange(rate = DEFAULT_RATION_RATE, measured = false) {
+export function rateRange(rate, measured = false) {
 	const b = measured ? RATION_BAND_MEASURED : RATION_BAND_ESTIMATE;
 	return [rate * (1 - b), rate * (1 + b)];
 }
 
-/**
- * What one leg eats, least to most: the drain under sail over the
- * leg's quick and slow minutes, plus the crew's appetite -- rations a
- * day between them -- pro-rated over the same minutes.
- */
-export function legRations(minutes, { rate = DEFAULT_RATION_RATE, measured = false, appetite = 0 } = {}) {
+/** What one leg eats, least to most, over its quick and slow minutes. */
+export function legRations(minutes, { rate, measured = false } = {}) {
 	const [fast, slow] = Array.isArray(minutes) ? minutes : [minutes, minutes];
 	if (!(fast >= 0) || !(slow >= 0)) return [0, 0];
 	const [lo, hi] = rateRange(rate, measured);
-	const eat = m => appetite * m / 1440;
-	return [lo * fast + eat(fast), hi * slow + eat(slow)];
+	return [lo * fast, hi * slow];
 }
 
 /**
  * The pool over a whole route. `legs` are each leg's minutes as
- * [quick, slow] -- or `{ minutes, refill: true }` for a leg that ends
- * at a wharf where the pool is filled again; `aboard` the rations
- * aboard at the start and `full` the pool when full. Returns the run's
- * use and what is left at the end as ranges, each leg's own, and
- * `lowAfter`: the number of the stop (1 for the stop the first leg
- * arrives at) after which the pool would first be below the reserve at
- * the pessimistic end -- or 0 when it never is.
+ * [quick, slow] -- or `{ minutes, refill: true, rate }` for a leg that
+ * ends at a wharf where the pool is filled again, or eats at a rate of
+ * its own; `aboard` the rations
+ * aboard at the start and `full` the pool when full; `rate` rations a
+ * minute (perMinute). Returns the run's use and what is left at the
+ * end as ranges, each leg's own, and `lowAfter`: the number of the stop
+ * (1 for the stop the first leg arrives at) after which the pool would
+ * first be below the reserve at the pessimistic end -- or 0.
  */
-export function rationPlan({ legs = [], aboard, full = 0, rate = DEFAULT_RATION_RATE, measured = false, appetite = 0, reserve = RATION_RESERVE } = {}) {
+export function rationPlan({ legs = [], aboard, full = 0, rate, measured = false, reserve = RATION_RESERVE } = {}) {
 	const start = Number.isFinite(aboard) && aboard >= 0 ? aboard : full;
 	const floor = full * reserve;
 	let lo = 0, hi = 0, lowAfter = 0;
@@ -68,7 +138,9 @@ export function rationPlan({ legs = [], aboard, full = 0, rate = DEFAULT_RATION_
 	const out = [];
 	legs.forEach((leg, k) => {
 		const minutes = Array.isArray(leg) ? leg : leg.minutes;
-		const [a, b] = legRations(minutes, { rate, measured, appetite });
+		// A leg can carry a rate of its own: one sailed overweight has no
+		// BreezySail (drainRate).
+		const [a, b] = legRations(minutes, { rate: !Array.isArray(leg) && leg.rate > 0 ? leg.rate : rate, measured });
 		lo += a; hi += b;
 		left = [Math.max(0, left[0] - b), Math.max(0, left[1] - a)];
 		if (!lowAfter && left[0] < floor) lowAfter = k + 1;
@@ -80,20 +152,19 @@ export function rationPlan({ legs = [], aboard, full = 0, rate = DEFAULT_RATION_
 
 /**
  * What one watched leg says the drain is: the pool fell `fell` over
- * `minutes` of sailing, less what the crew ate in that time, in
- * rations a minute -- or null when the numbers cannot say.
+ * `minutes` of sailing, in rations a minute -- or null when the numbers
+ * cannot say.
  */
-export function calibrateRations(fell, minutes, appetite = 0) {
+export function calibrateRations(fell, minutes) {
 	if (!(fell > 0) || !(minutes > 0)) return null;
-	const rate = (fell - appetite * minutes / 1440) / minutes;
-	return rate > 0 ? Math.round(rate) : null;
+	return Math.round(fell / minutes);
 }
 
 /** "120 k", "1.3 M": a ration count as a person reads it off the pool. */
 export function fmtRations(n) {
 	if (!Number.isFinite(n)) return '';
 	const abs = Math.abs(n);
-	if (abs >= 1e6) return `${(n / 1e6).toFixed(abs < 1e7 ? 2 : 1).replace(/\.?0+$/, '')} M`;
+	if (abs >= 1e6) return `${FD(n / 1e6, abs < 1e7 ? 2 : 1)} M`;
 	if (abs >= 1e3) return `${Math.round(n / 1e3)} k`;
 	return String(Math.round(n));
 }

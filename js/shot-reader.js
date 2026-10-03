@@ -18,10 +18,35 @@
 // own image decoders, handed on as pixels, and the engine that reads
 // those pixels is WebAssembly in a worker with no network of its own.
 
-import { panelBox, sailorFrom } from './sailor-shot.js';
-import { localeFor, DEFAULT_LANG } from './sailor-locales.js';
+import { localeFor, langByTag, DEFAULT_LANG } from './sailor-locales.js';
 import { iconLoader } from './icon-loader.js';
-import { grayscale, settleGrid, readSlots, bankEntry, countBox, readCounts, isHeld, sharedRows } from './storage-shot.js';
+// The storage reader -- the lattice, the icon matching and the small
+// network that reads the counts, 70 KB of it the model's weights -- is
+// fetched the first time a storage shot is read rather than with the
+// page: only a player dropping one in needs it. The service worker
+// keeps it with the shell, so it reads offline as before.
+let storageShot = null;
+const pixelReader = () => (storageShot ||= import('./storage-shot.js').catch(err => { storageShot = null; throw err; }));
+import { T, readerLang } from './i18n.js';
+import { whileLoading } from './loading.js';
+
+/**
+ * The language a screenshot of the game is read in: the one chosen in
+ * the Menu, and nowhere else. A sailor reading the app in Korean is
+ * playing in Korean; one who is not sets the Menu to their game's
+ * language, and every reader follows.
+ */
+export const shotLang = () => {
+	const fromApp = readerLang();
+	return langByTag[fromApp] ? fromApp : DEFAULT_LANG;
+};
+
+/** The line a reader's dialog carries about it: which language, where
+ *  it is set, and what a script of its own costs to fetch. */
+export function shotLangNote() {
+	const lang = langByTag[shotLang()];
+	return `<p class="dialog-note quiet shot-lang-note">${T('Read in <b>{label}</b>, the language chosen in the Menu — set it to your game’s language if they differ.', { label: lang.label })}${lang.mb ? ` ${T('Another script: about {mb} MB of reader, fetched once.', { mb: lang.mb })}` : ''}</p>`;
+}
 
 /** Where the vendored engine lives. Versioned: see reader/README.md. */
 const LIB = '/reader/tesseract-7.0.0.esm.min.js';
@@ -77,11 +102,11 @@ export async function triage(files) {
 	const take = [], skipped = [];
 	let total = 0;
 	for (const file of files) {
-		if (take.length >= LIMITS.files) { skipped.push({ file, why: `more than ${LIMITS.files} at once` }); continue; }
-		if (file.size > LIMITS.bytes) { skipped.push({ file, why: `bigger than ${Math.round(LIMITS.bytes / 1024 / 1024)} MB` }); continue; }
-		if (total + file.size > LIMITS.total) { skipped.push({ file, why: 'the batch is already full' }); continue; }
+		if (take.length >= LIMITS.files) { skipped.push({ file, why: T('more than {n} at once', { n: LIMITS.files }) }); continue; }
+		if (file.size > LIMITS.bytes) { skipped.push({ file, why: T('bigger than {n} MB', { n: Math.round(LIMITS.bytes / 1024 / 1024) }) }); continue; }
+		if (total + file.size > LIMITS.total) { skipped.push({ file, why: T('the batch is already full') }); continue; }
 		const kind = await sniff(file).catch(() => null);
-		if (!kind) { skipped.push({ file, why: 'not a PNG, JPEG or WebP' }); continue; }
+		if (!kind) { skipped.push({ file, why: T('not a PNG, JPEG or WebP') }); continue; }
 		total += file.size;
 		take.push(file);
 	}
@@ -106,12 +131,17 @@ let engine = null;
  * they are asked for. Changing language lets the old one go -- a
  * player reads a batch in one language, not two.
  */
+// Who hears the engine while a read is under way: the engine is made
+// once and kept, so the progress of a later read -- "recognizing text"
+// -- would otherwise go to whoever made it.
+let listen = null;
+
 async function open(tess, onProgress) {
 	if (engine && engine.tess === tess) return engine.ready;
 	if (engine) await close();
 	const ready = (async () => {
 		const say = onProgress || (() => {});
-		say({ stage: 'engine', text: 'fetching the reader' });
+		say({ stage: 'engine', text: T('fetching the reader') });
 		const { default: Tesseract } = await import(LIB);
 		const worker = await Tesseract.createWorker(tess, 1, {
 			workerPath: WORKER,
@@ -121,7 +151,7 @@ async function open(tess, onProgress) {
 			gzip: true,
 			legacyCore: false,
 			legacyLang: false,
-			logger: m => say({ stage: 'engine', text: m.status, at: m.progress })
+			logger: m => (listen || say)({ stage: 'engine', text: m.status, at: m.progress })
 		});
 		return { Tesseract, worker };
 	})().catch(err => { engine = null; throw err; });
@@ -133,9 +163,119 @@ async function open(tess, onProgress) {
 export async function close() {
 	const e = engine;
 	engine = null;
+	unwirePaste();
 	if (e) {
 		try { (await e.ready).worker.terminate(); } catch { /* already gone */ }
 	}
+}
+
+/* ------------------------------------------------------------------ *
+ * how a screenshot gets in
+ * ------------------------------------------------------------------ */
+
+/**
+ * The three readers -- sailors, storage, the barter window -- each had
+ * their own copy of the same twenty lines: press the panel to choose
+ * files, drag a file onto it, and the panel lights up while a file is
+ * over it. One copy now, because three copies of one thing is three
+ * chances for two of them to fall behind, and because what follows had
+ * to be added to all three at once.
+ *
+ * What follows is the clipboard. On Windows a screenshot is Shift+Win+S
+ * and it goes to the clipboard, not to a file -- so every player who
+ * shot a window the way the game's own community shoots windows had to
+ * open Paint, paste, save somewhere they could find again, and only
+ * then come back and hunt for it in a file picker. Oni did that for a
+ * while and then wrote in to ask, which is fair: the app's own feedback
+ * box has taken a pasted image all along.
+ *
+ * It is also the better picture. Paint saves what it was given, but a
+ * player who pastes into Paint and drags the canvas edge, or saves as
+ * JPEG, hands the reader a rescaled or blotchy grid -- and the storage
+ * reader finds its slots by a lattice that a rescale puts out by a few
+ * pixels. A paste is the shot the game drew, at the size it drew it.
+ */
+const PASTE_NAMES = new Set(['', 'image.png', 'image.jpg', 'image.jpeg', 'image.webp']);
+
+/** The images on a clipboard, named so the reader can talk about them.
+ *  A paste carries one picture and a name the system made up, so a
+ *  name worth keeping is kept and anything else is numbered. */
+export function imagesOn(data, from = 1) {
+	if (!data) return [];
+	const out = [];
+	const files = data.files ? [...data.files] : [];
+	// `items` is the older road to the same pictures, and some browsers
+	// fill one and not the other.
+	if (!files.length && data.items) {
+		for (const it of data.items) {
+			if (it.kind !== 'file') continue;
+			const f = it.getAsFile();
+			if (f) files.push(f);
+		}
+	}
+	for (const f of files) {
+		if (!f || !/^image\//.test(f.type || '')) continue;
+		const plain = String(f.name || '').toLowerCase();
+		if (!PASTE_NAMES.has(plain)) { out.push(f); continue; }
+		const ext = (f.type.split('/')[1] || 'png').replace('jpeg', 'jpg');
+		out.push(new File([f], `pasted ${from + out.length}.${ext}`, { type: f.type }));
+	}
+	return out;
+}
+
+/** The paste listener in hand, so a second dialog -- or a redraw of
+ *  this one -- never leaves the first one listening. */
+let pasteOff = null;
+
+function unwirePaste() {
+	if (pasteOff) pasteOff();
+	pasteOff = null;
+}
+
+/**
+ * Wire a reader's panel: choose, drop, paste. `run` is handed a list of
+ * files however they arrived.
+ *
+ * Called again on every redraw of the dialog, which is why the paste
+ * listener is taken off before it is put back: the panel's own
+ * listeners go with the elements the redraw replaced, but a listener on
+ * the document would pile up one deep per redraw.
+ */
+export function wireShotIntake(box, run) {
+	unwirePaste();
+	if (!box) return;
+	const drop = box.querySelector('[data-drop]');
+	const input = box.querySelector('[data-files]');
+	if (drop && input) {
+		const choose = () => input.click();
+		drop.addEventListener('click', choose);
+		drop.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); choose(); } });
+		input.addEventListener('change', () => { if (input.files && input.files.length) run([...input.files]); });
+		for (const ev of ['dragenter', 'dragover']) {
+			drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); });
+		}
+		for (const ev of ['dragleave', 'drop']) {
+			drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); });
+		}
+		drop.addEventListener('drop', e => {
+			const files = e.dataTransfer && e.dataTransfer.files;
+			if (files && files.length) run([...files]);
+		});
+	}
+	// A paste is caught wherever the caret happens to be, because the
+	// player pressed Ctrl+V at the dialog, not at one of its fields --
+	// but not while they are typing into one, where Ctrl+V is for text.
+	const onPaste = e => {
+		if (!box.isConnected) { unwirePaste(); return; }
+		const at = e.target;
+		if (at && (at.isContentEditable || /^(INPUT|TEXTAREA)$/.test(at.tagName || '')) && !imagesOn(e.clipboardData).length) return;
+		const files = imagesOn(e.clipboardData);
+		if (!files.length) return;
+		e.preventDefault();
+		run(files);
+	};
+	document.addEventListener('paste', onPaste);
+	pasteOff = () => document.removeEventListener('paste', onPaste);
 }
 
 /* ------------------------------------------------------------------ *
@@ -230,14 +370,17 @@ const WANT_LINE = 40;
  * and should not read as a failure.
  */
 async function readOne(worker, PSM, file, locale) {
+	// What finds a sailor's panel and reads its numbers comes with the
+	// first shot, like the storage reader below.
+	const { panelBox, sailorFrom } = await import('./sailor-shot.js');
 	let bitmap;
 	try {
 		bitmap = await createImageBitmap(file);
 	} catch {
-		return { sailor: null, why: 'could not be opened as an image' };
+		return { sailor: null, why: T('could not be opened as an image') };
 	}
 	try {
-		if (bitmap.width * bitmap.height > LIMITS.pixels) return { sailor: null, why: 'far too large to be a screenshot' };
+		if (bitmap.width * bitmap.height > LIMITS.pixels) return { sailor: null, why: T('far too large to be a screenshot') };
 		const probe = PROBE[locale.dense ? 'dense' : 'alphabet'];
 		const probeScale = Math.min(MAX_UP, probe / Math.max(bitmap.width, bitmap.height));
 		const found = panelBox(await scan(worker, paint(bitmap, { scale: probeScale }), PSM.SPARSE_TEXT), {
@@ -245,7 +388,7 @@ async function readOne(worker, PSM, file, locale) {
 			height: bitmap.height * probeScale,
 			locale
 		});
-		if (!found) return { sailor: null, why: 'no sailor panel in it' };
+		if (!found) return { sailor: null, why: T('no sailor panel in it') };
 		const crop = {
 			x: Math.max(0, Math.floor(found.x0 / probeScale)),
 			y: Math.max(0, Math.floor(found.y0 / probeScale)),
@@ -256,7 +399,7 @@ async function readOne(worker, PSM, file, locale) {
 		crop.h = Math.min(crop.h, bitmap.height - crop.y);
 		const scale = Math.max(1, Math.min(3, WANT_LINE / (found.lineH / probeScale)));
 		const sailor = sailorFrom(await scan(worker, paint(bitmap, { crop, scale }), PSM.SINGLE_BLOCK), locale);
-		return sailor ? { sailor } : { sailor: null, why: 'the panel could not be read' };
+		return sailor ? { sailor } : { sailor: null, why: T('the panel could not be read') };
 	} finally {
 		bitmap.close();
 	}
@@ -270,7 +413,11 @@ async function readOne(worker, PSM, file, locale) {
  * a frozen page. `onProgress` is called with the file being read and
  * how far along the batch is; `signal` stops it between shots.
  */
-export async function readShots(files, { onProgress = () => {}, signal = null, lang = DEFAULT_LANG } = {}) {
+// Each reading runs under the page's loading thread as well as the
+// dialog's own bar: the dialog says how far, the thread that the page
+// is busy -- and it ends however the reading does.
+export const readShots = (files, opts) => whileLoading(() => readShotsNow(files, opts), T('Reading the screenshots…'));
+async function readShotsNow(files, { onProgress = () => {}, signal = null, lang = DEFAULT_LANG } = {}) {
 	const locale = localeFor(lang);
 	const { worker, Tesseract } = await open(locale.tess, onProgress);
 	const out = [];
@@ -282,7 +429,7 @@ export async function readShots(files, { onProgress = () => {}, signal = null, l
 		try {
 			res = await readOne(worker, Tesseract.PSM, file, locale);
 		} catch (err) {
-			res = { sailor: null, why: err && err.message ? err.message : 'could not be read' };
+			res = { sailor: null, why: err && err.message ? err.message : T('could not be read') };
 		}
 		out.push({ file: file.name, ...res });
 	}
@@ -311,17 +458,21 @@ const LIST_WIDE = 2200;
  * this one reads the whole picture and leaves the sorting to
  * barter-shot.js.
  */
-export async function readWords(file, { lang = DEFAULT_LANG, wide = LIST_WIDE } = {}) {
+export const readWords = (file, opts) => whileLoading(() => readWordsNow(file, opts), T('Reading the screenshots…'));
+async function readWordsNow(file, { lang = DEFAULT_LANG, wide = LIST_WIDE, onProgress = null } = {}) {
 	const locale = localeFor(lang);
-	const { worker, Tesseract } = await open(locale.tess, () => {});
-	const bitmap = await createImageBitmap(file);
+	listen = onProgress;
+	let bitmap = null;
 	try {
-		if (bitmap.width * bitmap.height > LIMITS.pixels) return { words: [], width: 0, height: 0, why: 'far too large to be a screenshot' };
+		const { worker, Tesseract } = await open(locale.tess, onProgress || (() => {}));
+		bitmap = await createImageBitmap(file);
+		if (bitmap.width * bitmap.height > LIMITS.pixels) return { words: [], width: 0, height: 0, why: T('far too large to be a screenshot') };
 		const scale = Math.max(1, Math.min(3, wide / bitmap.width));
 		const words = await scan(worker, paint(bitmap, { scale }), Tesseract.PSM.SPARSE_TEXT);
 		return { words, width: bitmap.width * scale, height: bitmap.height * scale, scale };
 	} finally {
-		bitmap.close();
+		listen = null;
+		if (bitmap) bitmap.close();
 	}
 }
 
@@ -348,6 +499,7 @@ const ICON_SIDE = 44;
 
 export async function iconBank(onProgress = () => {}) {
 	if (bank) return bank;
+	const { bankEntry } = await pixelReader();
 	await iconLoader.init();
 	const byFile = new Map();
 	for (const [name, entry] of Object.entries(iconLoader.iconMapping)) {
@@ -379,18 +531,12 @@ export async function iconBank(onProgress = () => {}) {
 				out.push({ ...bankEntry(names[0], px, ICON_SIDE, ICON_SIDE), file, names });
 			} catch { /* an icon that will not load is one the reader cannot name */ }
 			done++;
-			if (done % 25 === 0) onProgress({ stage: 'bank', at: done / files.length, text: 'learning the icons' });
+			if (done % 25 === 0) onProgress({ stage: 'bank', at: done / files.length, text: T('learning the icons') });
 		}
 	};
 	await Promise.all(Array.from({ length: 12 }, work));
 	bank = out;
 	return bank;
-}
-
-/** Let the bank go with the engine: both are kept for a dialog, not
- *  for a session of sailing. */
-export function forgetBank() {
-	bank = null;
 }
 
 /** A screenshot as pixels, with nothing done to it -- and the canvas
@@ -411,27 +557,27 @@ function pixelsOf(bitmap) {
  * slot -- a storage is full of things this app has no business
  * knowing -- so it is counted and reported as a number, not as a row.
  */
-async function readStorageOne(file, icons) {
+async function readStorageOne(file, icons, { grayscale, settleGrid, readSlots, countBox, readCounts, isHeld }) {
 	let bitmap;
 	try {
 		bitmap = await createImageBitmap(file);
 	} catch {
-		return { rows: [], why: 'could not be opened as an image' };
+		return { rows: [], why: T('could not be opened as an image') };
 	}
 	try {
-		if (bitmap.width * bitmap.height > LIMITS.pixels) return { rows: [], why: 'far too large to be a screenshot' };
+		if (bitmap.width * bitmap.height > LIMITS.pixels) return { rows: [], why: T('far too large to be a screenshot') };
 		const sheet = pixelsOf(bitmap);
 		const image = sheet.image;
 		const gray = grayscale(image.data, image.width, image.height);
 		const settled = settleGrid(image.data, image.width, image.height, gray, icons);
-		if (!settled) return { rows: [], why: 'no storage grid in it' };
+		if (!settled) return { rows: [], why: T('no storage grid in it') };
 		const { grid, cal } = settled;
 		// A lattice the icons did not believe: read anyway -- a storage
 		// of three things is a storage -- but nothing in it is sure.
 		const shaky = Boolean(settled.doubtful);
 		const slots = readSlots(image.data, image.width, image.height, grid, icons, cal);
 		const named = slots.filter(s => s.name);
-		if (!named.length) return { rows: [], why: 'nothing in it was an icon the app knows' };
+		if (!named.length) return { rows: [], why: T('nothing in it was an icon the app knows') };
 		// The counts, read off the pixels by the small network in
 		// count-net.js. No engine is fetched for this: see there for
 		// why neither the OCR one nor a set of templates was the right
@@ -471,7 +617,7 @@ async function readStorageOne(file, icons) {
 				corner: corner(s.at)
 			};
 		});
-		return { rows, unknown: slots.filter(s => isHeld(s) && !s.name).length, slots: slots.length, lattice: slots, shaky };
+		return { rows, unknown: slots.filter(s => isHeld(s) && !s.name).length, slots: slots.length, lattice: slots, shaky, pitch: Math.round(grid.pitch) };
 	} finally {
 		bitmap.close();
 	}
@@ -485,7 +631,9 @@ async function readStorageOne(file, icons) {
  * megabytes of reader that a sailor panel needs. The bank of icons is
  * built first, which is where the second of waiting is.
  */
-export async function readStorageShots(files, { onProgress = () => {}, signal = null } = {}) {
+export const readStorageShots = (files, opts) => whileLoading(() => readStorageNow(files, opts), T('Reading the screenshots…'));
+async function readStorageNow(files, { onProgress = () => {}, signal = null } = {}) {
+	const reader = await pixelReader();
 	const icons = await iconBank(onProgress);
 	const out = [];
 	for (let i = 0; i < files.length; i++) {
@@ -494,16 +642,16 @@ export async function readStorageShots(files, { onProgress = () => {}, signal = 
 		onProgress({ stage: 'reading', at: i / files.length, i, n: files.length, name: file.name });
 		let res;
 		try {
-			res = await readStorageOne(file, icons);
+			res = await readStorageOne(file, icons, reader);
 		} catch (err) {
-			res = { rows: [], why: err && err.message ? err.message : 'could not be read' };
+			res = { rows: [], why: err && err.message ? err.message : T('could not be read') };
 		}
 		out.push({ file: file.name, ...res });
 	}
 	// Shots of one storage overlap: scroll, shoot again, and the last row
 	// of one is the first row of the next. Those rows are one row, and
 	// are taken from the shot that came first.
-	const shared = sharedRows(out.map(o => o.lattice || []));
+	const shared = reader.sharedRows(out.map(o => o.lattice || []));
 	for (let i = 0; i < out.length; i++) {
 		const twice = shared[i];
 		if (twice.size) {

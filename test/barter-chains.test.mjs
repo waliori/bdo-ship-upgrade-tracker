@@ -18,9 +18,12 @@ import { levelOf, GOODS } from '../js/barter.js';
 import { npcById, ports } from '../js/barter_npcs.js';
 import { wharves } from '../js/wharves.js';
 import { PLAIN_ORDERS } from '../js/barter-orders.js';
+import { routeLength } from '../js/barter-route.js';
+import { fillOf } from '../js/barter-optimizer.js';
+import { landGoods } from '../js/land_goods.js';
 
 const barterData = JSON.parse(await readFile(new URL('../js/all_barter.json', import.meta.url), 'utf8'));
-const combos = JSON.parse(await readFile(new URL('../js/barter_combos.json', import.meta.url), 'utf8')).combos;
+const combos = useGame(await import('../js/barter_game.js')).combos;
 const layout = combos.find(c => c.id === '25');
 const data = boardData(layout, barterData, npcById);
 const stashes = ['Velia', 'Iliya Island', "Oquilla's Eye"].map(at => wharves.find(w => w.kind === 'wharf' && w.at === at));
@@ -44,7 +47,7 @@ test('every chain climbs the board a rung at a time, from a land good or a good 
 	}
 	// Layout 25: ten [Level 1] islands, five of them the foot of a
 	// chain to [Level 7]; the [Level 4]s aboard start a sixth.
-	assert.equal(all.filter(c => c.from === 'land' && levelOf(c.rungs[0].item) === 1).length, 10);
+	assert.equal(new Set(all.filter(c => c.from === 'land' && levelOf(c.rungs[0].item) === 1).map(c => c.rungs[0].npcId)).size, 10);
 	assert.equal(all.filter(c => c.top === 7 && c.from === 'land').length, 5);
 	assert.equal(all[0].from, 'hold', 'the shortest climb to the top comes first');
 	assert.equal(all[0].top, 7);
@@ -127,7 +130,7 @@ test('the wharf is the one chosen when one is, else the one that bends the leg l
 	assert.ok(free.stops.filter(s => s.wharf).some(s => s.wharf !== iliya), 'left to itself the run calls where it passes');
 });
 
-test('two chains sail one after the other, nearest first, and an island crossed twice deals once', () => {
+test('two chains sail one after the other, in the order that makes the shorter run, and an island crossed twice deals once', () => {
 	const stock = { '[Level 4] Amethyst Fragment': 4 };
 	const all = chains(data, stock);
 	const land = all.find(x => x.rungs[0].npc === 'Cazio');
@@ -144,13 +147,20 @@ test('two chains sail one after the other, nearest first, and an island crossed 
 	assert.equal(two.sold.length, 2);
 	assert.equal(two.silver, 10 * GOODS[7].sell);
 	assert.ok(two.stops.every(s => s.weightAfter <= hold.max + 1e-6));
-	assert.equal(two.stops.filter(s => s.npcId)[0].npc, 'Renilu', 'the chain nearest Velia is sailed first');
-	assert.deepEqual(two.order.map(c => c.rungs[0].npc), ['Renilu', 'Cazio']);
+	// Renilu is the nearer to Velia, and Cazio first is the shorter run
+	// by water: the order is the run's length, not the first leg's.
+	const isle = r => npcById.get(r.npcId);
+	const L = cs => routeLength([ports[0], ...cs.flatMap(c => c.rungs.map(isle)), stashes[0]]);
+	assert.ok(L([land, far]) < L([far, land]), 'Cazio first is the shorter way round');
+	assert.deepEqual(two.order.map(c => c.rungs[0].npc), ['Cazio', 'Renilu']);
+	assert.equal(two.stops.filter(s => s.npcId)[0].npc, 'Cazio', 'and it is sailed first');
 	assert.ok(two.stops.filter(s => s.npcId).every(s => two.order[s.chain].rungs.some(r => r.npcId === s.npcId)), 'each island stop is tagged with its chain');
-	// The first chain's [Level 7]s are sold at the first wharf call of
-	// the second, not carried the whole way.
+	// The first chain's [Level 7]s are sold on the way, at the wharf its
+	// top all but passes -- Lema Island lies off Iliya -- before the
+	// second chain begins, not carried the whole way.
 	const firstSale = two.stops.find(s => s.sale);
-	assert.ok(firstSale.wharf && firstSale.chain === 1 && firstSale.sale.n === 5);
+	assert.ok(firstSale.wharf && firstSale.chain === 0 && firstSale.sale.n === 5 && firstSale.wharf.at === 'Iliya Island');
+	assert.ok(two.stops.indexOf(firstSale) < two.stops.findIndex(s => s.npc === 'Renilu'));
 });
 
 test('with no wharf in reach the hold never ends over the limit, and the fast pace climbs furthest', () => {
@@ -205,6 +215,7 @@ test('a steady run is every attempt under the limit itself: never heavier than a
 });
 
 import { tailOf } from '../js/barter-chains.js';
+import { useGame } from '../js/barter-layouts.js';
 
 test('a good held part-way up a chain from the shore is one climb with it: the islands deal once, the good is loaded all the same', () => {
 	// A land chain, and the chain from its own [Level 3] good sitting at
@@ -438,9 +449,11 @@ test('the exact case: a climb cut mid-way by the weight of its own next trade', 
 	// sees a three-island chain do one island, and it is exactly what
 	// the run now has to be able to say.
 	const sea = { ...PLAIN_ORDERS, way: 'sea' };
-	const coin = chains(data, {}, {}, null, 4, true).filter(c => c.pays === 'coin' && c.rungs.length >= 3).slice(0, 3);
+	const three = chains(data, {}, {}, null, 4, true).filter(c => c.pays === 'coin' && c.rungs.length >= 3);
+	const to = at => three.find(c => npcById.get(c.rungs[c.rungs.length - 1].npcId).at === at);
+	const coin = [to("Pakio's Combat Raft"), to("Old Moon Guild's Carrack"), to("Crow's Nest")];
 	const start = ports.find(p => p.name === 'Velia');
-	const run = chainRun({ chosen: coin, hold: { free: 9000, deal: 11250, max: 14400 }, parley, npcById, start, stashes: [], pace: 'fast', orders: sea });
+	const run = chainRun({ chosen: coin, hold: { free: 10000, deal: 12500, max: 16000 }, parley, npcById, start, stashes: [], pace: 'fast', orders: sea });
 
 	const byWeight = run.cut.filter(c => c.why === 'hold');
 	assert.ok(byWeight.length, 'a chain met the limit part-way up');
@@ -503,4 +516,497 @@ test('a pile of the sailor\'s own is not the Market\'s to run out of', () => {
 	assert.deepEqual(run.bought, []);
 	assert.ok(run.taken.some(t => t.item === 'Copper Ingot' && t.n > 0));
 	assert.ok(run.silver > 0);
+});
+
+test('what is loaded is what the run hands over, not what the island offers', () => {
+	// Sam's run: ten of a good loaded because the island offers ten
+	// attempts, five traded because that was all the run could do, and
+	// the other five carried out and "left in storage" at the wharf they
+	// came from -- on a ship sailing over its limit for the privilege.
+	// Here it is the Parley bar that halves the attempts.
+	const ladder = chains(data).find(c => c.from === 'land' && c.rungs.length >= 3);
+	const good = ladder.rungs[0].item;
+	const dock = { [good]: 400 };
+	const c = chains(data, {}, dock).find(x => x.from === 'dock' && x.item === good);
+	const first = c.rungs[0];
+	assert.ok(first.tries >= 4, 'an island with attempts to halve');
+	const half = Math.floor(first.tries / 2);
+	const start = ports.find(p => p.name === 'Velia');
+	const thin = { bar: parley.perTrade * half, perTrade: parley.perTrade };
+	const run = chainRun({ chosen: [c], dock, hold, parley: thin, npcById, start, stashes, pace: 'full', orders: PLAIN_ORDERS });
+	const at = run.stops.find(s => s.npcId === first.npcId);
+	assert.equal(at.times, half, 'the bar lets half the attempts in');
+	assert.deepEqual(run.loaded, [{ item: good, n: half * first.giveN }], 'and only their goods are loaded');
+	// Nothing of it rides out only to be put straight back.
+	const back = [...run.stashed, ...run.kept].filter(g => g.item === good);
+	assert.deepEqual(back, [], 'none of the start good comes home');
+});
+
+test('a [Level 4] aboard on a coin day is offered the island that cashes it', () => {
+	// Oni at the pier: seven [Level 4]s in the hold, seven coin islands
+	// wanting one each, and a board that offered climbs from his
+	// [Level 3]s instead. The ceiling of a coin day is four, and a good
+	// already at the ceiling was passed over before anything asked
+	// whether an island would pay coins for it.
+	const cashers = chains(data, {}, {}, null, 4, true).filter(c => c.pays === 'coin');
+	assert.ok(cashers.length > 0, 'the board has coin islands');
+	const good = cashers[0].rungs[cashers[0].rungs.length - 1].give;
+	assert.equal(levelOf(good), 4);
+	const mine = chains(data, { [good]: 1 }, {}, null, 4, true).filter(c => c.from === 'hold' && c.item === good);
+	assert.ok(mine.length > 0, `${good} aboard finds its coin island`);
+	for (const c of mine) {
+		assert.equal(c.rungs.length, 1, 'one rung: it is handed over and that is all');
+		assert.equal(c.pays, 'coin');
+	}
+	// And where the day is not for coins, a good at the ceiling still has
+	// nowhere to go: the ceiling means what it meant.
+	assert.deepEqual(chains(data, { [good]: 1 }, {}, null, 4, false).filter(c => c.from === 'hold'), []);
+});
+
+test('a later lot\'s goods wait in the harbour\'s storage until the ship calls back for them, and full-never-slower never ends a trade over the limit', () => {
+	// Layout 34, sailed from Iliya with six Level 4-5 piles in its
+	// storage: loaded all at once they filled the hold, the later chains
+	// found no room, and their loads were then trimmed to "nothing left
+	// to hand over" beside a storage full of it.
+	const l34 = combos.find(c => c.id === '34');
+	const d34 = boardData(l34, barterData, npcById);
+	const dock = { '[Level 5] Supreme Gold Candlestick': 6, '[Level 5] 102 Year Old Golden Herb': 4, "[Level 5] Statue's Tear": 3, '[Level 5] Golden Fish Scale': 3, '[Level 4] Old Chest with Gold Coins': 36, '[Level 4] Bronze Candlestick': 18 };
+	const chosen = chains(d34, {}, dock).filter(c => c.from === 'dock' && c.top === 7 && dock[c.item]);
+	assert.ok(chosen.length >= 5, `the fixture ticks the dock's chains (${chosen.length})`);
+	const start = ports.find(p => p.name === 'Iliya Island');
+	const small = { free: 20889, deal: 26111, max: 35500 };
+	const run = chainRun({ chosen, dock, hold: small, parley: { bar: 1000000, perTrade: 10512 }, npcById, start, stashes, pace: 'steady', orders: { ...PLAIN_ORDERS, way: 'sea', sell: 7 } });
+	assert.ok(run.lots.length > 1, 'more than the hold carries at once: lots');
+	const calls = run.stops.filter(s => s.wharf && s.loads && s.loads.length);
+	assert.ok(calls.length, 'a later lot loads at a call');
+	assert.ok(calls.every(s => s.wharf.at === 'Iliya Island'), 'at the harbour its goods wait in');
+	const loadedAll = new Map();
+	for (const l of [...run.loaded, ...calls.flatMap(s => s.loads)]) loadedAll.set(l.item, (loadedAll.get(l.item) || 0) + l.n);
+	for (const [item, n] of loadedAll) assert.ok(n <= dock[item], `${item}: ${n} loaded of ${dock[item]}`);
+	assert.ok(!run.cut.some(c => c.why === 'nothing' && dock[c.give]), `no chain says "nothing to hand over" with its goods in storage: ${JSON.stringify(run.cut.map(c => [c.npc, c.why]))}`);
+	assert.ok(run.weightStart <= small.free, `${run.weightStart} LT at the start`);
+	for (const s of run.stops) assert.ok(s.weightAfter <= small.free + 1e-6, `${s.npc || s.wharf.at}: ${s.weightAfter} LT, never over the limit`);
+	run.stops.forEach((s, i) => { if (i && s.wharf && run.stops[i - 1].wharf) assert.notEqual(s.wharf.at, run.stops[i - 1].wharf.at, 'one call a wharf, not two in a row'); });
+});
+
+test('a lot is weighed as the hold will be when it starts: the goods the lots before it climbed from are gone by then', () => {
+	// Layout 34 again, two chains' goods already aboard and the rest in
+	// Iliya's storage. Weighed with the first lot's goods still aboard,
+	// every later pair of chains looked too heavy, and the run went back
+	// to Iliya once a chain -- five lots where three carry it.
+	const l34 = combos.find(c => c.id === '34');
+	const d34 = boardData(l34, barterData, npcById);
+	const stock = { "[Level 5] Statue's Tear": 3, '[Level 4] Old Chest with Gold Coins': 6 };
+	const dock = { '[Level 5] Supreme Gold Candlestick': 6, '[Level 5] 102 Year Old Golden Herb': 4, '[Level 5] Golden Fish Scale': 3, '[Level 4] Old Chest with Gold Coins': 30, '[Level 4] Bronze Candlestick': 18 };
+	const want = ['[Level 5] Supreme Gold Candlestick', '[Level 5] 102 Year Old Golden Herb', "[Level 5] Statue's Tear", '[Level 5] Golden Fish Scale', '[Level 4] Old Chest with Gold Coins', '[Level 4] Bronze Candlestick'];
+	const all = chains(d34, stock, dock).filter(c => c.top === 7 && c.from !== 'land');
+	const chosen = want.map(w => all.find(c => c.item === w)).filter(Boolean);
+	assert.equal(chosen.length, 6);
+	const small = { free: 20889, deal: 26111, max: 35500 };
+	const run = chainRun({ chosen, stock, dock, hold: small, parley: { bar: 674128, perTrade: 10512 }, npcById, start: ports.find(p => p.name === 'Iliya Island'), stashes, pace: 'steady', orders: { ...PLAIN_ORDERS, way: 'sea', sell: 7 } });
+	assert.ok(run.lots.length <= 3, `${run.lots.length} lots: ${JSON.stringify(run.lots)}`);
+	assert.ok(run.weightPeak <= small.free + 1e-6, `never over the limit: ${run.weightPeak}`);
+	assert.equal(run.stops.filter(s => s.npcId).length, 14, 'every island of the six chains trades');
+});
+
+test('with the bag a second hold, a later lot\'s goods ride in it and come aboard at a wharf, never over the bag or the hold, and a sale is made only where a storage is', () => {
+	// Layout 34 from Iliya with the dock's [Level 4]s and [Level 5]s: the
+	// hold takes one chain's goods at a time, so without the bag the run
+	// calls back at Iliya between lots.
+	const l34 = combos.find(c => c.id === '34');
+	const d34 = boardData(l34, barterData, npcById);
+	const dock = { '[Level 5] Supreme Gold Candlestick': 6, '[Level 5] 102 Year Old Golden Herb': 4, "[Level 5] Statue's Tear": 3, '[Level 5] Golden Fish Scale': 3, '[Level 4] Old Chest with Gold Coins': 36, '[Level 4] Bronze Candlestick': 18 };
+	const chosen = chains(d34, {}, dock).filter(c => c.from === 'dock' && c.top === 7 && dock[c.item]);
+	const docks = wharves.filter(w => w.kind === 'wharf');
+	const stores = [...stashes, ...['Port Epheria', 'Ancado Inner Harbor'].map(at => wharves.find(w => w.kind === 'wharf' && w.at === at))];
+	const base = { chosen, dock, parley: { bar: 1e7, perTrade: 10512 }, npcById, start: ports.find(p => p.name === 'Iliya Island'), stashes: stores, docks, orders: { ...PLAIN_ORDERS, way: 'sea', sell: 7, pause: { isle: 30, call: 60 } } };
+	const rate = r => r.net / r.hours;
+	for (const [pace, hold] of [['fast', { free: 12000, deal: 12000, max: 20400 }], ['full', { free: 12000, deal: 15000, max: 20400 }]]) {
+		const bag = { free: 8000 };
+		const without = chainRun({ ...base, pace, hold });
+		const run = chainRun({ ...base, pace, hold, bag });
+		assert.ok(rate(run) >= rate(without) - 1e-6, `${pace}: never worse an hour with the bag (${rate(run)} against ${rate(without)})`);
+		// The bag is weighed on its own: whatever went in, it never holds
+		// more than it takes, and the hold never counts it.
+		const inBag = new Map((run.bagLoaded || []).map(l => [l.item, l.n]));
+		const weigh = m => [...m].reduce((a, [item, n]) => a + n * GOODS[levelOf(item)].weight, 0);
+		assert.ok(weigh(inBag) <= bag.free + 1e-6);
+		for (const s of run.stops) {
+			for (const d of s.toBag || []) inBag.set(d.item, (inBag.get(d.item) || 0) + d.n);
+			for (const d of s.fromBag || []) { assert.ok((inBag.get(d.item) || 0) >= d.n - 1e-6, `${d.item} comes out of the bag only once it went in`); inBag.set(d.item, inBag.get(d.item) - d.n); }
+			assert.ok(weigh(inBag) <= bag.free + 1e-6, `${pace}: the bag at ${weigh(inBag)} LT`);
+			if (s.sale) assert.ok(stores.some(w => w.at === s.wharf.at), `a sale at ${s.wharf.at}, which has a storage`);
+			if (s.npcId && pace === 'fast') assert.ok(s.weightAfter <= hold.free + 1e-6, 'a fast run never ends a trade over the limit');
+		}
+	}
+	// The fast run is the case the bag was asked for: a later lot's goods
+	// ride out in it and come aboard where that lot begins, not at a call
+	// back to Iliya.
+	const fast = chainRun({ ...base, pace: 'fast', hold: { free: 12000, deal: 12000, max: 20400 }, bag: { free: 8000 } });
+	const out = fast.stops.filter(s => s.fromBag && s.fromBag.some(l => l.lot > 0));
+	assert.ok(fast.bagLoaded.length && out.length, `goods loaded into the bag and taken out for their lot: ${JSON.stringify(fast.bagLoaded)}`);
+	for (const s of out) for (const l of s.fromBag) assert.ok(!(s.loads || []).some(x => x.item === l.item && x.lot === l.lot), 'the lot is not also loaded from storage');
+});
+
+test('on a full run a good another chain takes later goes into the bag when the hold is too heavy, at any wharf, and comes out before the island that takes it', () => {
+	const l34 = combos.find(c => c.id === '34');
+	const d34 = boardData(l34, barterData, npcById);
+	const dock = { '[Level 5] Supreme Gold Candlestick': 6, '[Level 5] 102 Year Old Golden Herb': 4, "[Level 5] Statue's Tear": 3, '[Level 5] Golden Fish Scale': 3, '[Level 4] Old Chest with Gold Coins': 36, '[Level 4] Bronze Candlestick': 18 };
+	const chosen = chains(d34, {}, dock).filter(c => c.from === 'dock' && c.top === 7 && dock[c.item]);
+	const docks = wharves.filter(w => w.kind === 'wharf');
+	const run = chainRun({ chosen, dock, hold: { free: 20000, deal: 25000, max: 34000 }, parley: { bar: 1e7, perTrade: 10512 }, npcById, start: ports.find(p => p.name === 'Iliya Island'), stashes, docks, pace: 'full', orders: { ...PLAIN_ORDERS, way: 'sea', sell: 7, pause: { isle: 30, call: 60 } }, bag: { free: 8000 } });
+	const parked = run.stops.findIndex(s => (s.toBag || []).length);
+	assert.ok(parked >= 0, 'something went into the bag on the way');
+	const item = run.stops[parked].toBag[0].item;
+	const back = run.stops.findIndex((s, i) => i > parked && (s.fromBag || []).some(l => l.item === item));
+	const uses = run.stops.findIndex((s, i) => i > parked && s.npcId && s.give === item);
+	assert.ok(back > parked, `${item} comes out of the bag again`);
+	if (uses >= 0) assert.ok(back < uses, `${item} is aboard before the island that takes it`);
+	assert.ok(run.stops.some(s => (s.toBag || s.fromBag) && !stashes.some(w => w.at === s.wharf.at)), 'the bag is used at a wharf with no storage too');
+});
+
+test('a good takes one slot in the bag however many of it, and the bag holds no more kinds than it has slots', () => {
+	const l34 = combos.find(c => c.id === '34');
+	const d34 = boardData(l34, barterData, npcById);
+	const dock = { '[Level 5] Supreme Gold Candlestick': 6, '[Level 5] 102 Year Old Golden Herb': 4, "[Level 5] Statue's Tear": 3, '[Level 5] Golden Fish Scale': 3, '[Level 4] Old Chest with Gold Coins': 36, '[Level 4] Bronze Candlestick': 18 };
+	const chosen = chains(d34, {}, dock).filter(c => c.from === 'dock' && c.top === 7 && dock[c.item]);
+	const docks = wharves.filter(w => w.kind === 'wharf');
+	const kindsAtMost = run => {
+		const inBag = new Map((run.bagLoaded || []).map(l => [l.item, l.n]));
+		let most = [...inBag.values()].filter(n => n > 1e-9).length;
+		for (const s of run.stops) {
+			for (const d of s.toBag || []) inBag.set(d.item, (inBag.get(d.item) || 0) + d.n);
+			for (const d of s.fromBag || []) inBag.set(d.item, inBag.get(d.item) - d.n);
+			most = Math.max(most, [...inBag.values()].filter(n => n > 1e-9).length);
+		}
+		return most;
+	};
+	for (const pace of ['fast', 'full']) {
+		const opts = { chosen, dock, hold: { free: 12000, deal: pace === 'full' ? 15000 : 12000, max: 20400 }, parley: { bar: 1e7, perTrade: 10512 }, npcById, start: ports.find(p => p.name === 'Iliya Island'), stashes, docks, pace, orders: { ...PLAIN_ORDERS, way: 'sea', sell: 7, pause: { isle: 30, call: 60 } } };
+		const roomy = chainRun({ ...opts, bag: { free: 8000, slots: 58 } });
+		const one = chainRun({ ...opts, bag: { free: 8000, slots: 1 } });
+		const none = chainRun({ ...opts, bag: { free: 8000, slots: 0 } });
+		assert.ok(kindsAtMost(one) <= 1, `${pace}: one slot, one kind (${kindsAtMost(one)})`);
+		assert.equal(kindsAtMost(none), 0, `${pace}: no slot, nothing in the bag`);
+		assert.ok(kindsAtMost(roomy) >= kindsAtMost(one));
+	}
+});
+
+test('a run asked to use the bag that does not says why', () => {
+	const l34 = combos.find(c => c.id === '34');
+	const d34 = boardData(l34, barterData, npcById);
+	const dock = { '[Level 5] Supreme Gold Candlestick': 6, '[Level 5] 102 Year Old Golden Herb': 4, "[Level 5] Statue's Tear": 3, '[Level 5] Golden Fish Scale': 3, '[Level 4] Old Chest with Gold Coins': 36, '[Level 4] Bronze Candlestick': 18 };
+	const chosen = chains(d34, {}, dock).filter(c => c.from === 'dock' && c.top === 7 && dock[c.item]);
+	const docks = wharves.filter(w => w.kind === 'wharf');
+	const opts = { chosen, dock, parley: { bar: 1e7, perTrade: 10512 }, npcById, start: ports.find(p => p.name === 'Iliya Island'), stashes, docks, orders: { ...PLAIN_ORDERS, way: 'sea', sell: 7, pause: { isle: 30, call: 60 } } };
+	// Every later lot is heavier than a bag of 50 LT.
+	const small = chainRun({ ...opts, pace: 'fast', hold: { free: 20000, deal: 20000, max: 34000 }, bag: { free: 50, slots: 58 } });
+	assert.equal(small.bagNote && small.bagNote.why, 'small');
+	// One chain, one lot: nothing to carry for later, and room in the hold.
+	const one = chainRun({ ...opts, chosen: chosen.slice(0, 1), pace: 'fast', hold: { free: 40000, deal: 40000, max: 68000 }, bag: { free: 8000, slots: 58 } });
+	assert.equal(one.bagNote && one.bagNote.why, 'unneeded');
+	// A run that does use it says nothing.
+	const used = chainRun({ ...opts, pace: 'fast', hold: { free: 12000, deal: 12000, max: 20400 }, bag: { free: 8000, slots: 58 } });
+	assert.ok(used.bagLoaded.length && !used.bagNote);
+});
+
+// Layout 34 from Iliya with six Level 4-5 piles in its storage: more
+// than the hold carries at once, so the run is laid in trips.
+const tripsFixture = () => {
+	const l34 = combos.find(c => c.id === '34');
+	const d34 = boardData(l34, barterData, npcById);
+	const dock = { '[Level 5] Supreme Gold Candlestick': 6, '[Level 5] 102 Year Old Golden Herb': 4, "[Level 5] Statue's Tear": 3, '[Level 5] Golden Fish Scale': 3, '[Level 4] Old Chest with Gold Coins': 36, '[Level 4] Bronze Candlestick': 18 };
+	const chosen = chains(d34, {}, dock).filter(c => c.from === 'dock' && c.top === 7 && dock[c.item]);
+	const base = { chosen, dock, hold: { free: 20889, deal: 26111, max: 35500 }, parley: { bar: 1000000, perTrade: 10512 }, npcById, start: ports.find(p => p.name === 'Iliya Island'), stashes, pace: 'steady', orders: { ...PLAIN_ORDERS, way: 'sea', sell: 7 } };
+	return { d34, dock, chosen, base };
+};
+const loadsOf = run => {
+	const m = new Map();
+	for (const l of [...run.loaded, ...run.stops.flatMap(s => s.loads || [])]) m.set(l.item, (m.get(l.item) || 0) + l.n);
+	return m;
+};
+
+test('a stop moved sooner stays in its trip: the next trip\'s goods are loaded once, and the run keeps its trades', () => {
+	const { dock, base } = tripsFixture();
+	const run = chainRun(base);
+	assert.ok(run.lots.length > 1);
+	const first = run.rungs.find(x => x.lot === 1);
+	const moved = chainRun({ ...base, nudge: { [first.r.npcId]: -1 } });
+	const lots = moved.rungs.map(x => x.lot);
+	assert.deepEqual(lots, [...lots].sort((a, b) => a - b), `the trips stay in order: ${lots.join('')}`);
+	for (const [item, n] of loadsOf(moved)) assert.ok(n <= dock[item], `${item}: ${n} loaded of ${dock[item]}`);
+	assert.ok(moved.trades >= run.trades * 0.9, `${moved.trades} trades against ${run.trades}`);
+});
+
+test('a later trip\'s goods come aboard at a call before that trip, never after its first island', () => {
+	const { base } = tripsFixture();
+	const run = chainRun(base);
+	for (let lot = 1; lot < run.lots.length; lot++) {
+		const at = run.stops.findIndex(s => (s.loads || []).some(l => l.lot === lot));
+		const begins = run.stops.findIndex(s => s.npcId && run.rungs.some(x => x.lot === lot && x.r.npcId === s.npcId));
+		if (at >= 0 && begins >= 0) assert.ok(at < begins, `trip ${lot + 1}: loaded at stop ${at + 1}, begins at ${begins + 1}`);
+	}
+});
+
+test('what a stock run fills counts the goods loaded on the way as the stock\'s already', () => {
+	const { base } = tripsFixture();
+	const run = chainRun(base);
+	assert.ok(run.stops.some(s => (s.loads || []).length), 'the fixture loads at a call');
+	const targetOf = name => (levelOf(name) ? 1000 : 0);
+	const stripped = { ...run, stops: run.stops.map(s => ({ ...s, loads: [] })) };
+	assert.ok(fillOf(run, { targetOf }) < fillOf(stripped, { targetOf }), 'a good loaded at a call is not counted as filled');
+});
+
+test('with no Parley there is no trade, and every chain says the Parley stopped it', () => {
+	const { base } = tripsFixture();
+	const dry = chainRun({ ...base, parley: { bar: 0, perTrade: 10512 } });
+	assert.equal(dry.trades, 0);
+	assert.ok(dry.cut.length && dry.cut.every(c => c.why === 'parley'), JSON.stringify(dry.cut.map(c => c.why)));
+});
+
+test('chain after chain, a hold with room for every good takes them all at the start: no call home between chains', () => {
+	const { chosen, base } = tripsFixture();
+	const run = chainRun({ ...base, chosen: chosen.slice(0, 3), hold: { free: 40000, deal: 50000, max: 68000 }, orders: { ...PLAIN_ORDERS, way: 'chain', sell: 7 } });
+	assert.equal(run.stops.filter(s => s.wharf && (s.loads || []).length).length, 0);
+	assert.ok(run.loaded.length >= 3);
+});
+
+test('goods moved from the hold into the bag at the start are said apart from what the bag is loaded with from a storage', () => {
+	const { d34 } = tripsFixture();
+	const stock = { '[Level 4] Old Chest with Gold Coins': 36, '[Level 5] Supreme Gold Candlestick': 6, '[Level 4] Bronze Candlestick': 18 };
+	const chosen = chains(d34, stock, {}).filter(c => c.from === 'hold' && c.top === 7);
+	const docks = wharves.filter(w => w.kind === 'wharf');
+	const run = chainRun({ chosen, stock, hold: { free: 8000, deal: 10000, max: 13600 }, parley: { bar: 1e7, perTrade: 10512 }, npcById, start: ports.find(p => p.name === 'Iliya Island'), stashes, docks, pace: 'full', orders: { ...PLAIN_ORDERS, way: 'sea', sell: 7 }, bag: { free: 8000, slots: 20 }, effort: 1 });
+	assert.ok(run.bagFromHold.length, 'something came out of the hold into the bag');
+	for (const l of run.bagFromHold) assert.ok(l.n <= stock[l.item], `${l.item}: ${l.n} of the ${stock[l.item]} aboard`);
+	assert.deepEqual(run.bagLoaded, [], 'nothing was loaded into the bag from a storage');
+});
+
+test('a load cap holds the harbour load to what came out of the storage, whatever a count said lays', () => {
+	const land = chains(data).find(c => c.from === 'land' && c.top === 7 && c.rungs.length >= 5);
+	const third = land.rungs[2].item;
+	const dock = { [third]: 30 };
+	const held = chains(data, { [third]: 5 }, dock).find(c => c.item === third && c.from === 'hold');
+	assert.ok(held, 'no chain from the good aboard');
+	const opts = { stock: { [third]: 5 }, dock, hold, parley, npcById, start: ports.find(p => p.name === 'Velia'), stashes, pace: 'full', orders: PLAIN_ORDERS, chosen: [held] };
+	const free = chainRun(opts);
+	assert.ok(free.loaded.some(l => l.item === third), 'the free laying loads more of it');
+	const pinned = chainRun({ ...opts, loadCap: new Map([[third, 0]]) });
+	assert.deepEqual(pinned.loaded.filter(l => l.item === third), []);
+	const first = pinned.stops.find(s => s.npcId && s.give === third);
+	assert.ok(first && first.times * first.giveN <= 5, 'the first island deals only what is aboard');
+});
+
+test('every exchange is charged its own Parley: a Crow Coin trade half again a trade good, less the same discounts', () => {
+	// The game's table prices each exchange; at a 26.56% discount the
+	// window says 10,491 for a trade good and 15,899 for Crow Coins.
+	const rate = 0.7344;
+	const coin = chains(data, {}, {}, null, 4, true).filter(c => c.pays === 'coin' && c.rungs.length >= 3).slice(0, 2);
+	const run = chainRun({ chosen: coin, hold, parley: { bar: 3500000, perTrade: 10491, rate }, npcById, start: ports.find(p => p.name === 'Velia'), stashes });
+	const isles = run.stops.filter(s => s.npcId && s.times > 0);
+	assert.ok(isles.length >= 3);
+	for (const s of isles) {
+		assert.ok(s.parleyBase > 0, `${s.npc} has the game's base`);
+		assert.equal(s.parley, s.times * Math.floor(s.parleyBase * rate));
+	}
+	const each = s => s.parley / s.times;
+	assert.ok(isles.some(s => s.item === 'Crow Coin' && each(s) === 15899), 'a coin trade at 15,899');
+	assert.ok(isles.some(s => s.item !== 'Crow Coin' && each(s) === 10491), 'a trade good at 10,491');
+	assert.equal(run.parleyUsed, isles.reduce((a, s) => a + s.parley, 0));
+});
+
+test('a land cap holds the shore goods to what was bought before casting off, and the first island trades no more', () => {
+	const land = chains(data).find(c => c.from === 'land' && c.rungs.length >= 3);
+	const r0 = land.rungs[0];
+	const opts = { chosen: [land], hold, parley, npcById, start: ports.find(p => p.name === 'Velia'), stashes, pace: 'full', orders: PLAIN_ORDERS };
+	const free = chainRun(opts);
+	const had = free.landLoaded.find(l => l.item === r0.give);
+	assert.ok(had && had.n > r0.giveN, 'the free laying buys a good many');
+	const bought = Math.floor(had.n / 2 / r0.giveN) * r0.giveN;
+	const pinned = chainRun({ ...opts, landCap: new Map([[r0.give, bought]]), bought: new Map([[r0.give, bought]]) });
+	const now = pinned.landLoaded.find(l => l.item === r0.give);
+	assert.ok(now && now.n <= bought, `${now && now.n} of ${bought} bought`);
+	const first = pinned.stops.find(s => s.npcId === r0.npcId);
+	assert.ok(first.times * first.giveN <= bought, 'the first island takes only what was bought');
+});
+
+test('what a run loads at the wharf fills the hold to its limit and no further; only the exchanges take it past, to the barter ceiling', () => {
+	// A chain whose first island wants more weight than the limit: on a
+	// loaded run the game still puts no more aboard at the wharf than the
+	// limit holds, whatever the ceiling the exchanges may then climb to.
+	const start = ports.find(p => p.name === 'Velia');
+	const ladder = chains(data).find(x => x.rungs.some(r => levelOf(r.give) >= 3));
+	const good = ladder.rungs.find(r => levelOf(r.give) >= 3).give;
+	const dock = { [good]: 500 };
+	const c = chains(data, {}, dock).find(x => x.from === 'dock' && x.item === good);
+	assert.ok(c && c.rungs[0].tries * c.rungs[0].giveN * GOODS[levelOf(good)].weight > 5000, 'a first rung heavier than the limit below');
+	const small = { free: 5000, deal: 10000, max: 10000 };
+	const run = chainRun({ chosen: [c], dock, hold: small, parley, npcById, start, stashes, pace: 'full', orders: { ...PLAIN_ORDERS, pace: 'full' } });
+	assert.ok(run.trades > 0, 'the run still climbs, from what the limit let aboard');
+	assert.ok(run.weightStart <= small.free + 1e-6, `loaded to ${run.weightStart} against a limit of ${small.free}`);
+	assert.ok(run.stops.every(s => s.wharf || (s.weightAfter || 0) <= small.deal + 1e-6), 'and never past the ceiling after');
+	for (const s of run.stops.filter(x => x.wharf && x.loads && x.loads.length)) assert.ok(s.weightAfter <= small.free + 1e-6, `a call loads no further than the limit: ${s.weightAfter}`);
+});
+
+// A Lost Trade Box chain ticked beside a [Level 7] climb that starts at
+// the same island's same exchange -- Havio's Cherry Tree Seed Pouch on
+// layout 22: the first visit deals for both, and neither is cut there.
+test('two chains through the same exchange share its trades: the island deals for both', () => {
+	const l22 = combos.find(c => c.id === '22');
+	const board = boardData(l22, barterData, npcById);
+	const all = chains(board, {}, {}, 4552, 0, false, null, { mats: false, boxes: true });
+	const box = all.find(c => c.pays === 'box' && c.rungs.length === 2);
+	const climb = all.find(c => c.pays === 'goods' && c.from === 'land' && c.rungs[0].npcId === box.rungs[0].npcId && c.rungs.length > 2);
+	assert.ok(box && climb, 'a box chain and a climb from the same first island');
+	const run = chainRun({ chosen: [climb, box], stock: {}, dock: {}, hold: { free: 18300, deal: 22875, max: 31110 }, parley: { bar: 1e6, perTrade: 11755 }, npcById, start: ports.find(p => p.name === 'Iliya Island'), stashes: [], pace: 'full', orders: PLAIN_ORDERS, prices: {} });
+	const first = run.stops.filter(s => s.npcId === box.rungs[0].npcId);
+	assert.equal(first.length, 1, 'the shared island is one stop');
+	assert.ok(run.stops.some(s => s.npcId === box.rungs[1].npcId && s.item === 'Lost Trade Box'), 'the box is traded');
+	assert.ok(run.stops.some(s => s.npcId === climb.rungs[1].npcId), 'and the climb goes on past the shared island');
+	assert.ok(!run.cut.some(c => c.why === 'dealt'), 'neither is cut as dealt');
+});
+
+test('a fast run never passes the limit: the bag is emptied at the end only into the room the sale leaves, and a land good short of the trades takes nothing off the hold', () => {
+	// Layout 24 from Iliya with five of eight [Level 4]-[Level 5] goods in
+	// its storage, a Carrack's hold and a bag of 4,624 LT: "Light and fast"
+	// read 18,905 / 18,300 on the Barter tab.
+	const l24 = combos.find(c => c.id === '24');
+	const d24 = boardData(l24, barterData, npcById);
+	const gives = [...new Set(l24.offers.map(o => o[1]).filter(g => /^\[Level [45]\]/.test(g)))];
+	const dock = Object.fromEntries(gives.slice(0, 8).map(g => [g, 5]));
+	const all = chains(d24, {}, dock, 4006, 0);
+	const docks = wharves.filter(w => w.kind === 'wharf');
+	const stores = docks.filter(w => ['Velia', 'Port Epheria', 'Iliya Island', 'Ancado Inner Harbor', "Oquilla's Eye"].includes(w.at));
+	const hold = { free: 18295, deal: 31105, max: 31105 };
+	const run = ids => chainRun({ chosen: ids.map(id => all.find(c => c.id === id)), dock, stock: {}, hold, parley: { bar: 1e6, perTrade: 11755 }, npcById, start: ports.find(p => p.name === 'Iliya Island'), stashes: stores, docks, pace: 'fast', orders: { ...PLAIN_ORDERS, pace: 'fast', buy: true, landFrom: 'buy', way: 'sea', sell: 5 }, prices: new Proxy({}, { get: () => 18000 }), bag: { free: 4624, slots: 58 }, effort: 1 });
+	// Golden Fish Scales parked in the bag came out of it at the last
+	// wharf before the hold's own [Level 7]s were sold: 20,800 for a moment.
+	const bagged = run(["hold:[Level 4] Marine Knights' Spear:58903.58984.58948", 'hold:[Level 4] Stolen Pirate Dagger:58949.58981.58974', 'hold:[Level 4] Solidified Lava:58909.58977.58976', 'hold:[Level 4] Amethyst Fragment:58905.58971.58954', 'land:Vinegar:58901.58962.58902.58970.50814', 'land:Silk Thread:58964.58958.58906.58957.50815']);
+	assert.ok(bagged.stops.some(s => (s.fromBag || []).length), 'the bag is emptied on this run');
+	assert.ok(bagged.weightPeak <= hold.free + 1e-6, `never over the limit: ${bagged.weightPeak}`);
+	// Eight trades of Tiger Meat, fewer of it loaded than handed over: the
+	// rest is bought at Renilu and never weighed off the hold.
+	const meat = run(["hold:[Level 4] Marine Knights' Spear:58903.58984.58948", 'hold:[Level 4] Solidified Lava:58909.58977.58976', "hold:[Level 4] Marine Knights' Spear:50815", 'hold:[Level 4] Solidified Lava:50816', 'land:Clear Liquid Reagent:58931.58951.58910.58952.50816', 'land:Tiger Meat:58929']);
+	assert.ok(meat.stops.some(s => s.npcId && s.give === 'Tiger Meat'), 'the Tiger Meat is traded');
+	assert.ok(meat.weightPeak <= hold.free + 1e-6, `never over the limit: ${meat.weightPeak}`);
+	for (const s of [...bagged.stops, ...meat.stops]) assert.ok(s.weightAfter <= hold.free + 1e-6, `${s.npc || s.wharf.at} ends at ${s.weightAfter}`);
+});
+
+// The hold's slots (owner's rule, 2026-10-01): a [Level 5] and up -- the
+// [Great Ocean] goods with them -- does not stack, so each unit is a slot
+// of its own; [Level 1] to [Level 4] take one a kind. A Volante has
+// twenty. The weight is given room here so the slots alone bite.
+const slotsOver = run => Math.max(run.slotsStart, ...run.stops.map(s => (Number.isFinite(s.slotsAfter) ? s.slotsAfter : 0)));
+test('a 20-slot Volante with twenty-five [Level 5]s to climb from never holds more than twenty: the run is split into trips, and every chain still climbs', () => {
+	const gives = [...new Set(layout.offers.map(o => o[1]).filter(x => /^\[Level 5\]/.test(x)))];
+	const dock = Object.fromEntries(gives.map(x => [x, 5]));
+	const cs = chains(data, {}, dock).filter(c => c.from === 'dock').slice(0, 5);
+	assert.equal(cs.reduce((a, c) => a + Math.min(dock[c.item], c.rungs[0].tries * c.rungs[0].giveN), 0), 25, 'twenty-five [Level 5]s to start from');
+	const start = ports.find(p => p.name === 'Velia');
+	const roomy = { free: 60000, deal: 102000, max: 102000 };
+	for (const pace of ['full', 'fast', 'steady']) {
+		const opts = { chosen: cs, dock, parley, npcById, start, stashes, pace, orders: { ...PLAIN_ORDERS, pace, way: 'sea' } };
+		const free = chainRun({ ...opts, hold: roomy });
+		const run = chainRun({ ...opts, hold: { ...roomy, slots: 20 } });
+		assert.equal(slotsOver(free), 25, `${pace}: without slots all twenty-five sail at once`);
+		assert.ok(slotsOver(run) <= 20, `${pace}: the hold takes ${slotsOver(run)} slots of 20`);
+		assert.ok(run.lots.length > 1 || run.loaded.reduce((a, l) => a + l.n, 0) <= 20, `${pace}: split into trips, or loaded no further than the slots`);
+		assert.ok(run.stops.filter(s => s.wharf && s.loads && s.loads.length).every(s => s.slotsAfter <= 20), `${pace}: a later trip's call loads to the slots`);
+		assert.equal(run.trades, free.trades, `${pace}: no attempt lost to the split`);
+	}
+	// And on the real hull's weight: a Volante limits at 13,500 LT, and
+	// still no stop past its twenty slots.
+	const volante = chainRun({ chosen: cs, dock, parley, npcById, start, stashes, pace: 'full', orders: { ...PLAIN_ORDERS, pace: 'full', way: 'sea' }, hold: { free: 13500, deal: 22950, max: 22950, slots: 20 } });
+	assert.ok(slotsOver(volante) <= 20 && volante.trades > 0);
+});
+
+test('stacking and non-stacking goods together: [Level 4]s take a slot a kind, the [Level 5]s they make one each, and a hold of few slots says the slots stopped the chain', () => {
+	const gives = [...new Set(layout.offers.map(o => o[1]).filter(x => /^\[Level 4\]/.test(x)))];
+	const dock = Object.fromEntries(gives.map(x => [x, 30]));
+	const cs = chains(data, {}, dock).filter(c => c.from === 'dock' && levelOf(c.rungs[0].item) === 5);
+	const start = ports.find(p => p.name === 'Velia');
+	for (const way of ['sea', 'chain']) for (const pace of ['full', 'fast', 'steady']) {
+		const run = chainRun({ chosen: cs, dock, parley, npcById, start, stashes, pace, orders: { ...PLAIN_ORDERS, pace, way }, hold: { free: 13500, deal: 22950, max: 22950, slots: 8 } });
+		assert.ok(slotsOver(run) <= 8, `${way} ${pace}: ${slotsOver(run)} slots of 8`);
+		assert.ok(run.trades > 0, `${way} ${pace}: still trades`);
+		for (const c of run.cut.filter(x => x.why === 'slots')) assert.ok(c.slots === 8 && c.need >= 1, 'a slots cut carries the figures the sentence quotes');
+	}
+	const fast = chainRun({ chosen: cs, dock, parley, npcById, start, stashes, pace: 'fast', orders: { ...PLAIN_ORDERS, pace: 'fast', way: 'chain' }, hold: { free: 13500, deal: 22950, max: 22950, slots: 8 } });
+	assert.ok(fast.cut.some(c => c.why === 'slots'), 'a chain stopped by the slots says so, not "nothing to hand over"');
+});
+
+test('the bag counts its slots the same way: a [Level 5] parked or loaded into it takes one each', () => {
+	const gives = [...new Set(layout.offers.map(o => o[1]).filter(x => /^\[Level 5\]/.test(x)))];
+	const dock = Object.fromEntries(gives.map(x => [x, 5]));
+	const cs = chains(data, {}, dock).filter(c => c.from === 'dock').slice(0, 5);
+	const docks = wharves.filter(w => w.kind === 'wharf');
+	const opts = { chosen: cs, dock, parley, npcById, start: ports.find(p => p.name === 'Velia'), stashes, docks, pace: 'full', orders: { ...PLAIN_ORDERS, way: 'sea' }, hold: { free: 60000, deal: 102000, max: 102000, slots: 20 } };
+	const inBag = run => [...(run.bagLoaded || []), ...(run.bagFromHold || [])].reduce((a, l) => a + l.n, 0);
+	const roomy = chainRun({ ...opts, bag: { free: 30000, slots: 40 } });
+	assert.ok(inBag(roomy) > 3, `a bag of forty slots carries the later trip's [Level 5]s: ${inBag(roomy)}`);
+	const tight = chainRun({ ...opts, bag: { free: 30000, slots: 3 } });
+	assert.ok(inBag(tight) <= 3, `a bag of three slots takes no more than three of them: ${inBag(tight)}`);
+	assert.equal(tight.bagNote && tight.bagNote.why, 'small', 'and says the bag was too small');
+	assert.ok(slotsOver(roomy) <= 20 && slotsOver(tight) <= 20);
+});
+
+// A fast run's wharf on the way (ON_WAY_S): a call a minute or so off a
+// leg, kept only when the run is worth more an hour for it and stays
+// fast -- no more than the detour budget longer, and within the hours
+// the orders allow. Measured on the real boards with the 20-slot
+// Volante and the 40-slot Carrack: of 3,086 pairs of chains a stop paid
+// in 15, and on the sets the search itself picks, in none.
+const onWayRun = (id, ids, hull, extra = {}) => {
+	const l = combos.find(c => c.id === id);
+	const all = chains(boardData(l, barterData, npcById), {}, {}, 4006, 0);
+	const chosen = ids.map(x => all.find(c => c.id === x));
+	const docks = wharves.filter(w => w.kind === 'wharf');
+	const stores = docks.filter(w => ['Velia', 'Port Epheria', 'Iliya Island', 'Ancado Inner Harbor', "Oquilla's Eye"].includes(w.at));
+	const prices = new Proxy({}, { get: (t, name) => (landGoods[name] ? { each: landGoods[name], how: 'market' } : undefined) });
+	const opts = { chosen, stock: {}, dock: {}, hold: hull.hold, parley: { bar: 2e6, perTrade: 11755 }, npcById, start: ports.find(p => p.name === 'Iliya Island'), stashes: stores, docks, pace: 'fast', orders: { ...PLAIN_ORDERS, pace: 'fast', buy: true, landFrom: 'buy', way: 'sea', sell: 5, pause: { isle: 20, call: 30 }, ...extra }, prices, ship: hull.ship };
+	return { on: chainRun(opts), off: chainRun({ ...opts, onWay: false }) };
+};
+const VOLANTE = { hold: { free: 12000, deal: 21450, max: 25650, slots: 20 }, ship: { speed: 120 } };
+// Layout 16: Rakio's Elder Tree Plywood and Renilu's Copper Ingot, both
+// climbed to [Level 5].
+const L16_PAIR = ['land:Elder Tree Plywood:58918.58967.58902.58939.50826', 'land:Copper Ingot:58929.58943.58935.58968.58966'];
+
+test('a fast run calls at a wharf on the way when the sale frees the slots for more trades and the run is worth more an hour', async () => {
+	// Layout 16 on a Volante, the two chains climbed together: the four
+	// [Level 5] Rust Repair Tools the first is done with fill four of the
+	// twenty slots the other climb wants.
+	const { on, off } = onWayRun('16', L16_PAIR, VOLANTE);
+	const stops = on.stops.filter(s => s.onWay);
+	assert.equal(stops.length, 1, 'one call on the way');
+	assert.ok(!off.stops.some(s => s.onWay), 'none without it');
+	const s = stops[0];
+	assert.equal(s.wharf.at, "Oquilla's Eye");
+	assert.ok(s.onWay.secs <= 75 && s.onWay.added <= 75, `a small detour: ${s.onWay.secs} s, ${s.onWay.added} s on the run`);
+	assert.equal(s.onWay.slots, 4, 'frees four slots');
+	assert.equal(s.onWay.more, on.trades - off.trades);
+	assert.ok(s.onWay.more > 0, 'for more trades');
+	assert.ok(on.net / on.hours > off.net / off.hours, 'worth more an hour');
+	assert.ok(on.hours - off.hours <= 75 / 3600 + 1e-9, 'and still fast');
+	assert.ok(on.weightPeak <= VOLANTE.hold.free + 1e-6 && on.slotsPeak <= 20, 'never over the limit or the slots');
+	// The stop says why it is there.
+	const { onWayHTML } = await import('../js/barter/route.js');
+	const said = onWayHTML(s);
+	assert.match(said, /on the way \(\+\d+ s\): sells 4 <i class="lv-chip"[^>]*>L5<\/i>, which frees 4 slots for \d+ more trades/);
+});
+
+test('a call on the way that is not worth it is not made: no more an hour, or past the hours the orders allow', () => {
+	// Layout 31 on a Volante, the four chains the search picks: a wharf
+	// lies 71 s off the way after Serapu, but selling there lets in no
+	// more trades, so the call would only cost time.
+	const { on, off } = onWayRun('31', ['land:Fine Soft Hide:58930.58947.58906.58919.58940.58984.58979', "land:Sinner's Blood:58963.58955.58902.58939.58915.58978.58974", 'land:Cactus Thorn:58932.58962.58942.58956.58949.58981.58948', 'land:Grilled Bird Meat:58918.58914.58920.58907.58925.58971.58976'], VOLANTE);
+	assert.ok(!on.stops.some(s => s.onWay), 'no call on the way');
+	assert.equal(on.net, off.net);
+	assert.equal(on.hours, off.hours);
+	assert.equal(on.stops.length, off.stops.length);
+	// And the stop that pays on layout 16 is not made when the orders
+	// give the run no more hours than it takes without it.
+	const plain = onWayRun('16', L16_PAIR, VOLANTE).off;
+	const capped = onWayRun('16', L16_PAIR, VOLANTE, { hours: plain.hours + 1e-6 }).on;
+	assert.ok(!capped.stops.some(s => s.onWay), 'past the hours allowed');
+	assert.equal(capped.trades, plain.trades);
 });

@@ -17,7 +17,7 @@ import { npcById, ports } from '../js/barter_npcs.js';
 import { wharves } from '../js/wharves.js';
 
 const barterData = JSON.parse(await readFile(new URL('../js/all_barter.json', import.meta.url), 'utf8'));
-const combos = JSON.parse(await readFile(new URL('../js/barter_combos.json', import.meta.url), 'utf8')).combos;
+const combos = useGame(await import('../js/barter_game.js')).combos;
 const layout = combos.find(c => c.id === '1');
 const data = boardData(layout, barterData, npcById);
 const stashes = ['Velia', 'Iliya Island', 'Port Epheria'].map(at => wharves.find(w => w.kind === 'wharf' && w.at === at));
@@ -102,8 +102,9 @@ test('a budget that is not reached leaves the search whole', () => {
 	assert.deepEqual(proposals.map(p => p.ids), propose({ chains: all, opts, ship }).proposals.map(p => p.ids));
 });
 
-import { fullness, fillOf } from '../js/barter-optimizer.js';
+import { fullness, fillOf, costOfFill } from '../js/barter-optimizer.js';
 import { levelOf } from '../js/barter.js';
+import { useGame } from '../js/barter-layouts.js';
 
 test('a stock is as full as its targets, and no fuller: what is over a target adds nothing', () => {
 	const to = { '[Level 1] Bronze Statue': 10, '[Level 2] Bronze Coin': 10 };
@@ -131,8 +132,11 @@ test('a stock run is judged by what it banks, not by what it would sell for', ()
 	const { proposals, best } = propose({ chains: low, opts: mine, ship, aim });
 	assert.ok(best && best.value > 0, 'a run that banks nothing is no proposal');
 	assert.equal(proposals[0].kind, 'stock');
-	// The score is the fill, a thousand to one over the trades it took.
-	assert.equal(Math.floor(best.value / 1000), fillOf(best.run, { targetOf, held: new Map(), stock: mine.stock }));
+	// The score is the fill, a thousand to one over what the run spends
+	// -- silver ashore and Parley -- so between two that bank the same,
+	// the cheaper wins.
+	assert.equal(best.value, fillOf(best.run, { targetOf, held: new Map(), stock: mine.stock }) * 1000 - costOfFill(best.run));
+	assert.ok(costOfFill(best.run) > 0 && costOfFill(best.run) < 1000);
 	// Nothing is sold, so the run is worth nothing in silver and every
 	// good it makes is still in hand at the end.
 	const run = best.run;
@@ -141,8 +145,60 @@ test('a stock run is judged by what it banks, not by what it would sell for', ()
 	for (const c of best.ids.map(id => low.find(x => x.id === id))) assert.ok(c.top <= ceiling);
 	// The score is exactly the goods banked, each counted to its target.
 	const banked = [...run.kept, ...run.stashed].reduce((a, g) => a + Math.min(g.n, targetOf(g.item)) * (levelOf(g.item) || 0), 0);
-	assert.ok(banked >= Math.floor(best.value / 1000), 'nothing counted that the run did not end holding');
+	assert.ok(banked >= Math.ceil(best.value / 1000), 'nothing counted that the run did not end holding');
 	// A stock already at its targets has nothing to gain from the same run.
 	const full = new Map([...run.kept, ...run.stashed].map(g => [g.item, targets[levelOf(g.item)] || 0]));
 	assert.equal(fillOf(run, { targetOf, held: full, stock: {} }), 0);
+});
+
+// GriefLZ's stock, 2026-09-29: every [Level 1] over its target at the
+// harbour, the [Level 2]s and [Level 3]s short, the [Level 4]s full. The
+// run bought a thousand of a shore good to make [Level 1]s he was full
+// of, and every chain read "Level 4".
+test('a stock run starts from what is held and stops where the good above is full, good by good', () => {
+	const ceiling = 4;
+	const targets = { 1: 80, 2: 100, 3: 80, 4: 2 };
+	const names = new Set([...JSON.stringify(data).matchAll(/\[Level ([1-4])\] [^"\\]+/g)].map(m => m[0]));
+	const dock = {};
+	const each = { 1: 160, 2: 39, 3: 30, 4: 65 };
+	for (const n of names) dock[n] = each[levelOf(n)];
+	// Half the [Level 2]s over their target: those climb, the rest stay.
+	let i = 0;
+	for (const n of names) if (levelOf(n) === 2 && i++ % 2 === 0) dock[n] = 180;
+	const fill = { targets, held: Object.entries(dock), away: [] };
+	const list = chains(data, {}, dock, null, ceiling, false, fill);
+	assert.ok(list.length > 0);
+	assert.equal(list.filter(c => c.from === 'land').length, 0, 'no shore good bought to make a [Level 1] the stock is full of');
+	for (const c of list) {
+		assert.ok(c.top <= 3, `${c.item} climbs into the full [Level 4]s`);
+		// Every good it makes on the way that it leaves as the top is short.
+		const top = c.rungs[c.rungs.length - 1].item;
+		assert.ok((dock[top] || 0) < targets[levelOf(top)], `${c.item} ends on ${top}, already full`);
+		// A chain from a good held starts only where some of it is spare.
+		assert.ok((dock[c.item] || 0) - targets[levelOf(c.item)] >= c.rungs[0].giveN, `${c.item} starts from goods the stock keeps`);
+	}
+	assert.ok(list.some(c => levelOf(c.item) === 2 && c.top === 3), 'a full [Level 2] climbs to [Level 3]');
+	assert.ok(list.some(c => levelOf(c.item) === 1 && c.top === 2 && c.stops && c.stops.why === 'filling'), 'a short [Level 2] stays, and says why');
+	// And the run it makes buys nothing ashore.
+	const stockOrders = { ...presetOrders('floor'), sell: 8, floors: targets };
+	const mine = { ...opts, stock: {}, dock, owned: dock, orders: stockOrders, pace: 'full' };
+	const aim = { targets, held: Object.entries(dock), kind: 'fill' };
+	const { best } = propose({ chains: list, opts: { ...mine, aim }, ship, aim, width: 3, depth: 4 });
+	assert.ok(best && best.run.trades > 0);
+	assert.equal(best.run.cost, 0);
+	assert.equal(best.run.bought.length, 0);
+});
+
+test('spare goods held in another storage are said, and the chain climbs from below meanwhile', () => {
+	const targets = { 1: 80, 2: 100, 3: 80, 4: 2 };
+	const l1 = chains(data, {}, {}, null, 4).find(c => c.from === 'land' && c.rungs.length > 1).rungs[0].item;
+	const held = [[l1, 400]];
+	const list = chains(data, {}, {}, null, 4, false, { targets, held, away: [[l1, [['Velia', 400]]]] });
+	const land = list.filter(c => c.from === 'land' && c.rungs[0].item === l1);
+	assert.ok(land.length, 'the shore start stays when the spare is out of reach');
+	for (const c of land) {
+		assert.equal(c.away.good, l1);
+		assert.deepEqual(c.away.at, [['Velia', 400]]);
+		assert.ok(c.need[0] >= 1, 'and it is sized to make what the spare would have');
+	}
 });

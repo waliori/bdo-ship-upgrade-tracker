@@ -118,10 +118,35 @@
   display: flex;
   align-items: center;
   gap: 14px;
+  /* Its own width, not half the screen's: pinned at the centre, a long
+     line would otherwise wrap into a column on a phone. */
+  width: max-content;
+  max-width: calc(100vw - 32px);
 }
 
 .toast[hidden] { display: none; }
 .toast button { background: none; border: none; color: var(--blue); font-weight: 700; font-size: 13px; }
+
+/* A toast that asks: the icon of what was made, what happened, and the
+   question under it, with its answers beside. It wraps on a phone. */
+.toast.ask { flex-wrap: wrap; gap: 10px 14px; max-width: min(560px, calc(100vw - 32px)); padding: 10px 14px; }
+.toast .toast-icon { width: 36px; height: 36px; flex-shrink: 0; }
+.toast .toast-text { flex: 1 1 200px; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.toast .toast-text small { font-size: 12px; color: var(--ink-mute); }
+.toast .toast-acts { display: flex; align-items: center; gap: 4px; margin-left: auto; }
+.toast .toast-acts button { padding: 6px 8px; border-radius: var(--r-sm); }
+.toast .toast-go { color: var(--teal-hi); background: rgba(78, 201, 174, 0.16); }
+.toast .toast-go:hover { background: rgba(78, 201, 174, 0.28); }
+.toast .toast-undo { color: var(--ink-mute); font-weight: 600; }
+
+/* The made thing on its way to the Builds tab, and the tab taking it. */
+.fly-ghost { position: fixed; z-index: 1001; pointer-events: none; object-fit: contain; filter: drop-shadow(0 4px 10px rgba(var(--shade-rgb), 0.6)); }
+@keyframes tabTick {
+  0% { box-shadow: 0 0 0 0 rgba(78, 201, 174, 0.7); }
+  30% { transform: scale(1.12); }
+  100% { box-shadow: 0 0 0 12px rgba(78, 201, 174, 0); transform: scale(1); }
+}
+.tab-tick { animation: tabTick 0.8s ease-out; }
 
 .dialog {
   position: fixed;
@@ -143,6 +168,7 @@
   width: 100%;
   max-width: 560px;
   max-height: 82vh;
+  overflow-x: hidden;
   overflow-y: auto;
   background: var(--sheet-solid);
   border: 1px solid rgba(var(--line-rgb), 0.2);
@@ -175,6 +201,25 @@
 .dialog-row .n { font-family: var(--font-display); color: var(--ink-hi); }
 .dialog-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
 
+/* The sixteen languages, as a grid of cells to press. A drop-down of
+   sixteen scripts is a thing to hunt through; laid out, the one you
+   read is the one you can see. */
+.lang-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 6px; margin-top: 12px; }
+.lang-pick { display: flex; align-items: center; gap: 9px; justify-content: flex-start; text-align: left; padding-left: 11px; padding-right: 11px; }
+.lang-pick.on { border-color: var(--blue); color: var(--ink-hi); }
+
+/* The flag, wherever one is drawn. A face of its own, because the
+   page's is a display face with no flags in it, and Windows has no
+   flag glyphs at all -- there the pair falls back to its two letters,
+   which is why this is sized to hold two and not one. */
+.lang-flag {
+  flex: none;
+  font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', 'Twemoji Mozilla', sans-serif;
+  font-size: 15px;
+  line-height: 1;
+  letter-spacing: 0;
+}
+
 /* ---- responsive --------------------------------------------------- */
 
 @media (max-width: 960px) {
@@ -183,10 +228,6 @@
 }
 
 @media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
-  .shell { padding: 0 16px 70px; }
-  .masthead { padding: 18px 0 14px; }
-  .brand-name { font-size: 16px; }
-  .row { gap: 10px; padding: 11px 14px; }
   .row-meter { flex-basis: 100%; min-width: 0; }
   .row-tail { width: 100%; justify-content: space-between; }
   .badge { text-align: left; min-width: 0; }
@@ -224,29 +265,18 @@
    first, which is what made the trip log's chooser feel like a letterbox.
    So this rule stays with the widget it was written for. */
 .picker:not(.picker-dialog) {
-  max-height: 320px;
+  max-height: min(52vh, 480px);
   overflow-y: auto;
   border: 1px solid var(--line);
   border-radius: var(--r-btn);
   margin-bottom: 14px;
 }
 
-.picker-row {
-  display: grid;
-  grid-template-columns: 28px 1fr auto;
-  gap: 12px;
-  align-items: center;
-  width: 100%;
-  padding: 8px 12px;
-  background: none;
-  border: none;
-  border-bottom: 1px solid var(--line-soft);
-  color: var(--ink-mid);
-  font-size: 13px;
-  text-align: left;
-}
+/* .picker-row and .picker-group are drawn with the picker, in tracker-sea.css. */
 
 .picker-row:last-child { border-bottom: none; }
+.picker-group-n { color: var(--ink-faint); font-weight: 400; letter-spacing: 0; margin-left: 4px; }
+.build-kinds { margin: 0 0 10px; }
 .picker-row:hover:not(:disabled) { background: rgba(var(--blue-rgb), 0.08); color: var(--ink-hi); }
 .picker-row:disabled { opacity: 0.45; cursor: default; }
 .picker-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -297,9 +327,12 @@
 
 /* ---- first-run guidance -------------------------------------------- */
 
-.steps { list-style: none; margin: 0; padding: 0; }
+/* The Plan's "How this works" list. Its own names, because .steps/.step
+   are the barter's step bar, whose cards used to draw these rows. */
 
-.step {
+.plan-steps { list-style: none; margin: 0; padding: 0; }
+
+.plan-step {
   display: grid;
   grid-template-columns: 30px 1fr auto;
   gap: 14px;
@@ -308,9 +341,9 @@
   border-bottom: 1px solid var(--line-soft);
 }
 
-.step:last-child { border-bottom: none; }
+.plan-step:last-child { border-bottom: none; }
 
-.step-n {
+.plan-step-n {
   width: 30px;
   height: 30px;
   display: grid;
@@ -324,13 +357,13 @@
   font-weight: 700;
 }
 
-.step-title { font-weight: 600; font-size: 14px; color: var(--ink-hi); }
-.step-body { font-size: 12.5px; color: var(--ink-mute); margin-top: 2px; line-height: 1.5; }
-.step-cta { flex: 0 0 auto; padding: 8px 14px; font-size: 12.5px; white-space: nowrap; }
+.plan-step-title { font-weight: 600; font-size: 14px; color: var(--ink-hi); }
+.plan-step-body { font-size: 12.5px; color: var(--ink-mute); margin-top: 2px; line-height: 1.5; }
+.plan-step-cta { flex: 0 0 auto; padding: 8px 14px; font-size: 12.5px; white-space: nowrap; }
 
 @media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
-  .step { grid-template-columns: 30px 1fr; }
-  .step-cta { grid-column: 2; justify-self: start; }
+  .plan-step { grid-template-columns: 30px 1fr; }
+  .plan-step-cta { grid-column: 2; justify-self: start; }
 }
 
 /* ---- next step + pouch --------------------------------------------- */
@@ -367,11 +400,6 @@
   align-items: center;
   gap: 18px;
   flex-wrap: wrap;
-  /* Under the dock, which sticks above it; the dock publishes its
-     height (ui.js), and it is nought where the thumb bar does the job. */
-  position: sticky;
-  top: var(--dock-h, 0px);
-  z-index: 6;
   margin: 0 0 22px;
   padding: 11px 18px;
   border-radius: var(--r-panel);
@@ -506,11 +534,15 @@
 /* A game icon where the game has one -- the voucher, the Value Pack,
    the refresh button -- sized like the purse's own. */
 .pouch-item.sail .pouch-icon { width: 22px; height: 22px; border-radius: 5px; }
+/* The class icons are white line art on nothing: they sit on a dark round like the game's own class picker. */
+.pouch-icon.class-icon { padding: 2px; border-radius: 50%; background: var(--panel-inset); border: 1px solid var(--line-btn); }
 
 /* Folded, it is one chip that reads out the lot, with the fields a
    press away; open, the group's own name folds it back. Both are
    buttons, so neither wears the text caret the purse chips do. */
 .pouch-item.sail.summary {
+  position: relative;
+  margin-left: 15px;
   cursor: pointer;
   border: 1px solid transparent;
   text-align: left;
@@ -554,7 +586,7 @@ button.pouch-group:hover { color: var(--ink); }
 /* The press leaves the focus here, so the ring has to be the app's own
    rather than the browser's white box -- and only for the keyboard. */
 button.pouch-group:focus { outline: none; }
-button.pouch-group:focus-visible { outline: 2px solid var(--blue-hi); outline-offset: 3px; border-radius: 4px; }
+button.pouch-group:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; border-radius: 4px; }
 button.pouch-group i { font-style: normal; font-size: 9px; }
 
 /* A Value Pack is a thing you have or have not: a switch that says
@@ -649,7 +681,7 @@ button.pouch-item.sail.pets {
 }
 button.pouch-item.sail.pets:hover { border-color: rgba(var(--line-rgb), 0.28); }
 button.pouch-item.sail.pets:focus { outline: none; }
-button.pouch-item.sail.pets:focus-visible { outline: 2px solid var(--blue-hi); outline-offset: 3px; }
+button.pouch-item.sail.pets:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
 
 /* ---- the editor ------------------------------------------------------ *
    Five slots down the side, the six tiers across, every cell one press:
@@ -706,7 +738,7 @@ button.pouch-item.sail.pets:focus-visible { outline: 2px solid var(--blue-hi); o
 
 .pet-cell:hover { border-color: var(--tier); color: var(--ink-hi); background: rgba(var(--blue-rgb), 0.1); }
 .pet-cell:focus { outline: none; }
-.pet-cell:focus-visible { outline: 2px solid var(--blue-hi); outline-offset: 2px; }
+.pet-cell:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 
 /* The chosen cell wears its grade, which is the same colour the bird in
    that slot is framed in -- the two halves of the dialog say the same
@@ -764,7 +796,6 @@ button.pouch-item.sail.pets:focus-visible { outline: 2px solid var(--blue-hi); o
 .pouch-item.sail.summary .pouch-input.plain { width: auto; max-width: none; font-size: 15px; white-space: nowrap; }
 /* The hairline the group title carries when the fields are open, so
    the two halves of the strip stay told apart either way. */
-.pouch-item.sail.summary { position: relative; margin-left: 15px; }
 .pouch-item.sail.summary::before {
   content: '';
   position: absolute;
@@ -805,6 +836,10 @@ button.pouch-item.sail.pets:focus-visible { outline: 2px solid var(--blue-hi); o
  * missing -- on one line the height of a single chip, and the typing
  * happens in a sheet where every field has the width of the screen. */
 @media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
+  /* No top margin: on a wide screen the pouch is pulled up by the tab
+     row's margin to sit tight beneath it; on a phone the row is gone
+     and there is nothing above it to tuck under but the title, which it
+     was covering. */
   .pouch { gap: 10px; padding: 6px 10px; margin: 0 0 16px; }
   .pouch-title { display: none; }
 }
@@ -830,7 +865,7 @@ button.pouch-item.sail.pets:focus-visible { outline: 2px solid var(--blue-hi); o
   cursor: pointer;
 }
 .pouch-peek:focus { outline: none; }
-.pouch-peek:focus-visible { outline: 2px solid var(--blue-hi); outline-offset: 3px; border-radius: 6px; }
+.pouch-peek:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; border-radius: 6px; }
 
 /* The purses keep their width -- what is short is the whole point of
    the line -- and the sailor's count gives way first if a screen is
@@ -1073,7 +1108,9 @@ button.pouch-item.sail.pets:focus-visible { outline: 2px solid var(--blue-hi); o
   border: 1px solid rgba(var(--line-rgb), 0.25);
   background: none;
   color: var(--ink-mute);
-  font-size: 11px;
+  min-width: 26px;
+  min-height: 26px;
+  font-size: 14px;
   line-height: 1;
 }
 .tcaret:hover { color: var(--ink-hi); border-color: var(--line-btn-hi); }
@@ -1086,6 +1123,9 @@ button.pouch-item.sail.pets:focus-visible { outline: 2px solid var(--blue-hi); o
 .trow-name { font-size: 12.5px; color: var(--ink-row); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .trow.missing .trow-name { color: var(--ink-hi); }
 .trow-sub { font-size: 10.5px; color: var(--ink-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* A row saying where the units it did not get have gone: allowed a
+   second line, since cutting that sentence off is cutting off the answer. */
+.trow-sub.shared { white-space: normal; }
 
 .trow-need,
 .trow-own {
@@ -1106,36 +1146,21 @@ button.pouch-item.sail.pets:focus-visible { outline: 2px solid var(--blue-hi); o
 .dot.red { background: var(--red); }
 
 @media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
-  .trow { min-width: 520px; }
   .trow-own { display: none; }
 }
 
-/* An inline "change" that reads as part of the sentence around it. */
-.linky {
-  background: none;
-  border: none;
-  padding: 0;
-  font: inherit;
-  color: var(--blue);
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-.linky:hover { color: var(--blue-hi); }
+/* .linky, an inline "change" that reads as part of the sentence around
+   it, is drawn in tracker-base.css. */
 
+/* A framed icon button (tracker-base.css) with no frame until hovered. */
 .detail-close {
   margin-left: auto;
   align-self: flex-start;
-  width: 26px;
-  height: 26px;
   flex: none;
-  border-radius: var(--r-sm);
-  border: 1px solid transparent;
-  background: none;
+  border-color: transparent;
   color: var(--ink-mute);
   font-size: 17px;
-  line-height: 1;
 }
-.detail-close:hover { color: var(--ink-hi); border-color: var(--line-btn-hi); }
 
 /* ---- the header on a phone ------------------------------------------ */
 /* The masthead keeps Undo, the account and the menu on a phone; the
@@ -1243,6 +1268,35 @@ a.codex:focus-visible {
 a.codex:hover .codex-mark,
 a.codex:focus-visible .codex-mark { opacity: 1; color: var(--blue); }
 
+/* Copy this name, for the Market's search box. It keeps out of the way
+   until the row is under the pointer -- a list of forty things to buy
+   with forty buttons lit is a list nobody can read -- but it is always
+   there for a finger, where there is no pointer to hover with. */
+.copy-name {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  margin-left: 4px;
+  padding: 0 4px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: none;
+  color: var(--ink-faint);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+.copy-name:hover, .copy-name:focus-visible { opacity: 1; color: var(--blue); border-color: var(--line-btn); }
+.row:hover .copy-name, .run-good:hover .copy-name, .shelf-tile:hover .copy-name,
+.way-row:hover .copy-name, h2 .copy-name { opacity: 1; }
+h2 .copy-name { font-size: 14px; min-width: 24px; height: 24px; vertical-align: middle; }
+/* No pointer to hover with: on a touch screen it simply stands there. */
+@media (hover: none) { .copy-name { opacity: 1; } }
+
 /* The hover card is for reading and for its one button; a link out of it
    would take the pointer away from what it was hovering. */
 .peek a.codex { color: inherit; border-bottom: none; pointer-events: none; }
@@ -1335,3 +1389,13 @@ select.purse-inline { width: auto; cursor: pointer; }
   margin-top: 4px;
 }
 
+
+/* A sailing log as the game draws it: one picture for all three, the
+   grade's frame round it and the enhancement on its corner. */
+.log-icon { position: relative; display: inline-grid; flex: none; border-radius: 6px; border: 2px solid var(--log-grade, var(--line-btn)); box-shadow: 0 0 6px color-mix(in srgb, var(--log-grade, transparent) 45%, transparent); line-height: 0; }
+.log-icon.grade-1 { --log-grade: #6fcf4a; }
+.log-icon.grade-2 { --log-grade: #3d8fe0; }
+.log-icon.grade-3 { --log-grade: #f2c13a; }
+.log-icon.grade-4 { --log-grade: #f07b2a; }
+.log-icon .pouch-icon { border-radius: 4px; }
+.log-icon i { position: absolute; left: -3px; top: -6px; font-style: normal; font-family: var(--font-display); font-size: 9.5px; font-weight: 800; line-height: 1; letter-spacing: .02em; color: #fff; padding: 1px 3px; border-radius: 3px; background: rgba(0, 0, 0, .75); text-shadow: 0 0 2px #000; }

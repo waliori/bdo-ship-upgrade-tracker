@@ -25,6 +25,9 @@ for (const name of [
 	'TURSO_DATABASE_URL', 'TURSO_AUTH_TOKEN', 'PUBLIC_URL'
 ]) delete process.env[name];
 
+// Market prices from a recorded answer, never the live Market, so a run
+// plans the same on any day (see server/market.js).
+process.env.MARKET_FIXTURE = new URL('./fixtures/market.json', import.meta.url).href;
 const app = (await import('../server.js')).default;
 const { syncEnabled } = await import('../server/config.js');
 
@@ -46,7 +49,7 @@ test('the page and its assets are served', async () => {
 
 test('the client is told there is no sync', async () => {
 	const res = await fetch(`${base}/api/config`);
-	assert.deepEqual(await res.json(), { sync: false, push: false, feedback: false, uploads: false, community: false, presence: true });
+	assert.deepEqual(await res.json(), { sync: false, push: false, discordDm: false, feedback: false, uploads: false, community: false, presence: true, links: false, build: 'test-stamp1.23' });
 });
 
 test('no sync routes exist at all', async () => {
@@ -172,8 +175,38 @@ test('a newer worker that is waiting is not written over', () => {
 	// and the running cache is the old one's; filing one into the other
 	// is the mixed shell the cache exists to prevent.
 	const sw = fs.readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
-	const networkFirst = sw.slice(sw.indexOf('async function networkFirst'));
-	assert.match(networkFirst, /!self\.registration\.waiting[^;]*cache|waiting\)[^;]*put\(/s);
+	const filing = sw.slice(sw.indexOf('function fetchAndFile'));
+	assert.match(filing, /!self\.registration\.waiting\)[\s\S]{0,160}cache\.put\(/);
+});
+
+test('the offline shell is precached past every cache in front, under its plain address', () => {
+	// The edge in front of the live site was seen holding a module for a
+	// day whatever the server said; a plain addAll baked that copy into
+	// the next deploy's shell. Each file is asked for under the deploy's
+	// stamp, with the browser's cache bypassed, and filed without it.
+	const sw = fs.readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
+	const install = sw.slice(sw.indexOf("addEventListener('install'"), sw.indexOf("addEventListener('activate'"));
+	assert.doesNotMatch(install, /addAll\(/);
+	assert.match(sw, /v=\$\{encodeURIComponent\(VERSION\)\}`, \{ cache: 'reload' \}/);
+	assert.match(install, /cache\.put\(path, res\)/);
+});
+
+test('code is kept off the edge, and the page names its deploy', async () => {
+	for (const url of ['/', '/sw.js', '/js/boot.js', '/css/tracker-base.css', '/index.html']) {
+		const res = await fetch(base + url);
+		assert.equal(res.headers.get('cdn-cache-control'), 'no-store', url);
+		assert.equal(res.headers.get('cloudflare-cdn-cache-control'), 'no-store', url);
+	}
+	assert.equal((await fetch(base + '/')).headers.get('x-build'), 'test-stamp1.23');
+	// A tile is still the edge's to keep.
+	const icons = fs.readdirSync(new URL('../icons/', import.meta.url)).filter(f => f.endsWith('.png'));
+	if (icons.length) assert.equal((await fetch(`${base}/icons/${icons[0]}`)).headers.get('cdn-cache-control'), null);
+});
+
+test('the OCR engine has a cache of its own, which the tiles never shed', () => {
+	const sw = fs.readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
+	assert.match(sw, /startsWith\('\/reader\/'\) \? READER_CACHE/);
+	assert.match(sw, /key !== READER_CACHE/, 'activate sweeps the engine away');
 });
 
 test('the healthcheck answers without a database, and says so', async () => {
@@ -185,7 +218,9 @@ test('the healthcheck answers without a database, and says so', async () => {
 	assert.equal(body.db, 'off');
 	assert.equal(body.dirty, 0);
 	assert.equal(body.queued, 0);
-	assert.equal(body.version, 'test-stamp1.23');
+	assert.equal(body.version, 'test-stamp1.23', 'the operator, asking from the machine itself, is told the build');
+	// And when it was built, which only an image knows (build-info.json).
+	assert.ok('built' in body, 'the build date has its place, null in a checkout');
 	assert.equal(typeof body.counters.requests['2xx'], 'number');
 	// And the container asks this route, not the page.
 	const dockerfile = fs.readFileSync(new URL('../Dockerfile', import.meta.url), 'utf8');
@@ -326,7 +361,9 @@ test('no element wears a whole-screen class as if it were a modifier', () => {
 	const overlay = new Map();
 	for (const f of fs.readdirSync(cssDir.pathname).filter(n => n.endsWith('.css'))) {
 		const src = fs.readFileSync(path.join(cssDir.pathname, f), 'utf8');
-		for (const m of src.matchAll(/(?:^|\})\s*\.([A-Za-z0-9_-]+)\s*\{([^}]*)\}/g)) {
+		// The lead-in brace is looked behind, not taken: taken, it is the
+		// brace that closed the rule before, so every other rule went unread.
+		for (const m of src.matchAll(/(?:^|(?<=\}))\s*\.([A-Za-z0-9_-]+)\s*\{([^}]*)\}/g)) {
 			if (/position\s*:\s*fixed/.test(m[2])) overlay.set(m[1], f);
 		}
 	}
@@ -387,11 +424,35 @@ test('what only some visitors need is not in the page for all of them', () => {
 
 	const ui = fs.readFileSync(new URL('../js/ui.js', import.meta.url), 'utf8');
 	assert.doesNotMatch(ui, /^import .*realistic-water-ripples/m, 'the shader is statically imported again');
-	assert.match(ui, /await import\('\.\/realistic-water-ripples\.js'\)/, 'and nothing fetches it on demand either');
+	assert.match(ui, /import\('\.\/realistic-water-ripples\.js'\)/, 'and nothing fetches it on demand either');
 
-	// Both still belong to the offline shell.
+	// The same for the heaviest modules a first screen never draws: the
+	// release notes (170 KB, opened from What's new and Help), the
+	// Community tab, the storage reader with its network's weights, and
+	// the layout book. Each is fetched when it is opened.
+	const lazy = [
+		['js/ui.js', 'about.js'], ['js/ui.js', 'screen-community.js'], ['js/feedback.js', 'about.js'],
+		['js/shot-reader.js', 'storage-shot.js'], ['js/barter/board.js', 'layouts-view.js']
+	];
+	for (const [file, dep] of lazy) {
+		const src = fs.readFileSync(new URL(`../${file}`, import.meta.url), 'utf8');
+		const name = dep.replace(/[.]/g, '\\.');
+		assert.doesNotMatch(src, new RegExp(`^import [^;]*/${name}'`, 'm'), `${file} imports ${dep} statically again`);
+	}
+	const reader = fs.readFileSync(new URL('../js/shot-reader.js', import.meta.url), 'utf8');
+	assert.match(reader, /import\('\.\/storage-shot\.js'\)/, 'the storage reader is fetched on demand');
+
+	// All of them still belong to the offline shell.
 	const sw = fs.readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
-	for (const path of ['/js/driver.iife.js', '/css/driver.css', '/js/realistic-water-ripples.js']) {
+	for (const path of ['/js/driver.iife.js', '/css/driver.css', '/js/realistic-water-ripples.js', '/js/about.js', '/js/release.js', '/js/screen-community.js', '/js/storage-shot.js', '/js/count_model.js', '/js/layouts-view.js', '/js/loading.js']) {
 		assert.ok(sw.includes(`'${path}'`), `${path} fell out of the offline shell`);
 	}
+});
+
+test('the healthcheck tells the world up or down, and the operator the rest', async () => {
+	// Through the proxy -- a forwarding header on it -- the build, the
+	// counters and what memory holds are nobody's business.
+	const res = await fetch(base + '/healthz', { headers: { 'X-Forwarded-For': '203.0.113.9' } });
+	assert.equal(res.status, 200);
+	assert.deepEqual(await res.json(), { ok: true, db: 'off' });
 });

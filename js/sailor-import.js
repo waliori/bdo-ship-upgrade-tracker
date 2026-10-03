@@ -16,11 +16,11 @@
 // the roster under that name is updated rather than hired twice.
 
 import { esc } from './fmt.js';
+import { T, said } from './i18n.js';
 import * as store from './state.js';
 import { openDialog, closeDialog, toast } from './dialogs.js';
 import { anyType, pool, mateTypes, SAILOR_CAP, logLevel, STAT_NAMES, statBand } from './sailors.js';
-import { LIMITS, triage, readShots, close as closeReader } from './shot-reader.js';
-import { LANGS, langByTag, DEFAULT_LANG } from './sailor-locales.js';
+import { LIMITS, triage, readShots, wireShotIntake, close as closeReader, shotLang, shotLangNote } from './shot-reader.js';
 
 const MOVES = ['speed', 'accel', 'turn', 'brake'];
 const CANNON = ['patience', 'force', 'focus', 'vision'];
@@ -38,12 +38,6 @@ function alreadyHired(read, list) {
 
 /** Every type a row can be set to, mates last -- the picker for a misread. */
 const TYPE_OPTIONS = [...pool.map(t => t.type).sort(), ...mateTypes.map(t => t.type)];
-
-/**
- * Which language the game is in, remembered: a player changes service
- * about once, and being asked every time would be its own chore.
- */
-const shotLang = () => (langByTag[store.getSetting('shotLang', DEFAULT_LANG)] ? store.getSetting('shotLang', DEFAULT_LANG) : DEFAULT_LANG);
 
 /* ------------------------------------------------------------------ *
  * the dialog
@@ -63,7 +57,7 @@ export function openSailorImport(after = () => {}) {
 		const inner = host().hidden ? null : host().querySelector('[data-shot-body]');
 		if (inner) inner.innerHTML = body;
 		else {
-			const box = openDialog(`<h2>Read sailors from screenshots</h2><div data-shot-body>${body}</div>`,
+			const box = openDialog(`<h2>${T('Read sailors from screenshots')}</h2><div data-shot-body>${body}</div>`,
 				{ onDismiss: () => { if (stop) stop.abort(); closeReader(); } }).querySelector('.dialog-box');
 			// A row of a dozen sailors, each with a name, a type, a level
 			// and four growths, does not fit a dialog's 560px -- the fleet
@@ -80,39 +74,31 @@ export function openSailorImport(after = () => {}) {
 	// read. So both are named, and what a crop has to keep is said
 	// outright: everything from the name down to the last growth.
 	const pickView = () => {
-		const lang = langByTag[shotLang()];
 		return `
-		<p class="dialog-note">Either of these reads, and a mixture of both is fine — <b>one sailor a shot</b>.</p>
+		<p class="dialog-note">${T('Either of these reads, and a mixture of both is fine — <b>one sailor a shot</b>.')}</p>
 		<ul class="shot-kinds">
-			<li><b>Manage Sailors</b> — the whole window as it is on screen, or the right-hand pane cropped out of it.</li>
-			<li><b>Selected Sailor</b> — the smaller panel on its own, the one with the type in angle brackets.</li>
+			<li>${T('<b>Manage Sailors</b> — the whole window as it is on screen, or the right-hand pane cropped out of it.')}</li>
+			<li>${T('<b>Selected Sailor</b> — the smaller panel on its own, the one with the type in angle brackets.')}</li>
 		</ul>
-		<p class="dialog-note quiet">Whichever it is, keep the sailor's name at the top and the last growth at the bottom inside the crop: the name, the condition, the appetite, the cabin cost, the weight and the growths are all read off it.</p>
-		<div class="shot-lang">
-			<label for="shot-lang">Your game's language</label>
-			<select id="shot-lang" class="purse-inline" data-lang>
-				${LANGS.map(l => `<option value="${esc(l.tag)}"${l.tag === lang.tag ? ' selected' : ''}>${esc(l.label)}</option>`).join('')}
-			</select>
-			<span class="row-sub">${lang.mb
-		? `${esc(lang.label)} is another script — about ${lang.mb} MB of reader, fetched once.`
-		: 'Reads on the reader already aboard.'}</span>
-		</div>
-		<div class="shot-drop" data-drop tabindex="0" role="button" aria-label="Choose screenshots to read">
+		<p class="dialog-note quiet">${T("Whichever it is, keep the sailor's name at the top and the last growth at the bottom inside the crop: the name, the condition, the appetite, the cabin cost, the weight and the growths are all read off it.")}</p>
+		${shotLangNote()}
+		<div class="shot-drop" data-drop tabindex="0" role="button" aria-label="${T('Choose screenshots to read')}">
 			<div class="shot-drop-mark">⛵</div>
-			<div><b>Drop screenshots here</b></div>
-			<div class="row-sub">or <button class="link-btn" data-choose>choose files</button></div>
+			<div><b>${T('Drop screenshots here, or paste one')}</b></div>
+			<div class="row-sub">${T('{paste}, or {link}', { paste: `<b>${T('Ctrl+V')}</b>`, link: `<button class="link-btn" data-choose>${T('choose files')}</button>` })}</div>
+			<div class="row-sub quiet">${T('A shot taken with Shift+Win+S goes to the clipboard — paste it straight in, no file to save first.')}</div>
 			<input type="file" accept="image/png,image/jpeg,image/webp" multiple hidden data-files>
 		</div>
-		<p class="dialog-note quiet">Up to ${LIMITS.files} at a time, ${Math.round(LIMITS.bytes / 1024 / 1024)} MB each, PNG, JPEG or WebP.
-			They are read in this browser and never uploaded — the first read fetches about 6 MB of reader, once.</p>
-		<div class="dialog-actions"><button class="act quiet" data-close>Close</button></div>`;
+		<p class="dialog-note quiet">${T('Up to {files} at a time, {mb} MB each, PNG, JPEG or WebP.', { files: LIMITS.files, mb: Math.round(LIMITS.bytes / 1024 / 1024) })}
+			${T('They are read in this browser and never uploaded — the first read fetches about 6 MB of reader, once.')}</p>
+		<div class="dialog-actions"><button class="act quiet" data-close>${T('Close')}</button></div>`;
 	};
 
 	/* --- reading ----------------------------------------------------- */
 	const readingView = (at, text) => `
 		<p class="dialog-note">${esc(text)}</p>
 		<div class="shot-bar"><i style="width:${Math.round(at * 100)}%"></i></div>
-		<div class="dialog-actions"><button class="act quiet" data-stop>Stop</button></div>`;
+		<div class="dialog-actions"><button class="act quiet" data-stop>${T('Stop')}</button></div>`;
 
 	/* --- the review table -------------------------------------------- */
 	const rowHTML = (r, i) => {
@@ -124,17 +110,17 @@ export function openSailorImport(after = () => {}) {
 			return b && (r.stats[k] < b.min - 0.05 || r.stats[k] > b.max + 0.05);
 		};
 		return `<tr class="shot-row${r.take ? '' : ' off'}">
-			<td><input type="checkbox" data-take="${i}"${r.take && r.type ? ' checked' : ''}${r.type ? '' : ' disabled title="Say which type first"'} aria-label="Take this one"></td>
-			<td><input class="field shot-name" data-name="${i}" value="${esc(r.name)}" maxlength="30" aria-label="Name"></td>
-			<td><select class="purse-inline" data-type="${i}" aria-label="Type">
+			<td><input type="checkbox" data-take="${i}"${r.take && r.type ? ' checked' : ''}${r.type ? '' : ` disabled title="${T('Say which type first')}"`} aria-label="${T('Take this one')}"></td>
+			<td><input class="field shot-name" data-name="${i}" value="${esc(r.name)}" maxlength="30" aria-label="${T('Name')}"></td>
+			<td><select class="purse-inline" data-type="${i}" aria-label="${T('Type')}">
 				<option value=""${r.type ? '' : ' selected'}>—</option>
 				${TYPE_OPTIONS.map(x => `<option${x === r.type ? ' selected' : ''}>${esc(x)}</option>`).join('')}
 			</select></td>
-			<td><input class="purse-inline narrow" data-lv="${i}" value="${r.lv}" inputmode="numeric" aria-label="Level"${t && t.mate ? ' disabled' : ''}></td>
+			<td><input class="purse-inline narrow" data-lv="${i}" value="${r.lv}" inputmode="numeric" aria-label="${T('Level')}"${t && t.mate ? ' disabled' : ''}></td>
 			<td>${growths.length
-		? growths.map(k => `<span class="shot-stat${odd(k) ? ' odd' : ''}" title="${esc((STAT_NAMES[k] || {}).game || k)}${odd(k) ? ' — outside what this type can roll at this level' : ''}">${esc(((STAT_NAMES[k] || {}).game || k).slice(0, 3))} ${r.stats[k]}</span>`).join('')
-		: '<span class="quiet">none read</span>'}</td>
-			<td class="shot-note">${r.onto ? `updates <b>${esc(r.onto.name)}</b>` : 'new'}${r.warnings.length ? `<span class="shot-warn" title="${esc(r.warnings.join('; '))}">⚠ ${esc(r.warnings[0])}</span>` : ''}</td>
+		? growths.map(k => `<span class="shot-stat${odd(k) ? ' odd' : ''}" title="${odd(k) ? T('{stat} — outside what this type can roll at this level', { stat: esc(said((STAT_NAMES[k] || {}).game || k)) }) : esc(said((STAT_NAMES[k] || {}).game || k))}">${esc(said((STAT_NAMES[k] || {}).game || k).slice(0, 3))} ${r.stats[k]}</span>`).join('')
+		: `<span class="quiet">${T('none read')}</span>`}</td>
+			<td class="shot-note">${r.onto ? T('updates <b>{name}</b>', { name: esc(r.onto.name) }) : T('new')}${r.warnings.length ? `<span class="shot-warn" title="${esc(r.warnings.map(w => said(w)).join('; '))}">⚠ ${esc(said(r.warnings[0]))}</span>` : ''}</td>
 		</tr>`;
 	};
 
@@ -146,18 +132,18 @@ export function openSailorImport(after = () => {}) {
 		const adding = taking.filter(r => !r.onto).length;
 		const room = SAILOR_CAP - roster().length;
 		return `
-		<p class="dialog-note">${rows.length ? `Read ${rows.length} sailor${rows.length === 1 ? '' : 's'}. Check them against the game — the type is worked out from the appetite, the cabin cost and the weight where the window does not name it, and a growth outside what the level can roll is marked.` : 'No sailor panel was found in any of those.'}</p>
-		${skipped.length ? `<details class="shot-skipped"><summary>${skipped.length} not read</summary>${skipped.map(s => `<div class="row-sub">${esc(s.name)} — ${esc(s.why)}</div>`).join('')}</details>` : ''}
+		<p class="dialog-note">${rows.length ? `${rows.length === 1 ? T('Read {n} sailor.', { n: rows.length }) : T('Read {n} sailors.', { n: rows.length })} ${T('Check them against the game — the type is worked out from the appetite, the cabin cost and the weight where the window does not name it, and a growth outside what the level can roll is marked.')}` : T('No sailor panel was found in any of those.')}</p>
+		${skipped.length ? `<details class="shot-skipped"><summary>${T('{n} not read', { n: skipped.length })}</summary>${skipped.map(s => `<div class="row-sub">${esc(s.name)} — ${esc(said(s.why))}</div>`).join('')}</details>` : ''}
 		${rows.length ? `<div class="shot-table-wrap"><table class="shot-table">
-			<thead><tr><th></th><th>Name</th><th>Type</th><th>Lv</th><th>Growths</th><th></th></tr></thead>
+			<thead><tr><th></th><th>${T('Name')}</th><th>${T('Type')}</th><th>${T('Lv')}</th><th>${T('Growths')}</th><th></th></tr></thead>
 			<tbody>${rows.map(rowHTML).join('')}</tbody>
 		</table></div>` : ''}
-		${adding > room ? `<p class="dialog-note warn">That is ${adding} new sailors and there is room for ${room}. Untick some, or dismiss a few first.</p>` : ''}
+		${adding > room ? `<p class="dialog-note warn">${T('That is {adding} new sailors and there is room for {room}. Untick some, or dismiss a few first.', { adding, room })}</p>` : ''}
 		<div class="dialog-actions">
-			<button class="act quiet" data-again>Read more</button>
+			<button class="act quiet" data-again>${T('Read more')}</button>
 			<span class="panel-spacer"></span>
-			<button class="act quiet" data-close>Cancel</button>
-			<button class="act" data-add${taking.length && adding <= room ? '' : ' disabled'}>${taking.length ? `Take ${taking.length}` : 'Nothing ticked'}</button>
+			<button class="act quiet" data-close>${T('Cancel')}</button>
+			<button class="act" data-add${taking.length && adding <= room ? '' : ' disabled'}>${taking.length ? T('Take {n}', { n: taking.length }) : T('Nothing ticked')}</button>
 		</div>`;
 	};
 
@@ -167,7 +153,7 @@ export function openSailorImport(after = () => {}) {
 		skipped = out.map(s => ({ name: s.file.name, why: s.why }));
 		if (!take.length) { rows = []; draw(reviewView()); return; }
 		stop = new AbortController();
-		draw(readingView(0, 'Fetching the reader…'));
+		draw(readingView(0, T('Fetching the reader…')));
 		const onProgress = p => {
 			const box = host().querySelector('.shot-bar i');
 			const note = host().querySelector('.dialog-note');
@@ -175,15 +161,15 @@ export function openSailorImport(after = () => {}) {
 			const at = p.stage === 'reading' ? p.at : p.stage === 'done' ? 1 : (p.at || 0) * 0.3;
 			box.style.width = `${Math.round(at * 100)}%`;
 			note.textContent = p.stage === 'reading'
-				? `Reading ${p.i + 1} of ${p.n} — ${p.name}`
-				: p.stage === 'done' ? 'Done' : `Fetching the reader… ${p.text || ''}`;
+				? T('Reading {i} of {n} — {name}', { i: p.i + 1, n: p.n, name: p.name })
+				: p.stage === 'done' ? T('Done') : T('Fetching the reader… {text}', { text: p.text || '' });
 		};
 		let results;
 		try {
 			results = await readShots(take, { onProgress, signal: stop.signal, lang: shotLang() });
 		} catch (err) {
-			draw(`<p class="dialog-note warn">The reader could not start: ${esc(err && err.message ? err.message : String(err))}</p>
-				<div class="dialog-actions"><button class="act quiet" data-again>Try again</button><button class="act" data-close>Close</button></div>`);
+			draw(`<p class="dialog-note warn">${T('The reader could not start: {why}', { why: esc(err && err.message ? err.message : String(err)) })}</p>
+				<div class="dialog-actions"><button class="act quiet" data-again>${T('Try again')}</button><button class="act" data-close>${T('Close')}</button></div>`);
 			return;
 		} finally {
 			stop = null;
@@ -222,37 +208,16 @@ export function openSailorImport(after = () => {}) {
 		store.setProfile('roster', list);
 		closeReader();
 		closeDialog();
-		const said = [added ? `${added} hired` : '', updated ? `${updated} brought up to date` : ''].filter(Boolean).join(' · ');
-		toast(said ? `Read off the screenshots: ${said}` : 'Nothing to take', true);
+		const said = [added ? T('{n} hired', { n: added }) : '', updated ? T('{n} brought up to date', { n: updated }) : ''].filter(Boolean).join(' · ');
+		toast(said ? T('Read off the screenshots: {what}', { what: said }) : T('Nothing to take'), true);
 		after();
 	}
 
 	/* --- wiring ------------------------------------------------------ */
 	function wire() {
 		const box = host();
-		const drop = box.querySelector('[data-drop]');
-		const input = box.querySelector('[data-files]');
-		if (drop && input) {
-			const choose = () => input.click();
-			drop.addEventListener('click', choose);
-			drop.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); choose(); } });
-			input.addEventListener('change', () => { if (input.files && input.files.length) run(input.files); });
-			for (const ev of ['dragenter', 'dragover']) {
-				drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); });
-			}
-			for (const ev of ['dragleave', 'drop']) {
-				drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); });
-			}
-			drop.addEventListener('drop', e => {
-				const files = e.dataTransfer && e.dataTransfer.files;
-				if (files && files.length) run(files);
-			});
-		}
+		wireShotIntake(box, run);
 		const on = (sel, ev, fn) => box.querySelectorAll(sel).forEach(el => el.addEventListener(ev, fn));
-		on('[data-lang]', 'change', e => {
-			store.setSetting('shotLang', e.target.value, true);
-			draw(pickView());
-		});
 		on('[data-stop]', 'click', () => { if (stop) stop.abort(); });
 		on('[data-again]', 'click', () => draw(pickView()));
 		on('[data-add]', 'click', commit);

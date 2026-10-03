@@ -38,16 +38,21 @@ export function readProfile(raw) {
 	const count = Math.max(0, Math.floor(Number(raw.barterCount) || 0));
 	if (count > 0) out.barterCount = count;
 	if (raw.valuePack === true) out.valuePack = true;
+	// BreezySail kept going under sail: what the route's rations count.
+	if (raw.breezy === true) out.breezy = true;
+	if (raw.corsair === true) out.corsair = true;
 	if (typeof raw.level === 'string' && raw.level) out.level = raw.level.slice(0, 20);
 	const vouchers = Math.max(0, Math.floor(Number(raw.vouchers) || 0));
 	if (vouchers > 0) out.vouchers = vouchers;
 	const held = Math.max(0, Math.floor(Number(raw.parleyHeld) || 0));
+	// The bar as last said or as the last run left it. It refills on a
+	// Barter Refresh, never at the 06:00 reset, so it carries no day:
+	// the `parleyDay` older saves wrote beside it is dropped here.
 	if (held > 0) out.parleyHeld = held;
-	// The failstack the player takes into a yellow attempt. Bounded the
-	// way the game bounds one; zero means "the quoted stack", so only a
-	// real number is kept.
-	// The failstack each yellow part currently carries, by part. Absent
-	// means "the stack the quoted rate assumes for its next level".
+	// The failstack each part currently carries into its next attempt,
+	// by part, bounded the way the game bounds one. Absent means "the
+	// stack the quoted rate assumes for its next level" -- the quoted
+	// stack on a yellow part, none on any other.
 	if (isProfile(raw.failstacks)) {
 		const stacks = {};
 		for (const [base, n] of Object.entries(raw.failstacks)) {
@@ -238,6 +243,20 @@ export function readProfile(raw) {
 	}
 	const mastery = Math.floor(Number(raw.sailingMastery));
 	if (Number.isFinite(mastery) && mastery > 0) out.sailingMastery = Math.min(3000, mastery);
+	// Legs timed with Arrived, by hull: what that ship really sails at
+	// (js/ship-pace.js). A dozen a ship, each { m, s, pct, at }.
+	if (isProfile(raw.shipPace)) {
+		const pace = {};
+		for (const [ship, v] of Object.entries(raw.shipPace).slice(0, 30)) {
+			if (typeof ship !== 'string' || ship.length > 80 || !v || !Array.isArray(v.log)) continue;
+			const log = v.log.filter(x => x && Number(x.m) > 0 && Number(x.s) > 0 && Number(x.pct) > 0)
+				.map(x => ({ m: Math.round(Number(x.m)), s: Math.round(Number(x.s)), pct: Math.round(Number(x.pct) * 10) / 10, at: Math.round(Number(x.at) || 0) })).slice(-12);
+			if (log.length) pace[ship] = { log };
+		}
+		if (Object.keys(pace).length) out.shipPace = pace;
+	}
+	if (raw.timeLegs === true) out.timeLegs = true;
+	if (raw.sailingLog && ['loggia', 'srulk', 'manos'].includes(raw.sailingLog.kind)) out.sailingLog = { kind: raw.sailingLog.kind, lv: Math.max(0, Math.min(20, Math.floor(Number(raw.sailingLog.lv) || 0))) };
 	// The Bos'n Jacks out at the moment, by tier, and whether one of
 	// them is the Alpha Pet. Five slots because five pets is what the
 	// game lets out; trailing empties are not kept, and the Alpha only
@@ -300,6 +319,14 @@ export function readProfile(raw) {
 	// The sailing orders: what a barter run is for. Cleaned by the
 	// module that owns the shape.
 	if (isProfile(raw.orders)) out.orders = readOrders(raw.orders);
+	// The sailor's own bag used as a second hold on a barter run: whether
+	// they sail that way, and the Inventory window's two bars -- the
+	// weight carried and its limit, the slots filled and how many there
+	// are -- from which the app works out what the bag can still take.
+	if (isProfile(raw.bag)) {
+		const n = (v, most, tenths = false) => { const x = Number(v); return Number.isFinite(x) && x > 0 ? Math.min(most, tenths ? Math.round(x * 10) / 10 : Math.floor(x)) : 0; };
+		out.bag = { on: raw.bag.on === true, now: n(raw.bag.now, 99999, true), max: n(raw.bag.max, 99999), used: n(raw.bag.used, 999), slots: n(raw.bag.slots, 999) };
+	}
 	// The exchanges a barterer would not make: an island the sailor
 	// looked at and found showing nothing, with the barter count they
 	// had at the time. The game gates every exchange on its own count --
@@ -370,7 +397,30 @@ export function readProfile(raw) {
 			// boards can be read one under the other. Twenty kinds each is
 			// more than a board can deal in one run.
 			load: goodsMap(r.load),
-			got: goodsMap(r.got)
+			got: goodsMap(r.got),
+			// The rest of the record, kept since the history read runs
+			// back whole: when, what it came to, and every stop ticked.
+			at: Number.isFinite(Number(r.at)) && Number(r.at) > 0 ? Math.floor(Number(r.at)) : 0,
+			net: Number.isFinite(Number(r.net)) ? Math.floor(Number(r.net)) : Math.floor(Number(r.silver) || 0) - Math.floor(Number(r.cost) || 0),
+			coins: Math.max(0, Math.floor(Number(r.coins) || 0)),
+			vouchers: Math.max(0, Math.min(20, Math.floor(Number(r.vouchers) || 0))),
+			time: typeof r.time === 'string' ? r.time.slice(0, 40) : '',
+			port: typeof r.port === 'string' ? r.port.slice(0, 40) : '',
+			chains: Array.isArray(r.chains) ? r.chains.filter(c => typeof c === 'string').slice(0, 12).map(c => c.slice(0, 40)) : [],
+			// A run stopped part-way, to be continued: the chains ticked, the
+			// islands each climbed, how many stops of how many were done.
+			...(r.cont && typeof r.cont === 'object' && Array.isArray(r.cont.ids) ? { cont: { ids: r.cont.ids.filter(x => typeof x === 'string').slice(0, 20).map(x => x.slice(0, 160)), isles: (Array.isArray(r.cont.isles) ? r.cont.isles : []).filter(Array.isArray).slice(0, 20).map(l => l.map(Number).filter(n => Number.isFinite(n) && n > 0).slice(0, 10)), done: Math.max(0, Math.floor(Number(r.cont.done) || 0)), all: Math.max(0, Math.floor(Number(r.cont.all) || 0)) } } : {}),
+			stops_: Array.isArray(r.stops_) ? r.stops_.filter(x => x && ['n', 'w', 'q', 'v'].includes(x.k)).slice(0, RUN_STOPS).map(x => {
+				const str = (v, n = 80) => (typeof v === 'string' ? v.slice(0, n) : '');
+				const num = v => (Number.isFinite(Number(v)) ? Math.floor(Number(v)) : 0);
+				const o = { k: x.k, p: str(x.p) };
+				if (x.w) o.w = str(x.w);
+				if (x.k === 'n') Object.assign(o, { g: str(x.g), gn: str(x.gn, 12), i: str(x.i), r: str(x.r, 12), t: num(x.t), s: num(x.s), c: num(x.c), v: x.v ? 1 : 0 });
+				if (x.k === 'n' && num(x.id) > 0) o.id = num(x.id);
+				if (x.k === 'v') o.t = num(x.t);
+				if (x.k === 'w' && x.sale && typeof x.sale === 'object') o.sale = { n: Number(x.sale.n) || 0, silver: num(x.sale.silver) };
+				return o;
+			}) : []
 		}));
 		if (runs.length) out.runs = runs;
 	}
@@ -381,11 +431,15 @@ export function readProfile(raw) {
 		const ratios = {};
 		for (const [k, counts] of Object.entries(raw.ratios).slice(0, 400)) {
 			if (k.length > 200 || !isProfile(counts)) continue;
-			const clean = {};
-			for (const [n, c] of Object.entries(counts)) {
-				const v = Math.floor(Number(c));
-				if (/^\d{1,2}$/.test(n) && Number.isFinite(v) && v > 0) clean[n] = Math.min(9999, v);
-			}
+			// A count of any size: a coin island pays in the hundreds, and a
+			// two-digit rule dropped every one of them. The most seen kept,
+			// two dozen an exchange at most.
+			const clean = Object.fromEntries(Object.entries(counts)
+				.map(([n, c]) => [n, Math.floor(Number(c))])
+				.filter(([n, v]) => /^\d{1,6}$/.test(n) && Number.isFinite(v) && v > 0)
+				.sort((a, b) => b[1] - a[1])
+				.slice(0, 24)
+				.map(([n, v]) => [n, Math.min(9999, v)]));
 			if (Object.keys(clean).length) ratios[k] = clean;
 		}
 		if (Object.keys(ratios).length) out.ratios = ratios;
@@ -394,9 +448,25 @@ export function readProfile(raw) {
 		const sevens = {};
 		for (const [npc, v] of Object.entries(raw.sevens).slice(0, 100)) {
 			if (!/^\d+$/.test(npc) || !isProfile(v) || typeof v.item !== 'string' || v.item.length > 80) continue;
-			sevens[npc] = { item: v.item, day: /^\d{4}-\d{2}-\d{2}$/.test(String(v.day)) ? String(v.day) : '' };
+			// How often each of the island's four was paid, kept so the
+			// likeliest can be offered first.
+			const seen = isProfile(v.seen) ? Object.fromEntries(Object.entries(v.seen).filter(([k, n]) => typeof k === 'string' && k.length <= 80 && Number(n) > 0).slice(0, 8).map(([k, n]) => [k, Math.min(9999, Math.floor(Number(n)))])) : null;
+			sevens[npc] = { item: v.item, day: /^\d{4}-\d{2}-\d{2}$/.test(String(v.day)) ? String(v.day) : '', ...(seen && Object.keys(seen).length ? { seen } : {}) };
 		}
 		if (Object.keys(sevens).length) out.sevens = sevens;
+	}
+	// What the sailor was shown at the slots a layout leaves to chance --
+	// a good or Crow Coins -- per layout and island, counted once a day.
+	if (isProfile(raw.rolls)) {
+		const rolls = {};
+		const pick = k => typeof k === 'string' && k.length <= 170 && k.includes('|');
+		for (const [key, v] of Object.entries(raw.rolls).slice(-400)) {
+			if (!/^[0-9A-Za-z]{1,4}\|\d+$/.test(key) || !isProfile(v)) continue;
+			const seen = isProfile(v.seen) ? Object.fromEntries(Object.entries(v.seen).filter(([k, n]) => pick(k) && Number(n) > 0).slice(0, 64).map(([k, n]) => [k, Math.min(9999, Math.floor(Number(n)))])) : {};
+			if (!Object.keys(seen).length) continue;
+			rolls[key] = { day: /^\d{4}-\d{2}-\d{2}$/.test(String(v.day)) ? String(v.day) : '', pick: pick(v.pick) ? v.pick : '', seen };
+		}
+		if (Object.keys(rolls).length) out.rolls = rolls;
 	}
 	// The material list as the sailor saw it, day by day: which island
 	// showed which exchange. The last fourteen days, for the record.
@@ -475,6 +545,9 @@ export function readProfile(raw) {
 export const VIEW_NAMESPACES = ['map', 'barter', 'timer'];
 export const VIEW_BYTES = 300_000;
 const VIEW_STRING = 120;
+// The most stops one run is kept with -- the checklist being sailed and
+// the run log alike.
+export const RUN_STOPS = 300;
 const VIEW_DEPTH = 8;
 const VIEW_LIST = 200;
 
@@ -491,8 +564,12 @@ const VIEW_CAPS = {
 	},
 	timer: {},
 	barter: {
-		'board.answers': 120, 'matBoard.answers': 120, 'wants': 60, 'routes.ids': 40,
-		'sail.stops': 80, 'sail.done': 80, 'questSkip.ids': 100, 'questPull.ids': 100
+		'board.answers': 120, 'board.used': 100, 'board.last.ids': 20, 'board.last.isles': 20, 'matBoard.answers': 120, 'matBoard.used': 120, 'wants': 60, 'routes.ids': 40, 'routesOther.ids': 40,
+		// A run's stops are its islands and every wharf, supply, voucher
+		// and quest call between them: twenty chains of a dozen islands
+		// with their calls come to a few hundred, and a checklist cut
+		// short of the run it belongs to is read back as no run at all.
+		'sail.stops': RUN_STOPS, 'sail.done': RUN_STOPS, 'questSkip.ids': 100, 'questPull.ids': 100
 	}
 };
 // The one string a player writes at length: a trace's notes.

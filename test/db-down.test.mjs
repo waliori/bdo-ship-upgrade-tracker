@@ -20,6 +20,9 @@ process.env.SESSION_SECRET = 'test-secret-key-for-signing-sessions';
 
 const realWarn = console.warn;
 console.warn = () => {};   // the boot-time "tables not ready yet" is expected here
+// Market prices from a recorded answer, never the live Market, so a run
+// plans the same on any day (see server/market.js).
+process.env.MARKET_FIXTURE = new URL('./fixtures/market.json', import.meta.url).href;
 const app = (await import('../server.js')).default;
 const server = app.listen(0);
 await new Promise(resolve => server.once('listening', resolve));
@@ -28,7 +31,9 @@ test.after(() => { console.warn = realWarn; server.close(); });
 
 test('the page is served while the database is not', async () => {
 	assert.equal((await fetch(`${base}/`)).status, 200);
-	assert.deepEqual(await (await fetch(`${base}/api/config`)).json(), { sync: true, push: false, feedback: true, uploads: false, community: true, presence: true });
+	const { build, ...offered } = await (await fetch(`${base}/api/config`)).json();
+	assert.deepEqual(offered, { sync: true, push: false, discordDm: false, feedback: true, uploads: false, community: true, presence: true, links: true });
+	assert.equal(typeof build, 'string', 'the deploy is named');
 });
 
 test('the healthcheck reports the database down with a 503', async () => {

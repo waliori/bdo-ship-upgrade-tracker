@@ -1,120 +1,56 @@
 // Today's board: which of the forty layouts the sea is showing.
 //
 // The trade-goods barters are not rolled island by island. Every
-// refresh the whole board is one of forty fixed layouts -- the
-// community's record of them is js/barter_combos.json, read by
-// tools/fetch-barter-combos.mjs -- so one island's offer, looked at in
+// refresh the whole board is one of forty layouts -- rows of the game
+// client's own table, baked by tools/bake-barter.mjs and turned into
+// the record by barter-layouts.js -- so one island's offer, looked at in
 // the game, names the layout, and with it what every other island is
-// showing. The material islands are the exception: they roll on their
-// own and are not part of any layout.
+// showing.
 //
-// A layout is not frozen forever: the game edits one island's slot at
-// a maintenance without renumbering the layout, so a give that was
-// right last month can be wrong today -- and a wrong give is worse
-// than a missing one here, because `candidates` rules a layout out on
-// an island that disagrees. When the board answers with something no
-// layout shows, suspect the record before the code, and refetch it
-// with tools/fetch-barter-combos.mjs; the drift, and the changes we
-// have been told about, are written up at the top of that tool.
+// Not every slot is fixed. A few the game fills at random from a small
+// set (a [Level 4] island paying a [Level 5] or Crow Coins, a mainland
+// island's four [Level 7]s), and a few show only some days. Those tell
+// the layouts apart only by ruling one out that cannot show what was
+// seen; the layout itself stays what it is.
 //
 // Pure: the layouts, the answers and the codex table come in, the
 // standing layouts, the island worth asking about next, and the board
 // as a barter table go out.
 
-import { levelOf } from './barter.js';
-import { ROWS, GATES, GOODS, POOLS } from './barter_gates.js';
+import { dealsAt, fitsAt } from './barter-layouts.js';
 
 const offerMaps = new WeakMap();
 
-/** A layout's offers by barterer: id to { give, qty, recv }. */
+/** A layout's offers by barterer: id to { give, qty, recv, info }. */
 export function offersOf(combo) {
 	let m = offerMaps.get(combo);
 	if (!m) {
-		m = new Map(combo.offers.map(([id, give, qty, recv]) => [id, { give, qty, recv }]));
+		m = new Map(combo.offers.map(([id, give, qty, recv, info]) => [id, { give, qty, recv, info: info || null }]));
 		offerMaps.set(combo, m);
 	}
 	return m;
 }
 
-/** A good the layouts deal in: a trade good of some level, or coins.
- *  The ship-material exchanges are in the client's pools too, and roll
- *  on their own -- no layout has anything to say about them. */
-const dealt = name => levelOf(name) !== null || name === 'Crow Coin';
+/** Whether an island's slot on this layout is left to chance: a random
+ *  pick, or an offer that shows only some days. */
+export const rolledAt = (combo, npcId) => !!((combo.rolls && combo.rolls[npcId]) || (combo.rare && combo.rare[npcId]));
 
-/** What the client says an island deals on the row a layout stands on:
- *  `{ give, qty, recv, gate }`, or null where it ships no such row. */
-export function clientOffer(combo, npcId) {
-	const row = ROWS[combo && combo.id];
-	const slot = row === undefined ? null : (POOLS[npcId] || [])[row];
-	return slot ? { give: GOODS[slot[0]], qty: String(slot[1]), recv: GOODS[slot[2]], gate: slot[3] } : null;
-}
-
-/** Every trade-good exchange the client says an island deals, on any
+/** Every trade-good exchange the game says an island deals, on any
  *  row: `{ give, qty, recv, gate }`, each once. */
 export function clientDeals(npcId) {
-	const seen = new Map();
-	for (const slot of POOLS[npcId] || []) {
-		if (!slot) continue;
-		const o = { give: GOODS[slot[0]], qty: String(slot[1]), recv: GOODS[slot[2]], gate: slot[3] };
-		if (dealt(o.recv) && !seen.has(`${o.give}|${o.recv}`)) seen.set(`${o.give}|${o.recv}`, o);
-	}
-	return [...seen.values()];
-}
-
-/**
- * A barter count nobody has: what the client writes against an exchange
- * it means no sailor to see. Most of the rows the community's record
- * "lacks" are these -- the island is simply shut on that layout, for
- * everyone, which is why nobody ever wrote down what it showed -- and a
- * row like that is not a gap to fill.
- */
-export const NEVER = 100000;
-
-/**
- * The record made whole from the client.
- *
- * The community's record has no row for an island or two on most
- * layouts. Usually that is the game's doing (see NEVER), but here and
- * there nobody happened to write the island down, and the client knows
- * what it deals: each layout is handed on with the client's row
- * wherever the record has none and the game does deal one. Where
- * both have a row the record stands: it is what players saw dealt. The
- * islands filled in are named in `filled`, so the book can say which
- * rows nobody has yet seen with their own eyes.
- */
-export function completed(record) {
-	if (!record || !Array.isArray(record.combos)) return record;
-	return {
-		...record,
-		combos: record.combos.map(combo => {
-			const have = new Set(combo.offers.map(o => o[0]));
-			const filled = [];
-			const offers = [...combo.offers];
-			for (const id of Object.keys(POOLS)) {
-				const npcId = Number(id);
-				if (have.has(npcId)) continue;
-				const o = clientOffer(combo, npcId);
-				if (!o || !dealt(o.recv) || o.gate >= NEVER) continue;
-				offers.push([npcId, o.give, o.qty, o.recv]);
-				filled.push(npcId);
-			}
-			return filled.length ? { ...combo, offers, filled } : combo;
-		})
-	};
+	return dealsAt(npcId);
 }
 
 /**
  * Whether the game is known to deal this exchange at this island at
- * all, on any layout: in the client's pool for it, or on the record.
+ * all, on any layout: in the client's table for it, or on the record.
  * What a sailor saw that is known here and merely on the wrong layout
  * is a slot the game has moved; what is known nowhere is a new exchange
  * or a slip, and only other eyes can say which.
  */
 export function knownAt(combos, npcId, give, recv) {
 	const bare = s => String(s || '').replace(/^\[[^\]]+\]\s*/, '');
-	for (const slot of POOLS[npcId] || []) {
-		if (slot && bare(GOODS[slot[0]]) === bare(give) && bare(GOODS[slot[2]]) === bare(recv)) return 'client';
-	}
+	if (dealsAt(npcId).some(o => bare(o.give) === bare(give) && bare(o.recv) === bare(recv))) return 'client';
 	for (const c of combos || []) {
 		const o = offersOf(c).get(npcId);
 		if (o && o.give === give && o.recv === recv) return 'record';
@@ -128,34 +64,24 @@ export function knownAt(combos, npcId, give, recv) {
  * The game gates each exchange on its own total-barter count, not each
  * barterer: an island is open to you while the one thing it is offering
  * today is not, and its barter window is then simply blank. A layout is
- * one row of every island's forty-exchange pool, so the gate is the row
- * the layout stands on, at that island -- baked from the client's own
- * table by tools/build-barter-gates.mjs.
+ * one row of every island's forty-exchange pool, so the gate is the
+ * one on the offer the layout names there -- the game's own figure.
  *
- * Null where the client ships no row, or where it and the community's
- * record disagree about which exchange is on it: unknown is treated as
- * open, because hiding an island a sailor can plainly trade at is the
- * worse mistake of the two.
+ * Null where there is none to read (a board of the sailor's own):
+ * unknown is treated as open, because hiding an island a sailor can
+ * plainly trade at is the worse mistake of the two.
  */
 export function exchangeGate(combo, npcId) {
-	const row = ROWS[combo && combo.id];
-	if (row === undefined) return null;
-	// An island that is the sailor's word and not the record's: the gate
-	// is that exchange's own, wherever in the pool the client keeps it.
+	if (!combo) return null;
+	// An island that is the sailor's word and not the layout's: the gate
+	// is that exchange's own, wherever in the table the game keeps it.
 	if (combo.patched && combo.patched.includes(npcId)) {
 		const seen = offersOf(combo).get(npcId);
-		const o = seen && clientDeals(npcId).find(x => x.give === seen.give && x.recv === seen.recv);
+		const o = seen && dealsAt(npcId).find(x => x.give === seen.give && x.recv === seen.recv);
 		return o && typeof o.gate === 'number' ? o.gate : null;
 	}
-	const col = GATES[npcId];
-	const gate = col ? col[row] : null;
-	if (typeof gate === 'number') return gate;
-	// a row that is the client's own carries the client's own gate
-	if (combo.filled && combo.filled.includes(npcId)) {
-		const o = clientOffer(combo, npcId);
-		return o && typeof o.gate === 'number' ? o.gate : null;
-	}
-	return null;
+	const o = offersOf(combo).get(npcId);
+	return o && o.info && typeof o.info.gate === 'number' ? o.info.gate : null;
 }
 
 /**
@@ -180,27 +106,33 @@ export function gatedOffers(combo, count) {
 }
 
 /** The layouts every answer leaves standing. An answer is what one
- *  island was seen to show: { npcId, give, recv }. The record has no
- *  row for one or two islands on most layouts, and a layout is not
- *  ruled out by an island it says nothing about -- only by one it
- *  says shows something else. */
+ *  island was seen to show: { npcId, give, recv }. A layout is ruled out
+ *  by an island it says shows something else; at a slot the game fills
+ *  at random, only by something none of the options is; and not at all
+ *  by an island it has no trade slot for. */
 export function candidates(combos, answers) {
 	return combos.filter(c => answers.every(a => {
-		const o = offersOf(c).get(a.npcId);
-		return !o || (o.give === a.give && o.recv === a.recv);
+		if (!offersOf(c).has(a.npcId) && !rolledAt(c, a.npcId)) return true;
+		return !!fitsAt(c, a.npcId, a.give, a.recv);
 	}));
 }
 
 /** What one island can show across the layouts standing: each
- *  distinct offer and the layouts that show it, commonest first. */
+ *  distinct offer and the layouts that show it, commonest first. A
+ *  random slot shows any of its options. */
 export function offersAt(combos, npcId) {
 	const seen = new Map();
-	for (const c of combos) {
-		const o = offersOf(c).get(npcId);
-		if (!o) continue;
+	const add = (o, id) => {
 		const key = `${o.give}|${o.recv}`;
-		if (!seen.has(key)) seen.set(key, { ...o, ids: [] });
-		seen.get(key).ids.push(c.id);
+		if (!seen.has(key)) seen.set(key, { give: o.give, qty: o.qty, recv: o.recv, ids: [] });
+		if (!seen.get(key).ids.includes(id)) seen.get(key).ids.push(id);
+	};
+	for (const c of combos) {
+		const roll = c.rolls && c.rolls[npcId];
+		if (roll) { for (const o of roll.options) add(o, c.id); continue; }
+		if (c.rare && c.rare[npcId]) add(c.rare[npcId], c.id);
+		const o = offersOf(c).get(npcId);
+		if (o) add(o, c.id);
 	}
 	return [...seen.values()].sort((a, b) => b.ids.length - a.ids.length || a.give.localeCompare(b.give));
 }
@@ -209,13 +141,16 @@ export function offersAt(combos, npcId) {
  * The islands worth looking at, best first: the one whose offer leaves
  * the fewest layouts standing at worst, then the one with the most
  * different offers, then the nearest to `near`. An island every
- * standing layout agrees on tells nothing and is left out.
+ * standing layout agrees on tells nothing and is left out, and so is one
+ * any standing layout leaves to chance: what it shows today says little
+ * about which layout this is.
  */
 export function askable(combos, npcById, near = null) {
 	const ids = new Set(combos.flatMap(c => c.offers.map(o => o[0])));
 	const out = [];
 	for (const id of ids) {
 		if (!npcById.has(id)) continue;
+		if (combos.some(c => rolledAt(c, id))) continue;
 		const offers = offersAt(combos, id);
 		if (offers.length < 2) continue;
 		out.push({ npcId: id, worst: Math.max(...offers.map(o => o.ids.length)), distinct: offers.length });
@@ -227,23 +162,21 @@ export function askable(combos, npcById, near = null) {
 /**
  * A layout as a barter table, in the shape js/all_barter.json has, so
  * the ladder, the chart's marks and the run planners read today's
- * board exactly the way they read the whole table. The attempts and
- * the quantity received are the codex's where it has the exchange; the
- * few offers the record saw dealt that the codex never listed are
- * given as one for one, capped by their rung.
+ * board exactly the way they read the whole table. The attempts, what
+ * is paid and the Parley are the game's own where the layout carries
+ * them; a board of the sailor's own falls back on the codex, and an
+ * exchange the codex never listed on one for one, capped by its rung.
  *
- * The ship-material exchanges ride along unchanged: those islands roll
- * on their own, so for them the whole table is still the truth. And
- * the [Level 7] goods are the record's, but only their level is
- * certain: the layout fixes what the six [Level 7] islands take, while
- * which of its own four goods each pays was seen to differ from the
- * record on the same layout. Weight and price hang on the level alone;
- * the screen says the good may be another of the island's.
+ * What else the board pays -- a ship material, a Brilliant, a Lost Trade
+ * Box -- is the layout's too: its fixed slots, and its pools as far as
+ * they were read today. The whole table is no stand-in for them: a
+ * refresh deals the trade board or the material list, and the material
+ * list's islands are not on this one.
  *
- * `answers` are what islands were seen to show today. One at an island
- * the layout has no row for is put on the board as seen -- the record
- * lacks a row here and there, and a [Level 5] aboard would otherwise
- * find no island to take it while the game shows one that does.
+ * `answers` are what islands were seen to show today. At a slot the
+ * game fills at random, what was seen is the offer; one at an island
+ * the layout has nothing for -- an offer that shows only some days --
+ * is put on the board as seen.
  */
 export function boardData(combo, barterData, npcById, answers = [], shut = []) {
 	// The exchanges this sailor has looked at and found shut: the game
@@ -255,18 +188,28 @@ export function boardData(combo, barterData, npcById, answers = [], shut = []) {
 	const codex = new Map();
 	const entries = new Map();
 	for (const e of barterData || []) {
-		if (levelOf(e.name) === null && e.name !== 'Crow Coin') entries.set(e.name, { ...e, sources: [...e.sources] });
 		for (const s of e.sources) codex.set(`${s.npc_id}|${s.give.name}|${e.name}`, { entry: e, source: s });
 	}
 	const listed = offersOf(combo);
-	const offers = [
-		...combo.offers,
-		...answers.filter(a => !listed.has(a.npcId) && npcById.has(a.npcId)).map(a => {
-			const known = codex.get(`${a.npcId}|${a.give}|${a.recv}`);
-			return [a.npcId, a.give, known ? String(known.source.give.quantity) : '1', a.recv];
-		})
-	];
-	for (const [id, give, qty, recv] of offers) {
+	const said = new Map(answers.map(a => [a.npcId, a]));
+	const offers = [];
+	for (const [id, give, qty, recv, info] of combo.offers) {
+		// A random slot shows what was seen there, when it is one of its options.
+		const a = combo.rolls && combo.rolls[id] ? said.get(id) : null;
+		const o = a ? fitsAt(combo, id, a.give, a.recv) : null;
+		offers.push(o ? [id, o.give, o.qty, o.recv, o] : [id, give, qty, recv, info]);
+	}
+	for (const a of answers) {
+		if (listed.has(a.npcId) || !npcById.has(a.npcId)) continue;
+		// A pool read today: the option it showed, with the game's figures.
+		const pool = combo.pools && combo.pools[a.npcId];
+		const drawn = pool && pool.options.find(o => o.give === a.give && o.recv === a.recv);
+		if (drawn) { offers.push([a.npcId, a.give, drawn.qty, a.recv, drawn]); continue; }
+		const o = fitsAt(combo, a.npcId, a.give, a.recv);
+		const known = codex.get(`${a.npcId}|${a.give}|${a.recv}`);
+		offers.push([a.npcId, a.give, o ? o.qty : known ? String(known.source.give.quantity) : '1', a.recv, o]);
+	}
+	for (const [id, give, qty, recv, info] of offers) {
 		if (closed.has(`${id}|${give}|${recv}`)) continue;
 		const known = codex.get(`${id}|${give}|${recv}`);
 		if (!entries.has(recv)) {
@@ -274,13 +217,20 @@ export function boardData(combo, barterData, npcById, answers = [], shut = []) {
 			entries.set(recv, { id: e ? e.id : recv, name: recv, ...(e && e.icon ? { icon: e.icon } : {}), sources: [] });
 		}
 		const src = known ? known.source : null;
-		entries.get(recv).sources.push({
-			npc_id: id,
-			npc_name: src ? src.npc_name : npcById.get(id).name,
-			attempts_available: src ? src.attempts_available : 0,
-			give: { ...(src ? src.give : { name: give }), quantity: qty },
-			quantity_received: src ? src.quantity_received : '1'
-		});
+		entries.get(recv).sources.push(info && info.perDay
+			? {
+				npc_id: id, npc_name: src ? src.npc_name : npcById.get(id).name,
+				attempts_available: info.perDay,
+				give: { ...(src ? src.give : { name: give }), quantity: qty },
+				quantity_received: info.recvMin === info.recvMax ? String(info.recvMin) : `${info.recvMin}-${info.recvMax}`,
+				parley: info.parley
+			}
+			: {
+				npc_id: id, npc_name: src ? src.npc_name : npcById.get(id).name,
+				attempts_available: src ? src.attempts_available : 0,
+				give: { ...(src ? src.give : { name: give }), quantity: qty },
+				quantity_received: src ? src.quantity_received : '1'
+			});
 	}
 	return [...entries.values()];
 }

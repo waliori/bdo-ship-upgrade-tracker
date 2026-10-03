@@ -15,6 +15,10 @@ test/_*.tmp.mjs
 # Capture intermediates — the media in docs/media is what ships.
 tools/capture/out/
 tools/capture/voice
+
+# One-off audits and probes written while checking a screen: kept on
+# the machine that wrote them, never committed.
+tools/capture/scratch/
 *.webm
 
 # Synthesised narration, keyed by what was said. Rebuilt on demand and
@@ -24,3 +28,7 @@ tools/capture/voice/
 # Artefacts of old agent tooling, never part of the app.
 .claude-flow/
 .hive-mind/
+
+tools/rpit/
+# A chapter's .srt: written beside the .vtt by mix.mjs, read by nothing.
+docs/media/**/*.srt

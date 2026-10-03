@@ -10,14 +10,16 @@
 // the sailor runs out of.
 //
 // Pure: chains, the run's options and the orders come in, proposals go
-// out. Distances are straight lines stretched a quarter for the land,
-// as on the chain rows; the run itself bends its legs round the coast.
+// out. Distances are by water, from the route module's table, as on
+// the chain rows; the run itself bends its legs round the coast.
 
+import { TT } from './i18n.js';
 import { chainRun } from './barter-chains.js';
 import { yardsticks, PARLEY_UNIT } from './barter-orders.js';
 import { levelOf } from './barter.js';
 import { sellOf, goodsHeld } from './barter-plan.js';
-import { pathLength, sailSeconds } from './sailing.js';
+import { METRES_PER_PX, sailSeconds } from './sailing.js';
+import { routeLength } from './barter-route.js';
 
 /**
  * What a Level 1 or 2 good is worth kept, on a day that keeps a floor:
@@ -80,17 +82,19 @@ export function fillOf(run, { targetOf, held = new Map(), stock = {} } = {}) {
 	// What the run began with in hand: the hold, and what it loaded at
 	// the harbour it sailed from.
 	for (const [name, n] of goodsHeld(stock)) move(after, name, -n);
-	for (const l of run.loaded) move(after, l.item, -l.n);
+	// And what it loaded later: into the bag at the start, and at a call
+	// back to a storage for a later trip -- all of it the stock's already.
+	for (const l of [...run.loaded, ...(run.bagLoaded || []), ...run.stops.flatMap(x => x.loads || [])]) move(after, l.item, -l.n);
 	for (const g of [...run.kept, ...run.stashed]) move(after, g.item, g.n);
 	return fullness(after, targetOf) - fullness(before, targetOf);
 }
 
-/** A rough time under way for a run: straight legs through its stops
- *  from the start, stretched a quarter, at the ship's pace. */
+/** A rough time under way for a run: its legs by water, from the
+ *  start through its stops, at the ship's pace. */
 export function hoursOf(run, { start = null, npcById, speed, cal }) {
 	const pts = [...(start ? [start] : []), ...run.stops.map(s => s.wharf || npcById.get(s.npcId)).filter(Boolean)];
 	if (pts.length < 2) return 0;
-	return sailSeconds(pathLength(pts) * 1.25, speed, cal) / 3600;
+	return sailSeconds(routeLength(pts) * METRES_PER_PX, speed, cal) / 3600;
 }
 
 // A clock for the budget: the monotonic one where there is one, which
@@ -125,29 +129,33 @@ const now = typeof performance !== 'undefined' && performance.now ? () => perfor
  * first, and `best` the set every search step judged best by value.
  */
 export const SILVER_KINDS = [
-	{ kind: 'silver', label: 'The most silver', of: s => s.value },
-	{ kind: 'hour', label: 'The most an hour', of: s => (s.hours > 0 ? s.value / s.hours : 0) },
-	{ kind: 'parley', label: 'The most a Parley unit', of: s => s.yard.perUnit }
+	{ kind: 'silver', label: TT('The most silver'), of: s => s.value },
+	{ kind: 'hour', label: TT('The most an hour'), of: s => (s.hours > 0 ? s.value / s.hours : 0) },
+	{ kind: 'parley', label: TT('The most a Parley unit'), of: s => s.yard.perUnit }
 ];
 
 export const COIN_KINDS = [
-	{ kind: 'coins', label: 'The most coins', of: s => s.value },
-	{ kind: 'hour', label: 'The most an hour', of: s => (s.hours > 0 ? s.value / s.hours : 0) },
-	{ kind: 'parley', label: 'The most a Parley unit', of: s => (s.run.parleyUsed > 0 ? s.value / (s.run.parleyUsed / PARLEY_UNIT) : 0) }
+	{ kind: 'coins', label: TT('The most coins'), of: s => s.value },
+	{ kind: 'hour', label: TT('The most an hour'), of: s => (s.hours > 0 ? s.value / s.hours : 0) },
+	{ kind: 'parley', label: TT('The most a Parley unit'), of: s => (s.run.parleyUsed > 0 ? s.value / (s.run.parleyUsed / PARLEY_UNIT) : 0) }
 ];
 
 export const STOCK_KINDS = [
-	{ kind: 'stock', label: 'The fullest stock', of: s => s.value },
-	{ kind: 'hour', label: 'The most an hour', of: s => (s.hours > 0 ? s.value / s.hours : 0) },
-	{ kind: 'parley', label: 'The most a Parley unit', of: s => (s.run.parleyUsed > 0 ? s.value / (s.run.parleyUsed / PARLEY_UNIT) : 0) }
+	{ kind: 'stock', label: TT('The fullest stock'), of: s => s.value },
+	{ kind: 'hour', label: TT('The most an hour'), of: s => (s.hours > 0 ? s.value / s.hours : 0) },
+	{ kind: 'parley', label: TT('The most a Parley unit'), of: s => (s.run.parleyUsed > 0 ? s.value / (s.run.parleyUsed / PARLEY_UNIT) : 0) }
 ];
 
 /**
  * How a stock run scores a set, from the plain `aim` the tab hands in.
- * Both scores carry the other as the tie-break, a thousand to one, so
- * that between two runs that bank the same the sailor gets the one
- * with more barters behind it -- and between two that trade the same,
- * the one that banks more.
+ * A run for the barter count is its trades, a thousand to one over
+ * what it banks. A run for the stock is what it banks, a thousand to
+ * one over what it costs: between two runs that bank the same, the
+ * one that buys less ashore and spends less Parley. It used to be the
+ * one with more trades -- and a trade at the shore for a [Level 1]
+ * the stock was already full of is a trade, so a full stock of them
+ * sent GriefLZ to the Market for a thousand of something to barter
+ * into what he already had, at 29 million silver the score never saw.
  */
 export function scoreFor(aim, stock) {
 	// A run for coins is judged on the coins it brings back, with the
@@ -160,8 +168,15 @@ export function scoreFor(aim, stock) {
 	const held = new Map(aim.held || []);
 	return run => {
 		const fill = fillOf(run, { targetOf, held, stock });
-		return aim.kind === 'trades' ? run.trades * 1000 + fill : fill * 1000 + run.trades;
+		return aim.kind === 'trades' ? run.trades * 1000 + fill : fill * 1000 - costOfFill(run);
 	};
+}
+
+/** What a stock run spends, as the tie-break under what it banks:
+ *  silver ashore by the hundred thousand and Parley by the trade,
+ *  held under a thousand so a single good banked always outweighs it. */
+export function costOfFill(run) {
+	return Math.min(999, (run.cost || 0) / 1e5 + (run.parleyUsed || 0) / PARLEY_UNIT);
 }
 
 export function propose({ chains = [], opts, ship, seed = [], timeCap = 0, width = 5, depth = 8, budgetMs = Infinity, aim = null } = {}) {
@@ -176,8 +191,12 @@ export function propose({ chains = [], opts, ship, seed = [], timeCap = 0, width
 		const key = [...ids].sort().join('|');
 		if (memo.has(key)) return memo.get(key);
 		const chosen = ids.map(id => byId.get(id)).filter(Boolean);
-		const run = chainRun({ ...opts, chosen });
-		const hours = hoursOf(run, { start: opts.start, npcById: opts.npcById, speed: ship.speed, cal: ship.cal });
+		// Laid at the lighter effort: a search judges hundreds of sets, and
+		// the run the tab lays for the set it settles on is laid in full.
+		const run = chainRun({ ...opts, effort: opts.effort ?? 1, chosen, aim });
+		// The run's own hours, stops and the leg home in them, when it was
+		// laid for this ship; the time cap is judged on what the plan says.
+		const hours = opts.ship ? run.hours : hoursOf(run, { start: opts.start, npcById: opts.npcById, speed: ship.speed, cal: ship.cal });
 		const out = { ids: [...ids], run, value: score ? score(run) : valueOf(run, orders), hours, yard: yardsticks(run.net, run.parleyUsed, hours) };
 		memo.set(key, out);
 		return out;

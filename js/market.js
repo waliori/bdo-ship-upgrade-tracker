@@ -12,9 +12,11 @@
 // Falasi part or a Crow Coin material keeps its own list price.
 
 import * as store from './state.js';
+import { T } from './i18n.js';
 import { items as vendorItems } from './vendor_items.js';
 import { iconLoader } from './icon-loader.js';
 import { landGoods } from './land_goods.js';
+import { loading as showLoading } from './loading.js';
 
 const KEY = 'bdo-tracker/market';
 const STALE_MS = 30 * 60 * 1000;
@@ -27,11 +29,11 @@ export const REGIONS = [
 /**
  * The region assumed until someone chooses one.
  *
- * NA rather than EU. It decides more than the prices: Vell's timetable
- * and the reminder that goes with it are read from whichever region is
- * standing (see today.js), so this is the one setting that has to be
- * named in a single place -- a default that drifted between the two
- * would price against one server and time Vell against the other.
+ * NA rather than EU. It decides more than the prices: the reset clock
+ * is read from whichever region is standing (see today.js), so this is
+ * the one setting that has to be named in a single place -- a default
+ * that drifted between the two would price against one server and count
+ * the resets of another.
  *
  * Anyone who has already picked a region keeps it; this is only what a
  * browser that has never been asked starts from.
@@ -127,10 +129,13 @@ export function onMarket(fn) {
  * request however many screens ask. Resolves to true when new prices
  * landed, false when the copy in hand (if any) is all there is.
  */
-export async function loadMarket({ force = false } = {}) {
+export async function loadMarket({ force = false, by = null } = {}) {
 	if (loading) return loading;
 	const status = marketStatus();
 	if (!force && !status.stale) return false;
+	// The thread along the top while the prices are on the wire; the
+	// refresh button that asked, if one did, is marked busy with it.
+	const stop = showLoading(T('Fetching Market prices…'), { by });
 	loading = (async () => {
 		const ids = marketItems();
 		const byId = Object.fromEntries(Object.entries(ids).map(([item, id]) => [id, item]));
@@ -167,6 +172,7 @@ export async function loadMarket({ force = false } = {}) {
 		return false;
 	}).finally(() => {
 		loading = null;
+		stop();
 	});
 	return loading;
 }
@@ -185,11 +191,13 @@ export function setRegion(id) {
  */
 export function priceAge() {
 	const s = marketStatus();
-	if (!s.at) return 'no prices yet';
+	if (!s.at) return T('no prices yet');
 	const ms = Date.now() - s.at;
-	const when = ms < 60_000 ? 'just now'
-		: ms < 3_600_000 ? `${Math.round(ms / 60_000)} min ago`
-		: ms < 86_400_000 ? `${Math.round(ms / 3_600_000)} h ago`
-		: `${Math.round(ms / 86_400_000)} d ago`;
-	return `${s.count} priced · ${when}${s.failed ? ' · some unanswered' : ''}`;
+	const when = ms < 60_000 ? T('just now')
+		: ms < 3_600_000 ? T('{n} min ago', { n: Math.round(ms / 60_000) })
+		: ms < 86_400_000 ? T('{n} h ago', { n: Math.round(ms / 3_600_000) })
+		: T('{n} d ago', { n: Math.round(ms / 86_400_000) });
+	return s.failed
+		? T('{n} priced · {when} · some unanswered', { n: s.count, when })
+		: T('{n} priced · {when}', { n: s.count, when });
 }

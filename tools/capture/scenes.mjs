@@ -3,11 +3,12 @@
 //
 //   node scenes.mjs <outdir> [sceneName ...]
 
-import { open, seed, tab, click, clickIn, drag, moveTo, typeInto, wait, waitFor } from './drive.mjs';
+import { open, seed, tab, click, clickIn, drag, moveTo, typeInto, choose, wait, waitFor } from './drive.mjs';
 import { midBuild, readyToCraft, recordLevel, fittedShip, emptyStart, onePartToGo } from './states.mjs';
 import { fakeCommunity, FLEET } from './fleet.mjs';
-import { readFileSync } from 'node:fs';
 import path from 'node:path';
+import { useGame } from '../../js/barter-layouts.js';
+import * as GAME from '../../js/barter_game.js';
 
 const OUT = process.argv[2];
 const only = process.argv.slice(3);
@@ -22,7 +23,9 @@ async function copiedLink(browser, page, url, kind) {
 	await browser.defaultBrowserContext().overridePermissions(url, ['clipboard-read', 'clipboard-write', 'clipboard-sanitized-write']);
 	const link = await page.evaluate(() => navigator.clipboard.readText());
 	if (!link.includes(`#${kind}/`)) throw new Error(`no ${kind} link on the clipboard: ${link.slice(0, 60)}`);
-	return link.replace(`#${kind}/`, `?theirs#${kind}/`);
+	const there = new URL(link);
+	there.searchParams.set('theirs', '1');
+	return there.href;
 }
 
 const rec = async (page, name, body) => {
@@ -63,6 +66,117 @@ async function nameTheBoard(page, upTo = 6) {
 }
 
 /**
+ * The Barter tab with today's board named, on the goal asked for.
+ *
+ * The tab is four steps now -- Plan, Load, Sail, Results -- and the
+ * plan answers "what is today for?" before it reads the board, so the
+ * goal card is pressed first, the way a sailor meets them. Setup, so
+ * the presses are plain clicks and not filmed.
+ */
+async function barterDay(page, url, state, { goal = 'silver' } = {}) {
+	await seed(page, url, state);
+	await tab(page, 'barter');
+	await wait(1200);
+	if (goal !== 'silver') {
+		await page.evaluate(g => document.querySelector(`[data-act="barter-goal"][data-id="${g}"]`).click(), goal);
+		await wait(1200);
+	}
+	await nameTheBoard(page);
+	// The runs worth sailing come back from a worker; the best one is
+	// ticked when it lands, and that is what puts the run along the foot.
+	await waitFor(page, '.board-strip', { upTo: 20000, then: 600 });
+}
+
+/** Open one of the plan's four parts (Before you sail, Where today
+ *  ends, How to sail it / Your short trip, Chains on offer) -- only one
+ *  is open at a time, and pressing the open one shuts it. */
+async function openPart(page, id) {
+	await page.evaluate(i => {
+		const sec = document.querySelector(`.plan-sec[data-sec="${i}"]`);
+		if (sec && sec.classList.contains('open')) return;
+		document.querySelector(`[data-act="barter-sec"][data-id="${i}"]`).click();
+	}, id);
+	await wait(1200);
+}
+
+/** A plain press, for setup: no pointer, nothing to watch. */
+const press = (page, sel) => page.evaluate(s => { const el = document.querySelector(s); if (el) el.click(); return !!el; }, sel);
+
+/** The Load step, with every row of the packing list ticked aboard. */
+async function packed(page) {
+	await press(page, '[data-act="barter-step"][data-id="load"]');
+	await waitFor(page, '[data-act="barter-cast-off"]', { then: 1200 });
+	for (const b of await page.$$('[data-act="barter-pack-all"]:not(.active)')) {
+		await b.click();
+		await wait(700);
+	}
+	await wait(800);
+}
+
+/**
+ * Casting off plays a close-up of the ship dropping into the water and
+ * the camera pulling back into the clock. On a capture machine shooting
+ * beside other work the canvas runs slow, so the clip lets it play for
+ * a moment and then presses it away, as a sailor can.
+ */
+async function castOff(page, { watch = 2600 } = {}) {
+	await tap(page, '[data-act="barter-cast-off"]', { after: watch });
+	if (await page.$('.castoff-fx')) await tap(page, '.castoff-fx .setsail', { after: 1200 });
+}
+
+/** The chart, framed: the bar above it and the sea filling the rest of
+ *  the window, so a clip never scrolls to reach a stop or a tool. */
+async function frameMap(page, top = 200) {
+	await frame(page, '#map', { top });
+}
+
+/** Hover something whose card is shown on a hover, and nudge the
+ *  pointer once inside it: a redraw can take the card down under a
+ *  still pointer, and a headless page has no focus to bring it back. */
+async function hover(page, sel, { settle = 1600 } = {}) {
+	const at = await moveTo(page, sel, { settle: 400 });
+	await page.mouse.move(at.x + 6, at.y + 2, { steps: 3 });
+	await wait(500);
+	// Taken down by a redraw before it was seen: off the row and back.
+	if (!(await page.evaluate(() => { const p = document.getElementById('peek'); return p && !p.hidden; }))) {
+		await page.mouse.move(at.x + 6, at.y - 40, { steps: 2 });
+		await wait(120);
+		await page.mouse.move(at.x + 4, at.y, { steps: 3 });
+	}
+	await wait(settle);
+}
+
+/**
+ * Press something that is already on the screen, where it is.
+ *
+ * `click` scrolls its target into the middle of the window when it sits
+ * near an edge -- right for a row in a list, wrong for the bars pinned
+ * along the foot of the Barter tab (the run, Cast off, the cockpit's
+ * buttons): those never need scrolling to, and scrolling to them drags
+ * the page under the clip.
+ */
+async function tap(page, sel, { after = 700 } = {}) {
+	const at = await page.evaluate(s => {
+		const el = [...document.querySelectorAll(s)].find(e => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0 && r.top >= 0 && r.bottom <= window.innerHeight; });
+		if (!el) return null;
+		const r = el.getBoundingClientRect();
+		return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+	}, sel);
+	if (!at) return click(page, sel, { after });
+	await page.evaluate(p => { document.getElementById('__cur').style.transform = `translate(${p.x}px, ${p.y}px)`; }, at);
+	await page.mouse.move(at.x, at.y, { steps: 8 });
+	await wait(620);
+	await page.evaluate(() => document.getElementById('__cur').classList.add('down'));
+	await wait(140);
+	await page.mouse.click(at.x, at.y);
+	await page.evaluate(() => document.getElementById('__cur').classList.remove('down'));
+	await wait(after);
+}
+
+/** Take the fake pointer away before a still is shot. */
+const noCursor = page => page.evaluate(() => { const c = document.getElementById('__cur'); if (c) c.remove(); });
+
+/**
  * A server the 1.4 scenes need and a machine shooting a clip has not
  * got: a fleet that has read today's board, and a Central Market with
  * some shelves bare. Answered inside the page, like the community's in
@@ -99,8 +213,8 @@ async function fakeSea(page, { boards = [], bare = null } = {}) {
 /** What the fleet is said to have read: layout 16 with two slots moved,
  *  seen today by two sailors, and a handful of older readings. */
 function fleetReadings() {
-	const combos = JSON.parse(readFileSync(new URL('../../js/barter_combos.json', import.meta.url), 'utf8')).combos;
-	const of = id => combos.find(c => c.id === id).offers;
+	const combos = useGame(GAME).combos;
+	const of = id => combos.find(c => c.id === id).offers.map(o => o.slice(0, 4));
 	const moved = of('16').slice(0, 26).map(o => [...o]);
 	for (const [i, from] of [[3, '20'], [9, '5']]) {
 		const o = of(from).find(x => x[0] === moved[i][0]);
@@ -118,6 +232,14 @@ function fleetReadings() {
 }
 
 const shot = name => path.resolve(`tools/capture/shots/${name}`);
+
+/* Where the two drawing clips put things on the chart, as fractions of
+ * its box with the chart framed at the top of the window: three stops
+ * on open water right of the side panel, a pen stroke begun well clear
+ * of them, and a word. */
+const STOPS = [[0.40, 0.30], [0.55, 0.47], [0.42, 0.66]];
+const PEN = [0.60, 0.74];
+const WORD = [0.58, 0.26];
 
 const scenes = {
 	/* 1.4 — a storage read off the screenshots of it: two screenfuls,
@@ -156,17 +278,18 @@ const scenes = {
 		await page.setViewport({ width: 940, height: 640, deviceScaleFactor: 1 });
 		await seed(page, url, fittedShip);
 		await tab(page, 'barter');
-		await click(page, '[data-act="barter-shot"]', { after: 900 });
-		const input = await page.$('#dialog input[type=file]');
-		await input.uploadFile(shot('barter-window.webp'));
-		await waitFor(page, '.shot-table', { upTo: 240000, then: 900 });
+		// The paste zone opens the file chooser itself; the reading
+		// opens its dialog with the picture in hand.
+		const [chooser] = await Promise.all([page.waitForFileChooser(), click(page, '[data-act="barter-shot"]', { after: 900 })]);
+		await chooser.accept([shot('barter-window.webp')]);
+		await waitFor(page, '#dialog .shot-table', { upTo: 240000, then: 900 });
 		await rec(page, 'read-the-window', async () => {
 			await wait(1200);
 			await moveTo(page, '.shot-table tbody tr:nth-child(2)');
 			await wait(1400);
 			await click(page, '#dialog [data-use]', { after: 1200 });
-			await frame(page, '.barter-bar', { top: 24 });
-			await moveTo(page, '.barter-bar-lead');
+			await frame(page, '.board-strip', { top: 24 });
+			await moveTo(page, '.board-strip-k');
 			await wait(2200);
 		});
 		await page.setViewport({ width: 1280, height: 820, deviceScaleFactor: 1 });
@@ -200,9 +323,9 @@ const scenes = {
 	async 'a-dry-chain'() {
 		const own = await open({ width: 1180, height: 700 });
 		await fakeSea(own.page, { bare: 3 });
-		await seed(own.page, own.url, fittedShip);
-		await tab(own.page, 'barter');
-		await nameTheBoard(own.page);
+		await barterDay(own.page, own.url, fittedShip);
+		// The chains are the plan's fourth part, shut until opened.
+		await openPart(own.page, 'chains');
 		await waitFor(own.page, '.chain.dry', { upTo: 20000, then: 800 });
 		await frame(own.page, '.chain.dry', { top: 90 });
 		await rec(own.page, 'a-dry-chain', async () => {
@@ -226,11 +349,9 @@ const scenes = {
 		await page.setViewport({ width: 1180, height: 620, deviceScaleFactor: 1 });
 		const state = JSON.parse(JSON.stringify(fittedShip));
 		state.profile = { ...(state.profile || {}), barterCount: 1082 };
-		await seed(page, url, state);
-		await tab(page, 'barter');
-		await nameTheBoard(page);
+		await barterDay(page, url, state);
 		await waitFor(page, '.board-shut', { then: 600 });
-		await frame(page, '.barter-bar', { top: 24 });
+		await frame(page, '.board-strip', { top: 24 });
 		await rec(page, 'your-own-board', async () => {
 			await wait(700);
 			await moveTo(page, '.board-shut');
@@ -247,15 +368,18 @@ const scenes = {
 		await tab(page, 'map');
 		await wait(1500);
 		await click(page, '[data-act="map-mode"][data-id="hunt"]', { after: 900 });
+		await frameMap(page);
 		await rec(page, 'todays-errands', async () => {
 			await wait(600);
 			await click(page, '[data-act="map-errands"]', { after: 900 });
 			await waitFor(page, '.errand-stops', { then: 1800 });
 			// Down the list of calls, so the clip shows the hunts and
 			// what to kill at each rather than the first four wharves.
+			// Scrolled inside the panel only: the page stays put.
 			await page.evaluate(() => {
-				const box = document.querySelector('.map-side-body');
-				if (box) box.scrollTo({ top: box.scrollHeight * 0.5, behavior: 'smooth' });
+				const stop = document.querySelector('.errand-stop.hunt');
+				const box = stop && stop.closest('.map-side-body');
+				if (box) box.scrollTo({ top: box.scrollTop + stop.getBoundingClientRect().top - box.getBoundingClientRect().top - 40, behavior: 'smooth' });
 			});
 			await wait(2200);
 			await moveTo(page, '.errand-stop.hunt .errand-row');
@@ -272,9 +396,11 @@ const scenes = {
 		await click(page, '[data-act="map-mode"][data-id="hunt"]', { after: 900 });
 		await click(page, '[data-act="map-errands"]', { after: 600 });
 		await waitFor(page, '.errand-stops', { then: 1200 });
+		await frameMap(page);
 		await page.evaluate(() => {
-			const box = document.querySelector('.map-side-body');
-			if (box) box.scrollTo({ top: box.scrollHeight * 0.55 });
+			const stop = document.querySelector('.errand-stop.hunt');
+			const box = stop && stop.closest('.map-side-body');
+			if (box) box.scrollTo({ top: box.scrollTop + stop.getBoundingClientRect().top - box.getBoundingClientRect().top - 120 });
 		});
 		await wait(700);
 		await rec(page, 'a-call-in-hand', async () => {
@@ -284,26 +410,27 @@ const scenes = {
 		});
 	},
 
-	/* 1.2 — a day that is not for silver: targets by level, a ceiling,
-	 * and a run counted in goods. */
+	/* 1.2 — a day that is not for silver: a target of every good at a
+	 * level, the level the stock ends at, and a run counted in goods.
+	 * The targets and the ceiling are the ladder now (Where today ends);
+	 * the runs worth sailing are under Chains on offer. */
 	async 'a-stock'({ page, url }) {
-		await seed(page, url, fittedShip);
-		await tab(page, 'barter');
-		await nameTheBoard(page);
-		await click(page, '[data-act="barter-goal"][data-id="stock"]', { after: 1500 });
-		// The runs worth sailing come back from a worker; taking one is
-		// what puts numbers on the tiles, and an empty run is no picture.
-		await waitFor(page, '.proposal', { then: 1200 });
-		await click(page, '.proposal', { after: 2600 });
-		await frame(page, '.stock-head', { top: 108 });
+		await page.setViewport({ width: 1280, height: 860, deviceScaleFactor: 1 });
+		await barterDay(page, url, fittedShip, { goal: 'stock' });
+		await openPart(page, 'ladder');
+		await frame(page, '.plan-sec[data-sec="ladder"]', { top: 12 });
 		await rec(page, 'a-stock', async () => {
 			await wait(600);
-			await typeInto(page, '.stock-row .purse-inline', '40', { after: 1600 });
-			await page.select('[data-act="barter-ceiling"]', '3');
-			await wait(2600);
-			await moveTo(page, '.run-ahead');
-			await wait(1600);
+			await typeInto(page, '[data-act="barter-target"][data-lv="2"]', '40', { after: 1200 });
+			await click(page, '[data-act="barter-rung"][data-lv="3"]', { after: 1600 });
+			await moveTo(page, '.ladder-goal', { settle: 1200 });
+			await click(page, '[data-act="barter-sec"][data-id="chains"]', { after: 1400 });
+			// The runs worth sailing come back from a worker.
+			await waitFor(page, '.proposal:not(.placeholder)', { upTo: 20000, then: 600 });
+			await click(page, '.proposal:not(.placeholder)', { after: 2000 });
+			await moveTo(page, '.run-ahead', { settle: 2000 });
 		});
+		await page.setViewport({ width: 1280, height: 820, deviceScaleFactor: 1 });
 	},
 
 	/* 1.2 — the fourth kind of day: climb to [Level 4] and cash it in
@@ -313,65 +440,65 @@ const scenes = {
 		// has something to say.
 		const state = JSON.parse(JSON.stringify(fittedShip));
 		state.stock['Crow Coin'] = 2000;
-		await seed(page, url, state);
-		await tab(page, 'barter');
-		await nameTheBoard(page);
-		await click(page, '[data-act="barter-goal"][data-id="coin"]', { after: 1500 });
-		await waitFor(page, '.proposal', { then: 1200 });
+		await barterDay(page, url, state, { goal: 'coin' });
+		await openPart(page, 'chains');
+		await waitFor(page, '.proposal:not(.placeholder)', { upTo: 20000, then: 1200 });
+		await frame(page, '.proposals', { top: 16 });
 		await rec(page, 'crow-coins', async () => {
-			await frame(page, '.proposals', { top: 110 });
 			await wait(700);
-			await click(page, '.proposal', { after: 2600 });
-			await frame(page, '.run-tiles', { top: 120 });
-			await wait(1800);
-			await moveTo(page, '.run-ahead');
-			await wait(2000);
+			await click(page, '.proposal:not(.placeholder):not(.on)', { after: 2400 });
+			await moveTo(page, '.run-ahead', { settle: 2400 });
 		});
 	},
 
-	/* 1.2 — the clock: a bell at every stop, and one at the end. */
+	/* 1.2 — the clock, started by Cast off on the Load step: the ship
+	 * drops into the water, the camera pulls back into the clock, and
+	 * Traded sails it on to the next stop. */
 	async 'the-clock'({ page, url }) {
-		await seed(page, url, fittedShip);
-		await tab(page, 'barter');
-		await nameTheBoard(page);
-		await click(page, '[data-act="barter-run-open"]', { after: 2000 });
-		// The sheet is a box over the page: scroll inside it, not the page.
-		await page.evaluate(() => { const f = document.querySelector('.run-foot'); if (f) f.scrollIntoView({ block: 'end' }); });
-		await wait(800);
+		// Tall enough that the clock and Traded are both in the frame
+		// once the cockpit opens, so nothing scrolls under the clip.
+		await page.setViewport({ width: 1180, height: 960, deviceScaleFactor: 1 });
+		await barterDay(page, url, fittedShip);
+		await packed(page);
+		await frame(page, '.barter-screen .steps', { top: 8 });
 		await rec(page, 'the-clock', async () => {
-			await wait(600);
-			await click(page, '.run-foot [data-act="barter-timer-start"]', { after: 2400 });
-			// Out of the sheet: the clock keeps time on the tab itself, and
-			// that is where it will be watched from.
-			await click(page, '.run-dialog [data-close]', { after: 1400 });
-			await frame(page, '.hold-bar', { top: 90 });
-			await moveTo(page, '.sail-timer.running b');
-			await wait(3000);
+			await wait(500);
+			await castOff(page, { watch: 3000 });
+			await frame(page, '.barter-screen .steps', { top: 8 });
+			await tap(page, '.cockpit-clock', { after: 1800 });
+			await tap(page, '[data-act="barter-stop-done"]', { after: 3600 });
+			await tap(page, '.cockpit-clock .sail-timer', { after: 1200 });
 		});
+		await page.setViewport({ width: 1280, height: 820, deviceScaleFactor: 1 });
 	},
 
-	/* 1.2 — the two shelves: what to load, and what is in the storage
-	 * after, tiled the way the game's own window is. */
+	/* 1.2 — the two shelves on the Load step: what to have aboard before
+	 * casting off, and what is in the storage after, tiled the way the
+	 * game's own window is. The second fills as the first is ticked. */
 	async 'two-shelves'({ page, url }) {
-		await seed(page, url, fittedShip);
-		await tab(page, 'barter');
-		await nameTheBoard(page);
-		await click(page, '[data-act="barter-run-open"]', { after: 2200 });
+		// Tall enough for the packing list and the shelf under it at once.
+		await page.setViewport({ width: 1180, height: 1000, deviceScaleFactor: 1 });
+		await barterDay(page, url, fittedShip);
+		await press(page, '[data-act="barter-step"][data-id="load"]');
+		await waitFor(page, '[data-act="barter-cast-off"]', { then: 1500 });
+		await frame(page, '.pack-groups', { top: 12 });
 		await rec(page, 'two-shelves', async () => {
-			await wait(800);
-			await moveTo(page, '.shelf-tile');
-			await wait(1600);
-			await page.evaluate(() => { const f = document.querySelector('.run-fold summary'); if (f) f.scrollIntoView({ block: 'center' }); });
 			await wait(700);
-			await click(page, '.run-fold summary', { after: 2200 });
+			await moveTo(page, '.pack-row', { settle: 1200 });
+			await click(page, '[data-act="barter-pack-all"]:not(.active)', { after: 1400 });
+			await frame(page, '.pack-groups', { top: 12 });
+			await tap(page, '.run-shelves .shelf-tile', { after: 2400 });
 		});
+		await page.setViewport({ width: 1280, height: 820, deviceScaleFactor: 1 });
 	},
 
-	/* 1.2 — the day's boards: what each run loaded, what it brought
-	 * back, and the totals across the Parley bar. */
+	/* 1.2 — the day's boards, on the Results step: what each run loaded,
+	 * what it brought back, and the totals across the Parley bar. */
 	async 'todays-boards'({ page, url }) {
-		const day = new Date();
-		const barterDay = new Date(day.getTime() - (day.getUTCHours() < 6 ? 24 : 0) * 3600e3).toISOString().slice(0, 10);
+		// The day is the game's barter day, which only the page's own
+		// clock knows: asked of it before the save is written.
+		await page.goto(url, { waitUntil: 'load' });
+		const barterDay = await page.evaluate(() => import('/js/clock.js').then(m => m.barterKey()));
 		const state = JSON.parse(JSON.stringify(fittedShip));
 		state.profile = {
 			...state.profile,
@@ -382,12 +509,157 @@ const scenes = {
 		};
 		await seed(page, url, state);
 		await tab(page, 'barter');
-		await frame(page, '.day-boards', { top: 40 });
+		await press(page, '[data-act="barter-step"][data-id="results"]');
+		// The step press brings the steps up a beat later; framed after it.
+		await waitFor(page, '.day-boards', { then: 2000 });
+		await frame(page, '.barter-screen .steps', { top: 8 });
 		await rec(page, 'todays-boards', async () => {
 			await wait(900);
-			await moveTo(page, '.day-total');
-			await wait(2400);
+			await moveTo(page, '.day-run', { settle: 1400 });
+			await moveTo(page, '.day-total', { settle: 2400 });
 		});
+	},
+
+	/* 1.5 — the four steps of a run, one on the page at a time: the plan
+	 * with today's board read, the Load step's packing list ticked
+	 * aboard, Cast off into the cockpit, and the Results step. */
+	async 'four-steps'({ page, url }) {
+		await page.setViewport({ width: 1280, height: 860, deviceScaleFactor: 1 });
+		await barterDay(page, url, fittedShip);
+		// The best run lands from a worker and redraws the page; framed
+		// once it has.
+		await waitFor(page, '.run-dock [data-act="barter-step"][data-id="load"]', { upTo: 20000, then: 2000 });
+		await frame(page, '.barter-screen .steps', { top: 8 });
+		await rec(page, 'four-steps', async () => {
+			await wait(900);
+			await tap(page, '.run-dock [data-act="barter-step"][data-id="load"]', { after: 1600 });
+			await frame(page, '.barter-screen .steps', { top: 8 });
+			await tap(page, '[data-act="barter-pack-all"]:not(.active)', { after: 1400 });
+			await castOff(page, { watch: 2200 });
+			await frame(page, '.barter-screen .steps', { top: 8 });
+			await wait(1400);
+			await tap(page, '.steps [data-act="barter-step"][data-id="results"]', { after: 2200 });
+		});
+		await page.setViewport({ width: 1280, height: 820, deviceScaleFactor: 1 });
+	},
+
+	/* 1.5 — the hold counts slots as well as LT. A [Level 5], [Level 6],
+	 * [Level 7] or [Great Ocean] good takes a slot each; a stack of
+	 * anything under them is one slot however big. On a Volante, which
+	 * has twenty, the gauge says so, and so does every row of the hold. */
+	async 'the-slots'({ page, url }) {
+		await page.setViewport({ width: 1180, height: 760, deviceScaleFactor: 1 });
+		const state = JSON.parse(JSON.stringify(fittedShip));
+		state.profile.crewShip = 'Carrack (Volante)';
+		Object.assign(state.stock, {
+			'[Level 5] Azure Quartz': 3,
+			'[Level 5] Elixir of Youth': 2,
+			'[Level 5] Octagonal Box': 1,
+			'[Level 6] Golden Sand Ring': 1,
+			'[Level 3] Scout Binoculars': 2,
+			'[Level 2] Pirate Gold Coin': 6
+		});
+		await barterDay(page, url, state);
+		await press(page, '[data-act="barter-step"][data-id="load"]');
+		await waitFor(page, '.hold-bar', { then: 1200 });
+		await frame(page, '.hold-bar', { top: 12 });
+		await rec(page, 'the-slots', async () => {
+			await wait(700);
+			await moveTo(page, '.hold-gauge b', { settle: 1800 });
+			await click(page, '.hold-col-ship [data-act="barter-hold-open"]', { after: 1400 });
+			// A row of five-up goods says "N slots, one each"; a stack
+			// under them says "one slot".
+			await moveTo(page, '.barter-hold .barter-good:has([data-item="[Level 5] Azure Quartz"]) .map-row-sub', { settle: 1600 });
+			await moveTo(page, '.barter-hold .barter-good:has([data-item="[Level 3] Scout Binoculars"]) .map-row-sub', { settle: 1400 });
+			// One more of a [Level 5] is one more slot on the gauge.
+			for (let i = 0; i < 2; i++) {
+				await click(page, '.barter-hold [data-act="barter-good"][data-item="[Level 5] Azure Quartz"][data-delta="1"]', { after: 900 });
+			}
+			await moveTo(page, '.barter-hold .map-load-bar', { settle: 1800 });
+		});
+		await page.keyboard.press('Escape');
+		await page.setViewport({ width: 1280, height: 820, deviceScaleFactor: 1 });
+	},
+
+	/* 1.5 — a short trip: one trade picked off today's board, then
+	 * taken one island further, and a trade that fits round it added. */
+	async 'a-short-trip'({ page, url }) {
+		await page.setViewport({ width: 1180, height: 820, deviceScaleFactor: 1 });
+		await barterDay(page, url, fittedShip);
+		await frame(page, '.plan-shape', { top: 12 });
+		await rec(page, 'a-short-trip', async () => {
+			await wait(600);
+			await click(page, '[data-act="barter-shape"][data-id="short"]', { after: 1200 });
+			await click(page, '[data-act="barter-sec"][data-id="chains"]', { after: 1600 });
+			await waitFor(page, '.st-row:not(.off)', { upTo: 20000, then: 600 });
+			await moveTo(page, '.st-row:not(.off) .st-figs', { settle: 900 });
+			await click(page, '.st-row:not(.off)', { after: 1800 });
+			await click(page, '.st-row.grows', { after: 1800 });
+			await click(page, '.st-row:not(.off):not(.grows)', { after: 2000 });
+		});
+		await page.setViewport({ width: 1280, height: 820, deviceScaleFactor: 1 });
+	},
+
+	/* 1.5 — the chart's ship during a run: on the leg under way, as far
+	 * along it as the run's clock has run. A leg takes minutes; the clip
+	 * has seconds, so the clock is moved on a few seconds a beat, which
+	 * moves the ship exactly as the minutes would. */
+	async 'ship-on-the-chart'({ page, url }) {
+		await page.setViewport({ width: 1180, height: 760, deviceScaleFactor: 1 });
+		await barterDay(page, url, fittedShip);
+		await packed(page);
+		await castOff(page, { watch: 1200 });
+		await tab(page, 'map');
+		await waitFor(page, '.map-ship.live', { upTo: 20000, then: 1500 });
+		await frameMap(page, 140);
+		// The leg the clock is timing, framed whole: at the island a run
+		// starts from that is already the leg to the second stop.
+		await page.evaluate(() => document.querySelector('[data-act="map-step"][data-i="1"]')?.click());
+		await wait(2200);
+		const ahead = secs => page.evaluate(async n => {
+			const store = await import('/js/state.js');
+			const t = store.getView('timer');
+			store.setView('timer', { ...t, startedAt: t.startedAt - n * 1000 });
+		}, secs);
+		const leg = await page.evaluate(async () => {
+			const { timerState } = await import('/js/sail-timer.js');
+			const t = timerState();
+			const i = Math.min(t.done, t.marks.length - 1);
+			return t.marks[i].at - (t.legAt || 0);
+		});
+		// The pointer is kept off the ship: the island it sails from sits
+		// under it, and a pin's card opened over the very thing to watch.
+		await page.mouse.move(1170, 300);
+		await page.evaluate(() => { const c = document.getElementById('__cur'); if (c) c.style.transform = 'translate(1170px, 300px)'; });
+		await rec(page, 'ship-on-the-chart', async () => {
+			await wait(900);
+			for (let k = 0; k < 14; k++) { await ahead(leg / 16); await wait(500); }
+			await wait(1200);
+		});
+		await page.setViewport({ width: 1280, height: 820, deviceScaleFactor: 1 });
+	},
+
+	/* 1.5 — a failure recorded on any part that can fail adds a stack:
+	 * a Toro part's FS box climbing with each Failed. */
+	async 'a-failstack'({ page, url }) {
+		await page.setViewport({ width: 1180, height: 640, deviceScaleFactor: 1 });
+		await seed(page, url, { ...fittedShip, stock: { ...fittedShip.stock, '+3 Epheria Carrack: Toro Sail': 1, 'Tidal Black Stone': 400 } });
+		await tab(page, 'workshop');
+		const row = '.row[data-base="Epheria Carrack: Toro Sail"]';
+		await waitFor(page, `${row} [data-result="fail"]`, { then: 600 });
+		await frame(page, row, { top: 160 });
+		// The row's recipe card opens on a hover, over the frame; the clip
+		// is about the FS box, so the card is kept shut.
+		await page.addStyleTag({ content: '#peek { display: none !important; }' });
+		await rec(page, 'a-failstack', async () => {
+			await moveTo(page, `${row} [data-act="failstacks"]`, { settle: 900 });
+			await click(page, `${row} [data-result="fail"]`, { after: 1300 });
+			await moveTo(page, `${row} [data-act="failstacks"]`, { settle: 700 });
+			await click(page, `${row} [data-result="fail"]`, { after: 1300 });
+			await click(page, `${row} [data-result="fail"]`, { after: 1300 });
+			await moveTo(page, `${row} [data-act="failstacks"]`, { settle: 1200 });
+		});
+		await page.setViewport({ width: 1280, height: 820, deviceScaleFactor: 1 });
 	},
 
 	/* Queue a build and watch the plan grow around it. */
@@ -411,6 +683,9 @@ const scenes = {
 			...midBuild,
 			stock: { ...midBuild.stock, "Violent Sea Monster's Bone": 0, 'Starlight Hardener': 0 }
 		});
+		// The Missing list at the top of the frame, so typing into it never
+		// scrolls the page under the clip.
+		await frame(page, '.own-input[data-item="Violent Sea Monster\'s Bone"]', { top: 300 });
 		await rec(page, 'record-what-you-own', async () => {
 			await wait(600);
 			await typeInto(page, '.own-input[data-item="Violent Sea Monster\'s Bone"]', '150', { after: 1100 });
@@ -425,7 +700,10 @@ const scenes = {
 		await rec(page, 'craft', async () => {
 			await wait(600);
 			await typeInto(page, '.craft-card .craft-n', '40', { after: 500 });
-			await click(page, '.craft-card [data-times="field"]', { after: 1800 });
+			await click(page, '.craft-card [data-times="field"]', { after: 900 });
+			// Off the cards: they re-sort after a craft, and a pointer left
+			// where the button was hovers another recipe's card.
+			await moveTo(page, '[data-act="view"][data-id="workshop"]', { settle: 1400 });
 		});
 	},
 
@@ -465,6 +743,12 @@ const scenes = {
 			targets: [{ id: 'c', item: 'Carrack (Advance)', qty: 1, active: true }]
 		});
 		await tab(page, 'tree');
+		// The tree's own toolbar near the top, so Expand all has the whole
+		// window to open into -- below 120px, or the press scrolls the page
+		// to bring the button to the middle. The tab redraws once after
+		// it opens; framed after that.
+		await wait(2000);
+		await frame(page, '[data-act="tree-all"]', { top: 130 });
 		await rec(page, 'the-tree', async () => {
 			// Opens on the useful view -- folded chains, whole spine
 			// visible -- because the first frame is the thumbnail.
@@ -479,14 +763,19 @@ const scenes = {
 	 * Stays on one screen throughout -- a tab switch repaints every
 	 * pixel, which doubles the GIF for nothing. */
 	async 'what-it-costs'({ page, url }) {
+		// Taller than the rest: the ways to get it sit at the foot of the
+		// panel the click opens.
+		await page.setViewport({ width: 1280, height: 1080, deviceScaleFactor: 1 });
 		await seed(page, url, midBuild);
 		await tab(page, 'inventory');
 		await wait(700);
+		await page.evaluate(() => window.scrollTo(0, 0));
 		await rec(page, 'what-it-costs', async () => {
 			await wait(500);
 			await moveTo(page, '[data-act="select"][data-item="Delicately Polished Support"]', { settle: 2200 });
 			await click(page, '[data-act="select"][data-item="Delicately Polished Support"]', { after: 2600 });
 		});
+		await page.setViewport({ width: 1280, height: 820, deviceScaleFactor: 1 });
 	},
 
 	/* The shopping list, drawn on the sea, then plotted as a loop. */
@@ -494,6 +783,7 @@ const scenes = {
 		await seed(page, url, midBuild);
 		await tab(page, 'map');
 		await wait(1600);
+		await frameMap(page);
 		await rec(page, 'chart-the-loop', async () => {
 			await wait(600);
 			await click(page, '[data-act="map-mode"][data-id="route"]', { after: 1000 });
@@ -510,13 +800,16 @@ const scenes = {
 		await wait(1600);
 		await click(page, '[data-act="map-mode"][data-id="trace"]', { after: 900 });
 		await click(page, '[data-act="trace-tool"][data-id="point"]', { after: 700 });
+		await frameMap(page);
 		await rec(page, 'draw-a-route', async () => {
 			await wait(500);
-			for (const [fx, fy] of [[0.24, 0.32], [0.42, 0.48], [0.28, 0.68]]) {
+			for (const [fx, fy] of STOPS) {
 				await clickIn(page, '#map', fx, fy, { after: 650 });
 			}
 			await click(page, '[data-act="trace-tool"][data-id="pen"]', { after: 600 });
-			await drag(page, '#map', 190, -120, { from: [0.28, 0.70], after: 900 });
+			// Begun well clear of the stops: a drag started on a mark
+			// carries the mark off instead of drawing.
+			await drag(page, '#map', 170, -110, { from: PEN, after: 900 });
 		});
 	},
 
@@ -531,8 +824,18 @@ const scenes = {
 		await tab(page, 'quests');
 		await wait(800);
 		// Only the quests paying one fixed reward: a pick-one quest stops
-		// Finish to ask which, which is true but not what this shows.
-		const plain = '.quest:not(.done):not(.selected):has([data-act="quest-claim"]) .quest-check';
+		// Finish to ask which, and a hand-in asks which good went -- both
+		// true, neither what this shows. Their Claimed buttons carry a
+		// title saying so; a plain one has none.
+		const plain = '.quest:not(.done):not(.selected):has([data-act="quest-claim"]:not([title])) .quest-check';
+		// The tab keeps the scroll it was left at; the ticked bar is at
+		// the head of the list, and the first plain rows a screen down.
+		// A search for the barter quests puts two plain ones near the head
+		// of the list, under the bar that ticking opens.
+		await page.evaluate(() => window.scrollTo(0, 0));
+		await page.type('[data-act="query"]', 'barter', { delay: 20 });
+		await wait(900);
+		await frame(page, '[data-act="query"]', { top: 150 });
 		await rec(page, 'claim-a-quest', async () => {
 			await wait(300);
 			await click(page, plain, { after: 350 });
@@ -552,13 +855,14 @@ const scenes = {
 	 * peek card over half the screen, and a full-width overlay appearing
 	 * and going again costs more in the GIF than it explains. */
 	async 'fit-a-ship'({ page, url }) {
-		await seed(page, url, fittedShip);
+		// A new sailor's mastery, so the number typed in is a change.
+		await seed(page, url, { ...fittedShip, profile: { ...fittedShip.profile, sailingMastery: 0 } });
 		await tab(page, 'crew');
 		await wait(900);
 		await click(page, '[data-act="sail-bar"]', { after: 700 });
 		await rec(page, 'fit-a-ship', async () => {
 			await wait(500);
-			await typeInto(page, '[data-act="crew-mastery"]', '750', { after: 1600 });
+			await typeInto(page, '[data-act="crew-mastery"]', '1500', { after: 1800 });
 		});
 	},
 
@@ -570,28 +874,39 @@ const scenes = {
 		await seed(page, url, midBuild);
 		await tab(page, 'map');
 		await wait(2200);
+		await frameMap(page);
+		await wait(800);
+		await frameMap(page);
 		await rec(page, 'stand-it-up', async () => {
 			await wait(300);
-			await click(page, '[data-act="map-3d"]', { after: 3800 });
+			// Pressed where they are: a scroll here repaints a heightmap.
+			await tap(page, '[data-act="map-3d"]', { after: 3800 });
 			await drag(page, '#map', 0, -130, { hold: 'Shift', after: 700 });
-			await click(page, '[data-act="map-style"][data-id="neon"]', { after: 1500 });
+			await tap(page, '[data-act="map-style"][data-id="neon"]', { after: 2600 });
 		});
 		// Back down, so a scene shot after this one is not tilted.
 		await click(page, '[data-act="map-3d"]', { after: 900 });
 	},
 
-	/* What the plan costs in days, and how that answer moves with the
-	 * goal you give it. The headline and the steps both redraw, so this
-	 * one is given a narrower frame than the default. */
+	/* What the plan costs in days, and how that answer moves with what
+	 * you tell it: the goal, the days a week you sail, and the ways you
+	 * are willing to use. On this save the barter draws set the pace
+	 * whatever the goal, so the goal changes what is bought and the day
+	 * count moves with the days a week and the ways. The headline and the
+	 * steps both redraw, so this one is given a narrower frame. */
 	async 'the-way'({ page, url }) {
 		await seed(page, url, onePartToGo);
 		await tab(page, 'get');
 		await wait(1100);
+		await frame(page, '[data-act="get-preset"]', { top: 150 });
 		await rec(page, 'the-way', async () => {
 			await wait(400);
-			await click(page, '[data-act="get-preset"][data-id="coins"]', { after: 1500 });
-			await click(page, '[data-act="get-preset"][data-id="silver"]', { after: 1500 });
-			await click(page, '[data-act="get-preset"][data-id="soon"]', { after: 1400 });
+			await click(page, '[data-act="get-preset"][data-id="coins"]', { after: 1300 });
+			await choose(page, '[data-act="get-days"]', '3', { after: 1600 });
+			await click(page, '[data-act="get-doing"][data-id="quests"]', { after: 1800 });
+			await click(page, '[data-act="get-doing"][data-id="quests"]', { after: 1000 });
+			await choose(page, '[data-act="get-days"]', '7', { after: 1300 });
+			await click(page, '[data-act="get-preset"][data-id="soon"]', { after: 1200 });
 		});
 	},
 
@@ -630,35 +945,38 @@ const scenes = {
 		await wait(1600);
 		await click(page, '[data-act="map-mode"][data-id="trace"]', { after: 900 });
 		await click(page, '[data-act="trace-tool"][data-id="point"]', { after: 700 });
+		await frameMap(page);
 		await rec(page, 'share-a-drawing', async () => {
 			await wait(400);
-			for (const [fx, fy] of [[0.24, 0.32], [0.42, 0.48], [0.28, 0.68]]) {
+			for (const [fx, fy] of STOPS) {
 				await clickIn(page, '#map', fx, fy, { after: 550 });
 			}
 			await click(page, '[data-act="trace-tool"][data-id="pen"]', { after: 500 });
-			await drag(page, '#map', 190, -120, { from: [0.28, 0.70], after: 700 });
+			await drag(page, '#map', 170, -110, { from: PEN, after: 700 });
 			await click(page, '[data-act="trace-tool"][data-id="text"]', { after: 500 });
-			await clickIn(page, '#map', 0.46, 0.30, { after: 500 });
+			await clickIn(page, '#map', WORD[0], WORD[1], { after: 500 });
 			await page.keyboard.type('Cox camp here', { delay: 80 });
 			await page.keyboard.press('Enter');
 			await wait(700);
 			await typeInto(page, '[data-act="trace-name"]', 'Night run to Cox', { after: 600 });
 			await click(page, '[data-act="trace-link"]', { after: 1500 });
 			await seed(page, await copiedLink(browser, page, url, 'trace'), emptyStart);
-			await wait(2600);
+			await frameMap(page);
+			await wait(2200);
 		});
 		await page.setViewport({ width: 1280, height: 820, deviceScaleFactor: 1 });
 	},
 
-	/* A run on today's board: one island looked at, the board follows,
-	 * the chains are ticked into a run, and Sail this run puts it on the
-	 * chart as a checklist. The last beat flies to the Map, whose tiles
-	 * repaint the whole frame, so shoot.sh gives this one the narrower,
-	 * slower encode. */
+	/* A run on today's board: one island looked at and the board
+	 * follows; the best run is ticked and waits along the foot of the
+	 * page; Load at the wharf packs it, Cast off sails it, and On the
+	 * chart puts it on the Map. The last beat repaints the whole frame,
+	 * so shoot.sh gives this one the narrower, slower encode. */
 	async 'plan-a-run'({ page, url }) {
 		await seed(page, url, fittedShip);
 		await tab(page, 'barter');
 		await wait(1200);
+		await frame(page, '.barter-screen .steps', { top: 8 });
 		await rec(page, 'plan-a-run', async () => {
 			await wait(500);
 			await click(page, '[data-act="barter-board-ask"]', { after: 900 });
@@ -666,11 +984,13 @@ const scenes = {
 			await wait(700);
 			await click(page, '.picker-row', { after: 800 });
 			// The runs worth sailing come back from a worker; the best
-			// one is ticked when it lands, and that is when there is a
-			// run to lay out.
-			await waitFor(page, '[data-act="barter-run-open"]', { then: 1400 });
-			await click(page, '[data-act="barter-run-open"]', { after: 1800 });
-			await click(page, '[data-act="barter-sail"]', { after: 2600 });
+			// one is ticked when it lands, and that is when the run dock
+			// along the foot has a run on it.
+			await waitFor(page, '.run-dock [data-act="barter-step"][data-id="load"]', { upTo: 20000, then: 1400 });
+			await tap(page, '.run-dock [data-act="barter-step"][data-id="load"]', { after: 1600 });
+			await click(page, '[data-act="barter-pack-all"]:not(.active)', { after: 1000 });
+			await castOff(page, { watch: 1800 });
+			await tap(page, '[data-act="barter-sail-chart"]', { after: 3400 });
 		});
 	},
 
@@ -682,11 +1002,11 @@ const scenes = {
 			document.querySelector('.row[data-peek*="Wave Residue"]')
 				.scrollIntoView({ block: 'center' });
 		});
-		await wait(700);
+		await wait(2500);
 		await rec(page, 'peek-a-recipe', async () => {
 			await wait(500);
-			await moveTo(page, '.row[data-peek*="Wave Residue"]', { settle: 1700 });
-			await moveTo(page, '.row[data-peek*="Toro Sail"]', { settle: 1700 });
+			await hover(page, '.row[data-peek*="Wave Residue"]', { settle: 1900 });
+			await hover(page, '.row[data-peek*="Toro Sail"]', { settle: 1900 });
 		});
 	},
 
@@ -720,6 +1040,19 @@ const scenes = {
 };
 
 const stills = {
+	/* 1.5 — Help: the film in seventeen chapters, each a place to start. */
+	async 'the-chapters'({ page, url }) {
+		await page.setViewport({ width: 900, height: 1000, deviceScaleFactor: 1 });
+		await seed(page, url, midBuild);
+		await page.evaluate(() => document.querySelector('[data-act="help"]')?.click());
+		await waitFor(page, '.film-chapters', { upTo: 15000, then: 900 });
+		await page.evaluate(() => { document.getElementById('__cur')?.remove(); document.querySelector('.film-chapters')?.scrollIntoView({ block: 'center' }); });
+		await wait(500);
+		const box = await page.evaluate(() => { const r = document.querySelector('#dialog').getBoundingClientRect(); return { x: r.left, y: Math.max(0, r.top), width: r.width, height: Math.min(r.height, window.innerHeight - Math.max(0, r.top)) }; });
+		await page.screenshot({ path: `${OUT}/the-chapters.png`, clip: box });
+		await page.keyboard.press('Escape');
+		await page.setViewport({ width: 1280, height: 820, deviceScaleFactor: 1 });
+	},
 	async hero({ page, url }) {
 		await page.setViewport({ width: 1280, height: 1140, deviceScaleFactor: 1 });
 		await seed(page, url, midBuild);
@@ -751,9 +1084,16 @@ const stills = {
 			if (b) b.click();
 		});
 		await wait(500);
+		// The rules this plan keeps to are a line to open, and shut here:
+		// the still is of where it lands and the steps, not the small print.
+		await page.evaluate(() => {
+			const b = document.querySelector('[data-act="get-fold"][data-id="rules"][aria-expanded="true"]');
+			if (b) b.click();
+		});
+		await wait(500);
 		await page.evaluate(() => {
 			const el = document.querySelector('.way-head');
-			if (el) window.scrollTo(0, window.scrollY + el.getBoundingClientRect().top - 178);
+			if (el) window.scrollTo(0, window.scrollY + el.getBoundingClientRect().top - 24);
 			const cur = document.getElementById('__cur');
 			if (cur) cur.remove();
 		});
@@ -762,11 +1102,17 @@ const stills = {
 		await page.setViewport({ width: 1280, height: 820, deviceScaleFactor: 1 });
 	},
 	async map({ page, url }) {
+		// Taller than the other stills, so the chart is most of the frame
+		// rather than the bottom half of it.
+		await page.setViewport({ width: 1280, height: 1060, deviceScaleFactor: 1 });
 		await seed(page, url, midBuild);
 		await tab(page, 'map');
-		await wait(2200);
-		await page.evaluate(() => document.getElementById('__cur').remove());
+		await wait(2600);
+		await frame(page, '#map', { top: 150 });
+		await wait(1200);
+		await noCursor(page);
 		await page.screenshot({ path: `${OUT}/map.png` });
+		await page.setViewport({ width: 1280, height: 820, deviceScaleFactor: 1 });
 	},
 	async quests({ page, url }) {
 		await seed(page, url, midBuild);
@@ -802,17 +1148,209 @@ const stills = {
 	}
 };
 
+/**
+ * The pictures a chat shows when a link to the app is dropped in it --
+ * one per card in server/preview.js, 1200 x 630 at one device pixel,
+ * written to og/ at the repository root, and og/home.png again as the
+ * fallback og.png. Each is the thing its card names, filled in and
+ * settled: no pointer, no thread of light still running, no dialog
+ * half-open.
+ */
+const OG = path.resolve('og');
+
+/** Nothing on its way: no loading thread lit and nothing marked busy,
+ *  for most of a second running. */
+async function settled(page, { upTo = 20000 } = {}) {
+	const end = Date.now() + upTo;
+	let quiet = 0;
+	while (Date.now() < end && quiet < 4) {
+		const busy = await page.evaluate(() => !!document.querySelector('.loadbar.on, [aria-busy="true"], .is-busy, .proposals.working'));
+		quiet = busy ? 0 : quiet + 1;
+		await wait(250);
+	}
+}
+
+async function ogShot(page, name) {
+	// The real pointer off anything with a hover card: the chart shows
+	// an island's card under a pointer left resting on its pin.
+	await page.mouse.move(2, 2);
+	await settled(page);
+	await noCursor(page);
+	await page.evaluate(() => {
+		// The toasts a press leaves are about the press, not the card.
+		document.querySelectorAll('.toast, #toast, .toasts').forEach(t => { t.style.display = 'none'; });
+	});
+	await wait(300);
+	const file = `${OG}/${name}.png`;
+	await page.screenshot({ path: file });
+	// Every chat a link is dropped in fetches this, so it is kept under
+	// 600 KB: a card over that is quantised to a 256-colour palette,
+	// which a picture of flat UI colour hardly shows. The chart's
+	// terrain is the one that needs it.
+	const { statSync, renameSync } = await import('node:fs');
+	const { spawnSync } = await import('node:child_process');
+	if (statSync(file).size > 600000) {
+		const out = spawnSync('ffmpeg', ['-v', 'error', '-y', '-i', file, '-vf', 'split[a][b];[a]palettegen=max_colors=256:stats_mode=full[p];[b][p]paletteuse=dither=sierra2_4a', `${file}.tmp.png`]);
+		if (out.status === 0) renameSync(`${file}.tmp.png`, file);
+	}
+	console.log(`  → og/${name}.png (${Math.round(statSync(file).size / 1024)} KB)`);
+}
+
+const ogCards = {
+	/* The front page: the Plan, part-way through two Carrack parts. */
+	async home({ page, url }) {
+		await seed(page, url, fittedShip);
+		await ogShot(page, 'home');
+	},
+	/* A plan in a link, opened and looked around: the other sailor's
+	 * builds and stock on the Plan, under the bar that says whose. */
+	async plan({ page, url }) {
+		await seed(page, url, emptyStart);
+		const link = await page.evaluate(async save => {
+			const m = await import('/js/share.js');
+			return m.shareLink(await m.encodeShare(save, { slim: true }));
+		}, midBuild);
+		const there = new URL(link);
+		there.searchParams.set('theirs', '1');
+		await seed(page, there.href, emptyStart);
+		await waitFor(page, '[data-share-look]', { then: 400 });
+		await press(page, '[data-share-look]');
+		await wait(1600);
+		// Their builds and what those still need, under the bar along the
+		// foot that says this is a shared plan being looked at.
+		await frame(page, '.summary', { top: 16 });
+		await ogShot(page, 'plan');
+	},
+	/* A ship setup: the fleet's Volante with its four parts and a crew
+	 * of sixteen, on the Ship tab. */
+	async ship({ page, url }) {
+		const theirs = FLEET.find(s => s.username === 'Sea-Wolf').save.profile;
+		await seed(page, url, { ...midBuild, profile: { ...midBuild.profile, crewShip: theirs.crewShip, fitted: theirs.fitted, crystal: theirs.crystal, seats: theirs.seats, roster: theirs.roster, sailingMastery: theirs.sailingMastery } });
+		await tab(page, 'crew');
+		await wait(1200);
+		// The ship's own card at the top: its name, the figures, and the
+		// crew's strip under it.
+		await page.evaluate(() => {
+			const card = document.querySelector('[data-act="crew-link"]').closest('.panel, section');
+			window.scrollTo(0, card.getBoundingClientRect().top + window.scrollY - 12);
+		});
+		await wait(500);
+		await ogShot(page, 'ship');
+	},
+	/* A drawing on the chart: three stops, a freehand line and a word. */
+	async trace({ page, url }) {
+		await seed(page, url, midBuild);
+		await tab(page, 'map');
+		await wait(1600);
+		// Full screen: the chart is the whole card.
+		await click(page, '[data-act="map-full"]', { after: 1500 });
+		await click(page, '[data-act="map-mode"][data-id="trace"]', { after: 700 });
+		await click(page, '[data-act="trace-tool"][data-id="point"]', { after: 500 });
+		for (const [fx, fy] of STOPS) await clickIn(page, '#map', fx, fy, { after: 350 });
+		await click(page, '[data-act="trace-tool"][data-id="pen"]', { after: 400 });
+		await drag(page, '#map', 150, -90, { from: PEN, after: 500 });
+		await click(page, '[data-act="trace-tool"][data-id="text"]', { after: 400 });
+		await clickIn(page, '#map', WORD[0], WORD[1], { after: 400 });
+		await page.keyboard.type('Cox camp here', { delay: 10 });
+		await page.keyboard.press('Enter');
+		await wait(800);
+		await ogShot(page, 'trace');
+	},
+	/* A barter loop plotted on the chart, every leg timed. */
+	async route({ page, url }) {
+		await seed(page, url, midBuild);
+		await tab(page, 'map');
+		await wait(1600);
+		await click(page, '[data-act="map-full"]', { after: 1500 });
+		await click(page, '[data-act="map-mode"][data-id="route"]', { after: 800 });
+		await click(page, '[data-act="map-route-use"]', { after: 2600 });
+		await ogShot(page, 'route');
+	},
+	/* The Barter tab: today's board read, the four steps over it, and
+	 * the run along the foot. */
+	async barter({ page, url }) {
+		await barterDay(page, url, fittedShip);
+		await waitFor(page, '.run-dock', { upTo: 20000 });
+		await frame(page, '.barter-screen .steps', { top: 10 });
+		await ogShot(page, 'barter');
+	},
+	/* The chart: a pin for every barterer with something on the list. */
+	async map({ page, url }) {
+		await seed(page, url, midBuild);
+		await tab(page, 'map');
+		await wait(1600);
+		await click(page, '[data-act="map-full"]', { after: 2400 });
+		await ogShot(page, 'map');
+	},
+	/* The sailing dailies and weeklies, which of them pay the list. */
+	async quests({ page, url }) {
+		await seed(page, url, midBuild);
+		await tab(page, 'quests');
+		await wait(900);
+		await page.evaluate(() => window.scrollTo(0, 0));
+		await frame(page, '[data-act="query"]', { top: 16 });
+		await ogShot(page, 'quests');
+	},
+	/* The community boards, on the example fleet (fleet.mjs). */
+	async community({ page }) {
+		const own = await open({ width: 1200, height: 630 });
+		await fakeCommunity(own.page);
+		await seed(own.page, own.url, midBuild);
+		await tab(own.page, 'community');
+		await wait(1600);
+		await frame(own.page, '.panel', { top: 0 });
+		await own.page.evaluate(() => {
+			const sea = [...document.querySelectorAll('*')].find(e => e.children.length === 0 && /^The sea$/i.test(e.textContent.trim()) && e.closest('section, div'));
+			const head = document.querySelector('[data-act="community-entry"]');
+			const el = head ? head.closest('section, .panel') : sea;
+			if (el) window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY - 70);
+		});
+		await ogShot(own.page, 'community');
+		await own.browser.close();
+	}
+};
+
+stills.og = async ctx => {
+	const { mkdir, copyFile } = await import('node:fs/promises');
+	await mkdir(OG, { recursive: true });
+	const own = await open({ width: 1200, height: 630 });
+	try {
+		for (const [name, card] of Object.entries(ogCards)) {
+			// OG=map,trace re-shoots just those cards while iterating.
+			if (process.env.OG && !process.env.OG.split(',').includes(name)) continue;
+			await card(own);
+		}
+	} finally {
+		await own.browser.close();
+	}
+	await copyFile(`${OG}/home.png`, path.resolve('og.png'));
+};
+
 const all = { ...scenes, ...stills };
 const run = only.length ? only : Object.keys(all);
 
-const ctx = await open();
+// A scene that dies is reported and the rest still shot: one moved
+// button should cost one clip, not the forty behind it. The browser is
+// opened again after a failure, since a scene can die with a dialog up
+// or a recording running.
+let ctx = await open();
+const failed = [];
 for (const name of run) {
 	if (!all[name]) {
 		console.log(`? unknown scene ${name}`);
 		continue;
 	}
 	console.log(`recording ${name}`);
-	await all[name](ctx);
+	try {
+		await all[name](ctx);
+	} catch (err) {
+		failed.push(name);
+		console.log(`  ✖ ${name}: ${err.message.split('\n')[0]}`);
+		await ctx.page.screenshot({ path: `${OUT}/${name}.failed.png` }).catch(() => {});
+		await ctx.browser.close().catch(() => {});
+		ctx = await open();
+	}
 }
 await ctx.browser.close();
-console.log('done');
+console.log(failed.length ? `done -- ${failed.length} failed: ${failed.join(' ')}` : 'done');
+if (failed.length) process.exitCode = 1;

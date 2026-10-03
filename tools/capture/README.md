@@ -69,40 +69,62 @@ app's ocean gradient.
 ## The guide films
 
 Everything above shoots the silent clips the README embeds. The other
-half of this harness shoots **seven narrated chapters** — the thing to
+half of this harness shoots **seventeen narrated chapters** — the thing to
 send someone who asks how one part of the app works, rather than what
-the app is:
+the app is. Their running order is `ORDER` in `guide-kit.mjs`, and a
+chapter's number is its place there: move one and it must be shot again,
+since the number is on its title card (`join.mjs` says which).
 
 | Chapter | What it covers |
 |---|---|
-| `the-yard` | The sailor bar — the numbers the app plans from, the nest of Bos'n Jacks among them — then queue a build, record what you gather (typed, or read off screenshots of a storage), craft, undo, price a part, record a level, the Tree |
-| `to-get` | The plan: the goal, the days a week, what you are willing to do, the steps, and what it will never do |
-| `quests` | The sailing dailies and weeklies, which pay something on your list, and recording a batch at once |
-| `your-ship` | Hull, the four parts, the crystal, the appearance set, the figures — and the crew, read off screenshots then seated by hand and automatically, with presets and setups |
-| `the-map` | The chart, mostly full screen: toolbar, minimap, layers, all five map tabs, stood up on the game's terrain in Ground or Neon with the world curving away, and the Hollow Maretta among the grounds |
-| `a-run` | The whole of bartering: the layout named off the game's barter window by a click or a screenshot, the layout book, an island corrected, then the four kinds of day — silver, a stock, Crow Coins, a material — the orders, the chains and what the Central Market has for them, the two shelves, the clock, sailing it, recording it, and the day's boards |
-| `the-harbour` | The community boards, what a place on one opens, what is and is not shared, and the feedback box a report is written in |
+| `the-yard` | The sailor bar, builds queued, the Plan, a trip logged, a storage read off screenshots |
+| `the-workshop` | Crafting, enhancing, the Inventory and prices, a level recorded, the Tree |
+| `to-get` | The plan: goals, days a week, every switch and the day count under it, what it will never do |
+| `quests` | Dailies and weeklies, what they pay, claiming one or a batch, groups and favourites |
+| `your-ship` | Hull, parts, crystal, figures — and the crew read off screenshots, seated, presets, setups, the fleet |
+| `the-map` | The chart, its tools and terrain, the layers, who has it, the grounds, today's checklist |
+| `routes-and-drawings` | A loop plotted, saved, shared and exported to the game; drawing on the sea |
+| `barter-board` | Today's layout named by an island, a screenshot or a fleet reading; rolls, gates, the layout book, a correction, the refresh |
+| `barter-silver` | A silver day: Before you sail, the ladder, the five ways to sail, the orders, the chains |
+| `barter-wharf` | The Load step: hold weight and slots, trips, buying and taking, the route stop by stop, loaded heavy |
+| `barter-sail` | Cast off, the clock, the cockpit, the chart, recording and undoing, the day's boards |
+| `barter-stock` | A stock day: targets, ceiling, what it banks |
+| `barter-coins` | A Crow Coin day |
+| `barter-material` | A material day off two screenshots, the material book, To Get's board |
+| `barter-short` | A short trip: one picked trade and what fits round it |
+| `barter-bag` | The character bag as a second hold |
+| `the-harbour` | The boards, a sailor's card, the fleet in numbers, leaving, feedback, the Menu |
+
+The first five and the last are in `guides.mjs`; the rest are a file each
+under `chapters/`, which `guides.mjs` loads. A chapter file exports
+`{ id, title, at, blurb, say, shoot(ctx, s, ch) }`; `ctx.out` is the
+folder to film into. The barter chapters answer `/api/market` from the
+recorded day in `test/fixtures/market.json` (`stageSea` in `drive.mjs`),
+so a run plans the same on every shoot, and `barter-board` stages the
+fleet's reading of the board the way the harbour stages its sailors.
 
 ```bash
 PORT=8765 node server.js &
-npm run guide                       # all seven, and the joined film
+npm run guide                       # every chapter, and the joined film
 ./tools/capture/guide.sh the-map    # just one
 ```
 
 Each chapter leaves `docs/media/guide/<name>.mp4` and, beside it, a
-`.vtt` and `.srt` of the same lines and a `.txt` transcript. The mp4
+`.vtt` and `.srt` of the same lines and a `.txt` transcript. Only the
+`.vtt` and the `.txt` are kept in the repository; nothing reads the
+`.srt`, so a re-shoot's copy need not be committed. The mp4
 already carries its words on screen — the caption bar is drawn in the
 page, and most people meet these muted — so the sidecars are for a
 player's own caption track and for whatever a video host wants to index.
 
-Once all seven are on disk, `guide.sh` joins them into
+Once every chapter is on disk, `guide.sh` joins them into
 **`docs/media/walkthrough.mp4`** — the film the README links to and the
 app plays under **Help** — with chapter marks and one merged caption
 track. That join is a stream copy, not a re-encode, so re-shooting one
 chapter replaces it in the joined cut for the cost of an `ffmpeg -c
-copy`. The app's Help dialog lists the seven as jump-to points; their
-offsets live in `FILM` in `js/ui.js`, because a browser will not surface
-an mp4's own chapter marks.
+copy`. The app's Help dialog lists them as jump-to points; their
+offsets live in `js/film.js`, which `join.mjs` writes when it joins
+them, because a browser will not surface an mp4's own chapter marks.
 
 `tour.mjs` used to be the walkthrough. Nothing builds from it now — the
 chapters say the same things at greater length, and `shoot.sh` no longer
@@ -200,7 +222,7 @@ Past that it is the same five rules as a scene, plus five:
   into view, lights it and dims the rest. Half the value is the
   scrolling: a line about the keep-back boxes is worse than useless
   while they are eight hundred pixels below the fold, which is exactly
-  how the first cut of `a-run` shipped.
+  how the first cut of the old single barter chapter shipped.
 - **Say what a control does, in the order someone meets it.** Not what
   it means. "Orange means you are over the limit — you still sail, just
   slower" beats anything with a clause in it. These are watched by
@@ -209,8 +231,9 @@ Past that it is the same five rules as a scene, plus five:
   bar and lets the picture stand on its own for a moment, and the
   caption sidecars use it to decide where one caption ends.
 - **The sailor's numbers live in the shell now**, beside the pouch:
-  the barter count, level, Parley, vouchers, Value Pack, Sailing Mastery
-  and region. `crew-mastery` and `barter-level` used to be fields on the
+  the barter count, level, Value Pack, Corsair, Sailing Mastery and log,
+  Bos'n Jacks and region. The Parley and the vouchers are the Barter
+  tab's, under *Before you sail*. `crew-mastery` and `barter-level` used to be fields on the
   Ship and Barter tabs and are not any more — the Ship tab *reads*
   mastery (`.crew-mastery.read`) and the bar sets it. The Yard types
   them in on camera; every later chapter gets them from the seed, or
@@ -222,7 +245,7 @@ Past that it is the same five rules as a scene, plus five:
 ### The game's own windows
 
 `your-ship` reads a crew off `tools/capture/shots/sailor-*.webp` — the
-game's **Manage Sailors** window — and `a-run` holds
+game's **Manage Sailors** window — and `barter-board` holds
 `barter-window.webp`, the **Barter Information** list, over the app at
 the moment it asks which layout the sea is on. Both are cropped to the
 dialog, and the crop is deliberate: a full screenshot carries the chat
@@ -294,13 +317,15 @@ Five things are worth knowing.
 | `fleet.mjs` | The example sailors on the community boards, and the `/api` answers about them |
 | `comm-audit.mjs` | A headless look over the Community tab on that same fleet |
 | `scenes.mjs` | One entry per clip and per still |
-| `guides.mjs` | The seven narrated chapters — a `say` block and a `shoot` each |
+| `guides.mjs` | Six of the narrated chapters — a `say` block and a `shoot` each — and the runner that loads the rest |
+| `chapters/` | The other narrated chapters, a file each, and the material-window shots one of them reads |
+| `guide-kit.mjs` | The running order, chapter numbers, and the saves the chapters share |
 | `voice.mjs` | Saying a line, and the cache that keeps it |
 | `mix.mjs` | Narration under a film, and the `.vtt` / `.srt` / `.txt` beside it |
 | `guide.sh` | The chapters, shot and mixed, then joined into the walkthrough |
-| `shots/` | Cropped game windows: the **Manage Sailors** shots the reader is given, and the **Barter Information** list `a-run` holds up |
+| `shots/` | Cropped game windows: the **Manage Sailors** shots the reader is given, and the **Barter Information** list `barter-board` holds up |
 | `tour.mjs` | The old single-run film; superseded by the chapters, still runnable |
-| `join.mjs` | The seven chapters end to end, with chapter marks and merged captions |
+| `join.mjs` | The chapters end to end, with chapter marks and merged captions |
 | `shoot.sh` | The whole shoot, and the conversions |
 | `togif.sh` | `webm` → `gif` |
 | `tomp4.sh` | `webm` → `mp4` |

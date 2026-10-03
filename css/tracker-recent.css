@@ -97,15 +97,6 @@
 .chain.rung .chain-start .run-arrow { color: var(--ink-faint); font-weight: 400; }
 .chain.rung .chain-right b { color: var(--ink-hi); }
 .chain.rung .chain-right b.ok { color: var(--teal); }
-.barter-ladder .chain-list { max-height: none; }
-
-/* The run's picks that are not a select: the material, and a count. */
-.run-picks .run-pick-item { display: flex; width: 100%; margin: 0; padding: 5px 8px; font-size: 13px; }
-.run-picks .run-pick-item .row-icon.sm { flex: none; }
-.run-picks .run-pick-qty { display: flex; align-items: center; gap: 8px; min-height: 30px; font-size: 12px; color: var(--ink-mute); }
-.run-picks .run-pick-qty .purse-inline { width: 64px; text-align: center; }
-.run-picks .run-pick-qty .faint { color: var(--ink-faint); }
-.barter-run .run-tiles + .barter-caveat { margin: 12px 0 0; }
 
 /* ------------------------------------------------------------------ *
  * Barter: the hold against the goods ashore
@@ -115,7 +106,7 @@
 .chain-pips i.held { background: transparent; border: 1px solid var(--tier); color: var(--tier); }
 
 .ashore { padding: 4px 14px 14px; border-top: 1px solid var(--line-soft); margin-top: 6px; }
-.ashore-k { font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint); padding: 10px 6px 6px; }
+.ashore-k { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint); padding: 10px 6px 6px; }
 .ashore-town { margin-bottom: 8px; }
 .ashore-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; padding: 4px 6px 6px; font-size: 12px; }
 .ashore-head b { color: var(--ink-hi); font-weight: 600; }
@@ -130,39 +121,8 @@
  * Barter: the sailing orders
  * ------------------------------------------------------------------ */
 .orders { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
-.orders-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.orders-head .run-pick-k { flex: none; }
-.orders-sub, .orders-adjusted { font-size: 12px; color: var(--ink-mute); }
-.orders-adjusted { color: var(--amber); }
-.orders .run-picks { margin-top: 0; }
-@media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
-  .orders .run-picks { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .orders .run-picks .select { font-size: 12px; padding: 5px 6px; }
-}
-.run-floors { display: flex; align-items: center; gap: 8px 10px; flex-wrap: wrap; background: var(--panel-inset); border-radius: var(--r-btn); padding: 7px 9px; }
-.run-floors .run-pick-k { margin-right: 4px; }
-.run-floor { display: inline-flex; align-items: center; gap: 4px; }
-.run-floor i { width: 16px; height: 14px; border-radius: 3px; background: var(--tier); color: var(--on-tint); font-family: var(--font-display); font-style: normal; font-size: 9.5px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
-.run-floor .purse-inline { width: 46px; text-align: center; }
-.floors-note { flex: 1 1 260px; min-width: 0; }
+.orders-sub { font-size: 12px; color: var(--ink-mute); }
 
-/* ---- the stock: a row a level, what is held against what is kept --- */
-.stock-sheet { display: flex; flex-direction: column; gap: 8px; }
-.stock-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.stock-head .run-pick-k { flex: none; margin-bottom: 0; }
-.stock-head .run-pick { display: flex; align-items: center; gap: 8px; background: var(--panel-inset); border-radius: var(--r-btn); padding: 5px 9px; }
-.stock-head .run-pick .select { flex: none; width: auto; padding: 4px 8px; }
-.stock-rows { display: flex; flex-direction: column; gap: 4px; background: var(--panel-inset); border-radius: var(--r-btn); padding: 8px 9px; }
-.stock-row { display: grid; grid-template-columns: 20px minmax(92px, 150px) 58px minmax(64px, 96px) minmax(90px, 260px) minmax(120px, 1fr); align-items: center; gap: 10px; }
-.stock-row.over { opacity: 0.45; }
-.stock-lv { width: 18px; height: 16px; border-radius: 3px; background: var(--tier); color: var(--on-tint); font-family: var(--font-display); font-style: normal; font-size: 10px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
-.stock-have, .stock-each { font-size: 12px; color: var(--ink-mid); line-height: 1.25; }
-.stock-have em, .stock-each em { display: block; font-style: normal; font-size: 10.5px; color: var(--ink-faint); }
-.stock-row .purse-inline { width: 100%; text-align: center; }
-.stock-bar { display: block; height: 6px; border-radius: 3px; background: var(--panel-sunk, rgba(255, 255, 255, 0.06)); overflow: hidden; }
-.stock-bar i { display: block; height: 100%; background: var(--tier); border-radius: 3px; }
-.stock-row.full .stock-note { color: var(--teal); }
-.stock-note { font-size: 11.5px; color: var(--ink-faint); }
 .run-pauses { display: flex; align-items: center; gap: 8px 14px; flex-wrap: wrap; background: var(--panel-inset); border-radius: var(--r-btn); padding: 7px 9px; }
 .run-pauses .run-pick-k { margin-bottom: 0; flex: none; }
 .run-pause { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-mid); }
@@ -177,11 +137,6 @@
 .run-ahead { margin: 10px 0 0; padding: 9px 12px; border-radius: var(--r-btn); background: var(--panel-inset); color: var(--ink-mid); font-size: 12.5px; line-height: 1.5; }
 .run-ahead b { color: var(--ink-hi); }
 .run-ahead.full { color: var(--teal); }
-@media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
-  .stock-row { grid-template-columns: 20px 1fr 58px auto; row-gap: 4px; }
-  .stock-bar { grid-column: 2 / -1; }
-  .stock-note { grid-column: 2 / -1; }
-}
 
 .chain-yard { font-size: 11px; color: var(--ink-mute); }
 .chain-yard em { font-style: normal; color: var(--teal); font-weight: 600; }
@@ -227,8 +182,9 @@
    and a chip that overflowed sat under the hold column beside it --
    drawn after, so it took the click and the fourth chip was dead. */
 .run-paid { display: inline-flex; align-items: center; gap: 5px; flex-wrap: wrap; min-width: 0; max-width: 100%; font-size: 11.5px; color: var(--ink-mute); }
+.run-paid .run-paid-n { width: 84px; height: 26px; padding: 0 8px; text-align: right; }
 .run-paid > span { margin-right: 2px; text-transform: uppercase; letter-spacing: 0.08em; font-size: 10px; }
-.chip.pay { min-width: 30px; height: 28px; padding: 0 9px; display: inline-flex; align-items: center; justify-content: center; font-family: var(--font-display); font-weight: 700; font-size: 13px; }
+.chip.pay { min-width: 30px; height: 28px; padding: 0 9px; display: inline-flex; align-items: center; justify-content: center; gap: 5px; font-family: var(--font-display); font-weight: 700; font-size: 13px; }
 .chip.pay.active { background: rgba(78, 201, 174, 0.22); border-color: var(--teal); color: var(--teal-hi); }
 /* The mark that says this stop was sailed: a box you can hit. */
 .run-done { display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 12px 0 6px; border-radius: 8px; border: 1px solid var(--line-btn-hi); background: rgba(var(--deep-rgb), 0.6); color: var(--ink-mid); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; }
@@ -254,10 +210,9 @@
 
 /* ---- the clock for the time the ship is out --------------------- */
 .sail-timer { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.sail-timer-k { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
 .sail-timer .chip.tiny { padding: 3px 8px; }
 .sail-timer.running { gap: 8px; padding: 4px 6px 4px 10px; border-radius: var(--r-btn); background: var(--panel-inset); position: relative; overflow: hidden; }
-.sail-timer.running b { font-family: var(--font-display); font-weight: 600; color: var(--ink-hi); font-variant-numeric: tabular-nums; }
+.sail-timer.running b { flex: 0 1 auto; min-width: 0; font-family: var(--font-display); font-weight: 600; color: var(--ink-hi); font-variant-numeric: tabular-nums; }
 /* The estimate as a filling line under the clock, so how far along the
    run is can be read without reading the numbers. */
 .sail-timer-bar { position: absolute; inset: auto 0 0 0; height: 2px; background: rgba(255, 255, 255, 0.06); }
@@ -267,11 +222,19 @@
 .sail-timer .chip.tiny.warn { border-color: var(--red-edge); color: var(--amber); }
 .sail-timer-modes { display: inline-flex; gap: 2px; }
 .sail-timer-modes .chip.tiny { padding: 2px 7px; font-size: 10.5px; }
+/* The clock's own two controls. It used to have one, a bare cross, and
+   a sailor who came back to a clock long past its end could only throw
+   it away -- so they are words now, and one of them starts it over. */
+.sail-timer .chip.tiny.sail-timer-again, .sail-timer .chip.tiny.sail-timer-off { padding: 2px 7px; font-size: 10.5px; }
+.sail-timer .chip.tiny.sail-timer-off { color: var(--ink-faint); }
 .sail-timer.over { background: rgba(232, 184, 109, 0.1); }
 .sail-timer.over b { color: var(--amber); }
 .sail-timer.over .sail-timer-bar i { background: var(--amber); }
-.hold-bar-timer { display: flex; align-items: center; margin-left: auto; }
 .sail-n b { font-family: var(--font-display); font-size: 16px; color: var(--ink-hi); }
+/* What the recording will have to guess at. Amber rather than red: it
+   is a count being estimated, not a thing gone wrong, and the sailor
+   can still say the number on the stop itself. */
+.sail-guess { font-size: 11px; color: var(--amber); border: 1px solid color-mix(in srgb, var(--amber) 40%, transparent); background: color-mix(in srgb, var(--amber) 8%, transparent); border-radius: 999px; padding: 2px 9px; }
 
 /* The week: the runs recorded, a bar a day. */
 .week .panel-head { flex-wrap: wrap; }
@@ -287,7 +250,6 @@
 .hold-filters .field.hold-q, .chain-filters .field.hold-q { flex: 1 1 160px; min-width: 140px; padding: 5px 9px; font-size: 12px; }
 .chip.tiny.lvl { min-width: 22px; padding: 2px 6px; font-family: var(--font-display); font-weight: 700; border-color: var(--tier); color: var(--tier); background: transparent; }
 .chip.tiny.lvl.active { background: var(--tier); color: var(--on-tint); }
-.ashore-k { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .ashore-places { text-transform: none; letter-spacing: 0; }
 .map-tip-check { margin-top: 6px; }
 
@@ -372,104 +334,46 @@ body.map-turned .toast { left: 40px; top: 50%; bottom: auto; transform: translat
    on the left, the islands that can deal it as chips on the right.
    Ticking is the work, so a row ticked wears the teal edge. */
 .mat-list.hero { padding: 0; overflow: hidden; }
-.mat-strip { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--line-head); }
-.mat-tile { display: flex; align-items: stretch; background: var(--panel-inset); border: 1px solid var(--line); border-radius: 10px; padding: 0; text-align: left; color: var(--ink-mid); font: inherit; overflow: hidden; }
-.mat-tile:hover { border-color: rgba(var(--blue-rgb), 0.5); }
-.mat-tile.active { background: rgba(var(--blue-rgb), 0.12); border-color: rgba(var(--blue-rgb), 0.55); color: var(--ink-hi); }
-.mat-tile-main { display: flex; align-items: center; gap: 9px; padding: 6px 12px 6px 7px; background: none; border: none; color: inherit; font: inherit; text-align: left; cursor: pointer; min-width: 0; }
-.mat-tile-x { flex: none; border: none; border-left: 1px solid var(--line); background: none; color: var(--ink-faint); padding: 0 10px; font: inherit; font-size: 15px; line-height: 1; cursor: pointer; }
-.mat-tile-x:hover { color: var(--red); background: rgba(232, 122, 109, 0.09); }
-.mat-tile .row-icon.md { flex: none; }
 .mat-pick-hint { padding: 22px 18px 26px; text-align: center; color: var(--ink-mute); font-size: 13px; line-height: 1.6; }
-.mat-tile-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.mat-tile-name { font-size: 12.5px; font-weight: 600; white-space: nowrap; }
-.mat-tile-sub { display: flex; gap: 8px; font-size: 11px; color: var(--ink-mute); font-weight: 400; }
-.mat-tile-tick { color: var(--ink-faint); font-weight: 600; }
-.mat-tile-tick.some { color: var(--teal); }
-.mat-tile.add { border-style: dashed; border-color: var(--line-btn); color: var(--ink-faint); padding: 12px 14px; font-size: 12px; font-weight: 600; }
-.mat-tile.add:hover { color: var(--ink-dim); border-color: var(--line-btn-hi); }
-.mat-strip .linky.faint, .mat-filters .linky.faint { color: var(--ink-faint); text-decoration: none; font-size: 11.5px; font-weight: 600; }
-.mat-strip .linky.faint:hover { color: var(--red); }
-.mat-filters .linky.faint:hover { color: var(--ink-dim); }
 
-.mat-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 18px; border-bottom: 1px solid var(--line-head); }
-.mat-head .row-icon.mat-head-icon { width: 34px; height: 34px; border-radius: 7px; flex: none; }
-.mat-head-text { flex: 1 1 200px; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.mat-head-name { background: none; border: none; padding: 0; font: inherit; font-weight: 700; font-size: 14px; color: var(--ink-hi); text-align: left; cursor: pointer; }
-.mat-head-name .caret { font-size: 11px; color: var(--ink-faint); }
-.mat-head-name:hover .caret { color: var(--blue-hi); }
-.mat-head-sub { font-size: 11.5px; color: var(--ink-faint); line-height: 1.45; }
-.mat-head-sub b { color: var(--teal-hi); font-weight: 600; }
 .mat-want { display: flex; align-items: center; gap: 7px; }
 .mat-want .run-pick-k { margin: 0; }
 .mat-want .purse-inline { width: 64px; text-align: right; font-family: var(--font-display); font-size: 13px; font-weight: 600; color: var(--ink-hi); }
-.chip.mat-short { background: rgba(232, 122, 109, 0.1); border-color: rgba(232, 122, 109, 0.4); color: var(--red); border-radius: 7px; padding: 5px 10px; font-size: 11.5px; }
-.chip.mat-short:hover { background: rgba(232, 122, 109, 0.2); color: var(--red-soft); }
 
-.mat-filters { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 9px 12px; border-bottom: 1px solid var(--line-soft); }
-.mat-filters .field.hold-q { flex: 1 1 200px; padding: 7px 12px; font-size: 12.5px; border-radius: 8px; }
-.mat-filters .chip.tiny { border-radius: 8px; padding: 6px 11px; font-size: 11.5px; white-space: nowrap; }
-.mat-filters .chip.tiny.active { background: rgba(78, 201, 174, 0.16); border-color: rgba(78, 201, 174, 0.55); color: var(--teal-hi); }
-.mat-filters-rule { width: 1px; height: 18px; background: var(--line-btn); margin: 0 3px; }
-.mat-filters .chip.tiny.lvl { width: 26px; height: 26px; min-width: 0; padding: 0; border-radius: 6px; font-size: 11px; border-color: var(--line-btn); color: var(--ink-mute); }
-.mat-filters .chip.tiny.lvl.active { background: var(--tier); border-color: var(--tier); color: var(--on-tint); }
-.mat-filters .linky.faint { padding: 0 6px; }
-
-.mat-gives { display: flex; flex-direction: column; }
-.mat-gives .empty { padding: 28px; font-size: 12.5px; }
-.mat-give { display: grid; grid-template-columns: minmax(220px, 300px) minmax(0, 1fr); gap: 8px 18px; padding: 10px 18px 11px 15px; border-left: 3px solid transparent; border-bottom: 1px solid var(--line-soft); }
-.mat-give:last-child { border-bottom: none; }
-.mat-give.on { border-left-color: var(--teal); background: rgba(78, 201, 174, 0.05); }
-.mat-give-left { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-.mat-give-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.mat-give-head b { font-weight: 600; font-size: 13.5px; color: var(--ink-row); }
-.mat-give-head .run-arrow { color: var(--ink-faint); font-size: 12px; }
-.mat-give-head b.mat-get { font-family: var(--font-display); font-size: 13px; font-weight: 700; color: var(--blue-hi); }
-.tier-badge { font-family: var(--font-display); font-style: normal; font-size: 9.5px; font-weight: 700; color: var(--on-tint); background: var(--tier, var(--track)); border-radius: 4px; padding: 2px 5px; }
-.mat-give-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 11.5px; }
-.mat-give-meta .faint { color: var(--ink-faint); }
-.mat-held { font-weight: 600; color: var(--ink-mute); }
-.mat-held.ok { color: var(--teal); }
-.mat-held.none { color: var(--ink-mute); }
-.mat-board-link { font-size: 11.5px; font-weight: 600; color: var(--blue); text-decoration-color: rgba(124, 195, 238, 0.4); }
-.mat-board-link:hover { color: var(--ink-hi); }
-.mat-isles { align-content: flex-start; gap: 5px; }
-.chip.mat-isle { display: inline-flex; align-items: baseline; gap: 5px; border-radius: 6px; padding: 3px 8px; font-size: 12px; font-weight: 600; background: rgba(var(--line-rgb), 0.06); border-color: rgba(var(--line-rgb), 0.14); color: var(--ink); line-height: 1.3; }
-.chip.mat-isle:hover { border-color: rgba(78, 201, 174, 0.6); }
-.chip.mat-isle .mat-isle-who { font-size: 10.5px; font-weight: 500; color: var(--ink-mute); }
-.chip.mat-isle .mat-isle-seen { font-size: 10px; font-family: var(--font-display); font-weight: 600; color: var(--ink-faint); }
-.chip.mat-isle .mat-isle-seen.some { color: var(--blue-hi); }
-.chip.mat-isle.active { background: rgba(78, 201, 174, 0.16); border-color: rgba(78, 201, 174, 0.6); color: var(--teal-hi); }
-.chip.mat-isle.active .mat-isle-who { color: #6fc9b3; }
-.chip.mat-isle.other { opacity: 0.4; text-decoration: line-through; }
-/* An island the barter count has not opened: there, and not yours. */
-.chip.mat-isle.shut { opacity: 0.5; cursor: not-allowed; border-style: dashed; }
-.chip.mat-isle.shut:hover { border-color: rgba(var(--line-rgb), 0.14); }
-.chip.mat-isle.shut .mat-isle-who { font-family: var(--font-display); color: var(--amber); }
+/* Today's list for one material on the run: its want, and the islands of
+   the layout dealing it -- can do, can't do, not open yet. */
+.mat-need { border-bottom: 1px solid var(--line-soft); padding: 12px 18px 14px; }
+.mat-need-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+.mat-need-head .row-icon.md { width: 34px; height: 34px; border-radius: 7px; flex: none; }
+.mat-need-text { flex: 1 1 200px; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.mat-need-text b { font-size: 14px; color: var(--ink-hi); }
+.mat-need-text small { font-size: 11.5px; color: var(--ink-faint); }
+.mat-rows { display: flex; flex-direction: column; border: 1px solid var(--line-soft); border-radius: var(--r-tile); overflow: hidden; }
+.mat-row { display: grid; grid-template-columns: minmax(130px, 190px) minmax(0, 1fr) auto minmax(110px, auto); align-items: center; gap: 6px 14px; padding: 7px 12px; border-top: 1px solid var(--line-soft); font-size: 12.5px; }
+.mat-row:first-child { border-top: none; }
+.mat-row.off { opacity: 0.55; }
+.mat-row-isle { display: flex; flex-direction: column; min-width: 0; }
+.mat-row-isle b { font-weight: 600; color: var(--ink-row); }
+.mat-row-isle small { font-size: 10.5px; color: var(--ink-mute); }
+.mat-row-swap { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.mat-row-swap > span:not(.run-arrow) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mat-row-swap .run-arrow { color: var(--ink-faint); }
+.mat-row-swap b { font-family: var(--font-display); color: var(--blue-hi); }
+.mat-row-day { font-size: 11.5px; color: var(--ink-mute); white-space: nowrap; }
+.mat-row-state { font-size: 11.5px; font-weight: 600; text-align: right; white-space: nowrap; }
+.mat-row-state.ok { color: var(--teal); }
+.mat-row-state.none { color: var(--ink-mute); }
+.mat-row-state.shut { color: var(--amber); }
+.mat-rows-k { margin: 10px 0 5px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-faint); }
+.mat-none { margin: 2px 0; font-size: 12.5px; color: var(--ink-mute); }
 @media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
-  .mat-give { grid-template-columns: 1fr; gap: 6px; padding: 10px 14px 11px 11px; }
-  .mat-strip, .mat-head { padding-left: 14px; padding-right: 14px; }
+  .mat-need { padding: 11px 14px 13px; }
+  .mat-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .mat-row-swap { grid-column: 1 / -1; order: 3; }
+  .mat-row-day { display: none; }
 }
 
 /* ---- The run for a material, and the hold beside it ---- */
-.mat-run { padding: 0; overflow: hidden; }
-.mat-run .run-head { padding: 12px 18px; margin: 0; align-items: center; gap: 10px; }
-.mat-run .run-head .panel-sub { flex: 1 1 200px; }
-.run-head .run-pick { flex: none; }
-.run-head .run-pick .run-pick-k { margin: 0; letter-spacing: 0; text-transform: none; font-size: 11.5px; color: var(--ink-mute); }
-.run-head .run-pick .select { padding: 5px 9px; font-size: 12px; }
-.mat-run-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding: 12px 18px; border-bottom: 1px solid var(--line-soft); }
-.mat-run-head .panel-title { margin: 0; }
-.mat-run-head .run-pick { margin-left: auto; }
-.mat-run-for { display: flex; flex-wrap: wrap; gap: 6px; flex: 1 1 200px; min-width: 0; }
-.mat-for { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px 3px 4px; border-radius: 999px; background: var(--panel-inset); border: 1px solid var(--line); font-size: 12px; color: var(--ink-mid); }
-.mat-for.active { border-color: rgba(var(--blue-rgb), 0.45); color: var(--ink-hi); }
-.mat-for .row-icon.sm { width: 22px; height: 22px; border-radius: 5px; flex: none; }
-.mat-for b { font-family: var(--font-display); font-weight: 600; color: var(--ink-hi); }
-.mat-orders { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; padding: 10px 18px; border-bottom: 1px solid var(--line-soft); font-size: 12.5px; color: var(--ink-mid); }
-.mat-order { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
-.mat-order .run-pick-k { margin: 0; }
-.mat-orders .purse-inline { text-transform: none; letter-spacing: 0; max-width: 100%; }
 .mat-summary { padding: 14px 18px 16px; display: flex; flex-direction: column; gap: 14px; }
 .mat-yield { display: flex; flex-direction: column; gap: 8px; }
 .mat-yield-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "icon name n" "icon bar bar" "icon note note"; column-gap: 10px; row-gap: 3px; align-items: center; }
@@ -500,10 +404,7 @@ body.map-turned .toast { left: 40px; top: 50%; bottom: auto; transform: translat
 .mat-goods .run-good > span:not(.faint):not(.run-good-worth) { white-space: normal; flex: 1 1 150px; }
 .mat-goods .run-good .faint { flex: 1 1 100%; order: 5; padding-left: 2px; white-space: normal; }
 @media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
-  .mat-run-head, .mat-orders, .mat-summary { padding-left: 14px; padding-right: 14px; }
-  .mat-run-head .run-pick { margin-left: 0; }
-  .mat-order { display: flex; width: 100%; }
-  .mat-order .purse-inline { flex: 1 1 auto; min-width: 0; }
+  .mat-summary { padding-left: 14px; padding-right: 14px; }
   .mat-figs .mat-fig { flex: 1 1 45%; }
   .mat-goods .run-good { padding-left: 14px; padding-right: 14px; }
   .mat-goods .run-good .run-good-worth { flex: 1 1 100%; order: 6; margin-left: 0; }
@@ -516,10 +417,6 @@ body.map-turned .toast { left: 40px; top: 50%; bottom: auto; transform: translat
 .run-seg-head .mat-seg-icons .row-icon.xs { width: 24px; height: 24px; border-radius: 5px; }
 .run-seg-head em.mat-got { flex: none; font-family: var(--font-display); font-size: 12.5px; font-weight: 700; color: var(--amber); }
 .run-seg-head em.mat-got.met { color: var(--teal); }
-.mat-sail { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 12px; border-radius: var(--r-panel); border: 1px solid var(--line-btn); background: var(--panel); }
-.mat-sail.sailing { border-color: var(--teal-edge); }
-.mat-sail .sail-bar { flex: 1 1 320px; padding: 0; border: none; background: transparent; }
-.mat-sail .ghost-btn.run-chart { flex: none; }
 
 /* ---- The burst of light for a thing done (cheer.js) ---- */
 .cheer { position: fixed; z-index: 1200; width: 0; height: 0; pointer-events: none; }
@@ -564,6 +461,11 @@ body.map-turned .toast { left: 40px; top: 50%; bottom: auto; transform: translat
 .sel-log-row b { color: var(--ink); }
 .sel-log-row.quiet { opacity: 0.7; }
 .sel-log-stats { display: block; font-size: 10.5px; opacity: 0.8; }
+
+/* On the Map the day's line steps aside on every screen: its clocks
+   are on the chart's own pill, and the line was one more band pushing
+   the chart down to the middle of the window. */
+body[data-view="map"] .status-bar { display: none; }
 
 /* A phone on its side is 390 pixels tall, and the chart was under
    every one of them: the header, the purse, the day's line and the
@@ -646,9 +548,7 @@ body.map-turned .toast { left: 40px; top: 50%; bottom: auto; transform: translat
 .fb-entry-when { margin-left: auto; }
 .fb-entry-foot { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; font-size: 11px; color: var(--ink-faint); }
 .fb-entry-acts { display: flex; gap: 6px; margin-left: auto; }
-.chip.tiny.danger:hover { border-color: var(--red-edge); color: var(--red-soft); }
 .fb-filter { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 0; }
-.fb-filter .chip.on { background: rgba(var(--blue-rgb), 0.18); border-color: rgba(var(--blue-rgb), 0.55); color: var(--blue-hi); }
 .fb-filter .n { font-family: var(--font-display); color: var(--ink-faint); }
 .fb-done { margin-top: 10px; }
 .fb-done > summary { cursor: pointer; font-size: 12.5px; color: var(--ink-mid); }
@@ -712,7 +612,7 @@ body.map-turned .toast { left: 40px; top: 50%; bottom: auto; transform: translat
 
 /* The Parley bar under the hold's, in the same column of a stop. */
 .run-parley { margin-top: 8px; padding-top: 6px; border-top: 1px dashed var(--line); }
-.run-parley > div:first-child { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
+.run-parley > div:first-child { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px; }
 .run-parley span { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
 .run-parley b { font-family: var(--font-display); font-size: 12px; font-weight: 600; color: var(--ink-mute); }
 .run-parley b.amber { color: var(--amber); }
@@ -722,42 +622,39 @@ body.map-turned .toast { left: 40px; top: 50%; bottom: auto; transform: translat
 .run-parley.low .run-bar.parley i { background: var(--amber); }
 .run-parley.short .run-bar.parley i { background: var(--red); }
 .run-note.teal { color: var(--teal); }
+/* The rations under the Parley bar, and a wharf call's supplies. */
+.run-rations { margin-top: 8px; padding-top: 6px; border-top: 1px dashed var(--line); }
+.run-rations > div:first-child { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
+.run-rations span { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
+.run-rations b { font-family: var(--font-display); font-size: 12px; font-weight: 600; color: var(--ink-mute); }
+.run-rations b.warn { color: var(--red); }
+.run-rations small { font-size: 10px; color: var(--teal); margin-left: auto; }
+.run-bar.rations i { background: var(--amber); }
+.run-rations.low .run-bar.rations i { background: var(--red); }
+.run-supply { margin-top: 7px; display: inline-flex; align-items: center; gap: 7px; background: var(--panel-inset); border: 1px solid var(--line); border-radius: 7px; padding: 4px 11px; font-size: 12px; font-weight: 600; }
+.run-rations-line { margin: 4px 0 8px; font-size: 12.5px; }
+.cockpit-fig.rations .est { font-style: normal; font-size: 9.5px; letter-spacing: 0.04em; text-transform: none; color: var(--ink-faint); margin-left: 4px; }
+.mini-bar.rations small { font-size: 10px; color: var(--teal); margin-left: 4px; }
+.run-bar.rations.low i, .mini-bar.rations.low .run-bar.rations i { background: var(--red); }
+.run-rations-line.warn { color: var(--red); }
 @media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
-  .run-hold { flex-wrap: wrap; }
   .run-parley { flex: 1 1 100%; display: flex; align-items: center; gap: 10px; margin-top: 4px; padding-top: 4px; }
   .run-parley > div:first-child { flex: none; }
   .run-parley .run-bar { flex: 1 1 auto; margin-top: 0; }
   .run-parley .run-note { flex: 1 1 100%; }
+  .run-rations { flex: 1 1 100%; display: flex; align-items: center; gap: 10px; margin-top: 4px; padding-top: 4px; }
+  .run-rations > div:first-child { flex: none; }
+  .run-rations .run-bar { flex: 1 1 auto; margin-top: 0; }
+  .run-rations .run-note { flex: 1 1 100%; }
 }
-.hold-parley { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-mute); white-space: nowrap; }
-.hold-parley .purse-inline { width: 92px; }
 
 /* The three paces, compared, under the run's tiles. */
-.pace-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; margin: 10px 0 0; }
-.pace-card { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; padding: 10px 12px; border-radius: var(--r-btn); border: 1px solid var(--line-btn); background: rgba(var(--deep-rgb), 0.3); color: var(--ink-mid); text-align: left; font: inherit; cursor: pointer; }
-.pace-card:hover { border-color: var(--line-btn-hi); }
-.pace-card.on { border-color: var(--blue-edge); background: rgba(var(--blue-rgb), 0.12); }
-.pace-k { font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-mute); }
-.pace-card.on .pace-k { color: var(--blue-hi); }
-.pace-card b { font-family: var(--font-display); font-size: 17px; color: var(--ink-hi); }
-.pace-sub { font-size: 11.5px; color: var(--ink-faint); }
-.pace-sub.amber { color: var(--amber); }
-.pace-sub.warn { color: var(--red); }
 /* Quests off the way fold away; the head is the handle. */
 details.run-quests-off > summary { list-style: none; cursor: pointer; }
 details.run-quests-off > summary::-webkit-details-marker { display: none; }
 details.run-quests-off > summary .panel-title::before { content: '▸ '; color: var(--ink-faint); }
 details.run-quests-off[open] > summary .panel-title::before { content: '▾ '; }
-/* The Parley line on the hold strip: the bar, the level and the trade's price. */
-.hold-parley select { font-size: 12px; }
-/* Read here, set in the bar at the top: the same figures, without a
-   second place to type them. */
-.hold-parley.read b { font-family: var(--font-display); font-size: 13px; color: var(--ink-hi); font-variant-numeric: tabular-nums; }
-.hold-parley.read small { color: var(--ink-faint); }
-/* Room for "23,800 / 18,300 LT" and the Parley's spend beside its bar. */
-.run-hold { width: 152px; }
 .run-hold > div:first-child b, .run-parley > div:first-child b { font-size: 11.5px; white-space: nowrap; }
-.run-parley > div:first-child { flex-wrap: wrap; }
 
 /* ------------------------------------------------------------------ *
  * Community: the harbour, the hall of fame, the fleet in numbers
@@ -767,8 +664,8 @@ details.run-quests-off[open] > summary .panel-title::before { content: '▾ '; }
 .comm-copy { margin: 0; padding: 12px 20px 14px; font-size: 13px; line-height: 1.55; color: var(--ink-mid); }
 .comm-copy .act.small, .comm-copy .chip.tiny { vertical-align: middle; margin: 0 2px; }
 .comm-head .panel-head { padding-bottom: 12px; }
-.comm-halves { display: flex; gap: 4px; padding: 3px; border-radius: 999px; border: 1px solid var(--line-btn); background: rgba(var(--deep-rgb), 0.4); }
-.comm-halves .seg { border-radius: 999px; padding: 6px 14px; font-size: 12.5px; font-weight: 600; }
+.comm-halves { display: flex; gap: 4px; padding: 3px; border-radius: calc(var(--btn-r) + 3px); border: 1px solid var(--line-btn); background: rgba(var(--deep-rgb), 0.4); }
+.comm-halves .seg { padding: 6px 14px; }
 
 /* Your own strip under the head: avatar, name, the best of your places, the verbs. */
 .comm-you.on { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin: 0 12px 12px; padding: 12px 14px; border-radius: var(--r-btn); border: 1px solid rgba(var(--blue-rgb), 0.28); background: linear-gradient(90deg, rgba(var(--blue-rgb), 0.12), rgba(var(--deep-rgb), 0.2) 60%); }
@@ -886,6 +783,7 @@ h2.comm-board-title { font-size: 15px; }
 .comm-numbers { display: flex; flex-direction: column; gap: 14px; }
 .comm-totals .stat { flex: 1 1 150px; display: flex; gap: 10px; padding: 14px 18px; }
 .comm-stat-i { font-size: 15px; line-height: 1.5; color: var(--blue); flex: none; }
+img.comm-silver { width: 1.25em; height: 1.25em; vertical-align: -0.25em; object-fit: contain; }
 .comm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; align-items: start; }
 .comm-numbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .comm-numbar-note { margin-left: auto; font-size: 11.5px; color: var(--ink-faint); }
@@ -1045,3 +943,290 @@ h2.comm-board-title { font-size: 15px; }
 .comm-how-sums { margin-bottom: 12px; }
 .comm-how-sums .n { font-family: var(--font-display); font-size: 12px; color: var(--ink-hi); }
 .comm-how-min { font-size: 12px; color: var(--ink-faint); }
+/* The clock's own line: the count on the left, the controls held to the
+   right, so a figure that narrows as it counts moves nothing beside it. */
+.sail-timer-ctl { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-left: auto; }
+.cockpit-clock .sail-timer { flex: 1 1 100%; width: 100%; box-sizing: border-box; }
+
+/* The ship on the sailing clock (sail-scene.js): a strip of sea across
+   the top of the running clock, the sailor's own ship crossing the leg. */
+.sail-timer.running.with-scene { padding-top: 0; }
+.sail-scene { position: relative; display: block; flex: 1 1 100%; height: 56px; margin: 0 -6px 2px -10px; border-bottom: 1px solid var(--line); overflow: hidden; }
+.sail-scene canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.sail-scene-cheer { position: absolute; right: 96px; top: 8px; opacity: 0; pointer-events: none; font-family: var(--font-display); font-size: 11px !important; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--teal) !important; text-shadow: 0 0 12px var(--teal-glow); }
+.sail-scene-cheer.on { animation: sail-cheer 2.4s ease-out both; }
+@keyframes sail-cheer { 0% { opacity: 0; transform: translateY(6px); } 20% { opacity: 1; transform: none; } 80% { opacity: 1; } 100% { opacity: 0; transform: translateY(-4px); } }
+@media (prefers-reduced-motion: reduce) { .sail-scene-cheer.on { animation: none; opacity: 0; } }
+.mat-nothing { padding: 4px 2px 8px; }
+.mat-nothing b { color: var(--ink-dim); font-weight: 600; }
+
+/* A planned voucher said drawn, and the bar as the game's window shows it. */
+.cockpit-voucher .voucher-drawn { margin-left: auto; flex: none; }
+.cockpit-voucher .voucher-drawn.active { border-color: var(--teal); color: var(--teal); }
+.parley-fix { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 11px; color: var(--ink-faint); }
+.parley-fix input { width: 9em; }
+
+/* ------------------------------------------------------------------ *
+ * The guided tour, in the app's own materials
+ * ------------------------------------------------------------------ */
+
+/* Driver.js ships a white box in Helvetica with a pale-grey close at
+   1.5:1 -- a different product's dialog standing in the middle of this
+   one. Its sheet arrives after these (it is fetched with the tour), so
+   every rule here carries the tour's own class to outrank it. */
+.driver-popover.sail-tour {
+  background: var(--sheet-solid);
+  color: var(--ink);
+  font-family: var(--font-body);
+  border: 1px solid var(--line-btn);
+  border-radius: var(--r-panel);
+  box-shadow: 0 16px 48px rgba(var(--shade-rgb), 0.55);
+  padding: 16px 18px 14px;
+  min-width: 260px;
+  max-width: 360px;
+}
+.sail-tour .driver-popover-title { font-family: var(--font-display); font-size: 16px; font-weight: 600; letter-spacing: 0.02em; color: var(--ink-hi); padding-right: 30px; line-height: 1.35; }
+.sail-tour .driver-popover-description { font-size: 13.5px; line-height: 1.55; color: var(--ink-mid); }
+.sail-tour .driver-popover-description b { color: var(--ink-hi); }
+.sail-tour .driver-popover-close-btn { width: 36px; height: 36px; top: 6px; right: 6px; border-radius: var(--btn-r); color: var(--ink-mute); font-size: 20px; line-height: 36px; }
+.sail-tour .driver-popover-close-btn:hover, .sail-tour .driver-popover-close-btn:focus-visible { color: var(--btn-ink-hi); background: var(--btn-wash); }
+.sail-tour .driver-popover-progress-text { color: var(--ink-faint); font-size: 12px; font-family: var(--font-display); }
+.sail-tour .driver-popover-footer { margin-top: 14px; gap: 8px; }
+/* driver.js draws its own buttons; these give them the app's secondary
+   (Back) and primary (Next) kinds from tracker-base.css. */
+.sail-tour .driver-popover-footer-btn { font-family: var(--font-body); font-size: var(--btn-fs-lg); font-weight: 600; padding: var(--btn-pad-md); border-radius: var(--btn-r); border: 1px solid var(--btn-edge); background: none; color: var(--btn-ink); text-shadow: none; }
+.sail-tour .driver-popover-footer-btn:hover, .sail-tour .driver-popover-footer-btn:focus-visible { border-color: var(--btn-edge-hi); color: var(--btn-ink-hi); background: var(--btn-wash); }
+.sail-tour .driver-popover-footer-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.sail-tour .driver-popover-next-btn { background: var(--btn-pri-bg); border-color: var(--btn-pri-edge); color: var(--btn-pri-ink); font-weight: 700; }
+.sail-tour .driver-popover-next-btn:hover, .sail-tour .driver-popover-next-btn:focus-visible { background: var(--btn-pri-bg-hi); border-color: var(--btn-pri-edge); color: var(--btn-pri-ink); }
+.sail-tour .driver-popover-navigation-btns button + button { margin-left: 8px; }
+.sail-tour .driver-popover-arrow-side-left { border-left-color: var(--sheet-solid); }
+.sail-tour .driver-popover-arrow-side-right { border-right-color: var(--sheet-solid); }
+.sail-tour .driver-popover-arrow-side-top { border-top-color: var(--sheet-solid); }
+.sail-tour .driver-popover-arrow-side-bottom { border-bottom-color: var(--sheet-solid); }
+/* Where a section is on a phone when it is not at the thumb: "☰ Menu ›
+   Builds", above the step's words. */
+.sail-tour .tour-where { display: block; margin-bottom: 4px; font-family: var(--font-display); font-size: 12px; letter-spacing: 0.03em; color: var(--ink-faint); }
+/* Driver.js unsets its buttons whole, position included, so the touch
+   halo (tracker-sea.css) hung itself on the popover and Next took a
+   press anywhere on the step. Each button anchors its own again, and
+   under a finger is drawn the full 44 pixels. */
+.sail-tour .driver-popover-footer-btn { position: relative; }
+@media (pointer: coarse) {
+  .sail-tour .driver-popover-footer-btn { min-height: 44px; min-width: 64px; }
+  .sail-tour .driver-popover-close-btn { width: 44px; height: 44px; line-height: 44px; top: 2px; right: 2px; }
+  .sail-tour .driver-popover-title { padding-right: 40px; }
+}
+
+/* On a phone the step is a sheet at the thumb, the width of the screen,
+   rather than a box over the middle of it; a step about the bar at the
+   bottom puts its sheet at the top instead. */
+@media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
+  .driver-popover.sail-tour {
+    position: fixed !important;
+    top: auto !important;
+    bottom: calc(10px + env(safe-area-inset-bottom, 0px)) !important;
+    left: 10px !important;
+    right: 10px !important;
+    min-width: 0;
+    max-width: none;
+    max-height: 44vh;
+    overflow-y: auto;
+  }
+  .driver-popover.sail-tour.tour-top { top: calc(10px + env(safe-area-inset-top, 0px)) !important; bottom: auto !important; }
+  .sail-tour .driver-popover-arrow { display: none; }
+}
+
+/* ---- a phone: long words are never cut ------------------------------ */
+/* A German or Russian name is half again as long as the English one, and
+   a line that ends in "…" on a phone hid the half that told two goods
+   apart. One set of rules, at phone widths only (the desk is unchanged):
+   a name wraps to two lines and is cut only past the second, where its
+   full text is in the title; a line of figures or a reason wraps as far
+   as it needs; the icon and the tick hold the left, and a button stays
+   a thumb's width. */
+@media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
+  /* Names: two lines, then cut. */
+  .row-name, .picker-name, .tpick-name, .peek-name, .trip-pick span:last-child,
+  .barter-good .map-row-name, .map-row .map-row-name, .tile-name, .tile-name.tiered, .want-name {
+    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2;
+    white-space: normal; overflow: hidden; text-overflow: clip; overflow-wrap: break-word; hyphens: auto;
+    height: auto; max-height: none; min-width: 0;
+  }
+  .row-name { line-height: 1.3; }
+  .tile-name, .want-name { line-height: 1.25; min-height: 25px; }
+  /* Figures and reasons: as many lines as they take. */
+  .row-sub, .trow-sub, .trow-name, .sheet-item-text > small, .barter-good .map-row-sub, .map-row .map-row-sub,
+  .detail-line span:first-child, .plan-sec-head > span {
+    white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: break-word; hyphens: auto;
+  }
+  .row-sub.plan-why { display: block; -webkit-line-clamp: none; line-clamp: none; }
+  /* The barter step bar: the open step takes the whole first row and says
+     its whole line; the other three sit under it as tabs, in their order.
+     Side by side, a Russian "Погрузить на причале" had a hundred pixels. */
+  .steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-flow: row dense; gap: 6px; margin: 0; padding: 0; overflow: visible; }
+  .step { min-width: 0; min-height: 44px; }
+  .step.on { grid-column: 1 / -1; grid-row: 1; }
+  .step:not(.on) { justify-content: center; align-items: center; text-align: center; }
+  .step:not(.on) .step-k { flex-wrap: wrap; justify-content: center; }
+  .step.on .step-sub { -webkit-line-clamp: none; line-clamp: none; }
+
+  /* The hold's goods: the icon at the left of two rows -- the name and
+     its figures across the top, the count and Unload under them. */
+  .barter-good {
+    display: grid; grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas: "icon main main" "icon count act";
+    column-gap: 10px; row-gap: 6px; align-items: center;
+  }
+  .barter-good > .row-icon { grid-area: icon; align-self: start; }
+  .barter-good > .map-row-main { grid-area: main; }
+  .barter-good > .barter-count { grid-area: count; justify-self: start; }
+  .barter-good > .ghost-btn { grid-area: act; min-height: 44px; }
+  .barter-count { gap: 4px; }
+  .barter-count .map-load-btn { width: 44px; height: 44px; font-size: 16px; }
+  .barter-count .purse-inline { width: 72px; height: 44px; }
+  /* The chart's side rows (who has it, today's list): the goods' icons
+     go under the name, lined up with it, rather than beside it. */
+  .map-row { flex-wrap: wrap; row-gap: 5px; }
+  .map-row > .map-row-right { flex: 1 0 100%; }
+  .map-row > .map-row-dot ~ .map-row-right { margin-left: 17px; }
+  .map-row > .map-check ~ .map-row-right { margin-left: 27px; }
+  .map-row > .map-row-right:empty { display: none; }
+  /* To Get's manifest: three tiles to a row that share the width, not
+     72px ones, so a name has two lines to say itself in. */
+  .want-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); }
+  .want { width: auto; min-width: 0; }
+  .plan-step-cta { min-height: 44px; }
+  /* Log a trip: the item gets the room, the count a fixed width. */
+  .trip-row .field.trip-qty { flex: 0 0 96px; width: 96px; min-height: 44px; }
+  .trip-pick { min-height: 44px; }
+  /* The Parley the game shows, typed at a stop: room for 1,000,000. */
+  .parley-fix .purse-inline.narrow { width: 10ch; min-height: 44px; }
+}
+/* The section bar's labels on a small phone: no spacing between the
+   letters, so "Warentausch" fits under its icon. */
+@media (max-width: 400px) {
+  /* The hold's count (44 + field + 44) and a German "Entladen" do not
+     fit beside each other under the name: the count starts under the
+     icon instead, so the two never overlap. */
+  .barter-good { grid-template-areas: "icon main main" "count count act"; }
+  .tabbar-btn { letter-spacing: 0; padding-left: 1px; padding-right: 1px; }
+  .trip-row .field.trip-qty { flex-basis: 80px; width: 80px; }
+}
+
+/* ---- forty-four under a finger: the cases the halo needs help with ---- */
+/* tracker-sea.css gives every control an invisible 44 by 44 halo. These
+   are the controls where that halo would be cut off by a box that clips
+   (a name cut at two lines, a strip that scrolls sideways), or would
+   reach into a neighbour's. A clipped one hangs its halo on the box it
+   sits in instead, which does not clip; where neighbours sit closer
+   than their halos reach, the rows open up just enough. Nothing here
+   applies to a mouse. */
+@media (pointer: coarse) {
+  /* An item's name, cut at two lines on a phone: the cut moves onto
+     the link itself, and the link's halo hangs on the name's box,
+     the whole name's width and at least 44 tall. */
+  :is(.row-name, .picker-name, .tpick-name, .peek-name, .map-row-name, .tile-name, .want-name):has(> a.codex:only-child) {
+    position: relative;
+    overflow: visible;
+  }
+  :is(.row-name, .picker-name, .tpick-name, .peek-name, .map-row-name, .tile-name, .want-name) > a.codex:only-child {
+    position: static;
+    display: inherit;
+    -webkit-box-orient: inherit;
+    -webkit-line-clamp: inherit;
+    line-clamp: inherit;
+    overflow: hidden;
+    text-overflow: inherit;
+  }
+  :is(.row-name, .picker-name, .tpick-name, .peek-name, .map-row-name, .tile-name, .want-name) > a.codex:only-child::after { inset: min(0px, calc(50% - 22px)) 0; }
+  /* A quest's name runs over two lines with its tag after it; the
+     halo covers the name's whole box. */
+  .quest-name { position: relative; }
+  .quest-name > .quest-codex { position: static; }
+  .quest-name > .quest-codex::after { inset: min(-4px, calc(50% - 22px)) 0; }
+  /* A reward's name is pressed anywhere on its pill, and wrapped rows
+     of pills stand far enough apart for their halos. */
+  .reward:has(> a.codex) { position: relative; }
+  .reward > a.codex { position: static; }
+  .reward > a.codex::after { inset: min(0px, calc(50% - 22px)) min(0px, calc(50% - 22px)); }
+  .quest-rewards { row-gap: 18px; }
+  /* A quest's tick sits in a label that takes the press. */
+  .quest-check-hit { display: inline-flex; flex: none; align-self: flex-start; }
+  /* A quest's "on the map" sits just above its reward pills. */
+  .quest-where:has(> .link-btn) { margin-bottom: 23px; }
+  /* Rows of small buttons that wrap: far enough apart that no two
+     halos meet. A 33px chip reaches 5.5px past its edge each way, a
+     chip drawn in the fallback font a little more. */
+  .chips, .controls, .way-opts { row-gap: 14px; }
+  .inv-kinds, .inv-ladder { margin-top: 0; }
+  .map-zoom { row-gap: 14px; }
+  #screen .summary { row-gap: 16px; }
+  .sail-bar.sailing.cockpit-foot { row-gap: 10px; }
+  .order-v .chips, .board-ask-acts, .board-strip-acts, .board-strip-seen, .doors, .slot-btns,
+  .trip-shot, .qty-row, .sail-timer, .hold-filters, .chain-filters, .run-quests, .lb-bar { row-gap: 12px; }
+  .film-chapters { gap: 10px; }
+  .map-tabs { row-gap: 14px; }
+  /* A text link reaches 13px past its line, so a row of buttons under
+     one stands that much further off. */
+  .map-plan-bar { row-gap: 18px; }
+  .jump-kinds { row-gap: 22px; }
+  .board-ask-acts { margin-top: 20px; }
+  .mat-help { margin-top: 14px; }
+  .craft-card .inline-check { margin-top: 14px; }
+  .jump > .jump-kinds { margin-top: 2px; }
+  .panel-head:has(> .panel-sub .linky) { row-gap: 20px; }
+  .film-chapters { margin-bottom: 18px; }
+  .help-more { margin-top: 14px; }
+  .dialog-copy:has(> select) { margin-top: 14px; margin-bottom: 24px; }
+  /* A link at the end of a panel's line, or of a dialog's note, with
+     buttons or a list under it. */
+  .panel-sub:has(> .linky) { margin-bottom: 8px; }
+  .dialog-note:has(> .linky) { margin-bottom: 18px; }
+  .panel-head > .link-btn { margin-bottom: 4px; }
+  /* A quest's rows: the rewards, what Claimed will ask, and the claim
+     button that drops under them on a phone. */
+  .quest { row-gap: 18px; }
+  .quest-rewards + .quest-recall { margin-top: 23px; }
+  .run-quest { row-gap: 24px; }
+  .board-strip-row { row-gap: 14px; }
+  /* A ship's appearance set: one ticked line per slot, each a finger
+     tall rather than twenty pixels. */
+  .skin-slot { min-height: 44px; }
+  /* Square level chips and a stop's arrows sit side by side: spaced so
+     each keeps its own 44 pixels. */
+  .chain-filters .chips:has(> .lvl) { column-gap: 10px; }
+  .hold-filters .chips:has(> .lvl) { gap: 14px 22px; }
+  .route-edit { gap: 16px; margin-top: 12px; margin-bottom: 19px; }
+  /* A stepper does not give up width to a long name beside it. */
+  .stepper button, .stepper .val, .own .sq-btn, .own-input, .build-actions .sq-btn { flex-shrink: 0; }
+  /* Fields a rule of their own drew shorter. */
+  .barter-screen .field, .hold-filters .field.hold-q, .chain-filters .field.hold-q { min-height: 44px; }
+  /* A sheet's grab bar draws its pill with ::after and stays stuck to
+     the top over the sheet's own controls, so a halo there would sit on
+     the close button: the bar itself is 44 tall instead, and takes
+     back most of that from the gap under it. */
+  .sheet-grab { padding: 20px 0; margin-bottom: 12px; }
+  /* Other names that hold only their link: the halo hangs on the name. */
+  :is(.build-name, .crew-ship-name, .detail-name, .trow-name, .craft-name, .buy-name, .get-today-name):has(> a.codex:only-child) { position: relative; }
+  :is(.build-name, .crew-ship-name, .detail-name, .trow-name, .craft-name, .buy-name, .get-today-name) > a.codex:only-child { position: static; }
+  :is(.build-name, .crew-ship-name, .detail-name, .trow-name, .craft-name, .buy-name, .get-today-name) > a.codex:only-child::after { inset: min(0px, calc(50% - 22px)) 0; }
+  /* Lists of linked names, one under the next: a line each that is a
+     finger tall. */
+  .ing-line { min-height: 44px; padding: 0; }
+  .quest-total { row-gap: 18px; }
+  .rung { row-gap: 12px; }
+  .qty-row, .qty-row.wide { column-gap: 8px; }
+  /* The chart's side panel: the tabs stand clear of the buttons above
+     them and the layers bar below, and the scrolling body gives its
+     first chips room for their halo. */
+  .map-tabs { padding-top: 2px; padding-bottom: 15px; }
+  .map-side-body { padding-top: 16px; }
+  /* The stop timer: its strip clips (for the bar along its foot), so
+     the chips get room inside it, and its two rows stand apart. */
+  .sail-timer.running { padding-bottom: 8px; row-gap: 12px; }
+  .sail-timer-ctl { row-gap: 12px; }
+  /* The craftable strip scrolls sideways, which clips; it is given
+     the room above and below its chips, at no cost to the layout. */
+  .readybar-list { padding-top: 4px; padding-bottom: 4px; margin-top: -4px; margin-bottom: -4px; }
+}

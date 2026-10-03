@@ -52,6 +52,9 @@ process.env.DISCORD_CLIENT_SECRET = 'test-secret';
 process.env.TURSO_DATABASE_URL = `file:${path.join(dir, 'tracker.db')}`;
 process.env.SESSION_SECRET = 'test-secret-key-for-signing-sessions';
 
+// Market prices from a recorded answer, never the live Market, so a run
+// plans the same on any day (see server/market.js).
+process.env.MARKET_FIXTURE = new URL('./fixtures/market.json', import.meta.url).href;
 const app = (await import('../server.js')).default;
 const { startSession } = await import('../server/session.js');
 const { upsertUser, getSave } = await import('../server/db.js');
@@ -438,20 +441,22 @@ test('taking the other copy is undoable', async () => {
 });
 
 /**
- * The tour points at things that exist.
+ * The tour points at things that are there, on a desk and on a phone.
  *
  * Worth a test because the way it breaks is silent: a renamed class
  * leaves the step pointing at nothing, and Driver.js answers a selector
  * that matches nothing by centring the popover -- which still reads as a
  * perfectly good tour to whoever wrote it. `.crew-ship` outlived the
- * markup it named by a week that way.
+ * markup it named by a week that way. And a phone breaks it a second
+ * way: the element is in the page but not on the screen -- the tab row
+ * is hidden there, the chart's panel folded -- or it is on the screen
+ * under the step's own sheet.
  *
- * What is checked is each step's own selector, on the screen that step
- * navigates to, with a save in place that gives every screen something
- * to show. Driver.js is deliberately not in the loop: whether the
- * highlight has landed at the instant you look is a question about
- * animation frames and whatever repainted last, and asserting on it
- * turned out to be a coin toss rather than a test.
+ * So the real tour is walked, Next by Next, and at every step that has
+ * a target the highlighted element must be drawn, inside the screen,
+ * and clear of the popover. Each step is given time to land: a repaint
+ * behind a tab change is the tour's to recover from (it looks again),
+ * and what is asserted is where it ends up.
  */
 const FURNISHED = JSON.stringify({
 	v: 2,
@@ -475,8 +480,50 @@ const FURNISHED = JSON.stringify({
 	settings: {}
 });
 
-for (const [where, size] of [['a wide screen', { width: 1280, height: 900 }], ['a phone', { width: 390, height: 844 }]]) {
-	test(`every step of the guided tour names something that is there, on ${where}`, async () => {
+/** Where step `n` of the tour stands once it has settled, read in the page. */
+const stepAt = (page, n) => page.evaluate(async want => {
+	const wait = ms => new Promise(r => setTimeout(r, ms));
+	let last = null;
+	for (let t = 0; t < 60; t++) {
+		await wait(150);
+		const pop = document.querySelector('.driver-popover');
+		const progress = pop && pop.querySelector('.driver-popover-progress-text');
+		if (!progress || !progress.textContent.startsWith(`${want} `)) continue;
+		const el = document.querySelector('.driver-active-element');
+		const p = pop.getBoundingClientRect();
+		const title = pop.querySelector('.driver-popover-title').textContent;
+		if (!el || el.id === 'driver-dummy-element') {
+			last = { title, centred: true };
+			if (t > 6) return last;
+			continue;
+		}
+		const r = el.getBoundingClientRect();
+		// The part of the target on the screen, and how much of it the
+		// popover is over.
+		const top = Math.max(r.top, 0);
+		const bottom = Math.min(r.bottom, window.innerHeight);
+		const over = Math.max(0, Math.min(r.right, p.right) - Math.max(r.left, p.left))
+			* Math.max(0, Math.min(bottom, p.bottom) - Math.max(top, p.top));
+		last = {
+			title,
+			connected: el.isConnected,
+			drawn: r.width > 0 && r.height > 0,
+			onScreen: r.bottom > 0 && r.top < window.innerHeight && r.right > 0 && r.left < window.innerWidth,
+			covered: over > 16,
+			focusInside: pop.contains(document.activeElement)
+		};
+		if (last.connected && last.drawn && last.onScreen && !last.covered) return last;
+	}
+	return last;
+}, n);
+
+const VIEWPORTS = [
+	['a wide screen', { width: 1440, height: 900 }],
+	['a phone', { width: 390, height: 844, isMobile: true, hasTouch: true }]
+];
+
+for (const [where, size] of VIEWPORTS) {
+	test(`every step of the guided tour shows its target, clear of the popover, on ${where}`, async () => {
 		const mine = await open({
 			storage: { 'bdo-tracker/v2': FURNISHED, 'bdo_ship_upgrade-tour_completed': 'true', 'bdo-tracker/release': RELEASE }
 		});
@@ -484,21 +531,306 @@ for (const [where, size] of [['a wide screen', { width: 1280, height: 900 }], ['
 		// Let the icon mapping and the barter catalogue land, so a screen
 		// is not measured while it is still filling in.
 		await new Promise(r => setTimeout(r, 2500));
-
-		const missing = await mine.page.evaluate(async () => {
-			const wait = ms => new Promise(r => setTimeout(r, ms));
+		await mine.page.evaluate(async () => {
 			const { guidedTour } = await import('/js/guided-tour.js');
-			const gone = [];
-			for (const step of guidedTour.steps()) {
-				if (step.before) step.before();
-				await wait(350);
-				if (!step.element) continue;
-				if (!document.querySelector(step.element)) gone.push(`${step.popover.title} -> ${step.element}`);
-			}
-			return gone;
+			await guidedTour.startTour();
 		});
+		const total = await mine.page.evaluate(async () => {
+			const { guidedTour } = await import('/js/guided-tour.js');
+			return guidedTour.list.length;
+		});
+		assert.ok(total >= 10 && total <= 15, `the tour is short: ${total} steps`);
 
-		assert.deepEqual(missing, [], 'these steps name an element no longer on the page');
+		const wrong = [];
+		let centred = 0;
+		for (let n = 1; n <= total; n++) {
+			const got = await stepAt(mine.page, n);
+			if (!got) wrong.push(`step ${n} never came up`);
+			else if (got.centred) centred += 1;
+			else {
+				for (const k of ['connected', 'drawn', 'onScreen']) if (!got[k]) wrong.push(`${n} ${got.title}: not ${k}`);
+				if (got.covered) wrong.push(`${n} ${got.title}: the popover is over its target`);
+				// A repaint under the step can drop the focus for a moment;
+				// the tour hands it back within its half-second check, and that
+				// return is what is asked of it.
+				const back = got.focusInside || await mine.page.waitForFunction(() => {
+					const pop = document.querySelector('.driver-popover');
+					return !!pop && pop.contains(document.activeElement);
+				}, { timeout: 2000, polling: 100 }).then(() => true, () => false);
+				if (!back) wrong.push(`${n} ${got.title}: the focus is not in the popover`);
+			}
+			await mine.page.evaluate(() => document.querySelector('.driver-popover-next-btn').click());
+		}
+		assert.deepEqual(wrong, [], 'these steps do not show what they talk about');
+		assert.equal(centred, 1, 'only the welcome stands in the middle of the screen');
+
+		// Finished: the real save is on screen and on the disk, untouched.
+		await new Promise(r => setTimeout(r, 1200));
+		const after = await mine.page.evaluate(async () => {
+			const store = await import('/js/state.js');
+			return {
+				up: !!document.querySelector('.driver-popover'),
+				transient: store.isTransient(),
+				plywood: store.getStock('Violent Wave Plywood'),
+				valor: store.getTargets().some(t => t.id === 'demo-1'),
+				disk: JSON.parse(localStorage.getItem('bdo-tracker/v2')).stock['Violent Sea Monster\'s Bone']
+			};
+		});
+		assert.deepEqual(after, { up: false, transient: false, plywood: 120, valor: false, disk: 300 });
+		await mine.context.close();
+	});
+
+	test(`closing the guided tour part-way puts the real save back, on ${where}`, async () => {
+		const mine = await open({
+			storage: { 'bdo-tracker/v2': FURNISHED, 'bdo_ship_upgrade-tour_completed': 'true', 'bdo-tracker/release': RELEASE },
+			hash: '#inventory'
+		});
+		await mine.page.setViewport(size);
+		await new Promise(r => setTimeout(r, 2000));
+		await mine.page.evaluate(async () => {
+			const { guidedTour } = await import('/js/guided-tour.js');
+			await guidedTour.startTour();
+		});
+		// Into the Barter tab's Load step and the chart's panel, then away
+		// with Escape -- the keyboard's way out. Keys go to the page in
+		// front, so this one is brought there.
+		await mine.page.bringToFront();
+		for (let n = 1; n <= 11; n++) {
+			await stepAt(mine.page, n);
+			await mine.page.keyboard.press('ArrowRight');
+		}
+		const onMap = await stepAt(mine.page, 12);
+		assert.ok(onMap, 'the arrow keys walk the tour');
+		await mine.page.keyboard.press('Escape');
+		await new Promise(r => setTimeout(r, 1200));
+		const after = await mine.page.evaluate(async () => {
+			const store = await import('/js/state.js');
+			return {
+				up: !!document.querySelector('.driver-popover'),
+				transient: store.isTransient(),
+				bone: store.getStock('Violent Sea Monster\'s Bone'),
+				targets: store.getTargets().map(t => t.id).join(','),
+				view: document.body.dataset.view,
+				step: localStorage.getItem('barter-step')
+			};
+		});
+		assert.deepEqual(after, { up: false, transient: false, bone: 300, targets: 'a,b', view: 'inventory', step: null },
+			'the save, the tab and the Barter step are back as they were');
+		await mine.context.close();
+	});
+}
+
+/**
+ * The Barter steps of the tour show a run, and the run leaves nothing.
+ *
+ * The hold and the clock used to be shown on an empty Load step -- "0 /
+ * 20 slots" and the clock's chips with no clock -- because the example
+ * held no run. It holds one now: a board read today, chains ticked, and
+ * for the clock step the run cast off. All of it is the tour's: the
+ * save, the Barter tab's memory, the step it was on and the clock the
+ * sailor had running must be what they were, however the tour ends --
+ * Finish, Escape, or a reload in the middle -- and the example's clock
+ * must never ring, notify, or hand a chime to the server, even when
+ * its stops fall due.
+ */
+const REAL_RUN = () => {
+	const save = JSON.parse(FURNISHED);
+	const now = Date.now();
+	save.profile = {
+		barterCount: 1200,
+		views: {
+			barter: { goal: 'stock', port: 1, board: { day: '2026-09-30', answers: [] }, routes: { key: 'x', ids: [] } },
+			// A clock of the sailor's own, an hour from its first stop.
+			timer: { startedAt: now - 60000, seconds: 7200, label: 'My own run', chimed: false, marks: [{ at: 3600, label: 'Far Isle', hold: 45, k: 0 }, { at: 7200, label: 'Home', hold: 120, k: 1 }], done: 0, reached: 0, legAt: 0, of: 2 }
+		}
+	};
+	return {
+		'bdo-tracker/v2': JSON.stringify(save),
+		'bdo_ship_upgrade-tour_completed': 'true',
+		'bdo-tracker/release': RELEASE,
+		'barter-step': 'plan'
+	};
+};
+
+/** What the tour must leave as it found it, read in the page. */
+const realState = page => page.evaluate(async () => {
+	const store = await import('/js/state.js');
+	const { viewNow } = await import('/js/barter/view.js');
+	const { V } = await import('/js/barter/state.js');
+	const { timerNow } = await import('/js/sail-timer.js');
+	// The market's cache and the tour's own "seen it" are not the save.
+	// Each stored text read as JSON where it is, so a difference shows
+	// where it is; and the stored text itself too, to the byte.
+	const read = text => { try { return JSON.parse(text); } catch { return text; } };
+	const keys = Object.keys(localStorage).filter(k => !/market|tour_completed/.test(k)).sort();
+	return {
+		storage: Object.fromEntries(keys.map(k => [k, read(localStorage.getItem(k))])),
+		bytes: keys.map(k => `${k}=${localStorage.getItem(k)}`).join('\n'),
+		view: store.getView('barter'),
+		timer: timerNow(),
+		memory: JSON.parse(JSON.stringify({ ...viewNow(), step: V.step, readSig: V.readSig }))
+	};
+});
+
+/** Count anything that would make a sound, show a notification or reach the push server. */
+const listenForChimes = page => page.evaluate(() => {
+	window.__rang = { push: 0, sound: 0, notes: 0 };
+	const fetched = window.fetch;
+	window.fetch = (url, opts) => {
+		if (/\/api\/(push|discord-dm)/.test(String(url))) window.__rang.push += 1;
+		return fetched(url, opts);
+	};
+	const Ctor = window.AudioContext || window.webkitAudioContext;
+	if (Ctor) {
+		const osc = Ctor.prototype.createOscillator;
+		Ctor.prototype.createOscillator = function () {
+			window.__rang.sound += 1;
+			return osc.call(this);
+		};
+	}
+	if (window.Notification) {
+		const Note = window.Notification;
+		window.Notification = function (...args) {
+			window.__rang.notes += 1;
+			return new Note(...args);
+		};
+		window.Notification.permission = Note.permission;
+	}
+});
+
+/** Walk the tour by Next to the step with this id, and say where it stands. */
+async function walkTo(page, id) {
+	const at = await page.evaluate(async want => {
+		const { guidedTour } = await import('/js/guided-tour.js');
+		return guidedTour.list.findIndex(s => s.id === want) + 1;
+	}, id);
+	assert.ok(at > 0, `the tour has a ${id} step`);
+	for (let n = 1; n < at; n++) {
+		await stepAt(page, n);
+		await page.evaluate(() => document.querySelector('.driver-popover-next-btn').click());
+	}
+	return stepAt(page, at);
+}
+
+/** The hold and the clock steps, read off what they highlight. */
+async function holdAndClock(page) {
+	const hold = await walkTo(page, 'hold');
+	const gauge = await page.evaluate(() => (document.querySelector('.driver-active-element .hold-gauge') || {}).textContent || '');
+	await page.evaluate(() => document.querySelector('.driver-popover-next-btn').click());
+	const clockStep = await stepAt(page, await page.evaluate(async () => {
+		const { guidedTour } = await import('/js/guided-tour.js');
+		return guidedTour.list.findIndex(s => s.id === 'clock') + 1;
+	}));
+	const clock = await page.evaluate(async () => {
+		// Looked up each time: a repaint may draw the clock afresh.
+		const el = () => document.querySelector('.driver-active-element');
+		const text = () => ((el() && el().querySelector('[data-timer-clock]')) || {}).textContent || '';
+		const first = text();
+		await new Promise(r => setTimeout(r, 2200));
+		return { running: !!(el() && el().matches('.sail-timer.running')), first, then: text() };
+	});
+	return { hold, gauge, clockStep, clock };
+}
+
+for (const [where, size] of VIEWPORTS) {
+	test(`the tour's hold and clock show a real run, and Finish and Escape leave the real one, on ${where}`, async () => {
+		for (const end of ['finish', 'escape']) {
+			const mine = await open({ storage: REAL_RUN(), hash: '#barter' });
+			await mine.page.setViewport(size);
+			await new Promise(r => setTimeout(r, 2500));
+			const before = await realState(mine.page);
+			await listenForChimes(mine.page);
+			await mine.page.evaluate(async () => {
+				const { guidedTour } = await import('/js/guided-tour.js');
+				await guidedTour.startTour();
+			});
+			const got = await holdAndClock(mine.page);
+			assert.ok(got.hold && !got.hold.centred, 'the hold step has its target');
+			assert.match(got.gauge, /[1-9][\d,.\s]* \/ [\d,.\s]+ LT/, `the hold weighs something: ${got.gauge}`);
+			assert.match(got.gauge, /[1-9]\d* \/ \d+ slots/, `the hold has slots taken: ${got.gauge}`);
+			assert.ok(got.clock.running, 'the clock step shows a clock that is running');
+			assert.match(got.clock.first, /stop 1 of \d+/, `the clock is making for the first stop: ${got.clock.first}`);
+			assert.notEqual(got.clock.first, got.clock.then, 'and it counts');
+			// The example's stops fall due: three hours on, as a tab coming
+			// back from sleep finds them. Nothing may ring.
+			await mine.page.evaluate(async () => {
+				const real = Date.now;
+				Date.now = () => real() + 3 * 3600 * 1000;
+				document.dispatchEvent(new Event('visibilitychange'));
+				await new Promise(r => setTimeout(r, 400));
+				Date.now = real;
+			});
+			if (end === 'escape') {
+				await mine.page.bringToFront();
+				await mine.page.keyboard.press('Escape');
+			} else {
+				const total = await mine.page.evaluate(async () => (await import('/js/guided-tour.js')).guidedTour.list.length);
+				const at = await mine.page.evaluate(async () => (await import('/js/guided-tour.js')).guidedTour.list.findIndex(s => s.id === 'clock') + 1);
+				for (let n = at; n <= total; n++) {
+					await stepAt(mine.page, n);
+					await mine.page.evaluate(() => document.querySelector('.driver-popover-next-btn').click());
+				}
+			}
+			await new Promise(r => setTimeout(r, 1500));
+			const rang = await mine.page.evaluate(() => ({ ...window.__rang, up: !!document.querySelector('.driver-popover') }));
+			assert.deepEqual(rang, { push: 0, sound: 0, notes: 0, up: false }, `${end}: the example's clock rang, notified or reached the server`);
+			assert.deepEqual(await realState(mine.page), before, `${end}: the save, the Barter tab and the clock are as they were`);
+			await mine.context.close();
+		}
+	});
+}
+
+// Reloaded at the clock on a desk, and at the chart on a phone, where the
+// tour has unfolded the chart's panel and that preference is written down.
+for (const [where, size, at] of [['a wide screen', { width: 1440, height: 900 }, 'clock'], ['a phone', { width: 390, height: 844, isMobile: true, hasTouch: true }, 'map']]) {
+	test(`a reload at the tour's ${at} step on ${where} comes back to the real save, run, clock and preferences`, async () => {
+		// Planted by hand rather than through open(), which plants its
+		// storage again on every load: the reload must read what the tour
+		// left on the disk. Planted once, before the page's first look.
+		const mine = await open({ hash: '#barter' });
+		await mine.page.setViewport(size);
+		await mine.page.evaluateOnNewDocument(planted => {
+			if (window.sessionStorage.getItem('planted')) return;
+			window.sessionStorage.setItem('planted', '1');
+			localStorage.clear();
+			for (const [k, v] of Object.entries(planted)) localStorage.setItem(k, v);
+		}, REAL_RUN());
+		await mine.page.reload({ waitUntil: 'domcontentloaded' });
+		await mine.page.waitForSelector(POUCH_READY, { timeout: 15000 });
+		await new Promise(r => setTimeout(r, 2500));
+		// The keys put back after a reload are the ones the screens use.
+		const keys = await mine.page.evaluate(async () => {
+			const { TOUR_KEYS } = await import('/js/tour-leftovers.js');
+			const { STEP_KEY } = await import('/js/barter/state.js');
+			const { STORE_KEY } = await import('/js/map/state.js');
+			return [STEP_KEY, STORE_KEY].every(k => TOUR_KEYS.includes(k));
+		});
+		assert.ok(keys, 'the step and the chart keys are among those put back');
+		const before = await realState(mine.page);
+		await mine.page.evaluate(async () => {
+			const { guidedTour } = await import('/js/guided-tour.js');
+			await guidedTour.startTour();
+		});
+		const got = await holdAndClock(mine.page);
+		assert.ok(got.clock.running, 'the tour got as far as the running clock');
+		if (at === 'map') {
+			await mine.page.evaluate(() => document.querySelector('.driver-popover-next-btn').click());
+			const map = await stepAt(mine.page, await mine.page.evaluate(async () => (await import('/js/guided-tour.js')).guidedTour.list.findIndex(s => s.id === 'map') + 1));
+			assert.ok(map && !map.centred, 'the tour got as far as the chart');
+			const wrote = await mine.page.evaluate(() => localStorage.getItem('bdo-tracker/map-view'));
+			assert.ok(wrote, 'the chart wrote its panel down mid-tour, as it does');
+		}
+		await mine.page.reload({ waitUntil: 'domcontentloaded' });
+		await mine.page.waitForSelector(POUCH_READY, { timeout: 15000 });
+		await new Promise(r => setTimeout(r, 2500));
+		// The tab's memory is read afresh by a reload, which fills in fields
+		// the first read had left at their defaults; what was kept is what
+		// is compared.
+		const after = await realState(mine.page);
+		delete after.memory;
+		delete before.memory;
+		assert.deepEqual(after, before, 'the reload is back on the real save, Barter view, clock and preferences');
+		assert.equal(await mine.page.evaluate(() => window.sessionStorage.getItem('bdo-tracker/tour-running')), null, 'and the note is gone');
 		await mine.context.close();
 	});
 }

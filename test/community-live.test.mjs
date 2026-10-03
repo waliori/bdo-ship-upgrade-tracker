@@ -34,6 +34,9 @@ process.env.COMMUNITY_REBUILD_MS = '0';      // but a save that moved rebuilds a
 delete process.env.ADMIN_IDS;
 delete process.env.FEEDBACK_WEBHOOK_URL;
 
+// Market prices from a recorded answer, never the live Market, so a run
+// plans the same on any day (see server/market.js).
+process.env.MARKET_FIXTURE = new URL('./fixtures/market.json', import.meta.url).href;
 const app = (await import('../server.js')).default;
 const { startSession } = await import('../server/session.js');
 const { upsertUser, putCommunity, listCommunity } = await import('../server/db.js');
@@ -128,7 +131,7 @@ test('a hull in the inventory is a ship in the fleet', async () => {
 	const body = await (await call('GET', '/api/community', { cookie: skipper })).json();
 	assert.deepEqual(body.you.places.fleet, { rank: 1, value: 2, of: 1 });
 	const best = body.fame.find(f => f.id === 'ship').top[0];
-	assert.equal(best.detail.startsWith('Carrack (Valor)'), true);
+	assert.equal(best.detail.startsWith('Epheria Carrack: Valor'), true);
 });
 
 test('a digest from an older build is re-rated without its owner lifting a finger', async () => {

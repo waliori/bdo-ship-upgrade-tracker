@@ -16,6 +16,8 @@
 // within about a thousand units -- half an island -- of where the line
 // was drawn.
 
+import { TT } from './i18n.js';
+
 const VELIA = { name: 'Velia', x: 69152, y: 69120 };
 const OQUILLA = { name: "Oquilla's Eye", x: 64400, y: 47000, stop: true };
 const LEKRASHAN = { name: 'Lekrashan', x: 16416, y: 37893, stop: true };
@@ -23,9 +25,9 @@ const LEKRASHAN = { name: 'Lekrashan', x: 16416, y: 37893, stop: true };
 export const courses = [
 	{
 		id: 'balenos',
-		name: 'Balenos islands loop',
-		sub: 'Velia round the islands to Oquilla’s Eye and back',
-		note: 'The dailies close to home: young sea monsters and Hekaru for the soldier at Oquilla’s Eye, the delivery quests to Narvo, Baremi and Tinberra on the way. Goldmont ships patrol the middle of it.',
+		name: TT('Balenos islands loop'),
+		sub: TT('Velia round the islands to Oquilla’s Eye and back'),
+		note: TT('The dailies close to home: young sea monsters and Hekaru for the soldier at Oquilla’s Eye, the delivery quests to Narvo, Baremi and Tinberra on the way. Goldmont ships patrol the middle of it.'),
 		points: [
 			VELIA,
 			{ name: 'Narvo Island', x: 61554, y: 60679 },
@@ -39,9 +41,9 @@ export const courses = [
 	},
 	{
 		id: 'lekrashan',
-		name: 'Ross Sea loop to Lekrashan',
-		sub: 'west from Oquilla’s Eye, home on the current',
-		note: 'Nineshark, Candidum and Black Rust grounds west of Oquilla’s Eye for the Old Moon Guild hunts; Lekrashan itself at the far end. The way back rides the fast current north-east past the Margoria wrecks.',
+		name: TT('Ross Sea loop to Lekrashan'),
+		sub: TT('west from Oquilla’s Eye, home on the current'),
+		note: TT('Nineshark, Candidum and Black Rust grounds west of Oquilla’s Eye for the Old Moon Guild hunts; Lekrashan itself at the far end. The way back rides the fast current north-east past the Margoria wrecks.'),
 		points: [
 			OQUILLA,
 			{ x: 55754, y: 50048 },
@@ -55,9 +57,9 @@ export const courses = [
 	},
 	{
 		id: 'crocodile',
-		name: 'Saltwater Crocodile run',
-		sub: 'the wrecks, then north-west to the crocodiles',
-		note: 'Off the current at Pakio’s raft, down the chain of wrecks -- Lantinia, Heracio -- then north-west to the Saltwater Crocodile Habitat and south to Popo and Lekrashan. The crocodiles are not where this run used to go: the Lyngbakrs took their old ground on 27 August 2026 and they moved west, off Cheongsa. Four of them is the weekly from Bave Ricksa at Oquilla’s Eye.',
+		name: TT('Saltwater Crocodile run'),
+		sub: TT('the wrecks, then north-west to the crocodiles'),
+		note: TT('Off the current at Pakio’s raft, down the chain of wrecks -- Lantinia, Heracio -- then north-west to the Saltwater Crocodile Habitat and south to Popo and Lekrashan. The crocodiles are not where this run used to go: the Lyngbakrs took their old ground on 27 August 2026 and they moved west, off Cheongsa. Four of them is the weekly from Bave Ricksa at Oquilla’s Eye.'),
 		points: [
 			{ name: 'Pakio (combat raft)', x: 55120, y: 25866 },
 			{ name: 'Lantinia (combat raft)', x: 43212, y: 26893 },
@@ -69,9 +71,9 @@ export const courses = [
 	},
 	{
 		id: 'lyngbakr',
-		name: 'Lyngbakr run',
-		sub: 'out and back from the Cheongsa wharf',
-		note: 'The ground the crocodiles were driven off on 27 August 2026, and what drove them. Short enough to be its own errand rather than a leg of anything: out from Gangman’s wharf on Cheongsa, and back to him with the two the weekly asks for. The horn the yellow tier is made of drops here.',
+		name: TT('Lyngbakr run'),
+		sub: TT('out and back from the Cheongsa wharf'),
+		note: TT('The ground the crocodiles were driven off on 27 August 2026, and what drove them. Short enough to be its own errand rather than a leg of anything: out from Gangman’s wharf on Cheongsa, and back to him with the two the weekly asks for. The horn the yellow tier is made of drops here.'),
 		points: [
 			{ name: 'Gangman (Cheongsa wharf)', x: 33534, y: 18905 },
 			{ name: 'Lyngbakr Habitat', x: 53369, y: 10914, stop: true },
@@ -94,6 +96,5 @@ export const courseById = Object.fromEntries(courses.map(c => [c.id, c]));
  */
 let made = null;
 export const setMadeCourse = c => { made = c || null; };
-export const madeCourse = () => made;
 export const courseOf = id => courseById[id] || (made && made.id === id ? made : null);
 export const allCourses = () => (made ? [...courses, made] : courses);

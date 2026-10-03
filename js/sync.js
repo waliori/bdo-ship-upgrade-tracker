@@ -15,9 +15,12 @@
 
 import * as store from './state.js';
 import { esc } from './fmt.js';
+import { T, TT, said } from './i18n.js';
+import { loading, whileLoading } from './loading.js';
 
 const REV_KEY = 'sync.rev';
 const DEVICE_KEY = 'sync.device';
+const REV_WHO_KEY = 'sync.revWho';
 
 // Long enough that typing a quantity does not push on every keystroke,
 // short enough that switching to your phone finds the change already there.
@@ -36,6 +39,10 @@ const PUSH_DELAY = 500;
 // backing off up to about half a minute.
 const RETRY_MIN = 1500;
 const RETRY_MAX = 30000;
+
+// What a browser lets a keepalive request carry: 64 KiB, less a little
+// for the headers.
+const KEEPALIVE_MAX = 63 * 1024;
 
 let hooks = {};
 let account = null;      // { id, username, avatar, share, admin } once signed in
@@ -100,11 +107,22 @@ function localText() {
 	return JSON.stringify(out);
 }
 
+// A profile is something too: a browser holding only a roster, the
+// ship setups, traces and a barter count is not an empty one, and
+// counting stock and builds alone had sign-in replace all of that
+// without a word.
 const isEmpty = data =>
-	!data || (!Object.keys(data.stock || {}).length && !(data.targets || []).length);
+	!data || (!Object.keys(data.stock || {}).length && !(data.targets || []).length && !Object.keys(data.profile || {}).length);
 
 const rev = () => Number(store.getSetting(REV_KEY, 0)) || 0;
-const setRev = value => store.setSetting(REV_KEY, value);
+// The revision is noted with the account it belongs to, so a revision
+// learned under one account is never taken as agreement with another's
+// save of the same number.
+const setRev = value => {
+	store.setSetting(REV_KEY, value);
+	store.setSetting(REV_WHO_KEY, account ? account.id : null);
+};
+const revIsMine = () => Boolean(account) && store.getSetting(REV_WHO_KEY, null) === account.id;
 
 /** A name for this browser, so the other one can say where a save came
  *  from. Guessed from the user agent and never sent anywhere else. */
@@ -112,12 +130,12 @@ function deviceName() {
 	let name = store.getSetting(DEVICE_KEY, null);
 	if (name) return name;
 	const ua = navigator.userAgent || '';
-	name = /Mobi|Android|iPhone/.test(ua) ? 'phone'
-		: /iPad|Tablet/.test(ua) ? 'tablet'
-		: /Mac/.test(ua) ? 'Mac'
-		: /Windows/.test(ua) ? 'Windows'
-		: /Linux/.test(ua) ? 'Linux'
-		: 'this browser';
+	name = /Mobi|Android|iPhone/.test(ua) ? TT('phone')
+		: /iPad|Tablet/.test(ua) ? TT('tablet')
+		: /Mac/.test(ua) ? TT('Mac')
+		: /Windows/.test(ua) ? TT('Windows')
+		: /Linux/.test(ua) ? TT('Linux')
+		: TT('this browser');
 	store.setSetting(DEVICE_KEY, name);
 	return name;
 }
@@ -147,6 +165,33 @@ export function feature(name) {
 /** Who is signed in, or null. A copy: nobody edits the account from outside. */
 export function me() {
 	return account ? { ...account } : null;
+}
+
+/* ------------------------------------------------------------------ *
+ * Short links
+ * ------------------------------------------------------------------ */
+
+/** Can a link be kept on the server rather than carried whole in the
+ *  address: the deployment keeps them, and someone is signed in. */
+export function canKeepLink() {
+	return feature('links') && account !== null;
+}
+
+/** Keep `data` under a short id. `kind` is plan, ship, trace or
+ *  route. Resolves to the id; throws when the server would not. */
+export async function keepLink(kind, data) {
+	const res = await whileLoading(api('POST', '/api/links', { kind, data }), T('Keeping the link…'));
+	if (!res.ok || !res.body || typeof res.body.id !== 'string') throw new Error((res.body && res.body.error) || 'not kept');
+	return res.body.id;
+}
+
+/** What a short link carries: { kind, data }, or null when there is
+ *  no such link. Throws when the server could not be reached. */
+export async function fetchLink(id) {
+	const res = await whileLoading(api('GET', `/api/links/${encodeURIComponent(id)}`), T('Opening the shared link…'));
+	if (res.status === 404) return null;
+	if (!res.ok || !res.body || !res.body.data) throw new Error((res.body && res.body.error) || 'not read');
+	return { kind: res.body.kind, data: res.body.data };
 }
 
 /** Be told whenever the account changes. Returns the way to stop. */
@@ -179,15 +224,20 @@ function landed() {
 	}
 }
 
-/** A call on the API for another module, with the session cookie along. */
-export function call(method, path, body) {
-	return api(method, path, body);
+/** A call on the API for another module, with the session cookie along.
+ *  `wait` -- a label, or { label, at, by } -- is for a call a player is
+ *  waiting on: the page's loading thread runs while it is out (see
+ *  js/loading.js). Background calls leave it out and stay quiet. */
+export function call(method, path, body, wait = null) {
+	if (!wait) return api(method, path, body);
+	const { label = '', ...where } = typeof wait === 'string' ? { label: wait } : wait;
+	return whileLoading(api(method, path, body), label, where);
 }
 
 /** Take part in the community boards, change how you are shown, or leave. */
 export async function setShare(share) {
-	const res = await api('PUT', '/api/community/share', { share });
-	if (!res.ok) throw new Error((res.body && res.body.error) || 'The boards did not answer.');
+	const res = await whileLoading(api('PUT', '/api/community/share', { share }), T('Updating the boards…'));
+	if (!res.ok) throw new Error((res.body && res.body.error) || T('The boards did not answer.'));
 	if (account) account = { ...account, share: res.body.share };
 	tell();
 	return res.body.share;
@@ -214,7 +264,7 @@ async function firstPull() {
 	// sync for the whole session over a bad first second.
 	let got;
 	try {
-		got = await api('GET', '/api/state');
+		got = await whileLoading(api('GET', '/api/state'), T('Fetching your save…'));
 	} catch {
 		got = { ok: false };
 	}
@@ -222,7 +272,7 @@ async function firstPull() {
 		// This is the one pull that decides everything -- without it the
 		// revision is unknown and every later push is a guess. So it does
 		// not give up: try again, a little later each time.
-		say('error', 'could not reach the server — retrying');
+		say('error', T('could not reach the server — retrying'));
 		failures++;
 		setTimeout(firstPull, Math.min(RETRY_MIN * 2 ** (failures - 1), RETRY_MAX));
 		return;
@@ -240,7 +290,7 @@ async function firstPull() {
 
 	// Nothing here yet: take what is stored, no question needed.
 	if (localEmpty) {
-		return take(remote, 'Loaded your saved inventory');
+		return take(remote, T('Loaded your saved inventory'));
 	}
 
 	const remoteText = JSON.stringify(remote.data);
@@ -251,12 +301,19 @@ async function firstPull() {
 		return say('idle');
 	}
 
-	askWhichCopy(remote, 'You have an inventory here and another one saved.');
+	// The server has not moved since this browser last agreed with it,
+	// so the copy here is simply ahead: edits made offline, or a push
+	// lost with the tab inside the delay. Nothing else changed, so there
+	// is nothing to choose between -- asking offered "Use the saved one",
+	// which threw those edits away.
+	if (remote.rev === rev() && rev() > 0 && revIsMine()) return push(true);
+
+	askWhichCopy(remote, T('You have an inventory here and another one saved.'));
 }
 
 /** Replace what is here with what the server has. */
 function take(remote, message) {
-	store.adopt(remote.data, 'Took the saved inventory');
+	store.adopt(remote.data, T('Took the saved inventory'));
 	setRev(remote.rev);
 	lastPushed = localText();
 	say('idle');
@@ -307,8 +364,19 @@ async function push(force = false) {
 			// would wipe the inventory it was meant to protect. That is a
 			// bad moment, not a conflict: try again later.
 			if (!res.body || !res.body.data) {
+				// The server holds no save at all -- the row was lost, or
+				// never flushed. Pushing again at the old revision meets the
+				// same refusal for ever; this copy is the only one there
+				// is, so it goes up as the first save. Once only: a second
+				// refusal at nought is a bad moment, retried as one.
+				if (res.body && res.body.rev === 0 && rev() > 0) {
+					setRev(0);
+					lastPushed = null;
+					again = true;
+					return say('syncing');
+				}
 				retryLater();
-				return say('error', 'that did not save');
+				return say('error', T('that did not save'));
 			}
 			failures = 0;
 			// The revision lives in the same key as the save, so another
@@ -323,7 +391,7 @@ async function push(force = false) {
 				lastPushed = text;
 				return say('idle');
 			}
-			return askWhichCopy(res.body, 'Another device saved while you were working.');
+			return askWhichCopy(res.body, T('Another device saved while you were working.'));
 		}
 		// The account behind this session was deleted -- from another
 		// device, since this one still thinks it is signed in. Sign out
@@ -333,30 +401,32 @@ async function push(force = false) {
 			setRev(0);
 			lastPushed = null;
 			say('out');
-			if (hooks.toast) hooks.toast('That account was deleted, so nothing is saved online any more. Your inventory is still here.');
+			if (hooks.toast) hooks.toast(T('That account was deleted, so nothing is saved online any more. Your inventory is still here.'));
 			return;
 		}
 		if (res.status === 401) {
 			account = null;
-			return say('out');
+			say('out');
+			tell();
+			return;
 		}
 		// Too fast, not wrong. The save is fine and will go through; it
 		// just has to wait, which is what the backoff already does.
 		if (res.status === 429) {
 			retryLater();
-			return say('syncing', 'saving shortly');
+			return say('syncing', T('saving shortly'));
 		}
 		// Any other 4xx is about this save and will not get better by being
 		// sent again; anything else is the server having a moment, and is
 		// worth another try.
 		if (res.status >= 500) retryLater();
-		say('error', (res.body && res.body.error) || 'that did not save');
+		say('error', (res.body && res.body.error) || T('that did not save'));
 	} catch {
 		// Offline, most likely. The local copy is untouched, and this will
 		// keep trying quietly until the network comes back -- so it is a
 		// state, not a failure.
 		retryLater();
-		say('error', 'offline — your data is safe here');
+		say('error', T('offline — your data is safe here'));
 	} finally {
 		inFlight = false;
 		// A change that arrived mid-flight goes now, not in half a second.
@@ -382,7 +452,14 @@ function retryLater() {
 /** Check for someone else's changes -- on focus, and when asked. */
 async function pull() {
 	if (!account || resolving || inFlight || store.isTransient()) return;
-	const got = await api('GET', '/api/state');
+	// Offline, the request throws; a pull that could not happen is not
+	// news, and "Sync now" must still go on to its push.
+	let got;
+	try {
+		got = await api('GET', '/api/state');
+	} catch {
+		return;
+	}
 	if (!got.ok || !got.body) return;
 	const remote = got.body;
 	// Only ever move forwards. A server that lost an unflushed revision --
@@ -396,9 +473,9 @@ async function pull() {
 	// The stored save has moved on. If nothing has changed here since our
 	// last push, taking it is safe and silent.
 	if (localText() === lastPushed) {
-		return take(remote, `Updated from ${remote.device || 'another device'}`);
+		return take(remote, T('Updated from {device}', { device: remote.device || T('another device') }));
 	}
-	askWhichCopy(remote, 'Another device saved while you were working.');
+	askWhichCopy(remote, T('Another device saved while you were working.'));
 }
 
 /* ------------------------------------------------------------------ *
@@ -411,14 +488,14 @@ const countOf = data => ({
 });
 
 const when = ms => {
-	if (!ms) return 'at some point';
+	if (!ms) return T('at some point');
 	const mins = Math.round((Date.now() - ms) / 60000);
-	if (mins < 1) return 'just now';
-	if (mins < 60) return `${mins} minute${mins === 1 ? '' : 's'} ago`;
+	if (mins < 1) return T('just now');
+	if (mins < 60) return mins === 1 ? T('{n} minute ago', { n: mins }) : T('{n} minutes ago', { n: mins });
 	const hours = Math.round(mins / 60);
-	if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+	if (hours < 24) return hours === 1 ? T('{n} hour ago', { n: hours }) : T('{n} hours ago', { n: hours });
 	const days = Math.round(hours / 24);
-	return `${days} day${days === 1 ? '' : 's'} ago`;
+	return days === 1 ? T('{n} day ago', { n: days }) : T('{n} days ago', { n: days });
 };
 
 /**
@@ -447,18 +524,18 @@ function askNow(remote, headline) {
 
 	const mine = countOf(store.saveShape());
 	const theirs = countOf(remote.data);
-	const from = remote.device ? `on ${remote.device}` : 'elsewhere';
+	const from = remote.device ? T('on {device}', { device: said(remote.device) }) : T('elsewhere');
 
 	const host = hooks.openDialog(`
-		<h2>Two copies of your inventory</h2>
-		<p>${esc(headline)} Nothing has been changed yet — pick the one to keep, and the other is still one Undo away.</p>
+		<h2>${T('Two copies of your inventory')}</h2>
+		<p>${esc(headline)} ${T('Nothing has been changed yet — pick the one to keep, and the other is still one Undo away.')}</p>
 		<div class="dialog-list">
-			<div class="dialog-row"><span>Here on ${esc(deviceName())}</span><span class="n">${mine.items} items · ${mine.builds} builds</span></div>
-			<div class="dialog-row"><span>Saved ${esc(from)}, ${esc(when(remote.updatedAt))}</span><span class="n">${theirs.items} items · ${theirs.builds} builds</span></div>
+			<div class="dialog-row"><span>${T('Here on {device}', { device: esc(said(deviceName())) })}</span><span class="n">${T('{items} items · {builds} builds', { items: mine.items, builds: mine.builds })}</span></div>
+			<div class="dialog-row"><span>${T('Saved {where}, {when}', { where: esc(from), when: esc(when(remote.updatedAt)) })}</span><span class="n">${T('{items} items · {builds} builds', { items: theirs.items, builds: theirs.builds })}</span></div>
 		</div>
 		<div class="dialog-actions">
-			<button class="act quiet" data-keep-remote>Use the saved one</button>
-			<button class="act" data-keep-local>Keep what is here</button>
+			<button class="act quiet" data-keep-remote>${T('Use the saved one')}</button>
+			<button class="act" data-keep-local>${T('Keep what is here')}</button>
 		</div>
 	`, {
 		// Clicking past the dialog is not an answer, and it must not jam
@@ -484,7 +561,7 @@ function askNow(remote, headline) {
 	host.querySelector('[data-keep-remote]').addEventListener('click', () => {
 		hooks.closeDialog();
 		resolving = false;
-		take(remote, 'Took the saved inventory');
+		take(remote, T('Took the saved inventory'));
 	});
 }
 
@@ -493,10 +570,10 @@ function askNow(remote, headline) {
  * ------------------------------------------------------------------ */
 
 const NOTE = {
-	syncing: 'Saving…',
-	idle: 'Synced',
-	conflict: 'Needs a decision',
-	error: 'Not saved'
+	syncing: () => T('Saving…'),
+	idle: () => T('Synced'),
+	conflict: () => T('Needs a decision'),
+	error: () => T('Not saved')
 };
 
 function avatarURL(user) {
@@ -515,12 +592,12 @@ function paint() {
 	}
 
 	if (!account) {
-		host.innerHTML = `<button class="ghost-btn" data-act="signin" title="Sign in to keep this inventory on your other devices">Sign in</button>`;
+		host.innerHTML = `<button class="ghost-btn" data-act="signin" title="${T('Sign in to keep this inventory on your other devices')}">${T('Sign in')}</button>`;
 		return;
 	}
 
 	const src = avatarURL(account);
-	const note = detail || NOTE[status] || '';
+	const note = said(detail) || (NOTE[status] ? NOTE[status]() : '');
 	host.innerHTML = `<button class="ghost-btn account-chip ${esc(status)}" data-act="account"
 			title="${esc(account.username)} — ${esc(note)}">
 		${src ? `<img class="account-avatar" src="${esc(src)}" alt="" width="20" height="20">` : ''}
@@ -532,30 +609,35 @@ function paint() {
 function openAccountDialog() {
 	const host = hooks.openDialog(`
 		<h2>${esc(account.username)}</h2>
-		<p>Your inventory is saved to your Discord account, so the same one follows you between machines. ${esc(detail || NOTE[status] || '')}.</p>
-		${feature('community') ? `<p class="dialog-copy">${account.share === 'named' ? 'You are on the <b>community boards</b> by name.' : account.share === 'anon' ? 'You are on the <b>community boards</b> as an unnamed sailor.' : 'You are not on the <b>community boards</b>; nothing about your save is shown to anyone.'} <a href="#community" data-act="view" data-id="community">Open the boards</a></p>` : ''}
+		<p>${T('Your inventory is saved to your Discord account, so the same one follows you between machines.')} ${esc(said(detail) || (NOTE[status] ? NOTE[status]() : ''))}.</p>
+		${feature('community') ? `<p class="dialog-copy">${account.share === 'named' ? T('You are on the <b>community boards</b> by name.') : account.share === 'anon' ? T('You are on the <b>community boards</b> as an unnamed sailor.') : T('You are not on the <b>community boards</b>; nothing about your save is shown to anyone.')} <a href="#community" data-act="view" data-id="community">${T('Open the boards')}</a></p>` : ''}
 		<div class="dialog-actions">
-			<button class="act quiet" data-forget>Delete my saved data</button>
-			<button class="act quiet" data-signout>Sign out</button>
-			<button class="act" data-now>Sync now</button>
+			<button class="act danger" data-forget>${T('Delete my saved data')}</button>
+			<button class="act quiet" data-signout>${T('Sign out')}</button>
+			<button class="act" data-now>${T('Sync now')}</button>
 		</div>
 	`);
 
 	host.querySelector('[data-now]').addEventListener('click', async () => {
 		hooks.closeDialog();
-		await pull();
-		await push(true);
+		const stop = loading(T('Syncing…'));
+		try {
+			await pull();
+			await push(true);
+		} finally {
+			stop();
+		}
 	});
 
 	host.querySelector('[data-signout]').addEventListener('click', async () => {
-		try { await api('POST', '/auth/logout'); } catch { /* signed out locally all the same */ }
+		try { await whileLoading(api('POST', '/auth/logout'), T('Signing out…'), { by: host.querySelector('[data-signout]') }); } catch { /* signed out locally all the same */ }
 		account = null;
 		hooks.closeDialog();
 		say('out');
 		tell();
 		// The local copy stays exactly where it is -- signing out of a
 		// device should not empty it.
-		if (hooks.toast) hooks.toast('Signed out. Your inventory is still here.');
+		if (hooks.toast) hooks.toast(T('Signed out. Your inventory is still here.'));
 	});
 
 	host.querySelector('[data-forget]').addEventListener('click', () => {
@@ -566,23 +648,23 @@ function openAccountDialog() {
 
 function confirmDelete() {
 	const host = hooks.openDialog(`
-		<h2>Delete your saved data?</h2>
-		<p>This removes the copy stored under your Discord account, and the account record with it. What is in this browser stays — export it first if you want a backup.</p>
+		<h2>${T('Delete your saved data?')}</h2>
+		<p>${T('This removes the copy stored under your Discord account, and the account record with it. What is in this browser stays — export it first if you want a backup.')}</p>
 		<div class="dialog-actions">
-			<button class="act quiet" data-close>Keep it</button>
-			<button class="act bad" data-yes>Delete it</button>
+			<button class="act quiet" data-close>${T('Keep it')}</button>
+			<button class="act bad" data-yes>${T('Delete it')}</button>
 		</div>
 	`);
 	host.querySelector('[data-yes]').addEventListener('click', async () => {
-		const res = await api('DELETE', '/api/account');
+		const res = await whileLoading(api('DELETE', '/api/account'), T('Deleting your saved data…'), { by: host.querySelector('[data-yes]') });
 		hooks.closeDialog();
-		if (!res.ok) return hooks.toast && hooks.toast('That could not be deleted.');
+		if (!res.ok) return hooks.toast && hooks.toast(T('That could not be deleted.'));
 		account = null;
 		setRev(0);
 		lastPushed = null;
 		say('out');
 		tell();
-		if (hooks.toast) hooks.toast('Your saved data has been deleted.');
+		if (hooks.toast) hooks.toast(T('Your saved data has been deleted.'));
 	});
 }
 
@@ -609,9 +691,9 @@ function readSignInResult() {
 	const outcome = params.get('signin');
 	if (!outcome) return;
 	const message = {
-		cancelled: 'Sign-in cancelled — nothing has changed.',
-		expired: 'That sign-in took too long. Try again.',
-		failed: 'Discord could not sign you in. Try again in a moment.'
+		cancelled: T('Sign-in cancelled — nothing has changed.'),
+		expired: T('That sign-in took too long. Try again.'),
+		failed: T('Discord could not sign you in. Try again in a moment.')
 	}[outcome];
 	if (message && hooks.toast) hooks.toast(message);
 	params.delete('signin');
@@ -623,15 +705,18 @@ export function signIn() {
 	// One tap used to leave for discord.com with no warning at all --
 	// mid-plan, the whole page gone. Say where the door goes first.
 	const host = hooks.openDialog(`
-		<h2>Sign in with Discord</h2>
-		<p>Sync keeps this inventory on your Discord account, so the same one follows you between machines. You will go to discord.com to sign in, and come straight back here.</p>
+		<h2>${T('Sign in with Discord')}</h2>
+		<p>${T('Sync keeps this inventory on your Discord account, so the same one follows you between machines. You will go to discord.com to sign in, and come straight back here.')}</p>
 		<div class="dialog-actions">
-			<button class="act quiet" data-cancel>Cancel</button>
-			<button class="act" data-go>Continue to Discord</button>
+			<button class="act quiet" data-cancel>${T('Cancel')}</button>
+			<button class="act" data-go>${T('Continue to Discord')}</button>
 		</div>
 	`);
 	host.querySelector('[data-cancel]').addEventListener('click', () => hooks.closeDialog());
-	host.querySelector('[data-go]').addEventListener('click', () => {
+	host.querySelector('[data-go]').addEventListener('click', evt => {
+		// The page is leaving for discord.com; until it has gone, it says
+		// it is on its way. The navigation ends the wait with the page.
+		loading(T('Signing in…'), { by: evt.currentTarget });
 		location.href = `/auth/discord?to=${encodeURIComponent(location.pathname + location.search)}`;
 	});
 }
@@ -639,10 +724,6 @@ export function signIn() {
 export function openAccount() {
 	if (account) openAccountDialog();
 	else signIn();
-}
-
-export function isAvailable() {
-	return available;
 }
 
 /**
@@ -727,15 +808,24 @@ export async function initSync(callbacks = {}) {
 		// this yet", and only the second one is answerable here.
 		const text = localText();
 		if (text === lastPushed) return;
-		fetch('/api/state', {
+		const body = JSON.stringify({ rev: rev(), data: JSON.parse(text), device: deviceName() });
+		// A browser refuses a keepalive request whose body is over 64 KiB,
+		// and a profile with its traces and run log is often that big. An
+		// ordinary request may still leave before the page goes, so a body
+		// too big -- or a keepalive refused -- is sent the ordinary way
+		// rather than not at all.
+		const send = keepalive => fetch('/api/state', {
 			method: 'PUT',
 			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ rev: rev(), data: JSON.parse(text), device: deviceName() }),
+			body,
 			credentials: 'same-origin',
-			keepalive: true
-		}).catch(() => {
+			keepalive
+		});
+		const plain = () => send(false).catch(() => {
 			// Nothing can be reported from a page that is going away. The
 			// local copy is intact and the next visit will push it.
 		});
+		if (new Blob([body]).size < KEEPALIVE_MAX) send(true).catch(plain);
+		else plain();
 	});
 }

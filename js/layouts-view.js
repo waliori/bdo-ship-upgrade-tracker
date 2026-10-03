@@ -13,6 +13,7 @@
 // and tell the fleet.
 
 import { esc, F } from './fmt.js';
+import { T, said, gameName } from './i18n.js';
 import { openDialog, closeDialog, toast } from './dialogs.js';
 import { img } from './ui-bits.js';
 import { npcById, isleOf } from './barter_npcs.js';
@@ -21,27 +22,40 @@ import { exchangeGate, knownAt } from './barter-board.js';
 import { bookOf, searchBook } from './layout-book.js';
 import { shared, fleetHistory, sawItToo, unsay } from './sea-boards.js';
 import { me } from './sync.js';
+import { loadingNote } from './loading.js';
 
 const isle = id => { const n = npcById.get(Number(id)); return n ? isleOf(n) : `island ${id}`; };
 const dayOf = key => {
 	const d = new Date(`${String(key).slice(0, 10)}T00:00:00Z`);
 	return Number.isNaN(d.getTime()) ? String(key) : d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', timeZone: 'UTC' });
 };
-const plural = (n, one, many = `${one}s`) => `${F(n)} ${n === 1 ? one : many}`;
+// A count and the thing counted are one sentence rather than a number
+// with a word after it, so each noun this file counts keeps its two
+// forms here and the call sites go on asking for the noun by name.
+const COUNTED = {
+	board: n => (n === 1 ? T('{n} board', { n: F(n) }) : T('{n} boards', { n: F(n) })),
+	confirm: n => (n === 1 ? T('{n} confirm', { n: F(n) }) : T('{n} confirms', { n: F(n) })),
+	exchange: n => (n === 1 ? T('{n} exchange', { n: F(n) }) : T('{n} exchanges', { n: F(n) })),
+	island: n => (n === 1 ? T('{n} island', { n: F(n) }) : T('{n} islands', { n: F(n) })),
+	reading: n => (n === 1 ? T('{n} reading', { n: F(n) }) : T('{n} readings', { n: F(n) })),
+	slot: n => (n === 1 ? T('{n} slot', { n: F(n) }) : T('{n} slots', { n: F(n) })),
+	time: n => (n === 1 ? T('{n} time', { n: F(n) }) : T('{n} times', { n: F(n) }))
+};
+const plural = (n, one, many = `${one}s`) => (COUNTED[one] ? COUNTED[one](n) : `${F(n)} ${n === 1 ? one : many}`);
 const by = readers => {
 	const names = [...new Set(readers.filter(r => r.name).map(r => r.name))];
 	const quiet = readers.filter(r => !r.name).length;
 	const said = names.slice(0, 3).map(n => `<b>${esc(n)}</b>`);
-	if (names.length > 3) said.push(`${names.length - 3} more`);
-	if (quiet) said.push(names.length ? `${plural(quiet, 'sailor')} not shown by name` : (quiet === 1 ? 'a sailor not shown by name' : `${F(quiet)} sailors not shown by name`));
+	if (names.length > 3) said.push(T('{n} more', { n: names.length - 3 }));
+	if (quiet) said.push(names.length ? (quiet === 1 ? T('{n} sailor not shown by name', { n: F(quiet) }) : T('{n} sailors not shown by name', { n: F(quiet) })) : (quiet === 1 ? T('a sailor not shown by name') : T('{n} sailors not shown by name', { n: F(quiet) })));
 	return said.join(', ');
 };
 
 /** The levels a board pays, as a row of small counts. */
 function levelPills(levels) {
 	const out = [];
-	for (let lv = 1; lv <= 7; lv++) if (levels[lv]) out.push(`<span class="lb-lv" style="--lv: var(--tier-${lv})" title="${levels[lv]} exchanges pay a [Level ${lv}] good">L${lv}<b>${levels[lv]}</b></span>`);
-	if (levels.coin) out.push(`<span class="lb-lv coin" title="${levels.coin} exchanges pay Crow Coins">◎<b>${levels.coin}</b></span>`);
+	for (let lv = 1; lv <= 7; lv++) if (levels[lv]) out.push(`<span class="lb-lv" style="--lv: var(--tier-${lv})" title="${T('{n} exchanges pay a [Level {lv}] good', { n: levels[lv], lv })}">L${lv}<b>${levels[lv]}</b></span>`);
+	if (levels.coin) out.push(`<span class="lb-lv coin" title="${T('{n} exchanges pay Crow Coins', { n: levels.coin })}">◎<b>${levels.coin}</b></span>`);
 	return out.join('');
 }
 
@@ -54,12 +68,12 @@ function levelPills(levels) {
  */
 function faceOf(combo, n = 8) {
 	const row = (label, title, names) => (names.length
-		? `<span class="lb-face-row" title="${esc(title)}"><span class="lb-face-label">${label}</span>${names.slice(0, n).map(name => `<span title="${esc(name)}">${img(name, 'lb-face')}</span>`).join('')}${names.length > n ? `<span class="lb-more">+${names.length - n}</span>` : ''}</span>`
+		? `<span class="lb-face-row" title="${esc(title)}"><span class="lb-face-label">${label}</span>${names.slice(0, n).map(name => `<span title="${esc(gameName(name))}">${img(name, 'lb-face')}</span>`).join('')}${names.length > n ? `<span class="lb-more">+${names.length - n}</span>` : ''}</span>`
 		: '');
 	const starts = [...new Set(combo.offers.filter(o => levelOf(o[3]) === 1).map(o => o[1]))].sort();
 	const coins = [...new Set(combo.offers.filter(o => o[3] === 'Crow Coin').map(o => o[1]))].sort();
-	return row('from', 'What the [Level 1] islands are asking for: where a day on this board starts', starts)
-		+ row('◎ for', 'What the coin islands will take on this board', coins);
+	return row(T('from'), T('What the [Level 1] islands are asking for: where a day on this board starts'), starts)
+		+ row(T('◎ for'), T('What the coin islands will take on this board'), coins);
 }
 
 /**
@@ -97,43 +111,43 @@ export function openLayoutBook({ combos, answers = [], day = '', count = null, l
 	const statusLine = () => {
 		const pinned = book.layouts.find(p => p.today);
 		const todayStray = book.strays.find(g => g.today);
-		if (pinned) return `Today the sea is on <button class="linky" data-lb-open="layout:${esc(pinned.id)}"><b>layout ${esc(pinned.id)}</b></button>.`;
+		if (pinned) return T('Today the sea is on {layout}.', { layout: `<button class="linky" data-lb-open="layout:${esc(pinned.id)}"><b>${T('layout {id}', { id: esc(pinned.id) })}</b></button>` });
 		if (answers.length && !book.standing) {
-			return `What you saw today fits <b>no layout on file</b>${todayStray ? ' — and you are not the only one, see below' : ''}.`;
+			return todayStray ? T('What you saw today fits <b>no layout on file</b> — and you are not the only one, see below.') : T('What you saw today fits <b>no layout on file</b>.');
 		}
-		if (answers.length) return `${plural(answers.length, 'island')} answered today: <b>${book.standing}</b> of ${book.layouts.length} layouts still stand.`;
-		return `Nothing answered today yet, so all ${book.layouts.length} layouts stand.`;
+		if (answers.length) return T('{islands} answered today: <b>{standing}</b> of {of} layouts still stand.', { islands: plural(answers.length, 'island'), standing: book.standing, of: book.layouts.length });
+		return T('Nothing answered today yet, so all {n} layouts stand.', { n: book.layouts.length });
 	};
 
 	const strayCard = g => {
 		const near = g.near;
 		const drift = near && near.differ.length <= 4 && near.agree >= near.differ.length;
 		return `<button class="lb-card stray${g.today ? ' today' : ''}" data-lb-open="stray:${esc(g.key)}">
-			<span class="lb-card-top"><span class="lb-num">?</span><span class="lb-badge ${g.today ? 'today' : 'old'}">${g.today ? 'seen today' : esc(dayOf(g.day))}</span></span>
-			<span class="lb-card-line">${plural(g.said.length, 'island')} read by ${by(g.readers) || 'a sailor'}</span>
-			<span class="lb-card-line quiet">${g.seen ? `${plural(g.seen, 'other')} saw the same · ` : ''}${near ? (drift
-		? `<b>layout ${esc(near.combo.id)}</b> with ${plural(near.differ.length, 'slot')} moved`
-		: `nearest is layout ${esc(near.combo.id)}, and it parts at ${near.differ.length}`) : ''}</span>
-			${g.unknown ? `<span class="lb-card-line hit">${plural(g.unknown, 'exchange')} the game is not known to deal there</span>` : ''}
+			<span class="lb-card-top"><span class="lb-num">?</span><span class="lb-badge ${g.today ? 'today' : 'old'}">${g.today ? T('seen today') : esc(dayOf(g.day))}</span></span>
+			<span class="lb-card-line">${T('{islands} read by {who}', { islands: plural(g.said.length, 'island'), who: by(g.readers) || T('a sailor') })}</span>
+			<span class="lb-card-line quiet">${g.seen ? `${g.seen === 1 ? T('{n} other saw the same', { n: F(g.seen) }) : T('{n} others saw the same', { n: F(g.seen) })} · ` : ''}${near ? (drift
+		? T('<b>layout {id}</b> with {slots} moved', { id: esc(near.combo.id), slots: plural(near.differ.length, 'slot') })
+		: T('nearest is layout {id}, and it parts at {n}', { id: esc(near.combo.id), n: near.differ.length })) : ''}</span>
+			${g.unknown ? `<span class="lb-card-line hit">${T('{exchanges} the game is not known to deal there', { exchanges: plural(g.unknown, 'exchange') })}</span>` : ''}
 			${near && drift ? `<span class="lb-diffs">${near.differ.slice(0, 3).map(d => `<span class="lb-diff">${img(d.filed.recv, 'lb-face')}<span class="lb-arrow">→</span>${img(d.saw.recv, 'lb-face')}</span>`).join('')}</span>` : ''}
 		</button>`;
 	};
 
 	const layoutCard = ({ page, hits }) => {
 		const fleet = page.sailors
-			? `fleet: ${plural(page.sailors, 'reading')}${page.confirms ? ` · ${plural(page.confirms, 'confirm')}` : ''} · last ${esc(dayOf(page.days[0]))}`
-			: (shared() ? 'not read by the fleet yet' : '');
-		const state = page.today ? '<span class="lb-badge today">today’s board</span>'
+			? `${T('fleet: {readings}', { readings: plural(page.sailors, 'reading') })}${page.confirms ? ` · ${plural(page.confirms, 'confirm')}` : ''} · ${T('last {day}', { day: esc(dayOf(page.days[0])) })}`
+			: (shared() ? T('not read by the fleet yet') : '');
+		const state = page.today ? `<span class="lb-badge today">${T('today’s board')}</span>`
 			: !answers.length ? ''
-				: page.standing ? '<span class="lb-badge standing">still standing</span>' : '<span class="lb-badge out">ruled out today</span>';
+				: page.standing ? `<span class="lb-badge standing">${T('still standing')}</span>` : `<span class="lb-badge out">${T('ruled out today')}</span>`;
 		return `<button class="lb-card${page.today ? ' today' : ''}${answers.length && !page.standing ? ' out' : ''}" data-lb-open="layout:${esc(page.id)}">
 			<span class="lb-card-top"><span class="lb-num">${esc(page.id)}</span>${state}</span>
 			<span class="lb-faces">${faceOf(page.combo)}</span>
 			<span class="lb-levels">${levelPills(page.levels)}</span>
-			<span class="lb-card-line quiet">record: ${plural(page.filed, 'time')} in ${F(combos.sample.refreshes)} refreshes</span>
+			<span class="lb-card-line quiet">${T('record: {times} in {of} refreshes', { times: plural(page.filed, 'time'), of: F(combos.sample.refreshes) })}</span>
 			${fleet ? `<span class="lb-card-line quiet">${fleet}</span>` : ''}
-			${page.mine ? `<span class="lb-card-line mine">you: <b>${plural(page.mine, 'time')}</b>${book.dealt ? ` · ${Math.round((page.mine / book.dealt) * 100)}%` : ''} · last ${esc(dayOf(page.mineLast))}</span>` : ''}
-			${hits ? `<span class="lb-card-line hit">${plural(hits.size, 'island')} match “${esc(query)}”</span>` : ''}
+			${page.mine ? `<span class="lb-card-line mine">${T('you: <b>{times}</b>', { times: plural(page.mine, 'time') })}${book.dealt ? ` · ${Math.round((page.mine / book.dealt) * 100)}%` : ''} · ${T('last {day}', { day: esc(dayOf(page.mineLast)) })}</span>` : ''}
+			${hits ? `<span class="lb-card-line hit">${T('{islands} match “{q}”', { islands: plural(hits.size, 'island'), q: esc(query) })}</span>` : ''}
 		</button>`;
 	};
 
@@ -144,51 +158,51 @@ export function openLayoutBook({ combos, answers = [], day = '', count = null, l
 		if (filter === 'mine') pages = pages.filter(x => x.page.mine).sort((a, b) => b.page.mine - a.page.mine);
 		else if (filter !== 'fleet') pages.sort((a, b) => (b.page.today - a.page.today) || (b.page.standing - a.page.standing) || 0);
 		const strays = filter === 'standing' || filter === 'mine' || query ? [] : book.strays;
-		return `${strays.length ? `<h3 class="lb-h">Boards nobody has on file <span class="quiet">· ${strays.length}</span></h3>
-			<p class="lb-sub">Read by sailors, and fitting none of the ${book.layouts.length} layouts. One that others have seen too is the record out of date; one nobody else has seen may be a slip.</p>
+		return `${strays.length ? `<h3 class="lb-h">${T('Boards nobody has on file')} <span class="quiet">· ${strays.length}</span></h3>
+			<p class="lb-sub">${T('Read by sailors, and fitting none of the {n} layouts. One that others have seen too is the record out of date; one nobody else has seen may be a slip.', { n: book.layouts.length })}</p>
 			<div class="lb-grid">${strays.map(strayCard).join('')}</div>` : ''}
-			<h3 class="lb-h">${filter === 'standing' ? 'Layouts still standing today' : filter === 'fleet' ? 'Layouts the fleet has read, the most read first' : filter === 'mine' ? 'The boards you have been dealt, the commonest first' : 'The layouts on file'} <span class="quiet">· ${pages.length}</span></h3>
-			${pages.length ? `<div class="lb-grid">${pages.map(layoutCard).join('')}</div>` : `<p class="lb-sub">${query ? `Nothing on file deals “${esc(query)}”.` : 'None.'}</p>`}`;
+			<h3 class="lb-h">${filter === 'standing' ? T('Layouts still standing today') : filter === 'fleet' ? T('Layouts the fleet has read, the most read first') : filter === 'mine' ? T('The boards you have been dealt, the commonest first') : T('The layouts on file')} <span class="quiet">· ${pages.length}</span></h3>
+			${pages.length ? `<div class="lb-grid">${pages.map(layoutCard).join('')}</div>` : `<p class="lb-sub">${query ? T('Nothing on file deals “{q}”.', { q: esc(query) }) : T('None.')}</p>`}`;
 	};
 
 	/** Which board this sailor is dealt most, from the log the app keeps. */
 	const mineLine = () => {
 		const most = book.layouts.filter(p => p.mine).sort((a, b) => b.mine - a.mine)[0];
-		return most ? `<p class="lb-sub">You have settled <b>${plural(book.dealt, 'board')}</b>; the one you are dealt most is <button class="linky" data-lb-open="layout:${esc(most.id)}"><b>layout ${esc(most.id)}</b></button>, ${plural(most.mine, 'time')}. The app writes a board down by itself the moment it is settled.</p>` : '';
+		return most ? `<p class="lb-sub">${T('You have settled <b>{boards}</b>; the one you are dealt most is {layout}, {times}. The app writes a board down by itself the moment it is settled.', { boards: plural(book.dealt, 'board'), layout: `<button class="linky" data-lb-open="layout:${esc(most.id)}"><b>${T('layout {id}', { id: esc(most.id) })}</b></button>`, times: plural(most.mine, 'time') })}</p>` : '';
 	};
 
 	const shelfHTML = () => {
 		const chip = (id, label, n) => `<button class="chip${filter === id ? ' on' : ''}" data-lb-filter="${id}">${label}${n === null ? '' : ` <span class="quiet">${n}</span>`}</button>`;
 		const since = new Date(`${combos.sample.since}T00:00:00Z`).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
-		return `<h2>The layout book</h2>
-		<p class="dialog-note">Every refresh deals one of <b>${book.layouts.length}</b> boards. These are the ones on file — the community’s record of ${F(combos.sample.refreshes)} refreshes since ${esc(since)} — and beside them what the fleet has read${shared() ? ' in the last two months' : ''}. ${statusLine()}</p>
+		return `<h2>${T('The layout book')}</h2>
+		<p class="dialog-note">${T('Every refresh deals one of <b>{n}</b> boards.', { n: book.layouts.length })} ${shared() ? T('These are the ones on file — the community’s record of {refreshes} refreshes since {since} — and beside them what the fleet has read in the last two months.', { refreshes: F(combos.sample.refreshes), since: esc(since) }) : T('These are the ones on file — the community’s record of {refreshes} refreshes since {since} — and beside them what the fleet has read.', { refreshes: F(combos.sample.refreshes), since: esc(since) })} ${statusLine()}</p>
 		<div class="lb-bar">
-			${chip('all', 'All', book.layouts.length)}${answers.length ? chip('standing', 'Standing today', book.standing) : ''}${shared() ? chip('fleet', 'Read by the fleet', book.layouts.filter(p => p.sailors).length) : ''}${book.dealt ? chip('mine', 'Yours', book.layouts.filter(p => p.mine).length) : ''}
-			<input class="lb-search" type="search" data-lb-q placeholder="an island, a good, or a layout’s number…" value="${esc(query)}" aria-label="Search the layouts">
-			${onTell && shared() && answers.length ? `<button class="ghost-btn sm" data-lb-tell title="${me() ? 'Send the islands you answered today, with your name on the reading' : 'Sign in from the Menu first — a reading goes up with a name on it'}">📣 Tell the fleet what you saw</button>` : ''}
+			${chip('all', T('All'), book.layouts.length)}${answers.length ? chip('standing', T('Standing today'), book.standing) : ''}${shared() ? chip('fleet', T('Read by the fleet'), book.layouts.filter(p => p.sailors).length) : ''}${book.dealt ? chip('mine', T('Yours'), book.layouts.filter(p => p.mine).length) : ''}
+			<input class="lb-search" type="search" data-lb-q placeholder="${T('an island, a good, or a layout’s number…')}" value="${esc(query)}" aria-label="${T('Search the layouts')}">
+			${onTell && shared() && answers.length ? `<button class="ghost-btn sm" data-lb-tell title="${me() ? T('Send the islands you answered today, with your name on the reading') : T('Sign in from the Menu first — a reading goes up with a name on it')}">📣 ${T('Tell the fleet what you saw')}</button>` : ''}
 		</div>
-		${!shared() ? '<p class="lb-sub">This deployment keeps no fleet readings, so the book is the record alone.</p>' : !asked ? '<p class="lb-sub">Asking what the fleet has read…</p>' : book.open ? `<p class="lb-sub">${plural(book.open, 'reading')} named too few islands to tell the layouts apart, and ${book.open === 1 ? 'is' : 'are'} counted for none.</p>` : ''}
+		${!shared() ? `<p class="lb-sub">${T('This deployment keeps no fleet readings, so the book is the record alone.')}</p>` : !asked ? `<p class="lb-sub">${loadingNote(T('Asking what the fleet has read…'))}</p>` : book.open ? `<p class="lb-sub">${book.open === 1 ? T('{n} reading named too few islands to tell the layouts apart, and is counted for none.', { n: F(book.open) }) : T('{n} readings named too few islands to tell the layouts apart, and are counted for none.', { n: F(book.open) })}</p>` : ''}
 		${mineLine()}
 		<div data-lb-grid>${gridHTML()}</div>
-		<div class="dialog-actions"><button class="act quiet" data-close>Close</button></div>`;
+		<div class="dialog-actions"><button class="act quiet" data-close>${T('Close')}</button></div>`;
 	};
 
 	/* --- one board ---------------------------------------------------- */
 	/** A good's name without the level in front of it: the heading over
 	 *  the tiles has already said the level, eighty-six times over. */
-	const plain = name => String(name).replace(/^\[Level \d\]\s*/, '');
-	const good = (name, qty = 1) => `<span class="lb-good">${img(name, 'row-icon')}<span>${Number(qty) > 1 ? `<b>${F(Number(qty))}×</b> ` : ''}${esc(plain(name))}</span></span>`;
+	const plain = name => String(name).replace(/^\[[^\]]*\]\s*/, '');
+	const good = (name, qty = 1) => `<span class="lb-good">${img(name, 'row-icon')}<span>${Number(qty) > 1 ? `<b>${F(Number(qty))}×</b> ` : ''}${esc(plain(gameName(name)))}</span></span>`;
 
 	/** One island on a board, as a tile: its name whole, then what it
 	 *  takes and what it pays. `notes` is what there is to say about it. */
 	const tile = (o, { cls = '', tags = [], under = '' } = {}) => `<div class="lb-tile${cls}">
-		<div class="lb-tile-top"><span class="lb-isle">${esc(isle(o[0]))}</span>${tags.length ? `<span class="lb-tags">${tags.join('')}</span>` : ''}</div>
+		<div class="lb-tile-top"><span class="lb-isle">${esc(gameName(isle(o[0])))}</span>${tags.length ? `<span class="lb-tags">${tags.join('')}</span>` : ''}</div>
 		<div class="lb-tile-swap">${good(o[1], o[2])}<span class="lb-arrow">→</span>${good(o[3])}</div>${under}
 	</div>`;
 
 	const LEVELS = ['L1', 'L2', 'L3', 'L4', 'L5', 'L6', 'L7', 'coin', 'other'];
 	const levelKey = recv => { const lv = levelOf(recv); return lv ? `L${lv}` : recv === 'Crow Coin' ? 'coin' : 'other'; };
-	const levelTitle = k => (k === 'coin' ? 'Sold for Crow Coins' : k === 'other' ? 'Pays something else' : k === 'L1' ? 'Land goods → Level 1' : `Level ${Number(k.slice(1)) - 1} → Level ${k.slice(1)}`);
+	const levelTitle = k => (k === 'coin' ? T('Sold for Crow Coins') : k === 'other' ? T('Pays something else') : k === 'L1' ? T('Land goods → Level 1') : T('Level {from} → Level {to}', { from: Number(k.slice(1)) - 1, to: k.slice(1) }));
 	let level = 'all';       // which level of the open board is shown
 
 	const tilesByLevel = (offers, dress) => {
@@ -199,8 +213,8 @@ export function openLayoutBook({ combos, answers = [], day = '', count = null, l
 			groups.get(key).push(o);
 		}
 		const keys = LEVELS.filter(k => groups.has(k));
-		const tabs = `<div class="lb-bar lb-tabs"><button class="chip${level === 'all' ? ' on' : ''}" data-lb-level="all">All <span class="quiet">${offers.length}</span></button>${keys.map(k =>
-			`<button class="chip${level === k ? ' on' : ''}" data-lb-level="${k}" style="--lv: var(--tier-${k.startsWith('L') ? k.slice(1) : 6})"><i class="lb-dot"></i>${k === 'coin' ? '◎ coins' : k === 'other' ? 'other' : k} <span class="quiet">${groups.get(k).length}</span></button>`).join('')}</div>`;
+		const tabs = `<div class="lb-bar lb-tabs"><button class="chip${level === 'all' ? ' on' : ''}" data-lb-level="all">${T('All')} <span class="quiet">${offers.length}</span></button>${keys.map(k =>
+			`<button class="chip${level === k ? ' on' : ''}" data-lb-level="${k}" style="--lv: var(--tier-${k.startsWith('L') ? k.slice(1) : 6})"><i class="lb-dot"></i>${k === 'coin' ? `◎ ${T('coins')}` : k === 'other' ? T('other') : k} <span class="quiet">${groups.get(k).length}</span></button>`).join('')}</div>`;
 		const shown = keys.filter(k => level === 'all' || level === k);
 		return tabs + (shown.length ? shown : keys).map(k => `<h4 class="lb-lvh" style="--lv: var(--tier-${k.startsWith('L') ? k.slice(1) : 6})">${levelTitle(k)} <span class="quiet">· ${plural(groups.get(k).length, 'island')}</span></h4>
 			<div class="lb-tiles">${groups.get(k).sort((x, y) => isle(x[0]).localeCompare(isle(y[0]))).map(o => tile(o, dress(o))).join('')}</div>`).join('');
@@ -217,30 +231,49 @@ export function openLayoutBook({ combos, answers = [], day = '', count = null, l
 			let cls = hits && hits.has(o[0]) ? ' hit' : '';
 			let under = '';
 			const a = mine.get(Number(o[0]));
-			if (a && a.give === o[1] && a.recv === o[3]) { cls += ' same'; tags.push('<span class="lb-tag ok" title="What you saw here today">✓ seen</span>'); }
-			else if (a) { cls += ' off'; under = `<div class="lb-tile-saw"><span class="lb-saw-label">you saw</span>${good(a.give)}<span class="lb-arrow">→</span>${good(a.recv)}</div>`; }
+			if (a && a.give === o[1] && a.recv === o[3]) { cls += ' same'; tags.push(`<span class="lb-tag ok" title="${T('What you saw here today')}">✓ ${T('seen')}</span>`); }
+			else if (a) { cls += ' off'; under = `<div class="lb-tile-saw"><span class="lb-saw-label">${T('you saw')}</span>${good(a.give)}<span class="lb-arrow">→</span>${good(a.recv)}</div>`; }
 			const gate = exchangeGate(page.combo, o[0]);
-			if (gate !== null && count !== null && gate > count) { cls += ' locked'; tags.push(`<span class="lb-tag lock" title="The game opens this exchange at ${F(gate)} total barters; you have ${F(count)}, so the island shows you nothing here">🔒 ${F(gate)}</span>`); }
-			if (filled.has(Number(o[0]))) tags.push('<span class="lb-tag file" title="The community’s record has no row for this island on this layout: this one is read out of the game’s own files, and nobody has yet reported seeing it">game files</span>');
+			if (gate !== null && count !== null && gate > count) { cls += ' locked'; tags.push(`<span class="lb-tag lock" title="${T('The game opens this exchange at {gate} total barters; you have {count}, so the island shows you nothing here', { gate: F(gate), count: F(count) })}">🔒 ${F(gate)}</span>`); }
+			if (filled.has(Number(o[0]))) tags.push(`<span class="lb-tag file" title="${T('The community’s record has no row for this island on this layout: this one is read out of the game’s own files, and nobody has yet reported seeing it')}">${T('game files')}</span>`);
 			return { cls, tags, under };
 		};
 		const locked = count === null ? 0 : page.combo.offers.filter(o => { const g = exchangeGate(page.combo, o[0]); return g !== null && g > count; }).length;
-		const readers = page.readers.slice(0, 12).map(r => `<li>${r.name ? `<b>${esc(r.name)}</b>` : 'a sailor not shown by name'}${r.mine ? ' (you)' : ''} · ${esc(dayOf(r.day))} · ${plural(r.islands, 'island')}${r.seen ? ` · ${plural(r.seen, 'other')} saw the same` : ''}</li>`).join('');
-		return `<div class="lb-head"><button class="ghost-btn sm" data-lb-back>← the book</button>
-			<h2>Layout ${esc(page.id)} ${page.today ? '<span class="lb-badge today">today’s board</span>' : answers.length ? (page.standing ? '<span class="lb-badge standing">still standing</span>' : '<span class="lb-badge out">ruled out today</span>') : ''}</h2></div>
+		const readers = page.readers.slice(0, 12).map(r => `<li>${r.name ? `<b>${esc(r.name)}</b>` : T('a sailor not shown by name')}${r.mine ? ` (${T('you')})` : ''} · ${esc(dayOf(r.day))} · ${plural(r.islands, 'island')}${r.seen ? ` · ${r.seen === 1 ? T('{n} other saw the same', { n: F(r.seen) }) : T('{n} others saw the same', { n: F(r.seen) })}` : ''}</li>`).join('');
+		return `<div class="lb-head"><button class="ghost-btn sm" data-lb-back>← ${T('the book')}</button>
+			<h2>${T('Layout {id}', { id: esc(page.id) })} ${page.today ? `<span class="lb-badge today">${T('today’s board')}</span>` : answers.length ? (page.standing ? `<span class="lb-badge standing">${T('still standing')}</span>` : `<span class="lb-badge out">${T('ruled out today')}</span>`) : ''}</h2></div>
 		<div class="lb-facts">
-			<span><b>${F(page.combo.offers.length)}</b> islands</span>
-			<span>on the record <b>${plural(page.filed, 'time')}</b> of ${F(combos.sample.refreshes)}</span>
-			${page.sailors ? `<span>read by the fleet <b>${plural(page.sailors, 'time')}</b> · last ${esc(dayOf(page.days[0]))}</span>` : ''}
-			${filled.size ? `<span title="Rows the community’s record lacks, read out of the game’s own files"><b>${filled.size}</b> from the game files</span>` : ''}
-			${locked ? `<span title="Exchanges your barter count has not opened: those islands show you nothing on this board"><b>${locked}</b> 🔒 above your ${F(count)} barters</span>` : ''}
-			${answers.length ? `<span class="${parted.length ? 'no' : 'ok'}">${agreed} as you saw${parted.length ? ` · <b>${parted.length}</b> not` : ''}</span>` : ''}
+			<span>${T('<b>{n}</b> islands', { n: F(page.combo.offers.length) })}</span>
+			<span>${T('on the record <b>{times}</b> of {of}', { times: plural(page.filed, 'time'), of: F(combos.sample.refreshes) })}</span>
+			${page.sailors ? `<span>${T('read by the fleet <b>{times}</b>', { times: plural(page.sailors, 'time') })} · ${T('last {day}', { day: esc(dayOf(page.days[0])) })}</span>` : ''}
+			${filled.size ? `<span title="${T('Rows the community’s record lacks, read out of the game’s own files')}">${T('<b>{n}</b> from the game files', { n: filled.size })}</span>` : ''}
+			${locked ? `<span title="${T('Exchanges your barter count has not opened: those islands show you nothing on this board')}">${T('<b>{n}</b> 🔒 above your {count} barters', { n: locked, count: F(count) })}</span>` : ''}
+			${answers.length ? `<span class="${parted.length ? 'no' : 'ok'}">${T('{n} as you saw', { n: agreed })}${parted.length ? ` · ${T('<b>{n}</b> not', { n: parted.length })}` : ''}</span>` : ''}
 		</div>
-		${readers ? `<details class="lb-readers"><summary>Who read it</summary><ul>${readers}</ul></details>` : ''}
-		${parted.length ? `<h4 class="lb-lvh no">Where it parts from what you saw today <span class="quiet">· ${plural(parted.length, 'island')}</span></h4>
+		${readers ? `<details class="lb-readers"><summary>${T('Who read it')}</summary><ul>${readers}</ul></details>` : ''}
+		${parted.length ? `<h4 class="lb-lvh no">${T('Where it parts from what you saw today')} <span class="quiet">· ${plural(parted.length, 'island')}</span></h4>
 			<div class="lb-tiles">${parted.sort((x, y) => isle(x[0]).localeCompare(isle(y[0]))).map(o => tile(o, dress(o))).join('')}</div>` : ''}
 		${tilesByLevel(page.combo.offers, dress)}
-		<div class="dialog-actions"><button class="act quiet" data-lb-back>Back to the book</button></div>`;
+		${poolsHTML(page.combo)}
+		<div class="dialog-actions"><button class="act quiet" data-lb-back>${T('Back to the book')}</button></div>`;
+	};
+
+	// The islands the layout leaves to a draw of their own: named, with
+	// what each may show -- materials mostly -- since which one it shows
+	// today is only on the window.
+	const poolsHTML = combo => {
+		const pools = Object.entries(combo.pools || {});
+		if (!pools.length) return '';
+		const mine = new Map(answers.map(a => [a.npcId, a]));
+		return `<h4 class="lb-lvh" style="--lv: var(--tier-6)">${T('Drawn each refresh')} <span class="quiet">· ${plural(pools.length, 'island')} · ${T('each shows one of its offers, read off the window')}</span></h4>
+			<div class="lb-tiles">${pools.sort((x, y) => isle(Number(x[0])).localeCompare(isle(Number(y[0])))).map(([id, pool]) => {
+				const a = mine.get(Number(id));
+				const pays = [...new Set(pool.options.map(o => o.recv))];
+				return `<div class="lb-tile pool${a ? ' same' : ''}">
+					<div class="lb-tile-top"><span class="lb-isle">${esc(gameName(isle(Number(id))))}</span><span class="lb-tags"><span class="lb-tag" title="${T('The game draws one of {n} offers here each refresh', { n: F(pool.options.length) })}">🎲 ${T('one of {n}', { n: F(pool.options.length) })}</span></span></div>
+					${a ? `<div class="lb-tile-swap">${good(a.give)}<span class="lb-arrow">→</span>${good(a.recv)}</div>` : `<div class="lb-pool-pays">${pays.slice(0, 8).map(r => `<span title="${esc(gameName(r))}">${img(r, 'row-icon xs')}</span>`).join('')}${pays.length > 8 ? `<span class="quiet">+${F(pays.length - 8)}</span>` : ''}</div>`}
+				</div>`;
+			}).join('')}</div>`;
 	};
 
 	const strayHTML = g => {
@@ -253,25 +286,25 @@ export function openLayoutBook({ combos, answers = [], day = '', count = null, l
 			return {
 				cls: ' off',
 				tags: [how
-					? `<span class="lb-tag file" title="The game is known to deal this exchange at this island — on another layout. That is what a slot moved at a maintenance looks like">known here</span>`
-					: `<span class="lb-tag lock" title="Neither the game’s files nor the record have this exchange at this island at all: a new exchange, or a misreading">never seen here</span>`],
-				under: `<div class="lb-tile-saw"><span class="lb-saw-label">layout ${esc(near.combo.id)} has</span>${good(d.filed.give)}<span class="lb-arrow">→</span>${good(d.filed.recv)}</div>`
+					? `<span class="lb-tag file" title="${T('The game is known to deal this exchange at this island — on another layout. That is what a slot moved at a maintenance looks like')}">${T('known here')}</span>`
+					: `<span class="lb-tag lock" title="${T('Neither the game’s files nor the record have this exchange at this island at all: a new exchange, or a misreading')}">${T('never seen here')}</span>`],
+				under: `<div class="lb-tile-saw"><span class="lb-saw-label">${T('layout {id} has', { id: esc(near.combo.id) })}</span>${good(d.filed.give)}<span class="lb-arrow">→</span>${good(d.filed.recv)}</div>`
 			};
 		};
 		const offers = g.said.map(a => [a.npcId, a.give, '1', a.recv]);
-		const readers = g.readers.map(r => `<li>${r.name ? `<b>${esc(r.name)}</b>` : 'a sailor not shown by name'}${r.mine ? ' (you)' : ''} · ${plural(r.islands, 'island')}${r.seen ? ` · ${plural(r.seen, 'other')} saw the same` : ''}
-			${r.mine ? `<button class="linky" data-lb-unsay="${esc(String(r.id))}">take it back</button>` : (g.today && me() && !r.confirmed ? `<button class="linky" data-lb-seen="${esc(String(r.id))}">I saw the same</button>` : (r.confirmed ? '<span class="lb-ok">✓ you saw the same</span>' : ''))}</li>`).join('');
-		return `<div class="lb-head"><button class="ghost-btn sm" data-lb-back>← the book</button>
-			<h2>A board not on file <span class="lb-badge ${g.today ? 'today' : 'old'}">${g.today ? 'seen today' : esc(dayOf(g.day))}</span></h2></div>
-		<p class="dialog-note">${plural(g.said.length, 'island')}, fitting none of the layouts on file. ${near ? (near.differ.length <= 4
-		? `It is <button class="linky" data-lb-open="layout:${esc(near.combo.id)}"><b>layout ${esc(near.combo.id)}</b></button> at ${plural(near.agree, 'island')} and parts from it at ${near.differ.length} — which is what a slot moved at a maintenance looks like.`
-		: `The nearest on file is <button class="linky" data-lb-open="layout:${esc(near.combo.id)}">layout ${esc(near.combo.id)}</button>, and it parts from that at ${near.differ.length} of the islands read — a new board, or a reading gone wrong.`) : ''}</p>
+		const readers = g.readers.map(r => `<li>${r.name ? `<b>${esc(r.name)}</b>` : T('a sailor not shown by name')}${r.mine ? ` (${T('you')})` : ''} · ${plural(r.islands, 'island')}${r.seen ? ` · ${r.seen === 1 ? T('{n} other saw the same', { n: F(r.seen) }) : T('{n} others saw the same', { n: F(r.seen) })}` : ''}
+			${r.mine ? `<button class="linky" data-lb-unsay="${esc(String(r.id))}">${T('take it back')}</button>` : (g.today && me() && !r.confirmed ? `<button class="linky" data-lb-seen="${esc(String(r.id))}">${T('I saw the same')}</button>` : (r.confirmed ? `<span class="lb-ok">✓ ${T('you saw the same')}</span>` : ''))}</li>`).join('');
+		return `<div class="lb-head"><button class="ghost-btn sm" data-lb-back>← ${T('the book')}</button>
+			<h2>${T('A board not on file')} <span class="lb-badge ${g.today ? 'today' : 'old'}">${g.today ? T('seen today') : esc(dayOf(g.day))}</span></h2></div>
+		<p class="dialog-note">${T('{islands}, fitting none of the layouts on file.', { islands: plural(g.said.length, 'island') })} ${near ? (near.differ.length <= 4
+		? T('It is {layout} at {islands} and parts from it at {n} — which is what a slot moved at a maintenance looks like.', { layout: `<button class="linky" data-lb-open="layout:${esc(near.combo.id)}"><b>${T('layout {id}', { id: esc(near.combo.id) })}</b></button>`, islands: plural(near.agree, 'island'), n: near.differ.length })
+		: T('The nearest on file is {layout}, and it parts from that at {n} of the islands read — a new board, or a reading gone wrong.', { layout: `<button class="linky" data-lb-open="layout:${esc(near.combo.id)}">${T('layout {id}', { id: esc(near.combo.id) })}</button>`, n: near.differ.length })) : ''}</p>
 		<ul class="lb-readers flat">${readers}</ul>
-		${g.today && onTake ? `<div class="lb-bar"><button class="chip primary" data-lb-take="${esc(g.key)}" title="Answer every island they named on today’s board">Take this reading as today’s board</button></div>` : ''}
-		${near && near.differ.length ? `<h4 class="lb-lvh no">Where it parts from layout ${esc(near.combo.id)} <span class="quiet">· ${plural(near.differ.length, 'island')}</span></h4>
+		${g.today && onTake ? `<div class="lb-bar"><button class="chip primary" data-lb-take="${esc(g.key)}" title="${T('Answer every island they named on today’s board')}">${T('Take this reading as today’s board')}</button></div>` : ''}
+		${near && near.differ.length ? `<h4 class="lb-lvh no">${T('Where it parts from layout {id}', { id: esc(near.combo.id) })} <span class="quiet">· ${plural(near.differ.length, 'island')}</span></h4>
 			<div class="lb-tiles">${offers.filter(o => parted.has(Number(o[0]))).map(o => tile(o, dress(o))).join('')}</div>` : ''}
 		${tilesByLevel(offers, dress)}
-		<div class="dialog-actions"><button class="act quiet" data-lb-back>Back to the book</button></div>`;
+		<div class="dialog-actions"><button class="act quiet" data-lb-back>${T('Back to the book')}</button></div>`;
 	};
 
 	function draw() {
@@ -314,12 +347,12 @@ export function openLayoutBook({ combos, answers = [], day = '', count = null, l
 			if (g && onTake) { closeDialog(); onTake(g.said, g.readers); }
 		} else if (el.dataset.lbSeen) {
 			sawItToo(el.dataset.lbSeen).then(out => {
-				toast(out.ok ? 'Counted: you saw the same board' : `It did not go${out.why ? `: ${out.why}` : ''}`);
+				toast(out.ok ? T('Counted: you saw the same board') : (out.why ? T('It did not go: {why}', { why: said(out.why) }) : T('It did not go')));
 				refresh({ force: true });
 			});
 		} else if (el.dataset.lbUnsay) {
 			unsay(el.dataset.lbUnsay).then(out => {
-				toast(out.ok ? 'Your reading is taken back' : `It did not go${out.why ? `: ${out.why}` : ''}`);
+				toast(out.ok ? T('Your reading is taken back') : (out.why ? T('It did not go: {why}', { why: said(out.why) }) : T('It did not go')));
 				open = null;
 				refresh({ force: true });
 			});

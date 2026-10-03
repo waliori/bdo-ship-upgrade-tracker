@@ -64,25 +64,76 @@ test('the sailor can keep their vouchers, and then the run is simply short', () 
 	assert.equal(keep.vouchersLeft, 0, 'none were counted as available to the run');
 });
 
-test('a stop that cannot be paid for says how long the cooldown has left', () => {
-	const at = [0, 30, 60];
-	const { rows } = parleyLedger([stop(900000), stop(200000), stop(300000)], { held: 1000000, vouchers: 3, minutesAt: k => at[k] });
+test('a stop that cannot be paid for waits out the cooldown, and the rest of the run comes later', () => {
+	const at = [0, 30, 60, 70];
+	const { rows, waited, short } = parleyLedger([stop(900000), stop(200000), stop(300000), stop(100000)], { held: 1000000, vouchers: 3, minutesAt: k => at[k] });
 	assert.equal(rows[1].voucher, true, 'the first voucher, at thirty minutes');
-	assert.equal(rows[2].wait, 90, 'the next one is ninety minutes off');
-	assert.ok(rows[2].short > 0);
+	assert.equal(rows[2].wait, 90, 'the next one is ninety minutes off, and the ship waits for it');
+	assert.equal(rows[2].voucher, true, 'then it goes in');
+	assert.equal(rows[2].short, 0, 'and the stop is paid for');
+	assert.equal(rows[2].delay, 90);
+	assert.equal(rows[3].delay, 90, 'every stop after comes that much later');
+	assert.equal(rows[3].wait, 0);
+	assert.equal(waited, 90);
+	assert.equal(short, 0);
 	// Nothing to wait for when there are no vouchers left to wait for.
 	const none = parleyLedger([stop(1200000)], { held: 1000000, vouchers: 0 });
 	assert.equal(none.rows[0].wait, 0);
 });
 
-test('the second voucher waits two hours, and a stop that comes sooner is short', () => {
+test('the second voucher waits two hours, and a stop that comes sooner waits with it', () => {
 	const at = [0, 30, 60, 150];
-	const { rows, short } = parleyLedger([stop(900000), stop(200000), stop(200000), stop(200000)], { held: 1000000, vouchers: 3, minutesAt: k => at[k] });
-	assert.deepEqual(rows.map(r => [r.voucher, r.short, r.after]), [
+	const { rows, short, waited } = parleyLedger([stop(900000), stop(200000), stop(200000), stop(200000)], { held: 1000000, vouchers: 3, minutesAt: k => at[k] });
+	assert.deepEqual(rows.map(r => [r.voucher, r.wait, r.after]), [
 		[false, 0, 100000],
 		[true, 0, 150000],       // 30 min: the first voucher
-		[false, 50000, 0],       // 60 min: the cooldown has not run
-		[true, 0, 50000]         // 150 min: it has
+		[true, 90, 200000],      // 60 min: the cooldown has 90 min to run; the ship waits, and draws
+		[false, 0, 0]            // 150 + 90 min: paid from the bar
 	]);
-	assert.equal(short, 50000);
+	assert.equal(short, 0);
+	assert.equal(waited, 90);
+});
+
+test('with no voucher to come the bar is dry, and every barter after it stands', () => {
+	const { rows, short, spent, dryAt, end } = parleyLedger([stop(900000), stop(200000), stop(200000), { wharf: {} }, stop(100000)], { held: 1000000, vouchers: 0 });
+	assert.deepEqual(rows.map(r => [r.dry, r.short, r.after]), [
+		[false, 0, 100000],
+		[true, 100000, 0],       // the bar runs out here
+		[true, 200000, 0],       // and nothing after it is paid for
+		[false, 0, 0],           // a wharf call costs nothing and stands as it is
+		[true, 100000, 0]
+	]);
+	assert.equal(dryAt, 1);
+	assert.equal(short, 400000);
+	assert.equal(spent, 1000000);
+	assert.equal(end, 0);
+});
+
+test('a wait put in as a stop stands for its minutes, and the stop after it pays', () => {
+	const at = [0, 30, 60, 60, 70];
+	const { rows, waited, short } = parleyLedger([stop(900000), stop(200000), { wait: 90 }, stop(300000), stop(100000)], { held: 1000000, vouchers: 3, minutesAt: k => at[k] });
+	assert.deepEqual(rows.map(r => [r.voucher, r.wait, r.hold]), [[false, 0, 0], [true, 0, 0], [true, 0, 90], [false, 0, 0], [false, 0, 0]]);
+	assert.equal(rows[3].short, 0);
+	assert.equal(rows[4].delay, 90);
+	assert.equal(waited, 90);
+	assert.equal(short, 0);
+});
+
+test('a run under way counts the vouchers said drawn, not the ones planned, and a bar read off the window', () => {
+	// Your 2026-09-28 run: 571,884 held, 31 islands at 21,613, a voucher
+	// planned on the first. Passed without drawing it, the bar is the
+	// game's 9,946 before the 27th trade, and the voucher comes there.
+	const stops = Array.from({ length: 31 }, () => ({ parley: 21613 }));
+	const plan = parleyLedger(stops, { held: 571884, vouchers: 22 });
+	assert.equal(plan.rows[0].drawn, 1, 'planned on the first stop');
+	const passed = k => (k < 26 ? 0 : undefined);
+	const real = parleyLedger(stops, { held: 571884, vouchers: 22, said: passed });
+	assert.equal(real.rows[26].before, 9946);
+	assert.equal(real.rows[26].drawn, 1, 'drawn at the stop the bar cannot pay');
+	// Said drawn at the first: as planned.
+	assert.equal(parleyLedger(stops, { held: 571884, vouchers: 22, said: k => (k === 0 ? 1 : k < 26 ? 0 : undefined) }).rows[26].before, 259946);
+	// The bar read off the window before stop 26 overrides the count.
+	const fixed = parleyLedger(stops, { held: 571884, vouchers: 22, said: passed, fix: { k: 26, bar: 12000 } });
+	assert.equal(fixed.rows[26].before, 12000);
+	assert.equal(fixed.rows[25].after, 9946, 'the stops before it are as they were');
 });

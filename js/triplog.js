@@ -7,6 +7,7 @@
 // as one undoable step.
 
 import { esc, F, parseAmount } from './fmt.js';
+import { T, TT, said, gameName } from './i18n.js';
 import * as store from './state.js';
 import { img, allItems, offerableItems } from './ui-bits.js';
 import { snapshot } from './ui-state.js';
@@ -15,6 +16,7 @@ import { quests } from './quests.js';
 import { openDialog, closeDialog, toast } from './dialogs.js';
 import { openPicker } from './picker.js';
 import { KINDS, kindOf } from './kinds.js';
+import { whileLoading } from './loading.js';
 
 let known = null;
 function names() {
@@ -31,12 +33,17 @@ function names() {
 // The rows being filled in: { item, qty } -- kept here so the dialog
 // can be re-opened after the picker without losing them.
 let lines = [];
+// Whether a reading comes in as things gained or things spent. A
+// sailor logging a trip has just done both -- handed goods over and
+// been paid in others -- and which one a screenshot is depends on
+// which window they shot.
+let shotSign = 1;
 
 function rowHTML(l, i) {
 	return `<div class="trip-row" data-i="${i}">
-		<button class="trip-pick${l.item ? '' : ' empty'}" data-trip-pick="${i}" title="Choose the item">${l.item ? `${img(l.item, 'row-icon sm')}<span>${esc(l.item)}</span>` : '<span class="trip-plus">+</span><span>Choose an item…</span>'}</button>
-		<input class="field trip-qty" type="text" inputmode="numeric" placeholder="how many" value="${esc(l.qty)}" data-trip-qty="${i}" aria-label="How many">
-		<button class="map-x" data-trip-del="${i}" aria-label="Remove this line">×</button>
+		<button class="trip-pick${l.item ? '' : ' empty'}" data-trip-pick="${i}" title="${T('Choose the item')}">${l.item ? `${img(l.item, 'row-icon sm')}<span title="${esc(gameName(l.item))}">${esc(gameName(l.item))}</span>` : `<span class="trip-plus">+</span><span>${T('Choose an item…')}</span>`}</button>
+		<input class="field trip-qty" type="text" inputmode="numeric" placeholder="${T('how many')}" value="${esc(l.qty)}" data-trip-qty="${i}" aria-label="${T('How many')}">
+		<button class="map-x" data-trip-del="${i}" aria-label="${T('Remove this line')}">×</button>
 	</div>`;
 }
 
@@ -65,13 +72,13 @@ function pickerItems(query = '') {
 		const short = Number(needed[n]) || 0;
 		const have = Number(stock[n]) || 0;
 		if (short > 0) {
-			want.push({ id: n, label: n, icon: img(n, ''), group: 'Your builds still need',
-				meta: `${F(short)} short`, sub: have ? `you hold ${F(have)}` : '', boost: 2 });
+			want.push({ id: n, label: gameName(n), icon: img(n, ''), group: T('Your builds still need'),
+				meta: T('{n} short', { n: F(short) }), sub: have ? T('you hold {n}', { n: F(have) }) : '', boost: 2 });
 		} else if (have > 0) {
-			held.push({ id: n, label: n, icon: img(n, ''), group: 'Already in your stock',
-				meta: `you hold ${F(have)}`, boost: 1 });
+			held.push({ id: n, label: gameName(n), icon: img(n, ''), group: T('Already in your stock'),
+				meta: T('you hold {n}', { n: F(have) }), boost: 1 });
 		} else {
-			rest.push({ id: n, label: n, icon: img(n, ''), group: 'Everything else' });
+			rest.push({ id: n, label: gameName(n), icon: img(n, ''), group: T('Everything else') });
 		}
 	}
 	// Biggest shortfall first: the deeper the hole, the more likely it is
@@ -87,12 +94,14 @@ function pickFor(i) {
 	// One kind at a time when asked: a trip that brought back goods is
 	// logged from the goods, without the planks in between.
 	let kind = 'all';
-	const chipsFor = () => [['all', 'Everything'], ...KINDS.map(k => [k.id, k.label])].map(([id, label]) => ({ id, label, on: kind === id }));
+	const chipsFor = () => [['all', T('Everything')], ...KINDS.map(k => [k.id, said(k.label)])].map(([id, label]) => ({ id, label, on: kind === id }));
 	openPicker({
-		title: 'Which item?',
+		title: T('Which item?'),
 		hint: shortOf
-			? `The ${shortOf === 1 ? 'one thing' : `${shortOf} things`} your builds are still short of ${shortOf === 1 ? 'is' : 'are'} first. Type to reach anything else.`
-			: 'Type to find anything you brought back.',
+			? (shortOf === 1
+				? T('The one thing your builds are still short of is first. Type to reach anything else.')
+				: T('The {n} things your builds are still short of are first. Type to reach anything else.', { n: shortOf }))
+			: T('Type to find anything you brought back.'),
 		items,
 		chips: chipsFor(),
 		onChips: id => {
@@ -110,21 +119,58 @@ function pickFor(i) {
 /** Where the counts land, when a kind has a storage of its own. */
 function homesNote() {
 	const homes = store.getProfile('homes', {}) || {};
-	const parts = KINDS.filter(k => homes[k.id]).map(k => `${k.label.toLowerCase()} at ${homes[k.id]}`);
-	return parts.length ? ` What arrives is noted where it is kept: ${esc(parts.join(', '))} — set on the Inventory.` : '';
+	const parts = KINDS.filter(k => homes[k.id]).map(k => T('{kind} at {where}', { kind: said(k.label).toLowerCase(), where: gameName(homes[k.id]) }));
+	return parts.length ? ` ${T('What arrives is noted where it is kept: {list} — set on the Inventory.', { list: esc(parts.join(', ')) })}` : '';
 }
 
 /** Open the log; `focusRow` puts the caret in that row's count. */
+/**
+ * Counts read off a screenshot, folded into the lines.
+ *
+ * An item already on a line has its count changed rather than gaining
+ * a second line of its own -- a sailor who typed "12 Cedar Plywood"
+ * and then shot the hold meant one line about plywood, not two -- and
+ * the empty lines the dialog opens with are filled before any are
+ * added.
+ */
+function takeRows(got, sign) {
+	for (const { item, n } of got || []) {
+		if (!item || !(n > 0)) continue;
+		const at = lines.findIndex(l => l.item === item);
+		if (at >= 0) {
+			const was = parseAmount(String(lines[at].qty || '0'), { signed: true }) || 0;
+			lines[at].qty = String(was + sign * n);
+			continue;
+		}
+		const free = lines.findIndex(l => !l.item && !String(l.qty).trim());
+		const line = { item, qty: String(sign * n) };
+		if (free >= 0) lines[free] = line; else lines.push(line);
+	}
+	if (!lines.length) lines = [{ item: '', qty: '' }];
+}
+
+/** The dialog drawn again with the lines as they stand. */
+function reopen() {
+	closeDialog();
+	openTripLog();
+}
+
 export function openTripLog(focusRow = null) {
 	if (!lines.length) lines = [{ item: '', qty: '' }, { item: '', qty: '' }, { item: '', qty: '' }];
 	const host = openDialog(`
-		<h2>Log a trip</h2>
-		<p class="dialog-copy">Everything you brought back, in one go. Counts add to what you hold; a minus takes away. One Undo takes the whole trip back.${homesNote()}</p>
+		<h2>${T('Log a trip')}</h2>
+		<p class="dialog-copy">${T('Everything you brought back, in one go. Counts add to what you hold; a minus takes away. One Undo takes the whole trip back.')}${homesNote()}</p>
 		<div class="trip-rows" data-trip-rows>${lines.map(rowHTML).join('')}</div>
+		<div class="trip-shot">
+			<span class="trip-shot-k">${T('From a screenshot')}</span>
+			<button class="chip${shotSign > 0 ? ' active' : ''}" data-trip-sign="1" aria-pressed="${shotSign > 0}" title="${T('What the shot shows is what you gained')}">＋ ${T('adds')}</button>
+			<button class="chip${shotSign < 0 ? ' active' : ''}" data-trip-sign="-1" aria-pressed="${shotSign < 0}" title="${T('What the shot shows is what you handed over')}">−  ${T('takes away')}</button>
+			<button class="ghost-btn" data-trip-shot>📷 ${T('Read one')}</button>
+		</div>
 		<div class="dialog-actions">
-			<button class="ghost-btn" data-trip-more>+ another line</button>
-			<button class="ghost-btn" data-trip-cancel>Cancel</button>
-			<button class="act" data-trip-save>Record</button>
+			<button class="ghost-btn" data-trip-more>${T('+ another line')}</button>
+			<button class="ghost-btn" data-trip-cancel>${T('Cancel')}</button>
+			<button class="act" data-trip-save>${T('Record')}</button>
 		</div>`);
 	const rows = host.querySelector('[data-trip-rows]');
 	const readQty = () => { for (const inp of rows.querySelectorAll('[data-trip-qty]')) lines[Number(inp.dataset.tripQty)].qty = inp.value; };
@@ -144,23 +190,54 @@ export function openTripLog(focusRow = null) {
 		rows.lastElementChild.querySelector('[data-trip-pick]').focus();
 	});
 	host.querySelector('[data-trip-cancel]').addEventListener('click', () => { lines = []; closeDialog(); });
+	// The sign the next reading comes in under.
+	for (const el of host.querySelectorAll('[data-trip-sign]')) {
+		el.addEventListener('click', () => { readQty(); shotSign = Number(el.dataset.tripSign) < 0 ? -1 : 1; reopen(); });
+	}
+	// A screenshot instead of forty picks. The storage reader does the
+	// looking; the counts come back here rather than going into the
+	// Inventory, because what they mean is this dialog's business.
+	host.querySelector('[data-trip-shot]').addEventListener('click', async evt => {
+		readQty();
+		// The reader's dialog is fetched on the first press, the button
+		// marked busy meanwhile; a fetch that fails leaves the trip open.
+		let reader;
+		try {
+			reader = await whileLoading(import('./storage-import.js'), T('Loading…'), { by: evt.currentTarget });
+		} catch {
+			toast(T('That could not load — check your connection and try again'));
+			return;
+		}
+		closeDialog();
+		reader.openStorageImport(() => {}, {
+			label: shotSign > 0 ? TT('Add to the trip') : TT('Take off the trip'),
+			note: shotSign > 0
+				? TT('What is read goes into the trip as things gained. Shoot the hold, or the storage window showing what you came back with.')
+				: TT('What is read goes into the trip as things handed over — every count a minus.'),
+			onRows: got => { takeRows(got, shotSign); openTripLog(); }
+		});
+	});
 	const save = () => {
 		readQty();
 		const delta = {};
 		const used = [];
 		for (const l of lines) {
 			if (!l.item && !String(l.qty).trim()) continue;
-			if (!l.item) return toast('A line has a count but no item — choose one');
+			if (!l.item) return toast(T('A line has a count but no item — choose one'));
 			const n = parseAmount(String(l.qty), { signed: true });
-			if (n === null || !n) return toast(`How many ${l.item}?`);
+			if (n === null || !n) return toast(T('How many {item}?', { item: gameName(l.item) }));
 			delta[l.item] = (delta[l.item] || 0) + n;
-			used.push(l.item);
+			// Two lines of the same item are one item: added together, and
+			// named and counted once.
+			if (!used.includes(l.item)) used.push(l.item);
 		}
-		if (!used.length) return toast('Nothing to record');
-		store.applyDelta(delta, 'trip', `Logged a trip: ${used.join(', ')}`);
+		if (!used.length) return toast(T('Nothing to record'));
+		store.applyDelta(delta, 'trip', T('Logged a trip: {items}', { items: used.map(gameName).join(', ') }));
 		lines = [];
 		closeDialog();
-		toast(`Recorded ${used.length} ${used.length === 1 ? 'item' : 'items'} from the trip`, true);
+		toast(used.length === 1
+			? T('Recorded {n} item from the trip', { n: used.length })
+			: T('Recorded {n} items from the trip', { n: used.length }), true);
 	};
 	host.querySelector('[data-trip-save]').addEventListener('click', save);
 	host.addEventListener('keydown', evt => {

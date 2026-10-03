@@ -2,19 +2,19 @@
 // whole screen, the ruler, the coordinates readout and the minimap's
 // switch.
 
+import { T } from '../i18n.js';
 import { F } from '../fmt.js';
 import { routePath, project } from '../map.js';
 import { MAX_ZOOM } from '../barter_npcs.js';
 import { toast } from '../dialogs.js';
-import * as store from '../state.js';
 import { pathLength, sailRange, fmtRange, fmtDistance } from '../sailing.js';
 import { toGame } from '../worldmap.js';
 import { mv, persist } from './state.js';
-import { enterTerrain, exitTerrain, terrainOn, terrainTrouble, setStyle, terrainStyle, setTilt, tilt as tiltBy, tiltNow, MAX_PITCH } from './terrain.js';
+import { enterTerrain, exitTerrain, terrainOn, terrainTrouble, setStyle, terrainStyle, setTilt, tilt as tiltBy, tiltNow } from './terrain.js';
 import { marksNow, seaBent } from './marks.js';
 import { paintMap, clearTiles } from './paint.js';
 import { miniHTML } from './render.js';
-import { routeSpeed, sailCal } from './route.js';
+import { routeSpeed, sailCal, sailLag } from './route.js';
 
 /**
  * Where a screen point falls in the map box's own space. The two are
@@ -146,7 +146,7 @@ export async function toggle3D() {
 	setTilt(mv.pitch, mv.bearing);
 	const up = await enterTerrain(host);
 	if (!up) {
-		toast(terrainTrouble() || 'The terrain view is not available here');
+		toast(terrainTrouble() || T('The terrain view is not available here'));
 		return;
 	}
 	mv.threeD = true;
@@ -210,9 +210,7 @@ export function setMapStyle(style) {
 	paintMap();
 }
 
-export const mapStyleNow = () => terrainStyle();
 export const map3D = () => terrainOn();
-export const maxPitch = () => MAX_PITCH;
 
 function dress3D() {
 	const host = document.querySelector('[data-map]');
@@ -248,7 +246,7 @@ export function toggleMeasure() {
 	if (btn) btn.setAttribute('aria-pressed', String(mv.measuring));
 	const host = document.querySelector('[data-map]');
 	if (host) host.classList.toggle('measuring', mv.measuring);
-	if (mv.measuring) toast('Click two points on the sea');
+	if (mv.measuring) toast(T('Click two points on the sea'));
 	paintMap();
 }
 
@@ -295,7 +293,7 @@ export function paintMeasure(layer, size) {
 	if (mv.measurePts.length === 2) {
 		const m = pathLength(world);
 		const speed = routeSpeed();
-		const t = fmtRange(...sailRange(m, speed.total, sailCal(), Number(store.getSetting('sailCal', null)) > 0));
+		const t = fmtRange(...sailRange(m, speed.sea, sailCal(), true).map(x => x + sailLag()));
 		label.textContent = `${fmtDistance(m)}${t ? ` · ≈ ${t}` : ''}`;
 		const mid = pts[Math.floor(pts.length / 2)];
 		label.style.left = `${mid.left}px`;

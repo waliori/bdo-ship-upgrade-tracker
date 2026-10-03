@@ -1,0 +1,33 @@
+Bartering, part three. At the wharf: the plan becomes goods in your hold.
+Same board, same sailor, sailing from Iliya Island. This time we take the run that makes the most silver.
+Click "Load at the wharf".
+The hold, as it stands: its weight against the ship’s limit, and its slots. A Carrack Advance has forty.
+"Open the hold" lists every good aboard, with what a barterer pays for it, and every good waiting in the storage at your port, ready to load.
+Beside it, what there is to spend: the Parley, the vouchers, and what one trade costs at your barter level.
+This run is cut into trips. The hold cannot carry every chain’s first goods at once, so the run comes back to Iliya for the rest.
+Trip one is loaded now.
+Trip two is picked up at the wharf on the way, at stop nine. Each trip can be moved sooner or later with the arrows, or left out.
+Buy at the Market: the land goods the chains start from, how many, and what they cost.
+Tick a row when it is in your hold in game. The tick is real: the silver comes off your purse, and the goods go into the ship’s hold in the app.
+If your own workers make a good, click "my workers", and it costs the run nothing.
+Take from storage: goods the run climbs from, waiting at Iliya. "Tick them all" moves them from the storage to the hold.
+They show under "Already aboard" now, checked against the hold, each with "put it back".
+A tick never loads more than the hull has slots for. Level 5 and up take a slot each; if they do not fit, it loads what fits and says what did not.
+In the storage after: what comes home to Iliya, and the silver the wharf calls bring in.
+The dailies handed in at Iliya before casting off, and the ones this run passes by.
+Then the route, stop by stop: how many stops, how far, how long, and the quests handed in on the way.
+"Draw it on the chart" puts the whole route on the Map, in this order.
+Chains are climbed together, as many at once as the hold carries, the tops sold before the next lot.
+The rations: what the run eats, as an estimate. A tick every seven seconds: the hull’s share, plus the crew’s appetite.
+The first card is the hold as the lines are let go.
+Every stop says what you hand over, what you get back, and how many times.
+And on the right, the hold, its slots, the Parley and the rations after the stop.
+Where the Parley would run short, a voucher is drawn on — here, at the first island.
+Each leg is drawn on a small chart.
+A wharf call: buy supplies here, the goods it loads from storage for the next trip, what it sells and for how much, and the quests handed in.
+Every stop can be moved sooner or later, or skipped. Skip one, and the route is laid again round it.
+The change can be taken back with Undo, at the top of the page.
+One more thing. Back on the plan, choose "The whole board, loaded heavy".
+A wharf loads the hold only up to its limit. The exchanges can take it further, up to 170 percent.
+An amber figure means the hold is over its limit there. You still sail, only slower, until a wharf takes the extra off.
+Back to Light and fast, if you prefer to stay quick. Next, part four: casting off.

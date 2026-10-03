@@ -21,6 +21,16 @@ import { groundsFor } from './ui-bits.js';
 import { wayToGet, readGetOrders } from './get-plan.js';
 
 let memo = null;
+// The barter table and the odds are read late and may be read again: a
+// key that only asked whether they were there kept the plan made before
+// the odds came in. Each one met is given a number of its own.
+const seenData = new WeakMap();
+let dataNo = 0;
+const idOf = o => {
+	if (!o || typeof o !== 'object') return 0;
+	if (!seenData.has(o)) seenData.set(o, ++dataNo);
+	return seenData.get(o);
+};
 
 /** The orders in force, cleaned. */
 export const getOrders = () => readGetOrders(store.getProfile('getOrders', null));
@@ -42,7 +52,7 @@ export function theWay() {
 	const orders = getOrders();
 	const key = JSON.stringify([
 		snapshot.missing, store.getStock(CROW_COIN), store.getStock(SILVER), done, profile, orders,
-		marketStatus().at, !!barterData, !!oddsIndex(), periodKey('daily'), periodKey('weekly')
+		marketStatus().at, idOf(barterData), idOf(oddsIndex()), periodKey('daily'), periodKey('weekly')
 	]);
 	if (memo && memo.key === key) return memo.way;
 	const way = wayToGet({

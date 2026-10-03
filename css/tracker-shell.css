@@ -6,16 +6,21 @@
 
 /* ---- header ------------------------------------------------------- */
 
+/* The masthead stays one line at every width. Signed in, with the
+   crowd count beside it, the verbs came to a few pixels more than the
+   line and fell under the name; now the subtitle gives way first, then
+   the words on the buttons, then the verbs the menu also holds -- each
+   button keeps its mark, and its title says the rest. */
 .masthead {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 14px;
   padding: 24px 0 18px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
-.brand { display: flex; align-items: center; gap: 13px; }
+.brand { display: flex; align-items: center; gap: 13px; min-width: 0; flex: 0 1 auto; }
 
 .brand-mark {
   width: 40px;
@@ -39,24 +44,23 @@
   color: var(--ink-hi);
   text-transform: uppercase;
   line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.brand-sub { font-size: 12px; color: var(--ink-mute); letter-spacing: 0.03em; }
+/* The subtitle may take a second line rather than lose its end: in
+   German it stopped at "Teile, Quests, Routen und di…". */
+.brand-sub { font-size: 12px; color: var(--ink-mute); letter-spacing: 0.03em; overflow: hidden; text-overflow: ellipsis; white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; line-height: 1.3; }
 
-.masthead-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.masthead-actions { display: flex; gap: 8px; flex: none; flex-wrap: nowrap; }
 
-.ghost-btn {
-  background: none;
-  border: 1px solid var(--line-btn);
-  color: var(--ink-dim);
-  border-radius: var(--r-btn);
-  padding: 7px 15px;
-  font-size: 12.5px;
-  font-weight: 600;
-}
+/* .ghost-btn, the secondary button, is drawn in tracker-base.css. */
 
-.ghost-btn:hover:not(:disabled) { color: var(--ink-hi); border-color: var(--line-btn-hi); }
-.ghost-btn.on { color: var(--teal); }
+/* The language, which wears its flag and no word: a square to press on
+   a wide screen as on a phone, since the glyph is the label. */
+.lang-btn { padding: 5px 11px; display: inline-flex; align-items: center; justify-content: center; }
+.lang-btn .lang-flag { font-size: 17px; }
 
 /* ---- the sailors' server ------------------------------------------ *
    A door out of the app standing among its verbs, so it carries the
@@ -73,7 +77,7 @@ a.ghost-btn { display: inline-flex; align-items: center; gap: 7px; text-decorati
   border-color: rgba(88, 101, 242, 0.42);
 }
 
-.discord-btn:hover {
+.discord-btn:hover:not(:disabled) {
   color: var(--discord-ink-hi);
   border-color: rgba(88, 101, 242, 0.85);
   background: rgba(88, 101, 242, 0.12);
@@ -188,15 +192,14 @@ a.ghost-btn { display: inline-flex; align-items: center; gap: 7px; text-decorati
 /* ---- the dock ------------------------------------------------------ *
    Every section as a cell, the icon over the name, all of them at once
    and none past an edge: the same cells the phone's thumb bar draws,
-   across the top of a wide screen. It sticks to the top edge as the
-   page scrolls, the way the thumb bar sticks to the bottom of a phone,
-   so a section is always one press away. The groups -- the yard, the
-   sea, the harbour -- are told apart by a hairline. */
+   across the top of a wide screen. It scrolls away with the page: a
+   short window is mostly bar if the dock and the pouch both hold the
+   top, and what a reader came for is what should be on screen. The way
+   back is the keyboard's 1-9, and the thumb bar on a phone, which does
+   stay put. The groups -- the yard, the sea, the harbour -- are told
+   apart by a hairline. */
 
 .tabs {
-  position: sticky;
-  top: 0;
-  z-index: 40;
   display: flex;
   align-items: stretch;
   gap: 2px;
@@ -266,12 +269,25 @@ a.ghost-btn { display: inline-flex; align-items: center; gap: 7px; text-decorati
   .tab-count { margin-right: -18px; }
 }
 
+/* The masthead's one line (see .masthead): the name and subtitle's box
+   may shrink, so they give way before the verbs do. */
+.brand > div:last-child { min-width: 0; overflow: hidden; }
+@media (max-width: 1240px) {
+  .masthead-actions .btn-label, .masthead-actions .crowd-word { display: none; }
+  /* The sync word goes; its dot stays, since it is the one sign of a
+     sync under way or a conflict. */
+  .masthead-actions .account-note { font-size: 0; padding-left: 6px; }
+}
+@media (max-width: 960px) {
+  .masthead-actions .wide-only { display: none; }
+}
+
 /* The masthead on a phone: one line -- the mark and the name, then
    Undo, the account and the menu as glyphs. Find and the trip log
    are the first things in the menu. */
 .menu-btn { white-space: nowrap; }
 @media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
-  .masthead { flex-wrap: nowrap; gap: 8px; padding: 14px 0 12px; }
+  .masthead { flex-wrap: nowrap; gap: 8px; padding: 18px 0 14px; }
   .masthead-actions { flex: none; flex-wrap: nowrap; gap: 6px; }
   .masthead-actions .ghost-btn { padding: 0; width: 40px; height: 40px; display: inline-flex; align-items: center; justify-content: center; font-size: 16px; }
   .masthead-actions .account .ghost-btn { width: auto; padding: 0 10px; font-size: 12.5px; white-space: nowrap; }
@@ -279,8 +295,13 @@ a.ghost-btn { display: inline-flex; align-items: center; gap: 7px; text-decorati
   .masthead-actions .wide-only, .masthead-actions .btn-label { display: none; }
   .brand { gap: 9px; min-width: 0; }
   .brand-mark { width: 34px; height: 34px; font-size: 17px; }
-  .brand-name { font-size: 13.5px; letter-spacing: 0.06em; }
+  .brand-name { font-size: 16px; letter-spacing: 0.06em; }
   .brand-sub { display: none; }
+}
+/* Too narrow for the name beside the verbs: the anchor alone says whose
+   log this is, and nothing slides under the buttons. */
+@media (max-width: 480px) {
+  .brand > div:last-child { display: none; }
 }
 
 /* ---- panels ------------------------------------------------------- */
@@ -406,18 +427,7 @@ a.ghost-btn { display: inline-flex; align-items: center; gap: 7px; text-decorati
 
 .chips { display: flex; gap: 6px; flex-wrap: wrap; }
 
-.chip {
-  background: transparent;
-  border: 1px solid rgba(var(--line-rgb), 0.2);
-  color: var(--ink-off);
-  border-radius: 18px;
-  padding: 6px 14px;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.chip:hover { color: var(--ink-hi); }
-.chip.active { background: rgba(var(--blue-rgb), 0.18); border-color: rgba(var(--blue-rgb), 0.55); color: var(--blue-hi); }
+/* .chip, a toggle (or a small secondary button), is drawn in tracker-base.css. */
 
 .select {
   background: var(--panel-solid);

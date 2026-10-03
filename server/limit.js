@@ -10,6 +10,8 @@
 // Address-level abuse -- the sign-in route, floods from one host -- is
 // Cloudflare's job, and it is much better placed to do it.
 
+import { config } from './config.js';
+
 const WINDOW_MS = 60_000;
 
 /**
@@ -64,6 +66,14 @@ export function perAccount(max, message = 'That is a lot of saving. Your data is
  *
  * Both are ordinary sliding windows kept in memory, swept as they lapse.
  */
+/** The player's address: the proxy's header when the deployment names
+ *  one, else what Express makes of the connection. */
+export function clientAddress(req) {
+	const named = config.clientIpHeader ? req.headers[config.clientIpHeader] : null;
+	const first = typeof named === 'string' ? named.split(',')[0].trim() : '';
+	return first || req.ip || (req.socket && req.socket.remoteAddress) || 'unknown';
+}
+
 export function perAddress(max, total = max * 20, message = 'Too many requests; try again shortly.') {
 	const seen = new Map();   // address -> { count, until }
 	let all = { count: 0, until: 0 };
@@ -81,16 +91,21 @@ export function perAddress(max, total = max * 20, message = 'Too many requests; 
 
 	return (req, res, next) => {
 		const now = Date.now();
-		if (all.until <= now) all = { count: 0, until: now + WINDOW_MS };
-		if (++all.count > total) return refuse(res, all.until, now);
-
-		const key = req.ip || (req.socket && req.socket.remoteAddress) || 'unknown';
+		// The address first, and only what it lets through is counted
+		// against everyone. The other way round, one host looping on a
+		// refusal spent the whole process's minute on requests it was
+		// already being turned away from -- and the market, push sign-ups
+		// and short links went quiet for every other player with it.
+		const key = clientAddress(req);
 		let bucket = seen.get(key);
 		if (!bucket || bucket.until <= now) {
 			bucket = { count: 0, until: now + WINDOW_MS };
 			seen.set(key, bucket);
 		}
 		if (++bucket.count > max) return refuse(res, bucket.until, now);
+
+		if (all.until <= now) all = { count: 0, until: now + WINDOW_MS };
+		if (++all.count > total) return refuse(res, all.until, now);
 		next();
 	};
 }

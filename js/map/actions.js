@@ -5,8 +5,11 @@ import { courseOf } from '../courses.js';
 import { errandPlan, dropErrands, startErrands, harbours, openErrandStop, skipErrand, errandTrace } from './errands.js';
 import { monsters, monsterByKey } from '../sea_monsters.js';
 import { F } from '../fmt.js';
+import { T, gameName } from '../i18n.js';
 import { img } from '../ui-bits.js';
-import { CLOSE_ZOOM } from '../map.js';
+import { CLOSE_ZOOM, zoomRange } from '../map.js';
+import { MAX_ZOOM } from '../barter_npcs.js';
+import { seaLeg } from '../searoute.js';
 import { npcById, ports } from '../barter_npcs.js';
 import { monsterArt } from '../monster_art.js';
 import { openPicker } from '../picker.js';
@@ -161,21 +164,25 @@ export function openMapPicker() {
 	const short = names.filter(n => snapshot.missing[n] > 0)
 		.sort((a, b) => snapshot.missing[b] - snapshot.missing[a]);
 	const rest = names.filter(n => !(snapshot.missing[n] > 0)).sort();
-	const kindWord = { material: 'material', trade: 'trade good', coin: 'crow coin' };
+	const kindWord = { material: T('material'), trade: T('trade good'), coin: T('crow coin') };
 	const items = [
-		{ id: '', label: 'Everything I am short of', icon: '<span class="row-icon sm map-pick-all">⚓</span>', meta: `${short.length} goods` },
-		...short.map(n => ({ id: n, label: n, icon: img(n, ''), meta: `${F(snapshot.missing[n])} short`, group: 'On your build list' })),
-		...rest.map(n => ({ id: n, label: n, icon: img(n, ''), sub: kindWord[barterKind(n)], group: 'The rest of the sea' })),
+		{ id: '', label: T('Everything I am short of'), icon: '<span class="row-icon sm map-pick-all">⚓</span>', meta: T('{n} goods', { n: short.length }) },
+		...short.map(n => ({ id: n, label: gameName(n), icon: img(n, ''), meta: T('{n} short', { n: F(snapshot.missing[n]) }), group: T('On your build list') })),
+		...rest.map(n => ({ id: n, label: gameName(n), icon: img(n, ''), sub: kindWord[barterKind(n)], group: T('The rest of the sea') })),
 		...monsters.filter(m => m.points.length || m.zones).map(m => ({
-			id: `hunt:${m.key}`, label: m.name,
+			id: `hunt:${m.key}`, label: gameName(m.name),
 			icon: monsterArt[m.key] ? `<img src="icons/${monsterArt[m.key]}" alt="">` : `<span class="row-icon sm map-pick-all" style="color:${m.colour}">◎</span>`,
-			sub: m.points.length ? `${m.points.length} spawn points · ${(m.zones || habitats(m)).length} habitat${(m.zones || habitats(m)).length === 1 ? '' : 's'}` : 'the habitat marker only, so far',
-			meta: mv.huntsOn.includes(m.key) ? 'shown' : '', group: 'Hunting grounds'
+			sub: m.points.length
+				? ((m.zones || habitats(m)).length === 1
+					? T('{spawns} spawn points · {habitats} habitat', { spawns: m.points.length, habitats: (m.zones || habitats(m)).length })
+					: T('{spawns} spawn points · {habitats} habitats', { spawns: m.points.length, habitats: (m.zones || habitats(m)).length }))
+				: T('the habitat marker only, so far'),
+			meta: mv.huntsOn.includes(m.key) ? T('shown') : '', group: T('Hunting grounds')
 		}))
 	];
 	openPicker({
-		title: 'What to look for',
-		hint: 'The chart lights the islands that barter it, or the waters a species swims in.',
+		title: T('What to look for'),
+		hint: T('The chart lights the islands that barter it, or the waters a species swims in.'),
 		items, selected: mv.mapPick || '',
 		onPick: id => {
 			if (id.startsWith('hunt:')) {
@@ -190,10 +197,82 @@ export function openMapPicker() {
 
 /* The step player. */
 
+// The Barter tab's cockpit follows the chart's step, and the chart the
+// cockpit's: ui.js hands in the cockpit's end, since the screens cannot
+// import each other. Called with the stop stepped to -- an island by
+// id, a call by the islands before it and its wharf -- and answers
+// whether the cockpit moved, so the panel is drawn again only then.
+let stepHook = null;
+export function setStepHook(fn) {
+	stepHook = typeof fn === 'function' ? fn : null;
+}
+
+/** Where in the chart's stops `seq` the cockpit's stop `cur` is, as
+ *  sailCurrent on the Barter tab describes it; -1 when it is not. */
+export function stopIndex(seq, cur) {
+	if (!cur) return -1;
+	return cur.npcId
+		? seq.findIndex(s => s.kind === 'npc' && s.id === cur.npcId)
+		: seq.findIndex(s => s.kind === 'stash' && s.place.i === cur.before && (!cur.wharfAt || s.place.at === cur.wharfAt));
+}
+
+/** Step the chart to the stop the cockpit stands at, as sailCurrent
+ *  on the Barter tab describes it. Nothing when the chart has no such
+ *  stop, or is there already. */
+export function mapStepToStop(cur, fly = undefined) {
+	if (!cur) return;
+	const seq = routeSeq(marksNow());
+	const i = stopIndex(seq, cur);
+	if (i < 0 || (i === mv.stepIdx && fly !== true)) return;
+	moveStep(i, fly === undefined ? mv.follow : fly);
+}
+
+/**
+ * The chart flown to a leg: the water between the stop before and this
+ * one, bent round the land as the route draws it, framed in the part
+ * of the chart nothing covers -- beside the side panel, whichever side
+ * it is on, above the step strip, under the clocks. A panel that
+ * covers most of the chart, as on a phone, is not worked round: it is
+ * put away to look. Full screen or not, the chart's own box is what is
+ * measured.
+ */
+function flyToLeg(from, to) {
+	const host = document.querySelector('[data-map]');
+	if (!host || !mv.mapState || !to) return;
+	const size = { w: host.clientWidth, h: host.clientHeight };
+	const hb = host.getBoundingClientRect();
+	let L = 12, R = size.w - 12, T = 12, B = size.h - 12;
+	const side = host.querySelector('.map-side');
+	if (side && side.offsetWidth) {
+		const r = side.getBoundingClientRect();
+		if (r.width < size.w * 0.6) {
+			if (r.left - hb.left < size.w / 2) L = Math.max(L, r.right - hb.left + 16);
+			else R = Math.min(R, r.left - hb.left - 16);
+		}
+	}
+	const steps = host.querySelector('.map-steps');
+	if (steps && steps.offsetWidth && !steps.hidden) B = Math.min(B, steps.getBoundingClientRect().top - hb.top - 10);
+	const clocks = host.querySelector('.map-clocks');
+	if (clocks && clocks.offsetWidth) T = Math.max(T, clocks.getBoundingClientRect().bottom - hb.top + 8);
+	if (R - L < 120 || B - T < 120) { L = 12; R = size.w - 12; T = 12; B = size.h - 12; }
+	const pts = from ? seaLeg(from, to) : [to];
+	const x0 = Math.min(...pts.map(p => p.x)), x1 = Math.max(...pts.map(p => p.x));
+	const y0 = Math.min(...pts.map(p => p.y)), y1 = Math.max(...pts.map(p => p.y));
+	const pad = 36;
+	const fit = (span, room) => MAX_ZOOM - Math.log2(Math.max(1e-9, span / Math.max(1, room - pad * 2)));
+	// A short leg is not flown to street level: close enough to read the
+	// two islands and the water between them.
+	const zoom = Math.max(zoomRange.min, Math.min(zoomRange.max, CLOSE_ZOOM + 0.6, Math.min(fit(x1 - x0, R - L), fit(y1 - y0, B - T))));
+	const per = Math.pow(2, MAX_ZOOM - zoom);   // world units a screen pixel
+	flyTo((x0 + x1) / 2 - ((L + R) / 2 - size.w / 2) * per, (y0 + y1) / 2 - ((T + B) / 2 - size.h / 2) * per, zoom);
+}
+
 function moveStep(i, fly = mv.follow) {
 	const seq = routeSeq(marksNow());
 	if (seq.length < 2) return;
 	mv.stepIdx = ((i % seq.length) + seq.length) % seq.length;
+	const here = seq[mv.stepIdx];
+	if (stepHook && here && stepHook(here.kind === 'npc' ? { npcId: here.id } : { wharfAt: here.place.at, before: here.place.i })) refreshSide();
 	// The row in the list follows: lit, and brought into view.
 	for (const row of document.querySelectorAll('[data-step-row]')) {
 		const on = Number(row.dataset.i) === mv.stepIdx;
@@ -203,13 +282,15 @@ function moveStep(i, fly = mv.follow) {
 	if (fly) {
 		const s = seq[mv.stepIdx];
 		if (s) {
-			// The card follows the camera: an island's trades, or what
-			// goes ashore at a wharf call.
-			mv.pinnedNpc = s.kind === 'npc' ? s.id : null;
-			mv.pinnedStash = s.kind === 'stash' ? s.k : -1;
-			mv.hoverNpc = null;
-			mv.hoverStash = -1;
-			flyTo(s.place.x, s.place.y, Math.max(mv.mapState.zoom, CLOSE_ZOOM - 0.15));
+			// The camera goes; the card does not. A card pinned at every
+			// step said what the panel beside it already said, over the
+			// very water being looked at. Hovering a pin still shows one.
+			mv.pinnedNpc = null;
+			mv.pinnedStash = -1;
+			// The leg into the stop, not the stop alone: where the ship comes
+			// from is half of what a sailor looks at the chart for.
+			const prev = mv.stepIdx > 0 ? seq[mv.stepIdx - 1].place : ports.find(p => p.id === mv.startPort) || null;
+			flyToLeg(prev, s.place);
 		}
 	}
 	paintMap();
@@ -410,7 +491,8 @@ export function skipMapErrandCall(i) {
 	if (!c || !c.todo.length) return;
 	for (const t of c.todo) skipErrand(t.q.id, true);
 	closeDialog();
-	toast(`${c.name} left out — ${c.todo.length} quest${c.todo.length === 1 ? '' : 's'} put aside for today`);
+	const n = c.todo.length, name = gameName(c.name);
+	toast(n === 1 ? T('{name} left out — {n} quest put aside for today', { name, n: F(n) }) : T('{name} left out — {n} quests put aside for today', { name, n: F(n) }));
 	startErrands();
 	refreshSide();
 	afterPaint(() => { errandPlan(); refreshSide(); paintMap(); });
@@ -419,11 +501,11 @@ export function skipMapErrandCall(i) {
 /** The loop onto the Draw tab, where it can be named, kept and shared. */
 export function drawMapErrands() {
 	const data = errandTrace();
-	if (!data) return toast('Nothing to draw — work the loop out first');
-	if (!applyTraceObject(data)) return toast('The loop would not draw');
+	if (!data) return toast(T('Nothing to draw — work the loop out first'));
+	if (!applyTraceObject(data)) return toast(T('The loop would not draw'));
 	refreshSide();
 	paintMap();
-	toast('Today’s errands are on the Draw tab — name it and keep it to share the link', true);
+	toast(T('Today’s errands are on the Draw tab — name it and keep it to share the link'), true);
 }
 
 export function setMapHunt(key) {

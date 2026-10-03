@@ -173,6 +173,9 @@ export async function open({ width = 1280, height = 820, touch = false, url = `h
 	});
 	const page = await browser.newPage();
 	await page.setViewport({ width, height, deviceScaleFactor: 1 });
+	// The app follows the system's scheme until a theme is chosen, and
+	// headless Chrome says light; the films are shot in the dark one.
+	await page.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: 'dark' }]);
 	await page.evaluateOnNewDocument(CURSOR);
 	if (touch) await page.evaluateOnNewDocument('window.__touch = true;');
 	page.on('pageerror', e => console.log('  PAGEERR', e.message));
@@ -844,4 +847,161 @@ export async function drag(page, sel, dx, dy, { steps = 24, after = 700, from = 
 		cur.style.transition = '';
 	});
 	await wait(after);
+}
+
+/* ------------------------------------------------------------------ *
+ * the barter chapters' sea, staged
+ * ------------------------------------------------------------------ */
+
+/**
+ * A Central Market and a fleet the barter chapters can be shot against
+ * twice and come out the same.
+ *
+ * The Market is live, and a run is planned on what it lists: shot on a
+ * day Essence of Liquor sold out, a chain the script points at is
+ * greyed, and the next day it is not. So `/api/market` is answered from
+ * the recorded day the tests plan against (test/fixtures/market.json) --
+ * real prices and real counts, frozen -- with the goods named in `dry`
+ * listed at none, where a chapter wants a bare shelf to point at.
+ *
+ * `boards` stands in for the fleet's readings of the barter board
+ * (`/api/boards`), which a capture machine has nobody to send it; a
+ * reading whose `day` is 'today' is dated the barter day the page is
+ * on. Any of it staged means `/api/config` says sync is on, signed out,
+ * which is what puts the fleet's line on the board bar at all.
+ *
+ * Installed before the page loads, like `seed`; a chapter that stages
+ * anything says so in its own voice.
+ */
+export async function stageSea(page, { market = true, dry = [], boards = null } = {}) {
+	const fixture = market ? JSON.parse(await readFile(new URL('../../test/fixtures/market.json', import.meta.url), 'utf8')) : null;
+	const { landGoods } = await import('../../js/land_goods.js');
+	const dryIds = dry.map(name => landGoods[name]).filter(Boolean).map(String);
+	await page.evaluateOnNewDocument(A => {
+		const real = window.fetch.bind(window);
+		const json = body => new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } });
+		window.fetch = (input, init = {}) => {
+			const href = typeof input === 'string' ? input : input.url;
+			let at;
+			try { at = new URL(href, location.href); } catch { return real(input, init); }
+			if (A.boards && at.pathname === '/api/config') return Promise.resolve(json({ sync: true }));
+			if (A.boards && at.pathname === '/api/me') return Promise.resolve(json({ signedIn: false }));
+			if (A.boards && at.pathname === '/api/boards') {
+				return import('/js/clock.js').then(m => json({ boards: A.boards.map(b => ({ ...b, day: b.day === 'today' ? m.barterKey() : b.day })) }));
+			}
+			if (A.market && at.pathname === '/api/market') {
+				const region = at.searchParams.get('region') || 'na';
+				const book = A.market.regions[region] || A.market.regions.na;
+				const prices = {};
+				for (const id of (at.searchParams.get('ids') || '').split(',').filter(Boolean)) {
+					const p = book[id];
+					if (!p || !(p.price > 0)) continue;
+					prices[id] = { id: Number(id), price: p.price, base: p.base, stock: A.dry.includes(id) ? 0 : p.stock, soldAt: p.soldAt, at: Date.now() };
+				}
+				return Promise.resolve(json({ region, at: Date.now(), prices, failed: 0, fellBack: false }));
+			}
+			return real(input, init);
+		};
+	}, { market: fixture, dry: dryIds, boards });
+}
+
+/**
+ * `spot`, for a thing that moves while it is being talked about.
+ *
+ * `spot` measures its target once, and the box stays where it was put.
+ * That is right for a button that is only pointed at, and wrong for one
+ * the line also presses: the sailor bar opens under its own spotlight
+ * and the box goes on lighting whatever slid into the place it left,
+ * and a field typed into re-renders its row somewhere else. This keeps
+ * asking the page where the first visible match is -- by selector, so
+ * a node redrawn under it is found again -- and moves the box with it
+ * for as long as the line lasts.
+ */
+export async function track(page, sel, text, { pad = 10, act = null, hold = null } = {}) {
+	const el = await pick(page, sel);
+	await centreOf(page, el);
+	await el.dispose();
+	await page.evaluate((s, p) => {
+		const box = document.getElementById('__spot');
+		const place = () => {
+			const hit = [...document.querySelectorAll(s)].find(e => {
+				const r = e.getBoundingClientRect();
+				return r.width > 0 && r.height > 0;
+			});
+			if (!hit) return;
+			const r = hit.getBoundingClientRect();
+			box.style.left = `${r.left - p}px`;
+			box.style.top = `${r.top - p}px`;
+			box.style.width = `${r.width + p * 2}px`;
+			box.style.height = `${r.height + p * 2}px`;
+		};
+		place();
+		box.classList.add('on');
+		clearInterval(window.__trackT);
+		window.__trackT = setInterval(place, 90);
+	}, sel, pad);
+	await wait(340);
+	try {
+		if (text) await doing(page, text, act);
+		else {
+			if (act) await act();
+			await wait(hold ?? 1400);
+		}
+	} finally {
+		await page.evaluate(() => {
+			clearInterval(window.__trackT);
+			document.getElementById('__spot').classList.remove('on');
+		});
+	}
+	await wait(260);
+}
+
+/**
+ * Move the pointer off whatever it is resting on, to a point given as a
+ * fraction of the window, gliding.
+ *
+ * Every tile and row here opens a hover card when the pointer settles
+ * on it, and a pointer left where the last press put it keeps one open
+ * over the very thing the next line is about. Parked on bare page, the
+ * card goes.
+ */
+export async function park(page, fx = 0.97, fy = 0.5, { after = 400 } = {}) {
+	const at = await page.evaluate((x, y) => ({ x: Math.round(window.innerWidth * x), y: Math.round(window.innerHeight * y) }), fx, fy);
+	await aim(page, at);
+	await wait(after);
+}
+
+/**
+ * Today's board named off camera, from one island and the trade it
+ * shows -- the barter chapters after the first open on a board already
+ * named, the way the first one ends. Answers again while two layouts
+ * still fit, as the tab asks.
+ */
+export async function nameBoard(page, island = 'Eveto', trade = ['Essence of Liquor', 'Cherry Tree Seed Pouch']) {
+	await page.evaluate(() => window.scrollTo(0, 0));
+	await page.click('[data-act="barter-board-island"]');
+	await wait(700);
+	await page.type('.picker-in', island);
+	await wait(400);
+	await page.click('.picker-row');
+	await wait(700);
+	await page.type('.picker-in', trade[0]);
+	await wait(400);
+	for (const r of await page.$$('.picker-row')) {
+		const t = (await r.evaluate(e => e.innerText)).toLowerCase();
+		if (trade.every(w => t.includes(w.toLowerCase()))) { await r.click(); break; }
+	}
+	await wait(1500);
+	for (let go = 0; go < 4 && !(await page.$('.board-strip')); go++) {
+		const ask = await page.$('[data-act="barter-board-ask"]');
+		if (!ask) break;
+		await ask.click();
+		await wait(700);
+		const row = await page.$('.picker-row');
+		if (!row) break;
+		await row.click();
+		await wait(1500);
+	}
+	await page.evaluate(() => window.scrollTo(0, 0));
+	await wait(600);
 }

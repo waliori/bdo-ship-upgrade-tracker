@@ -11,7 +11,6 @@
 .crew-ship > div { min-width: 0; flex: 1 1 240px; }
 .crew-ship .row-sub { white-space: normal; }
 .crew-ship-name { font-family: var(--font-display); font-size: 18px; font-weight: 600; color: var(--ink-hi); }
-.crew-pick { display: flex; align-items: center; gap: 8px; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-mute); }
 .crew-stats { margin-bottom: 14px; }
 .crew-stats .stat { flex: 1 1 130px; padding: 10px 14px; }
 .crew-stats .stat-v { font-size: 17px; }
@@ -21,8 +20,6 @@
 .crew-panel { margin: 0; }
 .crew-head { flex-wrap: wrap; gap: 8px; }
 .crew-two { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
-.act.small { padding: 5px 11px; font-size: 12px; }
-.act.danger { color: var(--red); border-color: rgba(255, 120, 110, 0.3); }
 
 .crew-board {
   position: relative;
@@ -72,6 +69,7 @@
 .roster-card {
   display: flex; gap: 9px; align-items: center; padding: 8px 10px; border-radius: 10px; cursor: pointer; text-align: left;
   background: rgba(var(--deep-rgb), 0.8); border: 1px solid rgba(var(--line-rgb), 0.12); color: inherit; font: inherit;
+  position: relative;
 }
 .roster-card.seated { opacity: 0.8; }
 .roster-card.picked { background: var(--picked); border-color: rgba(70, 224, 200, 0.5); opacity: 1; }
@@ -116,20 +114,16 @@
 .build-stats { color: var(--ink-faint); }
 .enh-log { font-size: 11.5px; color: var(--ink-faint); white-space: nowrap; }
 .enh-gain { display: block; font-size: 11px; color: var(--teal); font-weight: 400; white-space: normal; max-width: 220px; }
-.quest-row.on { background: rgba(88, 196, 196, 0.06); }
-.quest-rewards { color: var(--ink-dim); }
 
 /* On a phone the drawn hull has no room for seats you can tap; the same
    seats lay out as labelled rows instead, and the drawing steps aside. */
 @media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
-  .crew-board { aspect-ratio: auto; display: flex; flex-wrap: wrap; gap: 6px 8px; padding: 10px 12px 4px; margin: 0; background: none; }
   .crew-hull { display: none; }
   .crew-counter { position: static; flex: 1 1 100%; margin-bottom: 4px; font-size: 11px; }
   .seat-bar { position: static !important; transform: none !important; width: auto !important; flex: 1 1 100%; text-align: left; padding: 3px 8px; font-size: 11px; margin-top: 4px; }
   .seat-wrap { position: static !important; transform: none !important; flex-wrap: wrap; gap: 6px; }
   .seat { width: 46px; height: 46px; }
   .seat-mono { font-size: 12px; }
-  .cabin-row { padding-top: 6px; }
   .seat-bar.static { width: auto; margin: 4px 0 6px; text-align: left; padding: 3px 8px; }
   .crew-stats .stat { flex: 1 1 45%; }
 }
@@ -154,27 +148,36 @@
 .map-row-quests { display: flex; gap: 3px; margin-top: 3px; }
 .map-row-quests .quest-pip { margin: 0; vertical-align: 0; }
 .quest-name { font-weight: 600; color: var(--ink-hi); }
-.quest-tag { margin-left: 8px; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--teal); }
+.quest-tag { margin-left: 8px; font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--teal); }
 .quest-where { font-size: 12px; color: var(--ink-mute); margin: 2px 0 8px; }
-.quest-rewards { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.quest-rewards { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; color: var(--ink-dim); }
 .reward { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px 3px 4px; border-radius: 999px; background: rgba(var(--deep-rgb), 0.7); border: 1px solid var(--line-btn); font-size: 12px; color: var(--ink-dim); }
 .reward.wanted { border-color: rgba(88, 196, 196, 0.5); color: var(--ink-hi); }
 .reward b { color: var(--ink-hi); font-weight: 600; }
+.reward.cost { padding-left: 8px; border-style: dashed; border-color: color-mix(in srgb, var(--amber) 45%, transparent); }
+.reward.cost b { color: var(--amber); }
 .reward-icon { width: 20px; height: 20px; border-radius: 4px; }
-.quest-or { font-size: 11px; color: var(--ink-faint); font-style: italic; }
+.quest-or { font-size: 12px; color: var(--ink-faint); font-style: italic; }
 .quest-actions { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; flex: none; }
 .quest-check { flex: none; width: 16px; height: 16px; margin-top: 3px; accent-color: var(--teal); cursor: pointer; }
+/* The tick's label is there for a finger (tracker-recent.css); to a
+   mouse it is not there at all. */
+.quest-check-hit { display: contents; }
+/* Says what the row's box is for until something is ticked; then the
+   batch bar stands in its place. */
+.quest-tick-hint { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; font-size: 12.5px; color: var(--ink-mute); }
+.quest-tick-hint b { color: var(--ink); font-weight: 600; }
+.quest-tick-box { flex: none; width: 13px; height: 13px; border: 1.5px solid var(--teal); border-radius: 3px; }
 .quest-star { flex: none; border: 0; background: none; color: rgba(255, 215, 122, 0.35); font-size: 16px; line-height: 1; cursor: pointer; padding: 0 2px; margin-top: 1px; }
 .quest-star.on { color: var(--star); text-shadow: 0 0 6px rgba(255, 215, 122, 0.5); }
 .quest-codex { color: inherit; text-decoration: none; border-bottom: 1px dotted rgba(var(--line-rgb), 0.35); }
 .quest-codex:hover { color: var(--teal); border-bottom-color: var(--teal); }
-.quest-recall { font-size: 11px; color: var(--ink-mute); margin-top: 4px; }
+.quest-recall { font-size: 12px; color: var(--ink-mute); margin-top: 4px; }
 .quest-bulk { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 8px 12px; margin: 0 0 12px; border-radius: var(--r-btn); background: rgba(88, 196, 196, 0.08); border: 1px solid rgba(88, 196, 196, 0.25); font-size: 12.5px; }
 .quest-groups { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 8px; }
 .quest-group { display: inline-flex; align-items: center; gap: 6px; }
 .quest-group .map-x { margin-left: 0; }
 .quest.selected { background: rgba(255, 215, 122, 0.06); }
-.crew-setups { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 8px 0 0; width: 100%; }
 .crew-mastery { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 8px 0 0; width: 100%; }
 .crew-mastery .field { width: 90px; }
 /* Read here, set in the bar at the top of the page. */
@@ -226,9 +229,8 @@
 .way-field { background: var(--panel-inset); border: 1px solid rgba(var(--line-rgb), 0.2); color: var(--ink); border-radius: var(--r-btn); padding: 7px 10px; font: inherit; font-size: 12.5px; }
 .way-field.coins { width: 96px; font-family: var(--font-display); color: var(--amber); }
 .way-opts { display: flex; gap: 7px; flex-wrap: wrap; }
-.way-opt { display: flex; align-items: center; gap: 7px; background: var(--panel-inset); border: 1px solid var(--line); color: var(--ink-mute); border-radius: 18px; padding: 6px 13px; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
-.way-opt.on { background: var(--teal-glow); border-color: var(--teal-edge); color: var(--teal-hi); }
-.way-opt:hover { border-color: var(--line-btn-hi); }
+/* A toggle chip (tracker-base.css), laid out with its icon. */
+.way-opt { display: flex; align-items: center; gap: 7px; }
 
 .way-rules { padding: 0 20px 16px; }
 .way-rule-grid { margin-top: 10px; display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; }
@@ -243,10 +245,10 @@
 
 .way-step-head { width: 100%; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--line-head); display: flex; align-items: center; gap: 13px; padding: 14px 20px; cursor: pointer; font: inherit; }
 .way-step-head:hover { background: rgba(var(--blue-rgb), 0.04); }
-.way-step-n { width: 26px; height: 26px; flex: none; border-radius: 50%; font-family: var(--font-display); font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; }
+.way-step-n, .way-step-n-mark { width: 26px; height: 26px; flex: none; border-radius: 50%; font-family: var(--font-display); font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; }
 .way-step-n.teal { background: var(--teal-glow); border: 1px solid var(--teal-edge); color: var(--teal); }
 .way-step-n.amber { background: rgba(232, 182, 97, 0.12); border: 1px solid rgba(232, 182, 97, 0.35); color: var(--amber); }
-.way-step-n.blue { background: rgba(var(--blue-rgb), 0.1); border: 1px solid var(--blue-edge); color: var(--blue-hi); }
+.way-step-n.blue, .way-step-n-mark.blue { background: rgba(var(--blue-rgb), 0.1); border: 1px solid var(--blue-edge); color: var(--blue-hi); }
 .way-step-n.red { background: rgba(232, 122, 109, 0.12); border: 1px solid var(--red-edge); color: var(--red); }
 .way-step-say { flex: 1 1 200px; min-width: 0; }
 .way-step-title { display: block; font-family: var(--font-display); font-size: 14.5px; font-weight: 600; color: var(--ink-hi); }
@@ -274,16 +276,9 @@
 .way-q-main { flex: 1; min-width: 0; }
 .way-q-name { font-weight: 600; font-size: 13px; color: var(--ink-row); }
 .way-q-name .quest-done-tag { margin-left: 8px; }
-.way-where { margin-top: 2px; font-size: 11.5px; color: var(--ink-faint); }
-.way-pays { margin-top: 7px; }
-.way-pays .reward.take { border-color: var(--teal-edge); background: var(--teal-glow); color: var(--ink-hi); }
-.way-pays .reward.coin-chip { border-color: rgba(232, 182, 97, 0.28); color: var(--amber); }
-.way-over { margin-top: 5px; font-size: 11.5px; color: var(--ink-faint); }
-.way-mine { font-size: 11px; color: var(--teal); }
 
 .way-row { align-items: flex-start; }
 .way-why { white-space: normal; overflow: visible; text-overflow: clip; }
-.way-also { margin-top: 3px; color: var(--ink-faint); white-space: normal; }
 .way-qty { flex: none; text-align: right; }
 .way-qty-cost { font-size: 11px; color: var(--amber); opacity: 0.85; }
 .way-coin-row { background: rgba(232, 182, 97, 0.06); }
@@ -307,13 +302,11 @@
 .way-where { margin-top: 3px; font-size: 11.5px; color: var(--ink-mute); }
 .way-pays { margin-top: 6px; }
 .way-pays .reward.take { border-color: rgba(78, 201, 174, 0.55); background: rgba(78, 201, 174, 0.1); color: var(--ink-hi); }
-.way-pays .reward.coin-chip { border-color: rgba(255, 215, 122, 0.35); }
+.way-pays .reward.coin-chip { border-color: rgba(255, 215, 122, 0.35); color: var(--amber); }
 .way-pays .quest-or { text-transform: uppercase; letter-spacing: 0.1em; font-style: normal; margin-right: 2px; }
 .way-over { margin-top: 5px; font-size: 11.5px; color: var(--ink-faint); }
 .way-also { margin-top: 3px; color: var(--ink-faint); white-space: normal; }
 .way-mine { font-size: 11px; color: var(--teal); white-space: nowrap; }
-.way-quest { align-items: flex-start; }
-.way-quest .row-name { padding-top: 1px; }
 @media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
   /* The row holds: tick, star and name share the first line, and only
      the buttons drop to a line of their own. Stacked as a column, one
@@ -322,9 +315,6 @@
   .quest-pic, .quest-pic.none { width: 26px; height: 26px; }
   .quest-actions { flex: 1 0 100%; flex-direction: row; flex-wrap: wrap; justify-content: flex-end; align-items: center; }
 }
-/* A yellow row has three verdicts; they wrap inside their column rather
-   than shoving the column under the row. */
-.enh-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; max-width: 250px; }
 
 /* ---- Courses: community loops drawn beneath the route ---------------- */
 .map-courses { margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(var(--line-rgb), 0.12); }
@@ -340,8 +330,7 @@
 .errand-set { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
 .errand-set .field.sm { flex: 1 1 130px; min-width: 0; padding: 5px 8px; font-size: 12px; }
 .errand-stops { margin-top: 8px; display: flex; flex-direction: column; gap: 2px; }
-.errand-stop { display: flex; gap: 9px; align-items: flex-start; padding: 5px 8px; border-radius: var(--r-btn); border-left: 2px solid transparent; }
-.errand-stop.hunt { border-left-color: rgba(240, 130, 190, 0.7); background: rgba(240, 130, 190, 0.06); }
+.errand-stop { display: flex; gap: 9px; align-items: center; padding: 5px 8px; border-radius: var(--r-btn); border-left: 2px solid transparent; }
 .errand-stop.port { border-left-color: var(--teal); }
 .errand-n { flex: none; width: 18px; text-align: right; font-size: 10.5px; color: var(--ink-faint); padding-top: 2px; }
 .errand-main { flex: 1; min-width: 0; }
@@ -350,7 +339,6 @@
 .errand-jobs.faint { color: var(--ink-faint); font-size: 11px; }
 .errand-job { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; color: var(--ink-mute); }
 .errand-job.kill { color: var(--ink-dim); }
-.errand-job b { color: #f082be; font-weight: 700; }
 .errand-job i { font-style: normal; }
 .errand-job .quest-pip { width: 13px; height: 13px; margin: 0; vertical-align: 0; }
 /* The worked-out loop takes the amber of the day's own clocks rather
@@ -359,12 +347,11 @@
 .map-course-line.course-dailies .map-course-glow { stroke: var(--amber); }
 .map-course-line.course-dailies .map-course-path { stroke: var(--amber); }
 .errand-stop.hunt { border-left-color: rgba(232, 182, 97, 0.75); background: rgba(232, 182, 97, 0.07); }
-.errand-job b { color: var(--amber); }
+.errand-job b { color: var(--amber); font-weight: 700; }
 .map-course.on[data-act="map-errands"] { border-color: rgba(232, 182, 97, 0.7); background: rgba(232, 182, 97, 0.1); }
 .map-course.on[data-act="map-errands"] .map-course-dot { background: var(--amber); border-color: rgba(232, 182, 97, 0.8); box-shadow: 0 0 8px rgba(232, 182, 97, 0.7); }
 /* A call is a button the whole width of the row, with the cross that
    drops it kept out of its way. */
-.errand-stop { align-items: center; }
 .errand-row { display: flex; gap: 9px; align-items: flex-start; flex: 1; min-width: 0; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
 .errand-row:hover .errand-name { color: var(--amber); }
 .errand-skip { flex: none; opacity: 0; }
@@ -401,12 +388,10 @@
 .seat-mono, .roster-tile { overflow: hidden; }
 .roster-tile .roster-cond { z-index: 1; }
 
-/* A link that acts, inside running text. */
-.link-btn { background: none; border: 0; padding: 0; font: inherit; color: #6db9e8; cursor: pointer; }
-.link-btn:hover { color: #a5d5f2; text-decoration: underline; }
+/* .link-btn, a link that acts inside running text, is drawn in tracker-base.css. */
 
 /* ---- Hunt: monster grounds and the courses through them ------------ */
-.map-courses-credit { font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--ink-faint); margin-left: 6px; }
+.map-courses-credit { font-size: 11.5px; font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--ink-faint); margin-left: 6px; }
 .map-hunt-kind { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); margin: 10px 0 4px; }
 .map-hunt { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; padding: 6px 10px; margin-bottom: 4px; border-radius: var(--r-btn); border: 1px solid var(--line-btn); background: rgba(var(--deep-rgb), 0.5); color: var(--ink); font: inherit; cursor: pointer; }
 .map-hunt:hover { border-color: var(--hunt); }
@@ -429,7 +414,8 @@
 .map-port[hidden], .map-pin[hidden], .map-steps[hidden], .map-tip[hidden], .map-wharf[hidden], .map-stash[hidden], .map-habitat[hidden], .map-label[hidden] { display: none; }
 .map-label { position: absolute; left: 0; top: 0; transform: translate(-50%, -50%); pointer-events: none; z-index: 1; font-family: var(--font-display); font-size: 10px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(214, 232, 246, 0.5); text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9), 0 0 6px rgba(0, 0, 0, 0.6); white-space: nowrap; }
 .map-side-head-btns { display: flex; gap: 2px; }
-.map.side-right .map-side, .map.side-right .map-side-pill { left: auto; right: 12px; }
+.map.side-right .map-side-pill { left: auto; right: 12px; }
+.map.side-right .map-side { left: auto; right: 0; border-right: 0; border-left: 1px solid var(--line-btn); }
 .map.tracing { cursor: crosshair; }
 .map.tool-pen { cursor: cell; }
 .map.tool-text { cursor: text; }
@@ -454,6 +440,11 @@
 .map-trace-stop { display: flex; align-items: center; gap: 6px; }
 .map-trace-stop .field { flex: 1; min-width: 0; }
 .map-trace-n { flex: none; width: 20px; height: 20px; border-radius: 50%; border: 1px solid #7ef0d4; color: #7ef0d4; font-size: 10.5px; display: flex; align-items: center; justify-content: center; }
+.map-trace-linehead { display: flex; align-items: center; gap: 6px; margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(255, 255, 255, 0.08); }
+.map-trace-linehead:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+.map-trace-linehead .map-row-sub { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.map-trace-lineswatch { flex: none; width: 20px; height: 4px; border-radius: 2px; background: var(--line-ink); box-shadow: 0 0 6px var(--line-ink); }
+.map-trace-linename { flex: none; font: 700 11px var(--font-display); color: var(--line-ink); letter-spacing: 0.04em; }
 .map-trace-notes { resize: vertical; min-height: 44px; margin-top: 6px; }
 .map-trace-word { position: absolute; transform: translate(-50%, -50%); white-space: nowrap; max-width: 260px; overflow: hidden; text-overflow: ellipsis; font-family: var(--font-display); font-weight: 600; letter-spacing: 0.04em; line-height: 1.2; text-shadow: 0 1px 3px #000, 0 0 6px rgba(0, 0, 0, 0.75); pointer-events: none; z-index: 2; }
 .map-trace-word.plate { padding: 2px 7px; border-radius: 5px; background: rgba(6, 14, 22, 0.72); border: 1px solid rgba(255, 255, 255, 0.1); text-shadow: 0 1px 2px #000; }
@@ -501,15 +492,14 @@
 .trace-card-sub { font-size: 10.5px; color: var(--ink-off); }
 .trace-card-note { font-size: 10.5px; color: var(--ink-off); opacity: 0.8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .trace-card-btns { grid-column: 1 / -1; display: flex; gap: 4px; justify-content: flex-end; }
-.ghost-btn.tiny { padding: 3px 9px; font-size: 11px; }
 
 /* ---- what the chart draws, above every tab -------------------------- */
 .map-layers { border-bottom: 1px solid rgba(var(--line-rgb), 0.12); padding: 0 10px 0; flex: none; }
 .map-layers-head {
   display: flex; align-items: center; gap: 6px; width: 100%;
   padding: 7px 2px; background: none; border: none; cursor: pointer;
-  font-family: var(--font-display); font-size: 10px; font-weight: 700;
-  letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-mute);
+  font-family: var(--font-display); font-size: 11.5px; font-weight: 700;
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-mute);
 }
 .map-layers-head:hover { color: var(--ink-hi); }
 .map-layers-caret { font-size: 9px; opacity: 0.7; }
@@ -518,16 +508,14 @@
 .map-chip {
   display: flex; align-items: center; gap: 5px;
   padding: 4px 9px 4px 6px;
-  border: 1px solid rgba(var(--line-rgb), 0.18); border-radius: 14px;
+  border: 1px solid rgba(var(--line-rgb), 0.18); border-radius: var(--btn-r);
   background: rgba(255, 255, 255, 0.02); color: var(--ink-off);
-  font-size: 11px; font-weight: 600; letter-spacing: 0.02em; cursor: pointer;
+  font-size: 12px; font-weight: 600; letter-spacing: 0.02em; cursor: pointer;
 }
 .map-chip-dot { width: 7px; height: 7px; border-radius: 50%; opacity: 0.45; }
-.map-chip.on { color: var(--ink-hi); border-color: rgba(var(--line-rgb), 0.45); background: rgba(var(--line-rgb), 0.1); }
 .map-chip.on .map-chip-dot { opacity: 1; box-shadow: 0 0 6px currentColor; }
 
 /* ---- the traces library -------------------------------------------- */
-.dialog-box.wide { max-width: 900px; }
 .lib-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; }
 .lib-bar .field { flex: 1 1 100%; }
 .lib-label { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-off); margin-left: 6px; }
@@ -542,9 +530,12 @@
    fleet setups and storage rows. Drawn at 10 by 15 pixels they are a
    guess to hit with a thumb; the glyph stays small, the target does not. */
 @media (pointer: coarse) {
+  /* The masthead's buttons are the size of their halo: a halo poking
+     past the end of the row reads as a row wider than the screen. */
+  #masthead-actions .ghost-btn { min-width: 44px; min-height: 44px; }
   .map-x, .map-side-close {
-    min-width: 32px;
-    min-height: 32px;
+    min-width: 44px;
+    min-height: 44px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -560,26 +551,38 @@
   .purse-inline.narrow, .enh-fs .purse-inline.narrow { width: 64px; }
   .stat-in { width: 64px; }
 
-  /* Forty pixels under a finger, whatever the glyph measures. The small
-     buttons keep their drawn size -- a 40px fold caret would push every
-     tree row apart -- and grow an invisible halo that takes the tap
-     instead; the ones with room to grow simply grow. */
-  .tcaret:not(.empty):not(.open), .info-dot, .detail-close, .chip, .seg, .map-x, .map-side-close { position: relative; }
-  .tcaret:not(.empty):not(.open)::after, .info-dot::before, .detail-close::before,
-  .chip::before, .seg::before {
+  /* Forty-four pixels under a finger, whatever the glyph measures. A
+     control keeps the size it is drawn at and grows an invisible halo
+     that takes the tap: the ::after below is centred on it and sized to
+     reach 44 by 44, and adds nothing to a control already that big. It
+     is written in :where() so it weighs nothing -- any rule that places
+     a control (absolute, fixed, sticky) still wins over the relative
+     here, and the absolute ones are their halo's anchor anyway. The few
+     controls whose ::after already draws something keep theirs. Where
+     two controls sit closer than their halos reach, the rows they sit in
+     open up below so no two halos share a spot. */
+  :where(button, a[href], summary, label, [role="button"], span[data-act]):where(:not(.sheet-grab, .tab, .tcaret, .map-io)) { position: relative; }
+  :where(button, a[href], summary, label, [role="button"], span[data-act]):where(:not(.sheet-grab, .tab, .tcaret, .map-io, .news-old > summary))::after {
     content: '';
     position: absolute;
-    inset: -5px;
+    inset: min(0px, calc(50% - 22px)) min(0px, calc(50% - 22px));
   }
-  .tcaret:not(.empty):not(.open)::after { inset: -10px; }
-  .info-dot::before { inset: -13px; }
-  .detail-close::before { inset: -7px; }
-  .seg::before { inset: -7px 0; }
-  .map-x, .map-side-close { min-width: 40px; min-height: 40px; }
+  .tcaret:not(.empty):not(.open) { position: relative; }
+  .tcaret:not(.empty):not(.open)::after { content: ''; position: absolute; inset: -12px; }
+  /* A field cannot carry a halo, so it is drawn the full height. */
+  :where(input:not([type="checkbox"], [type="radio"], [type="range"], [type="hidden"]), select) { min-height: 44px; }
   .sq-btn { width: 40px; height: 40px; }
-  .stepper button { width: 40px; height: 40px; }
-  .stepper .val { height: 40px; }
-  .tabbar-btn { min-height: 40px; }
+  .stepper button { width: 44px; height: 44px; }
+  .stepper .val { height: 44px; }
+  .tabbar-btn { min-height: 44px; }
+  /* The plan row's own stepper grows with the field between its buttons;
+     a quest's tick and star are drawn small and pressed by a halo. */
+  .own .sq-btn { width: 44px; height: 44px; }
+  .own-input { height: 44px; }
+  .quest-check { width: 22px; height: 22px; margin-top: 0; }
+  .quest-star { min-width: 44px; min-height: 44px; margin: -11px -4px 0 2px; font-size: 19px; }
+  .map-port::before { width: 44px; height: 44px; }
+  .map-pin::before { width: 44px; height: 44px; }
 }
 
 /* ---- a phone on its side ------------------------------------------- */
@@ -642,27 +645,29 @@
     border-radius: 0; border-width: 0 0 0 1px;
     padding: 20px 18px 24px;
     animation: drawerIn 0.2s ease;
+    display: flex; flex-direction: column;
   }
   @keyframes drawerIn { from { transform: translateX(24px); opacity: 0; } to { transform: none; opacity: 1; } }
   .menu-sheet .sheet-grid { grid-template-columns: repeat(3, 1fr); }
   .menu-sheet .sheet-tab { padding: 10px 4px 9px; font-size: 11.5px; }
   /* The dock already shows the sections, so the drawer leads with
      the verbs and keeps the sections for the end. */
-  .dialog-box.menu-sheet { display: flex; flex-direction: column; }
   .menu-sheet > h2 { order: 0; }
   .menu-sheet .sheet-rest { order: 1; }
   .menu-sheet .sheet-sections { order: 2; margin-top: 8px; }
   .menu-sheet .dialog-actions { order: 3; }
 }
 @media (prefers-reduced-motion: reduce) { .dialog-box.menu-sheet { animation: none; } }
+/* The phone's two masthead verbs, at the top of its sheet. */
+.sheet-quick { display: none; }
+@media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
+  .sheet-quick { display: flex; gap: 8px; margin: 0 0 12px; }
+  .sheet-quick .act { flex: 1; min-height: 44px; }
+}
 
 @media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
   .tabs { display: none; }
-  .shell { padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px)); }
-  /* The pouch is pulled up by the height of the tab row's margin so it
-     sits tight beneath it. With the row gone there is nothing above it
-     to tuck under but the title itself, which it was covering. */
-  .pouch { margin-top: 0; }
+  .shell { padding: 0 16px calc(84px + env(safe-area-inset-bottom, 0px)); }
   .tabbar {
     display: flex;
     position: fixed;
@@ -692,6 +697,9 @@
     background: var(--blue-glow); color: var(--blue);
     border-radius: 9px; padding: 0 5px;
   }
+  /* An odd section open lights the Menu slot in its own colours; the
+     small ☰ at its corner says the slot still opens the sheet. */
+  .tabbar-menu-mark { position: absolute; top: 3px; left: 50%; margin-left: -24px; font-size: 10px; opacity: 0.7; }
   /* The toast rides above the bar rather than behind it. */
   .toast { bottom: calc(78px + env(safe-area-inset-bottom, 0px)); }
 }
@@ -713,7 +721,6 @@
   overflow: auto;
 }
 .map-game-fit { color: var(--ink-hi); }
-.map-game-opt { margin: 0 0 4px; font-size: 12.5px; }
 .map-game-btns { display: flex; gap: 8px; margin: 0 0 10px; }
 .map-game-btns .ghost-btn { flex: 1; }
 .map-game-how { margin: 0 0 12px; font-size: 12.5px; color: var(--ink-dim); }
@@ -725,10 +732,12 @@
 .map-game-direct-head { font-family: var(--font-display); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-hi); margin: 0 0 6px; }
 .map-game-direct p { margin: 0 0 8px; }
 .map-game-direct .map-game-btns { margin: 0; flex-wrap: wrap; }
-.map-game-btns .ghost-btn:disabled { opacity: 0.5; cursor: default; }
 .map-game-nodirect { font-size: 12px; color: var(--ink-dim); margin: 0 0 12px; }
 .map-game-loop { margin: 0 0 10px; }
 .map-game-loop label { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink-mid); }
+.map-game-loop label + label { margin-top: 6px; }
+.map-game-lines { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: var(--ink-mid); }
+.map-game-lines li { display: flex; align-items: center; gap: 8px; }
 .map-game-loopnote { margin: 6px 0 0; font-size: 11.5px; color: var(--ink-dim); }
 
 /* ---- Quests: done ticks, the clocks, a lit reward ---- */
@@ -750,12 +759,9 @@
 .today-v { font-family: var(--font-display); font-size: 15px; font-weight: 600; color: var(--ink-hi); margin-top: 2px; overflow-wrap: anywhere; }
 .today-v.faint { color: var(--ink-faint); font-weight: 500; }
 .today-v b { color: var(--ink-hi); }
-.today-in { font-size: 12px; font-weight: 500; color: var(--ink-mute); margin-left: 4px; }
 .today-sub { font-size: 11px; color: var(--ink-faint); margin-top: 3px; }
 .today-sub b { color: var(--ink-dim); }
 .build-pace { color: var(--teal); }
-.vell-row { display: flex; gap: 8px; margin: 8px 0; }
-.vell-row .field { flex: 1; }
 @media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) { .today { flex-direction: column; gap: 8px; } }
 
 /* ---- Map: legs, cargo, saved routes, the ruler ---- */
@@ -771,7 +777,6 @@
 .map-stop-row.over { border-color: rgba(240, 180, 90, 0.35); }
 .map-stop-row.over .map-stop-n { background: rgba(240, 180, 90, 0.18); color: var(--amber); }
 .map-stats .chips { margin-top: 5px; }
-.chip.tiny { padding: 2px 8px; font-size: 10.5px; }
 .map-saved { margin-top: 12px; display: flex; flex-direction: column; gap: 5px; }
 .map-saved-row { display: flex; gap: 6px; align-items: center; }
 .map-saved-row .map-row { flex: 1; }
@@ -780,7 +785,6 @@
 .map-measure-line { fill: none; stroke: #ffd77a; stroke-width: 2; stroke-dasharray: 6 5; }
 .map-measure svg, .map-measure { pointer-events: none; }
 .map-measure-label { position: absolute; transform: translate(-50%, -140%); padding: 3px 8px; border-radius: 999px; background: rgba(var(--deep-rgb), 0.88); border: 1px solid rgba(255, 215, 122, 0.5); color: #ffd77a; font-family: var(--font-display); font-size: 11.5px; white-space: nowrap; pointer-events: none; z-index: 5; }
-.map-zoom .ghost-btn[aria-pressed="true"] { color: var(--amber); border-color: rgba(240, 180, 90, 0.5); }
 .dialog-label { display: flex; align-items: center; gap: 8px; margin: 8px 0; font-size: 13px; color: var(--ink-dim); }
 .dialog-label .field { flex: 1; }
 
@@ -795,17 +799,26 @@
 .jump-kind { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint); white-space: nowrap; }
 .jump-kinds { gap: 5px; }
 .inv-kinds { margin-top: -2px; }
+/* The barter ladder as a chip row: Land, then the seven levels, each
+   wearing its own tier colour so the row reads as the ladder it is. */
+.inv-ladder { margin-top: -2px; }
+.inv-ladder .chip { border-color: color-mix(in srgb, var(--tier, var(--line-btn)) 45%, transparent); color: var(--tier, var(--ink-mute)); }
+.inv-ladder .chip.active { background: var(--tier, var(--blue)); border-color: var(--tier, var(--blue)); color: var(--on-tint); }
 .jump-tab { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-mute); width: 28px; }
 .jump-hint { font-size: 11px; color: var(--ink-faint); }
 .trip-rows { display: flex; flex-direction: column; gap: 6px; margin: 10px 0; max-height: 50vh; overflow-y: auto; }
-.trip-row { display: flex; gap: 6px; }
-.trip-row .trip-item { flex: 1; min-width: 0; }
+/* Filling the lines from a screenshot, and which way the counts go:
+   a sailor back from a run has both handed goods over and been paid. */
+.trip-shot { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 4px 0 10px; padding: 8px 10px; border-radius: var(--r-btn); border: 1px solid var(--line-btn); }
+.trip-shot-k { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-faint); margin-right: 2px; }
+.trip-shot .ghost-btn { margin-left: auto; }
+/* A line of Log a trip: the item, how many, and the cross, a rule
+   between lines (the look it shipped with, when it shared its name with
+   the Load step's trip rows). */
+.trip-row { display: flex; align-items: center; gap: 10px; padding: 7px 4px; border-top: 1px solid var(--line); }
 .trip-row .trip-qty { width: 120px; }
-.where-line { align-items: center; }
 .where-edit { display: inline-flex; align-items: center; gap: 6px; }
-.where-val { width: 72px; text-align: right; }
 .where-add { margin-top: 6px; font-size: 12px; }
-.detail-note { font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--ink-faint); }
 
 /* ---- Profiles, Help extras ---- */
 .profile-list { display: flex; flex-direction: column; gap: 6px; margin: 10px 0; }
@@ -857,6 +870,22 @@
   border: 1px solid var(--line);
   background: rgba(var(--deep-rgb), 0.5);
 }
+/* Before and now, as a pair: what it was dimmed and ruled off on the
+   left, what it is in full beneath. */
+.news-ba { display: flex; flex-direction: column; gap: 6px; }
+.news-ba p { padding: 6px 10px; border-radius: 8px; border-left: 3px solid var(--line); }
+.news-ba-k {
+  display: block;
+  margin-bottom: 2px;
+  font-family: var(--font-display);
+  font-size: 10.5px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.news-item .news-before { color: var(--ink-dim); background: rgba(var(--deep-rgb), 0.35); border-left-color: var(--amber, #e0a33a); }
+.news-before > .news-ba-k { color: var(--amber, #e0a33a); }
+.news-after { background: rgba(var(--deep-rgb), 0.2); border-left-color: var(--teal); }
+.news-after > .news-ba-k { color: var(--teal); }
 .news-points { margin: 8px 0 0 18px; padding: 0; font-size: 12.5px; line-height: 1.5; color: var(--ink-dim); }
 
 /* Every release before this one, shut, each worth one line until it is
@@ -916,13 +945,8 @@
 .map-course-dot.wharf { background: #cfe3f5; }
 
 /* ---- Fitted out: editable ---- */
-.fit-row { align-items: center; flex-wrap: wrap; }
-.fit-row > span:first-child { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .fit-tag { font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-faint); }
 .fit-tag.warn { color: var(--amber); }
-.fit-edit { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
-.fit-stats { font-size: 11.5px; color: var(--ink-dim); }
-.fit-sel { font-size: 12px; padding: 3px 6px; max-width: 220px; }
 .fit-hint { font-size: 12px; color: var(--ink-faint); margin: 0 22px 8px; }
 .map-as { color: var(--ink-dim); }
 .map-as b { color: var(--ink-hi); }
@@ -932,8 +956,10 @@
 .picker h2 { margin: 0; }
 .picker-in { font-size: 14px; padding: 9px 12px; }
 .picker-list { display: flex; flex-direction: column; gap: 2px; max-height: 52vh; overflow-y: auto; padding-right: 2px; }
-.picker-group { font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-mute); padding: 8px 6px 3px; position: sticky; top: 0; background: var(--panel, #0a1728); z-index: 1; }
-.picker-row { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: var(--r-btn); border: 1px solid transparent; background: none; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+/* Add a build's groups: a heading that stays at the top of the box
+   while its rows scroll under it. */
+.picker-group { position: sticky; top: 0; z-index: 1; padding: 8px 6px 3px; background: var(--panel, #0a1728); border-bottom: 1px solid var(--line); font-family: var(--font-display); font-size: 10.5px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-mute); }
+.picker-row { display: flex; align-items: center; gap: 10px; width: 100%; padding: 7px 10px; border-radius: var(--r-btn); border: 1px solid transparent; background: none; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
 .picker-row:hover, .picker-row.on { background: rgba(var(--blue-rgb), 0.12); border-color: rgba(var(--blue-rgb), 0.35); }
 .picker-row.picked { background: rgba(78, 201, 174, 0.1); border-color: rgba(78, 201, 174, 0.4); }
 .picker-row.off { opacity: 0.45; cursor: default; }
@@ -966,6 +992,8 @@ button.status-bit:hover { background: rgba(var(--blue-rgb), 0.12); color: var(--
 .ship-card-icon { width: 64px; height: 64px; border-radius: 12px; flex: none; }
 .ship-card-text { min-width: 0; }
 .ship-card-facts { display: flex; gap: 26px; flex-wrap: wrap; }
+.ship-card-specs { flex: 1 1 100%; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px 22px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+.ship-card-specs .summary-v { font-size: 18px; }
 .ship-card-btns { display: flex; gap: 8px; flex-wrap: wrap; }
 .slot-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; padding: 0 14px 12px; }
 .slot-card { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border-radius: var(--r-btn); background: var(--panel-inset, rgba(var(--deep-rgb), 0.55)); border: 1px solid rgba(var(--line-rgb), 0.12); }
@@ -983,7 +1011,6 @@ button.status-bit:hover { background: rgba(var(--blue-rgb), 0.12); color: var(--
 .slot-part b { color: var(--teal); }
 .slot-stats { font-size: 11px; color: var(--ink-dim); margin-top: 2px; }
 .slot-btns { display: flex; gap: 6px; flex-wrap: wrap; }
-.roster-card { position: relative; }
 .roster-card.ticked { border-color: rgba(78, 201, 174, 0.55); }
 .roster-hit { position: absolute; inset: 0; background: none; border: 0; cursor: pointer; border-radius: inherit; }
 .roster-check { position: absolute; top: 6px; right: 6px; z-index: 2; width: 20px; height: 20px; border-radius: 5px; border: 1px solid var(--line-btn); background: rgba(var(--deep-rgb), 0.7); color: var(--teal); font-size: 12px; cursor: pointer; padding: 0; }
@@ -1006,7 +1033,7 @@ button.status-bit:hover { background: rgba(var(--blue-rgb), 0.12); color: var(--
 .trip-row .map-x { flex: none; }
 
 /* ---- Where it is: the same inputs as everywhere else ---- */
-.where-line { padding: 4px 0; }
+.where-line { align-items: center; padding: 4px 0; }
 .where-val { width: 76px; text-align: right; padding: 4px 8px; border-radius: var(--r-btn); border: 1px solid var(--line-btn); background: var(--panel-inset, rgba(var(--deep-rgb), 0.7)); color: var(--ink-hi); font-family: var(--font-display); font-size: 13px; }
 .where-val:focus { border-color: var(--blue-edge); outline: none; }
 .tile-qty.short { color: var(--red-soft); font-size: 13px; }
@@ -1022,7 +1049,6 @@ button.status-bit:hover { background: rgba(var(--blue-rgb), 0.12); color: var(--
 .row-ways summary::before { content: '▸ '; }
 .row-ways[open] summary::before { content: '▾ '; }
 .row-ways summary::-webkit-details-marker { display: none; }
-.tcaret { min-width: 26px; min-height: 26px; font-size: 14px; }
 .seat-list { display: none; flex-direction: column; gap: 10px; padding: 8px 14px 14px; }
 .seat-list-group { display: flex; flex-direction: column; gap: 6px; }
 .seat-list-seats { display: flex; flex-direction: column; gap: 4px; }
@@ -1043,7 +1069,13 @@ button.status-bit:hover { background: rgba(var(--blue-rgb), 0.12); color: var(--
 	.row .row-meter { order: 3; flex: 1 1 100%; }
 	.row .row-tail { gap: 6px; }
 	.row .bar-legend { font-size: 10.5px; }
-	.readybar-list { flex-wrap: nowrap; overflow-x: auto; }
+	/* One line that scrolls, and says so: each chip keeps its name on
+	   one line, and the right edge fades rather than cutting a name
+	   in half against a hard edge. The padding lets the last chip
+	   scroll clear of the fade. */
+	.readybar-list { flex-wrap: nowrap; overflow-x: auto; min-width: 0; max-width: 100%; padding-right: 36px; scrollbar-width: none;
+		-webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 36px), transparent); }
+	.ready-chip { flex: none; white-space: nowrap; }
 	.summary { padding: 12px 14px; }
 	.summary-stats { gap: 12px 18px; }
 	/* The manifest: narrower tiles, and the count on its own line --
@@ -1056,12 +1088,20 @@ button.status-bit:hover { background: rgba(var(--blue-rgb), 0.12); color: var(--
 	.want-head { gap: 8px 14px; }
 	.map-side { width: min(300px, 82vw); }
 	.map-panel .map { min-height: 60vh; }
-	.status-bar { font-size: 11.5px; padding: 6px 10px; }
-	.status-bit { padding: 1px 3px; }
+	/* The day's line as a grid of its parts on a phone: wrapped as a
+	   line, each part took a row of its own and ended in a stray dot. */
+	.status-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 2px 8px; font-size: 12px; padding: 6px 10px; }
+	.status-bar[hidden] { display: none; }
+	.status-sep { display: none; }
+	/* An enhancement's cost, odds and failstack wrap inside the row:
+	   held to one line they ran past the edge and cut "recommended" in
+	   half. The failstack takes a line of its own. */
+	.enh-cost { flex-wrap: wrap; flex-shrink: 1; min-width: 0; row-gap: 4px; }
+	.enh-fs { flex: 1 1 100%; flex-wrap: wrap; margin-left: 0; white-space: normal; }
+	.status-bit { padding: 1px 3px; text-align: left; }
 }
 
 /* ---- Minimap: a grip to move it, a × to hide it ---- */
-.map-mini { touch-action: none; }
 .mini-grip { position: absolute; left: 4px; top: 2px; z-index: 3; font-size: 11px; letter-spacing: -2px; color: rgba(207, 227, 245, 0.7); cursor: grab; padding: 0 4px; user-select: none; }
 .mini-grip:active { cursor: grabbing; }
 .mini-hide { position: absolute; right: 2px; top: 2px; z-index: 3; width: 18px; height: 18px; border-radius: 4px; border: 0; background: rgba(var(--deep-rgb), 0.6); color: rgba(207, 227, 245, 0.8); font-size: 12px; line-height: 1; cursor: pointer; padding: 0; }
@@ -1080,22 +1120,20 @@ button.status-bit:hover { background: rgba(var(--blue-rgb), 0.12); color: var(--
 /* A field in a column stays a field: the flex-grow that fills a
    toolbar row would fill a dialog's height instead. */
 .dialog-box .field, .picker .field, .jump .field { flex: 0 0 auto; width: 100%; }
-.trip-row .field, .vell-row .field, .profile-new .field, .dialog-label .field { width: auto; flex: 1 1 auto; }
+.trip-row .field, .profile-new .field, .dialog-label .field { width: auto; flex: 1 1 auto; }
 .picker, .jump { min-width: 0; width: 100%; }
 .picker-list, .jump-list { padding: 2px 2px 6px; }
-.dialog-box { overflow-x: hidden; }
 
 /* ---- The chart: habitat markers and the currents ---- */
 .map-habitat { position: absolute; left: 0; top: 0; width: 44px; height: 44px; margin: -22px 0 0 -22px; z-index: 3; padding: 0; border: 0; background: none; color: #f3e35a; font: inherit; cursor: pointer; text-shadow: 0 1px 4px #000, 0 0 8px rgba(0, 0, 0, 0.8); }
 .map-habitat.young { width: 34px; height: 34px; margin: -17px 0 0 -17px; }
 .map-habitat-name { position: absolute; top: 100%; left: 50%; transform: translateX(-50%); margin-top: 1px; }
-.map-habitat-sub { position: absolute; top: calc(100% + 15px); left: 50%; transform: translateX(-50%); }
+.map-habitat-sub { position: absolute; top: calc(100% + 15px); left: 50%; transform: translateX(-50%); font-size: 10.5px; color: #cfe3f5; white-space: nowrap; }
 .map-habitat-pic { width: 44px; height: 44px; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.8)); transition: transform 0.15s; }
 .map-habitat:hover .map-habitat-pic, .map-habitat.on .map-habitat-pic { transform: scale(1.12); }
 .map-habitat.on .map-habitat-name { color: #7ef0d4; }
 .map-habitat-glyph { width: 34px; height: 34px; border-radius: 50%; border: 2px solid; display: inline-flex; align-items: center; justify-content: center; font-size: 16px; background: rgba(var(--deep-rgb), 0.6); }
 .map-habitat .map-habitat-name { font-size: 11px; font-weight: 600; white-space: nowrap; }
-.map-habitat-sub { font-size: 9.5px; color: #cfe3f5; white-space: nowrap; }
 .map-habitat.young .map-habitat-pic { width: 34px; height: 34px; }
 .map-habitat-art { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
 .map-habitat-count { position: absolute; right: -6px; top: -4px; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 9px; background: #ffd77a; color: #14202c; font-size: 10.5px; font-weight: 700; line-height: 17px; text-align: center; text-shadow: none; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6); }
@@ -1104,7 +1142,6 @@ button.status-bit:hover { background: rgba(var(--blue-rgb), 0.12); color: var(--
 .map-hunt-pic { width: 26px; height: 26px; object-fit: contain; flex: none; filter: drop-shadow(0 1px 2px #000); }
 .map-hunt[disabled] { opacity: 0.55; cursor: default; }
 .map-row-sub.note { white-space: normal; color: var(--amber); }
-
 
 /* Reading a crew off screenshots: the drop, the bar and the table that
    asks whether the scan got it right before anything is written. */
@@ -1119,6 +1156,7 @@ button.status-bit:hover { background: rgba(var(--blue-rgb), 0.12); color: var(--
 .shot-drop { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 26px 16px; margin: 4px 0 10px; border-radius: 12px; border: 1.5px dashed var(--line-btn-hi); background: rgba(var(--deep-rgb), 0.35); cursor: pointer; text-align: center; }
 .shot-drop:hover, .shot-drop:focus-visible, .shot-drop.over { border-color: var(--teal); background: rgba(78, 201, 174, 0.09); }
 .shot-drop-mark { font-size: 26px; line-height: 1; opacity: 0.8; }
+.shot-drop .row-sub { white-space: normal; }
 .shot-bar { height: 8px; border-radius: 4px; background: rgba(var(--deep-rgb), 0.7); border: 1px solid var(--line-btn); overflow: hidden; margin: 10px 0 4px; }
 .shot-bar i { display: block; height: 100%; background: var(--teal); transition: width 0.2s ease; }
 .shot-table-wrap { max-height: min(52vh, 460px); overflow: auto; margin: 8px 0; border: 1px solid var(--line-btn); border-radius: var(--r-sm); }
@@ -1143,6 +1181,13 @@ button.status-bit:hover { background: rgba(var(--blue-rgb), 0.12); color: var(--
 .shot-item > span .row-sub { margin: 0; }
 .shot-corner { display: inline-block; vertical-align: middle; height: 26px; margin-left: 0; margin-right: 6px; border-radius: 3px; border: 1px solid var(--line-btn); image-rendering: pixelated; }
 .shot-skipped { margin: 6px 0; font-size: 12px; color: var(--ink-mute); }
+/* What the window's head said about the sailor, offered rather than
+   applied: it sits above the buttons with its own tick. */
+.shot-figures { margin: 8px 0 2px; padding: 8px 11px; border-radius: var(--r-btn); border: 1px solid var(--teal-edge); background: color-mix(in srgb, var(--teal) 7%, transparent); font-size: 12.5px; }
+.shot-figures b { color: var(--teal); }
+/* A shot too small to read: said above the table, in the colour of a
+   thing to act on, because what follows it is not the whole storage. */
+.dialog-note.shot-small { padding: 8px 11px; border-radius: var(--r-btn); border: 1px solid var(--red-edge); background: color-mix(in srgb, var(--amber) 9%, transparent); color: var(--ink); }
 .shot-skipped summary { cursor: pointer; }
 @media (max-width: 620px) {
 	.shot-table { font-size: 12px; }
@@ -1179,3 +1224,21 @@ button.status-bit:hover { background: rgba(var(--blue-rgb), 0.12); color: var(--
 	.auto-name { flex: 1 1 100%; }
 	.auto-figs { flex: 1 1 auto; }
 }
+
+/* Pictures dragged over the barter paste zone. */
+.board-drop.over { border-color: var(--teal); border-style: solid; background: color-mix(in srgb, var(--teal) 8%, var(--panel-inset)); }
+
+/* What a removal from the Inventory takes, listed in its ask. */
+.remove-list { list-style: none; margin: 0 0 12px; padding: 0; display: flex; flex-direction: column; gap: 4px; max-height: 260px; overflow-y: auto; }
+.remove-list li { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.remove-list li span { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.remove-list li b { font-variant-numeric: tabular-nums; }
+
+/* The storage reader's choice: update what is read, or replace the storage. */
+.shot-mode { display: flex; flex-direction: column; gap: 6px; margin: 8px 0 4px; }
+.shot-mode label { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; cursor: pointer; }
+.shot-mode .row-sub { flex: 1 1 100%; min-width: 0; padding-left: 22px; white-space: normal; box-sizing: border-box; }
+.shot-box [data-write] { white-space: normal; min-width: 0; }
+.shot-gone { margin: 10px 0; }
+.shot-gone summary { cursor: pointer; font-weight: 600; color: var(--amber); }
+.shot-gone .remove-list li input { flex: none; }

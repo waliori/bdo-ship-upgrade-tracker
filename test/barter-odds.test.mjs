@@ -13,10 +13,11 @@ import { readFile } from 'node:fs/promises';
 
 import { readOdds, oddsFor, oddsText } from '../js/barter-odds.js';
 import { forecast, summarise, bottleneck, ladder } from '../js/barter.js';
+import { useGame } from '../js/barter-layouts.js';
 
 const here = p => new URL(p, import.meta.url);
 const boards = JSON.parse(await readFile(here('../js/material_boards.json'), 'utf8'));
-const combos = JSON.parse(await readFile(here('../js/barter_combos.json'), 'utf8'));
+const combos = useGame(await import('../js/barter_game.js'));
 const table = JSON.parse(await readFile(here('../js/all_barter.json'), 'utf8'));
 const index = readOdds({ boards, combos });
 
@@ -26,15 +27,16 @@ test('the index is built from whole boards and the recorded layouts', () => {
 	assert.ok(index.material.size > 10 && index.trade.size > 50);
 });
 
-test('a material on one board in four is counted as such, and the sample is said', () => {
+test('a material on one board of the record is counted as such, and the sample is said', () => {
 	const odds = oddsFor("Saltwater Crocodile's Scale", index);
+	const of = boards.boards.length;
 	assert.equal(odds.recorded, true);
 	assert.equal(odds.kind, 'material');
 	assert.equal(odds.seen, 1);
-	assert.equal(odds.of, 4);
-	// Shrunk toward the old assumption by one board's weight: (1+1)/(4+1).
-	assert.equal(odds.per, 0.4);
-	assert.match(oddsText(odds), /on 1 of the 4 boards recorded/);
+	assert.equal(odds.of, of);
+	// Shrunk toward the old assumption by one board's weight: (1+1)/(of+1).
+	assert.equal(odds.per, 2 / (of + 1));
+	assert.match(oddsText(odds), new RegExp(`on 1 of the ${of} boards recorded`));
 });
 
 test('nothing is ever counted as more available than always', () => {
@@ -108,4 +110,19 @@ test('the whole climb is looked at, so the scarcest rung is named even when anot
 		const o = oddsFor(r.item, index);
 		if (o.recorded) assert.ok(f.scarcest.per <= o.per, `${r.item} is rarer than the one named`);
 	}
+});
+
+test('the material list’s odds from the game’s own tables: exact, not shrunk, and said as such', async () => {
+	const { useGame, materialPages } = await import('../js/barter-layouts.js');
+	useGame(await import('../js/barter_game.js'));
+	const index = readOdds({ pages: materialPages() });
+	assert.equal(index.boards, 41, 'the forty-one material layouts');
+	// A Saltwater Crocodile's Scale is a one-in-twenty offer on a few layouts:
+	// the five boards read put it on one in three.
+	const croc = oddsFor("Saltwater Crocodile's Scale", index);
+	assert.ok(croc.recorded && croc.exact);
+	assert.ok(croc.per > 0.01 && croc.per < 0.06, `${croc.per}`);
+	const shard = oddsFor('Brilliant Pearl Shard', index);
+	assert.ok(shard.per > 0.6 && shard.per < 0.85, `${shard.per}`);
+	assert.match(oddsText(croc), /game.s own tables/);
 });

@@ -9,7 +9,18 @@ docs/**
 !docs/media/*.vtt
 !docs/media/small
 !docs/media/small/*
-tools
+# The phone cut of the walkthrough: the capture tools write it, nothing
+# in the app plays it.
+docs/media/walkthrough-phone.mp4
+# The English catalogue the translators work from. The app never fetches
+# it -- English is the words in the code -- and the tests read it from
+# the checkout, not from the image.
+js/lang/en.json
+tools/**
+# The backup tool, for the scheduled backup service.
+!tools/backup.mjs
+# The build's stamp, run once by the Dockerfile.
+!tools/build-stamp.mjs
 *.md
 !README.md
 .env

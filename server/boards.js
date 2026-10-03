@@ -49,6 +49,15 @@ const MAX_NAME = 120;
 const RECENT_DAYS = 4;
 const KEEP_DAYS = 60;
 
+/** The material list was once read and kept here too, as a list of its
+ *  own. It is one of the game's own layouts now (js/barter/material.js
+ *  reads it from the client's tables), nothing in the app sends a
+ *  reading of it, and keeping a sailor's reading for a year for a
+ *  feature that no longer exists is keeping it for nothing. A page that
+ *  has not reloaded may still send one: it is refused in words, and the
+ *  readings already kept are swept. */
+const GONE_LIST = 'material';
+
 /**
  * A sighting as it may be stored, or a complaint about it.
  *
@@ -58,6 +67,7 @@ const KEEP_DAYS = 60;
  */
 export function readSighting(body) {
 	if (!body || typeof body !== 'object') return { error: 'Expected a sighting.' };
+	if (body.list === GONE_LIST) return { error: 'The material list is not kept any more; only the trade board is.' };
 	const day = String(body.day || '').slice(0, 24);
 	if (!/^[0-9]{4}-[0-9]{2}-[0-9]{2}/.test(day)) return { error: 'A sighting has to say which barter day it is.' };
 	if (!Array.isArray(body.offers) || !body.offers.length) return { error: 'A sighting needs at least one island.' };
@@ -129,9 +139,11 @@ export async function drop(id, userId) {
 	return { ok: true };
 }
 
-/** Sightings older than the book's memory are swept. */
+/** Sightings older than the book's memory are swept, and whatever is
+ *  left of the material list with them. */
 export async function sweep() {
-	return sweepSightings(Date.now() - KEEP_DAYS * 86_400_000);
+	const now = Date.now();
+	return await sweepSightings(now - KEEP_DAYS * 86_400_000) + await sweepSightings(now + 1, GONE_LIST);
 }
 
 /**
@@ -171,7 +183,9 @@ export function boardRoutes() {
 	 *  the app that is genuinely common property. */
 	router.get('/boards', wrap(async (req, res) => {
 		const uid = sessionUser(req);
-		const list = await sightings(req.query.days);
+		// A page that has not reloaded may still ask for the material
+		// list; there is none, and it is told so with an empty one.
+		const list = req.query.list === GONE_LIST ? [] : await sightings(req.query.days);
 		const seen = new Set(uid ? await sightingsConfirmedBy(uid) : []);
 		res.set('Cache-Control', 'no-store');
 		res.json({

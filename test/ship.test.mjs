@@ -112,6 +112,41 @@ test('sailing mastery follows the game\'s table: half a point per fifty to 2,000
 	assert.equal(after.turn, Math.round((before.turn + 20) * 10) / 10);
 });
 
+test('a Corsair at the wheel is a point on speed, acceleration, turn and brake, and nothing on the hold', async () => {
+	const { currentShip } = await import('../js/ship.js');
+	store.adopt({ stock: {}, targets: [], strategy: {}, profile: { crewShip: 'Epheria Caravel' } });
+	const before = currentShip();
+	store.setProfile('corsair', true);
+	const after = currentShip();
+	assert.equal(after.speed.total, Math.round((before.speed.total + 1) * 10) / 10);
+	assert.equal(after.speed.corsair, 1);
+	assert.equal(after.accel, Math.round((before.accel + 1) * 10) / 10);
+	assert.equal(after.turn, Math.round((before.turn + 1) * 10) / 10);
+	assert.equal(after.brake, Math.round((before.brake + 1) * 10) / 10);
+	assert.equal(after.hold.limit, before.hold.limit);
+	store.setProfile('corsair', false);
+	assert.equal(currentShip().speed.total, before.speed.total);
+});
+
+test('a sailing log times the legs faster and leaves the window speed alone', async () => {
+	const { currentShip, sailingLog } = await import('../js/ship.js');
+	store.adopt({ stock: {}, targets: [], strategy: {}, profile: { crewShip: 'Epheria Caravel' } });
+	const before = currentShip();
+	assert.equal(before.speed.sea, before.speed.total, 'no log: legs at the window speed');
+	store.setProfile('sailingLog', { kind: 'manos', lv: 19 });
+	const log = sailingLog();
+	assert.equal(log.mastery, 300, 'TET Manos gives 300 mastery, as its tooltip says');
+	assert.equal(log.speed, 15);
+	const after = currentShip();
+	assert.equal(after.speed.total, before.speed.total, 'the window speed does not carry the log');
+	assert.equal(after.speed.sea, Math.round(before.speed.total * 1.15 * 10) / 10);
+	store.setProfile('sailingLog', { kind: 'loggia', lv: 18 });
+	assert.equal(sailingLog().mastery, 130, 'TRI Loggia gives 130');
+	store.setProfile('sailingLog', { kind: 'srulk', lv: 18 });
+	assert.equal(sailingLog().mastery, 180, 'TRI Srulk gives 180');
+	store.setProfile('sailingLog', null);
+});
+
 test('a setup keeps a hull with its parts, crystal and seats, and sails again on demand', async () => {
 	const { saveSetup, loadSetup, listSetups, deleteSetup, activeSetupId, shipName, fittedFor, crystalFor } = await import('../js/ship.js');
 	store.adopt({ stock: {}, targets: [], strategy: {}, profile: { crewShip: 'Epheria Caravel' } });
@@ -356,4 +391,18 @@ test('the crystal weighs a litre, and so does the rod in a Carrack\'s fishing pl
 	assert.equal(fishing.hold.gear, gemmed.hold.gear + 1);
 	assert.ok(fishing.hold.lines.some(l => /the Otter's rod/.test(l.label)));
 	assert.equal(fishing.hold.lines.reduce((a, l) => a + l.lt, 0), fishing.hold.free);
+});
+
+test('a saved setup reads as the ship it is when sailed: owned parts, the Corsair point, the same hold', async () => {
+	const { saveSetup, listSetups, setupSummary, activeSetupId } = await import('../js/ship.js');
+	const SAIL = "Epheria Carrack: Valor (Chiro's Sail)";
+	// Nothing picked by hand: both slots take the best part owned.
+	store.adopt({ stock: { [`+10 ${CANNON}`]: 1, [`+10 ${SAIL}`]: 1, 'Carrack (Valor)': 1 }, targets: [], strategy: {}, profile: { crewShip: 'Carrack (Valor)', corsair: true } });
+	const id = saveSetup('Main');
+	assert.equal(activeSetupId(), id);
+	const me = currentShip();
+	const sum = setupSummary(listSetups().find(s => s.id === id));
+	assert.equal(sum.speed, me.speed.total, 'the Fleet row and the Ship card agree on speed');
+	assert.equal(sum.hold, me.hold.free, 'and on the hold');
+	assert.equal(sum.fittedCount, 2, 'the owned parts count as fitted');
 });

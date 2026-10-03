@@ -1,266 +1,605 @@
 == One — The Yard ==
 
-This is the Yard. It works out what your builds need, and what you still have to find.
-But start with the bar under the tabs. These are the numbers the whole app plans from.
-Your total barter count matters most. It decides which islands will even deal with you.
-Your barter level, which sets what every exchange costs in Parley.
-Your Sailing Mastery, which counts toward how fast your ship sails.
-Your region, because every silver price in the app is quoted in it.
-And the Bos'n Jacks you have out. It is the one pet talent in the game that is ship weight — fifty LT a tier, across the five the game lets out at once — so a nest of them is hundreds of LT the hold was being told it did not have.
-Type them once here and every screen reads them. Then fold it away.
-Now queue something to build.
-Some ships can be built two ways, so it asks which.
-It shows what each route costs. Either is fine.
-Queue a second one. Order matters: if stock runs short, the build at the top gets it first.
-The Plan is everything your queue needs, in one list.
-Red is missing. Blue you can make. Green you already have.
-As you gather, type in what you have.
-Every build re-plans around it straight away.
-Or log a whole trip at once, instead of a box at a time.
-Or skip the typing altogether. Screenshot your storage in game, and drop the pictures here.
-It finds the slots by their own borders, names each icon, and reads the number written over it. Scroll, shoot again, and the row two pictures share is counted once.
-Every count keeps the corner of its slot beside it, so it is checked at a glance. One the reader is not sure of is marked.
-Nothing is written until you press the button — and then it is one change, with one undo.
-The Workshop makes anything you have the materials for.
-Crafting moves real stock. Ingredients out, the product in.
-Made a mistake? Undo steps it back, and Redo puts it forward.
-Enhancing is kept separate, because attempts can fail.
-It shows your real odds at your failstack, and the most the part can end up costing.
-The Inventory is one tile per thing you own, or still need.
-Open one, and every way of getting it is priced.
-What the shop charges, against what making it costs — including its own ingredients, all the way down.
-Already levelled a part in game? Record it here.
-Tell it the level you reached. It spends no stones to agree with you.
+This is the Yard: the tabs where a build is planned. Plan, Builds, Inventory, Tree and Workshop.
+Start with the bar under the tabs. These are the numbers about you that every screen plans from. Click it open.
+Total Barters first. Type the count your Barter window shows in game. It decides which islands will trade with you at all.
+Your barter level. It sets what every exchange costs in Parley.
+Tick Value Pack if one is running. It adds a draw a day and takes ten per cent off the Parley.
+Corsair is for a Corsair at the wheel: one per cent more speed, acceleration, turn and brake.
+Your Sailing Mastery, as the character window shows it. It counts toward speed, acceleration, turn and brake.
+The sailing log you carry. Its mastery is already in your total, so only its top speed is added on top.
+And your Bos'n Jacks. Their talent adds fifty LT of ship weight a tier, across the five pets you can have out. Open the nest, set all five at once, and save.
+Region is where the Central Market prices are read from.
+Type them once, and every tab reads them. Fold the bar away.
+Now the Builds tab. This is the queue: what you mean to build, in the order you want it done.
+Add a build. The picker takes ships, parts, or a stack of materials, and the chips narrow it down.
+Start with a ship: the Epheria Caravel.
+A Caravel can be built two ways, so it asks which. Each way shows how much material it takes in all.
+Take the Improved Sailboat. It costs a little more, and adds a solo cannon volley. Either choice can be changed later.
+Then a part: Chiro's Sail, for the Carrack Advance.
+Each build is a card: how far along it is, and what is still to get, in coins, silver and goods.
+Order matters. When stock runs short, the build at the top gets it first. Move the sail up.
+The Caravel can wait. Pause it, and it stops claiming stock until you start it again.
+Under the queue are the biggest blockers: the missing things holding the most up. A count can be typed right on the row.
+The Plan tab is everything the active builds need, in one list.
+The Next line says the one most useful thing to do right now.
+Today shows your ship, the quests that pay into your list, and how long until the dailies, the weeklies and the barter refresh reset.
+Then the totals: how much is covered, what is still missing, and how many recipes you can craft now.
+The list is grouped. What you are building, then red for missing, blue for what is crafted from other things, and green for covered.
+Filter it to the missing only, when that is all you want to see.
+As you gather, type what you hold into the box. Here, a hundred Starlight Hardener.
+It leaves the missing list, and every build re-plans around it at once.
+Big numbers can be typed short. Two k is two thousand, and twelve thousand can be written with the separators your language uses.
+Or record a whole trip in one go. Log a trip takes everything you brought back.
+Pick the item and type how many. Add a line for each thing.
+Record, and the whole trip goes in as one change.
+So one Undo takes the whole trip back, and Redo puts it in again.
+Or skip the typing. Screenshot your storage window in game, and give the shots to Read a storage on the Inventory.
+Here are two shots of one storage, scrolled between. It finds the slots, names each icon it knows, and reads the count written over it. It all runs in your browser; nothing is uploaded.
+It says how many things it read, how many slots it passed over, and that the row both shots share was counted once.
+Every line keeps the corner of its slot beside it, so a count is checked at a glance. One the reader was not sure of is marked: check this one.
+Say which storage this is. Update writes what the shots show; Replace treats the shots as the whole storage.
+Nothing is written until you press Write.
+And there it is in the Inventory, all of it at Velia, as one change.
+Trade goods are grouped by level, each with its Lv chip. Level 5 and up take a slot each; everything else takes one slot a kind.
+One Undo takes the whole storage back out again.
+That is the Yard: what you want built, and what you hold toward it. Next, the Workshop, where it gets made.
+
+== Two — The Workshop ==
+
+This is the Workshop. It makes what you have the materials for, and records the enhancement attempts you make in game.
+Ready to craft lists every recipe your stock covers, and how many of each you could make right now.
+The chips under each name are its ingredients: what you hold, over what one craft takes.
+Type a batch size and press Craft. Here, ten Violent Wave Plywood.
+Crafting moves real stock. The scales come out, and the plywood goes in.
+All makes as many as the stock allows, in one press.
+Where the game has a Mass Process for a recipe, tick it, and the extra it yields is counted too.
+Crafted the wrong thing? Undo steps it back, and Redo puts it forward.
+Enhancement is kept apart, because an attempt can fail.
+Each row is a part you own that can go higher: the next level, what it adds to the ship, and the stones one attempt takes.
+The chance is your real one at the failstack you type, and the line under it says what finishing the part should cost, and the most it could.
+Type your failstack, and the chance moves with it.
+Then record what happened in game. Failed takes the stones; a blue or green part keeps its level.
+Succeeded takes the stones too, and moves the part up a level.
+Yellow parts are different: a failure drops a level unless Cron Stones held it, so their rows ask which.
+The Inventory is one tile per thing you hold, or still need.
+Filter it to what is needed, short, owned, or free to spend.
+Or by kind: materials, ship parts, trade goods, and each barter level from one to seven.
+Type a name to find one thing.
+Open its tile, and the panel says where it is held, which builds have reserved it, and which quests pay it.
+The count can be set here too, a step at a time or typed straight in.
+A count can be kept per storage. Add one, and the total is your bags plus every storage you have noted it at.
+Further down, every way of getting it, priced.
+The Crow Coin Shop price, against what making it costs, with its own ingredients priced all the way down.
+Anything the Crow Coin Shop sells has a Buy. It asks how many, shows what is left of the purse, and records the goods and the coins as one change.
+Already levelled a part in game? Find it in the Inventory.
+A part and all its levels are one tile. Pick the level you reached.
+Then move one to it.
+The tile now holds one at plus seven. No stones were spent: this records what already happened.
 The Tree shows why a build needs what it needs.
-And To Get turns all of that into a plan — which is the whole of the next part.
-That is the Yard. What you want, what it takes, and what is left to find.
+Pick a build, and its recipe opens as a tree: the part, over what it is made from, over what those are made from.
+Fold any branch away, or expand them all at once.
+Every line carries your count, and it can be typed in place, as on the Plan.
+The map pin beside a sea material opens the Map on where it comes from.
+That is the Workshop. Next, To Get: one plan for everything still missing.
 
-== Two — To Get ==
+== Three — To Get ==
 
-This is To Get. It answers the only question that matters once a build is queued: what do I actually do next.
-Up here is what you are still short of, and what the shop would want for the part of it that can be bought.
-Two readings. "Every way" lists each thing and every source it has. "The way to get it" picks one.
-And the plan is the one it opens on.
-This is the headline: how many days until you have the lot.
-What it will cost in coins, and how many things are left across how many steps.
-It asks what matters most to you, because there is no right answer.
+This is To Get. Once a build is queued, it answers what is left: what to do next, and when it will be done.
+Still to get, at the top: everything you are short of, biggest first, tinted by what the shop would charge for it.
+Press one, and the whole screen narrows to that one thing.
+Press it again, and everything is back.
+The list copies out as text, or as rows for a spreadsheet.
+Two readings below it. The way to get it picks one way for each thing. Every way lists them all.
+The plan opens on the headline: how many days until you have the lot.
+Under it, the thing that sets that pace. Barter days are always called an estimate, since which board a refresh deals is chance.
+Beside it, the coins it will spend against what you can spare, and how many things are left, across how many steps.
+Then it asks what matters most to you, because there is no right answer.
 Soonest spends the purse wherever that buys a day.
-Keep the coins spends them only where nothing else sells the thing.
-Keep the silver leaves the Central Market alone.
-Watch the day count as you choose. That is the trade, in the only unit that matters.
-Tell it how many days a week you actually sail, and the estimate follows.
-Hold coins back, and it plans around what is left.
+Keep the coins spends Crow Coins only where nothing else sells the thing.
+Keep the silver leaves the Central Market alone, and buys from Falasi only what only he sells.
+The day count and the spend follow every choice. With this purse all three land on the same day, so the goal only moves the plan where there is a real choice to make.
+Tell it how many days a week you actually sail. Three days a week, and the same plan takes longer on the calendar.
+Type the Crow Coins you want to keep back. The plan never spends them, and works around what is left.
 And say what you are willing to do at all.
-Turn hunting on and a sea monster drop becomes something to go and kill for, instead of something to buy.
-Turn bartering off and the lists stop counting. The plan gets longer and says so.
-Below that are the steps themselves, in order, each one saying where it comes from and how long it takes.
-A barter step is paced by how often that offer was really on the list, not by how often it could be.
-And it tells you what it will never do, so you know what it is not counting.
-If you would rather see the whole spread, Every way groups it by source instead.
-Either reading copies out, as a list or as a spreadsheet.
+Switch the dailies and weeklies off, and the plan stops counting on what they pay.
+Turn hunting on, and a sea monster drop becomes something to go and kill for, instead of something to buy. A hunt is never counted in the days.
+Turn bartering off, and the barter lists stop counting. What only a barter brings drops out of the days, into the steps no rate is counted for.
+What this plan will never do is written out underneath, drawn from the choices you just made, so you know what it is not counting.
+Today's board waits for the layout you read on the Barter tab. Once one is read, it lists what that board deals toward this list, island by island, with a tick for each.
+Then the steps, in the order they are done: the quests to run, the rewards to take, the Crow Coin Shop, bartering at sea, and so on down.
+Each step says where it happens, and carries its own total.
+A quest step lists each quest, how many times to run it, where it is handed in, and which reward to take from a pick-one.
+Make it my pick remembers that choice, so claiming the quest on the Quests tab takes one press.
+A barter step is paced by how often that offer is really on the list, from the game's own tables, not by how often it could be.
+Fold a step away once you are done with it.
+Every way is the other reading: everything grouped by how you get it, the Crow Coin Shop, Falasi, the Market, barter and the rest.
+Each group carries a running total, measured against what is in your purse.
 That is To Get. Not what you could do, but what to do, and when it ends.
 
-== Three — Quests ==
+== Four — Quests ==
 
-This is the Quests tab. It tracks the quests that pay in things you are already short of.
-These are the sailing dailies and weeklies, all in one list.
-The ones paying something on your build list are marked, so you can see which are worth the detour.
-Filter them by what they pay, or by who gives them.
-Each row shows what it pays, and how much of it you still need.
-Some quests let you pick your reward. Those ask you which when you finish.
-Tick off the ones you did in game.
-Then click Finish.
-The rewards go straight into your stock, as one change.
-Got one wrong? Undo puts the whole batch back.
-The ticks clear themselves at the daily reset, so you start each day fresh.
-And these clocks tell you how long you have: dailies, weeklies, and the barter refresh.
-Star the ones you always do, and they sort to the top.
-Or save a set you run together, and tick the whole group at once.
-Every quest knows where its giver stands, so a run can hand them in as it passes.
+This is the Quests tab: the sailing dailies and weeklies, and what each one pays, set against what you are short of.
+The clocks first. Dailies reset at midnight UTC, weeklies on Thursday, and the barter refresh at six in the morning.
+The quests are grouped by how often they come round: daily, weekly, and once.
+Each row is one quest: who gives it, where, the monster it asks for, and every reward it pays.
+A quest paying something your builds need is marked, so the ones worth the detour stand out.
+On the map opens the Map on where that monster is found.
+Under each group, what all of them together pay in a day, or in a week.
+Filter the list. Pays what I need shows only the quests paying into your builds.
+Still to do hides what you have already done today.
+Or pick the rewards themselves. Tick an item, and only the quests paying in it are left.
+The cross on the chip takes that filter off again.
+And the search finds a quest by its name, its place, or its reward.
+Done one in game? Press Claimed.
+Its rewards go into your stock, and the quest is ticked off until the reset.
+Not done takes the tick back off. Undo takes the rewards back too.
+Some quests let you pick one reward. Claimed asks which one you took.
+The choice is kept, so next time Claimed records the same reward in one press.
+Choose ahead answers that question now, before you have even run the quest.
+Ran several? Tick each one you did.
+A bar comes up with how many are ticked.
+Press Finish, and every ticked quest is recorded at once. A pick-one with no choice yet asks for it on the way.
+The rewards land in your stock as one change.
+Got one wrong? Undo puts the whole batch back, and Redo puts it in again.
+Tick all ticks every quest still open in a group. Untick all clears the ticks.
+Run the same set every day? Tick them, and save them as a group under a name.
+The group is a chip now. One press ticks every quest in it that is still to do.
+Star the quests that matter to you, and the Favourites chip shows just those.
+The one-off quests are here too, with Ravinia's log counting the letters you have recorded.
+The ticks wear off at the reset by themselves, so each day starts fresh.
 That is Quests. Free materials, tracked against what you are building.
 
-== Four — Your Ship ==
+== Five — Your Ship ==
 
-This is the Ship tab. Everything the app knows about how fast you sail comes from this one screen.
-Start with the hull. Pick the ship you actually sail.
-A ship has four part slots: figurehead, plating, cannon and sail.
-Each one fills itself with the best part you own.
-Click Change to pick a different one.
-It lists every part that fits the slot, with what each does, and marks the ones you actually hold.
-The fifth slot is your sea crystal.
+This is the Ship tab. Everything the app knows about how fast you sail, and how much you carry, comes from this one screen.
+At the top is the ship itself: the hull, what it is for, and its speed, its hold and how many of its five slots are fitted.
+The hold is the limit in LT, and the slots it has. Past the limit the ship still sails, only slower.
+Under every figure is where it comes from: the hull, the parts, the crystal, the crew and your mastery, added up.
+Your Sailing Mastery is read from the bar under the tabs, where you typed it in.
+Change ship lists every hull in the game, with its crew, cabin space, weight, slots and speed.
+Pick the one you sail. Here, the Carrack Advance stays.
+Fitted out shows the four part slots: cannon, sail, figurehead and plating.
+Each slot takes the best part you hold, by itself. This Carrack has a plus ten Toro Cannon and a plus four Toro Sail.
+Change opens every part that fits the slot, with what it does at plus ten, and marks the one you hold.
+Pick one you do not own yet, and its level, and every figure is worked out as if it were fitted, marked as a plan.
+Best I own puts back whatever you actually hold.
+The fifth slot is the sea crystal. Every grade from Eltro to Rusalka is listed, with its effect.
 Pick the one you have socketed, and its bonus goes into the numbers.
-Below that is the appearance set.
-Skins are cosmetic in most games. Here they are not: a full set adds real durability and rations, so tick the pieces you are wearing.
-And this panel at the top is the ship itself: its speed, its hold limit, and how many of the five slots are filled.
-The small print under each figure says where it came from — hull, parts, crystal, crew and mastery, added up.
-Your Sailing Mastery goes in here, and those figures move with it.
-Now the crew. This roster starts empty.
-Typing eighteen sailors in, four growths each, is an evening you will not enjoy. So it reads them off your screenshots instead.
-Screenshot the Manage Sailors window in game, one sailor a shot, and drop them in. It reads them in your browser — nothing is uploaded.
-Check the table against the game, then take the ones that are right.
-And there they are, hired, with their real levels and growths.
-Sort the list by whatever you are fitting for. Best all round, best for speed, and so on.
-To seat one by hand, click the sailor, then click the seat you want them in.
-Where they sit matters. A sail seat doubles their speed growth, and the wheel doubles turn and brake.
-Or let it arrange the whole crew for you. Click Auto assign.
-It asks what the boat is for, and shows what each answer would actually give you.
-Pick one, and it seats everybody.
-And the row under the ship fills in. That is what the crew is adding, on top of the hull.
-Two hot presets, for swapping crews quickly. Save the current one to a slot.
-And click it to put that crew straight back on.
-A setup is bigger: the whole fit-out, hull, parts, crystal and seating, under a name.
-The fleet lists every setup you have kept, and every hull you own without one.
-The one you are sailing is what the Map times its routes at.
-And you can copy the whole thing as a link, if someone asks what you sail.
+Then the appearance set. Here it is not only a look: a full set adds durability and rations, so tick the pieces you wear.
+Now the crew. The ship is drawn with every seat it has, and the roster starts empty.
+Typing a crew in, four growths each, is an evening. So Read screenshots takes the game's own Manage Sailors window instead.
+Screenshot one sailor a shot, and drop them all in.
+It reads them in your browser; nothing is uploaded. The window never prints a sailor's type, so it is worked out from the appetite, the cabin cost and the weight.
+Check the table against the game. A type can be corrected here, and a sailor already on the roster is brought up to date instead of hired twice.
+Then take them.
+And there they are on the sailor list, with their real levels and growths.
+Sort the list by whatever you are fitting for: best all round, or one growth at a time.
+Click a sailor, and the panel on the right shows everything about them.
+The growths are typed straight from the sailor window, and every figure downstream follows them.
+To seat one by hand, click the sailor, then click the seat.
+Where they sit matters. A sail seat doubles their speed and acceleration, and the wheel doubles turn and brake.
+Or let it arrange the whole crew. Auto assign asks what the boat is for.
+Each goal shows what the crew would come to under it: speed, acceleration, turn, brake, cannons, or all round.
+Pick one, and it chooses who comes aboard as well as who sits where.
+The row under the ship fills in. That is what the crew adds, on top of the hull and the parts.
+Two presets are kept per hull, for swapping crews quickly. Save this speed crew to the first.
+Arrange it for cannons, and save that to the second.
+Now one click on a preset puts that crew straight back on.
+A setup is bigger: the hull, its parts, the crystal and the seating, kept under a name.
+Change to another hull, and its own seats and parts come up. Keep that one as a setup too.
+Your fleet lists every setup you have kept, and every hull in your inventory without one.
+Sail one, and it becomes the ship the Map and the Barter tab time their routes at.
+And Copy link carries the whole ship, hull, parts, crystal and crew, in one address, for when someone asks what you sail.
 That is your ship. Get this screen right, and every distance and every minute in the app is yours.
 
-== Five — The Map ==
+== Six — The Map ==
 
-This is the Map. It is the whole sea, with everything you need marked on it.
-Every pin is a barterer holding something you are short of.
-This says what it is marking. Everything you are short of, or one item you choose.
-These buttons across the top are the chart controls.
-Zoom out, and zoom in. You can also just scroll on the sea.
+This is the Map: the whole sea, with everything you are short of marked on it.
+Every pin is a barterer who can deal something on your list.
+The head says how many of the ninety-one barterers that is.
+Showing is what the chart marks. Everything you are short of, or one item you choose.
+Pick one, and only the islands dealing that one thing are left.
+Everything I am short of brings the rest back.
+The pill on the chart counts down to the barter refresh, the dailies and the weeklies.
+The buttons along the top are the chart's tools.
+Zoom out and in. Scrolling on the sea does the same, and dragging pans.
 This one fits everything marked back into view, if you get lost.
-This toggles the minimap in the corner.
-And this one stands the chart up.
-That is the game's own terrain, read out of your client. Not a picture of it — the real heightmap.
-Shift-drag to lean, and the islands come up out of the water.
-And the world curves away towards the horizon, the way the game's own map does. The pins, the route and your drawings all bend with it.
+The ruler measures any two points on the sea. Click one, then the other.
+It gives the distance in metres, and the time your ship takes to sail it.
+This hides or shows the minimap in the corner. Click on the minimap to jump anywhere.
+And 3D stands the chart up.
+That is the game's own terrain, read out of the client. Not a picture of it: the real heightmap.
+Shift-drag to lean it, and the islands come up out of the water.
+The world curves away toward the horizon, the way the game's own map does, and the pins and the routes bend with it.
 Ground paints it in the colours the client ships.
-Neon draws it as contours, the way the game's own world map does.
+Neon draws it as contours, the way the game's own 3D map does.
 And Level looks straight down again, facing north.
-And this is full screen. That is where the chart is worth using, so let us go there.
-Now the sea has the whole window.
-Hit fit again, now that the chart has the room. That pulls back until every mark is in view at once.
-Which is most of the sea, so zoom back in a couple of steps to where you actually work.
-The panel on the left is what drives it.
-Start with "On the chart". This controls what gets drawn.
-Barterers, habitats, wharves, guild wharves, island names, and your own drawings. Turn off what you do not need.
-There is a search, for finding an island or a good by name.
-And these five tabs are the tools. We will take them in order.
-Barter is the default. Every island that has something on your list, with what it trades.
-Click a row and the chart flies to that island.
-Route turns that list into a sailing route.
-Plot the loop, and it draws one, bent around the land rather than through it.
-Every leg gets a distance and a time, at the speed your ship actually sails.
-Save the route, share it as a link, or send it to the game map as bookmarks.
-Draw is for routes the list cannot describe. It gives you three tools.
-The pin drops a numbered stop, in the order you mean to sail.
-The pen draws a freehand line.
-And the text tool types a note straight onto the water.
-Name it and keep it, and it joins your library. Traces share as links too.
-Grounds is for hunting.
-It lists every species: sea monsters, young ones, ships, bosses, the Cox Pirates — and the Hollow Maretta, the song the Great Ocean is told to sail away from, with the thirty-eight spots it is rung at.
+The last button is full screen. That is where the chart is worth using.
+Now the sea has the whole window. The few buttons that matter come with it.
+Fit again, now that the chart has the room.
+The panel drives the chart, and the arrows swap it to the other side.
+On the chart is what gets drawn, whichever tab is open.
+Barterers, the habitats where each species lives, the wharf managers, guild wharves, island names, and your own drawings.
+The habitats are the pictures of where each species lives. Turn them off when the chart gets busy.
+The wharves mark every wharf manager, for repairs, rations and sailors.
+And the island names come up once you are close enough to read them.
+Five tabs: Who has it, Route, Draw, Hunt and Today. Route and Draw have a part of their own, after this one.
+Who has it lists every island dealing something on your list, the most first, with what it trades for.
+Narrow it to materials or to trade goods.
+One of N is that island's pool: each refresh it deals one offer out of N, so this is where the thing can turn up, not where it will.
+Click a row, and the chart flies to that island.
+Its card lists what it trades, and adds it to a route.
+Hunt is for what you kill rather than trade.
+At the top, the hunting quests you have taken. Work out today's loop picks a ground for each, and puts the calls in order.
+Every species is listed: sea monsters, young ones, ships, bosses, the Cox Pirates, and the Hollow Maretta, with the thirty-eight spots it rings at.
 Click one, and every spawn point it has goes on the chart.
-Tick as many as you like, and send the lot to the game map.
-Above them are the known sailing courses, each with a note.
-Today is your checklist for this refresh.
-Every island you need, ticked off as you visit it, with the total at the top.
-Drag to pan, scroll to zoom. The drawings and pins move with the chart.
+Tick as many as you like. The lot can be sent to the game's own world map as favourites.
+Above them are the known sailing courses, each with a note on what it is for.
+Today is a checklist for this refresh: every island you need, to tick off as you visit.
+The ring counts how many you have been to, and it all clears with the barter refresh.
 Escape, or the cross, brings the page back.
 That is the Map. Everything you are short of, where it is, and how long it takes to get there.
 
-== Six — A Run ==
+== Seven — Routes and Drawings ==
 
-This is the Barter tab. Show it one island, and it plans a whole run for you.
-Next, tell it what the board looks like.
-Every refresh, the sea uses one of forty layouts.
-The app cannot know which one. So you show it a single island.
-Click "another island", and pick the one you are looking at.
-Now check that island in game. Open Barter Information, set the filter to Normal to Level 1, and find its row. Eveto Island is offering Essence of Liquor, for a Level 1 Cherry Tree Seed Pouch.
+The Map's Route and Draw tabs: a loop through what you are short of, timed at your own ship, and routes of your own, drawn straight onto the sea.
+Route turns the list of islands into a sailing route.
+Plot the loop, and it joins every island you are short of, bent round the land rather than through it.
+The tiles total it up: the stops, the distance and the time at your ship's speed, the hold, the rations it eats, and the Parley it costs.
+Parley is counted at one trade a stop, or at every attempt the offer allows.
+Every stop is a row: what that island has for you, and how the hold stands after it.
+Say where you sail from, and whether you come back, and the times follow.
+Click a stop, and the chart flies to it.
+The cross takes a stop off, and a pin's card puts one back on.
+The route is timed at the ship you sail. Switch setup times it at another one you have kept.
+Reverse sails it the other way round.
+Save keeps it by name. Eight are kept, and none is dropped without asking.
+Copy link puts the route in an address. Signed in, it is a short one.
+Export and Import carry it as a small file instead.
+And Put it on the game's map writes the stops into Black Desert's own world map.
+As favourites, named and numbered, or as one of the map's three navigation loops.
+Copy the block, or download it, and paste it into gameVariable.xml at the character screen. Or let the app write it into the game's folder itself, keeping a copy of the old file.
+Draw is for routes the list cannot describe.
+Four tools: add stops, draw, write, and shade an area.
+Add stops drops a numbered stop wherever you click, in the order you mean to sail. Legs bend round the land.
+Pick another ink, and the next stops start a second line, numbered on its own.
+Draw is a freehand line.
+Write puts a note straight onto the water.
+And shade an area marks a stretch of sea: click its corners, then the first one again.
+Undo takes back the last mark, whatever kind it was.
+Give it a name and a note.
+Keep puts it on the shelf below.
+Copy link carries the whole drawing, stops, lines, words and all, to anyone, with nothing of theirs touched.
+To the game writes its lines into the game's map too, a loop each.
+The shelf keeps the newest; the eye lays one over the chart beside what you are drawing.
+And Browse opens the whole library, with a search and every drawing as a card.
+That is routing and drawing. A loop timed at your own ship, and a way to show anyone else the sea you mean.
+
+== Eight — Today’s Board ==
+
+Bartering, part one. Before the app can plan a run, it has to know which board the game dealt you.
+The Barter tab starts with what today is for. Silver, a stock and Crow Coins all sail the trade goods list. A material reads the ship material list.
+A Barter Refresh deals one of those two lists, never both. This part is about the trade goods list; materials have a part of their own.
+The trade goods list is always one of the game’s forty layouts. Name the layout, and every island’s offer is known.
+There are three ways to name it: one island, a screenshot, or another sailor’s reading.
+This button is the quickest by hand. It asks about the island that tells the layouts apart best — here, Baeza Island.
+But you can look at any island. Click "another island".
+The islands that split the layouts best come first. Islands your Total Barters have not opened are greyed, with the count that opens them.
+Type Eveto, and pick it.
+Now it lists every offer Eveto can show, and how many of the forty layouts have each one.
+In the game, open Barter Information and find Eveto Island. It hands over Essence of Liquor for a Level 1 Cherry Tree Seed Pouch.
 Pick that same trade here.
-That names the layout. Every chain this refresh allows is now listed below.
-Or skip the clicking. Screenshot that same window, drop it here, and every row of it is read at once.
-Each row is matched against what that island is known to deal, so a name the window cut short still reads, and six rows usually settle the board.
-The layout book keeps all forty, with how often each has been seen, the boards you have been dealt yourself, and any board a sailor has read that is in no record at all.
-A layout opens island by island, marked where it agrees with what you saw and where your barter count has not opened an exchange.
-And if an island shows something the board does not say, tell it here. If that is one slot the game has moved, the board follows — and that is the reading worth telling the fleet.
-First, what the day is for. There are four of them, and they are not the same run.
-Silver climbs the chains on the board and sells the tops at a wharf.
-A stock sails the same board to fill the storage instead. Nothing is sold at all.
-Say how many of every good you want at a level. That is a floor as well as a target, so a level fills before anything climbs from it.
-And climb no higher than stops the ladder where your stock ends — a Level 4 you already hold is stock, not fuel.
-So the run is scored on what it banks: the goods it is short of, the runs left, and the storage slots they will take.
-Crow Coins is the third. Every board has ten to fourteen islands paying in coins, and they take a Level 4 and nothing else.
-So a coin day is a climb to four, cashed in — counted in coins, against what your builds are still short of.
-And a material climbs the ladder to one thing on your list.
-We will sail this one for silver.
-The barter count and level you set at the start are doing real work here: the count decides which islands are on the board at all, and the level prices every Parley figure below.
-Now tell it what you want out of the run.
-Sell the top, keep a floor finishes every island and sells the top, but leaves something of every level for tomorrow's board.
-These boxes are that floor. It is what the selling never touches — which on an empty storage means there is nothing left to sell, and the tab says so rather than proposing a run.
-Cash out today is the other one: the most silver at the wharf tonight, from what is aboard and at the harbour. That is the day we will sail.
-Pace. Fast keeps you light and quick.
-Full and loaded fills the hold past the limit. More goods, slower sailing.
-Quests on the way hands in dailies you have already taken, as you pass them.
-Trade vouchers are yours to spend or keep. Drawn on, one goes in as soon as the run needs it and a whole quarter fits, which starts its two-hour cooldown as early as it can be started.
-The way round sets the route order: nearest island first, or one chain at a time.
-And here: where you sail from, where your storage is, and a time limit if you want one.
-A way of running you like can be kept under a name — the orders, the targets and the ceiling with them.
-Now the chains. It has already worked out three runs for you.
-The most silver, the most per hour, and the most per Parley. They are rarely the same run.
-Click one to use it.
-Or tick chains yourself.
-A chain that starts ashore buys its first good on the Central Market, and the run is held to what is actually listed there. One the Market has none of cannot be ticked, and says why.
-Fill the rest adds the best chains around the ones you picked.
-The bar at the bottom totals it up: chains, silver, hours, islands.
-Click "Lay it out".
-The sheet opens on two shelves, tiled the way the game's own window is.
-Load before casting off is what to take with you, and what it costs to buy ashore.
-In the storage after is what comes home — and what was sold on the way.
-Below them, every stop in order. What you hand over, and what you get back.
-This bar is your hold after each trade.
-Orange means you are over the limit. You still sail, just slower.
-Red means too heavy to barter. You have to lighten first.
-That is what a wharf stop is for. Drop the extra into storage, and carry on.
-And this bar is your Parley going down as you trade.
-Before you cast off, the clock at the foot of the sheet.
-It starts at this run's own estimate and counts up, and it carries your own pace: seconds for bartering and going on, seconds for a wharf or a quest.
-It rings a ship's bell at every stop rather than only at the end — a pair struck as each stop comes up, eight bells when the run is done.
-And it reaches every device signed in to your account, so the phone in your pocket rings with this tab shut.
-Start it.
-Happy with it? Click "Sail this run".
-It goes onto the map as a checklist.
-Full screen, if you want more sea and less panel.
-It follows you leg by leg, and every stop is a card with the trade on it.
-Tick each stop as you make it. If an island pays a different amount, everything after it re-counts.
-Out of the sheet it keeps time on the tab itself. Ticking a stop off re-bases the rest, so a slow island does not make the whole run chime early.
-Finished sailing? Tick them all off at once.
-Then click "Record the trip".
-Silver goes to your purse, leftover goods to your inventory, and the quests are claimed.
-All as one change, so one undo puts it back.
-And the trip joins today's boards.
-Every run since the refill: what it loaded, what it came back with, and the day's totals across the Parley bar.
-What it will not do is guess the next board. A refresh deals a different one, and the panel says so.
-One last thing. The hold size, the speed and every time on that route come from your ship.
-Hull, the four parts, the crystal and the crew aboard. Change the ship, and the whole run re-times.
-That is it. Show it one island, and it plans the rest.
+One island was enough. Today is layout 4.
+Every chain this board allows is already worked out further down the tab.
+Beside the layout: your barter count and barter level, taken from the sailor bar at the top of the page.
+And your Parley. A dashed outline means assumed: the bar refills to one million at every Barter Refresh, so a full bar is the guess until you type yours.
+The islands you looked at are kept here, with an Undo for the last one.
+A layout does not fix every island. This chip says how many islands draw their offer at random.
+Some Level 4 islands pay a Level 5 good on one refresh and Crow Coins on another. Until you say which, the likelier one is planned on.
+Pujara Island shows Crow Coins in my window, so I click that.
+Further down, islands that draw from a pool of offers: materials, Tidal Black Stone, a Lost Trade Box. Nothing is planned on those until you say what they show.
+This line counts the islands your barter count has not opened. The game opens each exchange at its own count, so these show nothing to you today.
+"Which ones" lists them, grouped by the count that opens them. The run is planned without them.
+Your count lives in the sailor bar. Open it, and set Total Barters to 1,082 — a newer sailor.
+Now many more islands are shut, and every chain that climbs through one is gone from the plan.
+Put it back to 4,205. Recording a trip adds its trades to this count for you.
+Now the second way. Press "Refreshed in game" — what you do after every refresh — and the board is a question again.
+Take a screenshot of the same Barter Information window, and paste it with Control V — or click the box and choose the file.
+Every row is read: the island, what it takes, and what it pays.
+Each row is matched against what that island is known to deal, so a name the window cut short still reads. Every row can be corrected from its list.
+Answer the six islands, and the layout is named from all of them at once. Nothing is uploaded; the reading happens in your browser.
+The third way needs other sailors. The fleet in this part is staged: a machine recording a film has nobody else on its server.
+Throw the board away once more.
+When a signed-in sailor has read today’s board, the bar says so: who read it, how many islands, and how many others saw the same.
+Click "take their reading", and every island they named is answered for you.
+The layout book keeps all forty layouts.
+Each card shows the land goods its Level 1 islands want, the goods its coin islands take, how many exchanges it has at each level, and how often it has been seen.
+Filter them: all forty, the ones still standing today, the ones the fleet has read, and yours — the boards you have been dealt yourself.
+Above the shelf: boards that sailors read and that fit no layout on file, each with the layout it is nearest to.
+Open a layout, and it lists every island level by level. Islands you saw today are ticked; the ones above your count are locked.
+The level chips narrow it, say to the Level 5 exchanges.
+And the search finds a layout by an island, a good or its number.
+Sometimes an island in game shows something the layout does not. Click "An island shows something else".
+It lists every island, and beside each one what today’s board says it shows. Pick the island.
+Ostra Island should show Rare Herb Pile. Mine shows Gooey Monster Blood, so I choose "Something else"…
+…and pick it from every exchange Ostra is known to deal.
+The board is now layout 4 with one island as you saw it. The game moves a slot at a maintenance without renumbering the layout, and the run is planned on what you saw.
+That is a reading worth passing on, so "Tell the fleet" appears. It needs you signed in: the reading goes up with your name on it.
+One last press of "Refreshed in game". Besides forgetting the board, it sets your Parley back to a full bar, because the game refills it at every refresh.
+Choose a material, and the tab reads the ship material list instead. Naming one list puts down the other, because a refresh deals only one.
+That is the board. The next parts plan runs on it.
 
-== Seven — The Harbour ==
+== Nine — A Silver Day ==
 
-Everything so far runs in your browser alone. This last part is the one that needs sign-in.
+Bartering, part two. A day for silver: climb the chains on today’s board and sell the tops at a wharf.
+The board is already named — layout 4, as in part one. This sailor has last week’s goods in the Iliya storage, at every level.
+One note: the Central Market in this film is a recorded day, so the run plans the same every time it is shot.
+The plan has four parts, and each one opens when the one before is settled.
+One: Before you sail.
+The Parley in your bar now, as the head of the barter window shows it. This sailor has already spent some today: 742,300 is left.
+Vouchers carried. Each Crow’s Trade Voucher puts 250,000 Parley back, on a two-hour cooldown.
+Your home port: where the run leaves from, comes back to, and whose storage it loads from. This sailor keeps goods at Iliya Island, so click Iliya.
+How long a stop takes apart from the sailing. Only the clock uses these.
+And your bag as a second hold, which has a part of its own.
+Two: where today ends.
+This ladder runs from the shore to Level 7. Under each level: how many you hold, what happens to them, and how many to keep back.
+Click a level, and the climb ends there. At Level 5, nothing is carried past it.
+Click Level 7 again. Today we climb to the top.
+The tag under a level says what the wharf does with it. Tap "sold" and Level 5 is kept as stock instead…
+…tap again, and it is sold.
+A keep number is a floor. Keep 4 at Level 4, and the run never hands over or sells the last four.
+The line under the ladder says it in words: climb to Level 7, sell Level 5 and up, and how many chains on today’s board fit that.
+Three: how to sail it. Five ways, and under each, the best run the search finds sailing that way today.
+Light and fast keeps the hold under its limit, and calls at a wharf only when one lies on the way and pays for the minute it costs.
+An hour at most is the best run that fits in about an hour. Click a card, and the run is sailed that way; the line under each card says what your own ticked chains come to sailed that way.
+The whole board at full speed takes every trade, and drops goods at a wharf whenever the hold fills.
+Loaded heavy takes every trade too: the wharf loads to the limit, the exchanges push the hold past it, and the ship sails slower with fewer wharf calls.
+Spend no silver uses only goods you already own.
+My own way opens every order behind those cards.
+Where land goods come from — bought ashore, from your storage, or only what is held. The pace. A time limit. Whether vouchers are drawn on. The way round. Which storage the wharf calls use. BreezySail, for the rations. And quests on the way.
+Also trade for: chains that end in ship materials, Great Ocean goods, and Lost Trade Boxes. Great Ocean goods are on by default and sold like a Level 7.
+A way of sailing you like can be kept under a name. Click "save these"…
+…name it, and it is one click next time: the ladder, the orders, the port, all set back at once.
+Back to Light and fast.
+Four: the chains on offer.
+It has already found the runs worth sailing on this board: the most silver, the most an hour, and the most for each unit of Parley. They are rarely the same run.
+Click one, and its chains are ticked for you.
+Each card is one chain. Where its first good comes from, the levels it climbs, its islands in order, and what it pays sailed on its own: silver, silver per Parley unit, silver an hour.
+Start from: a chain can start at the shore, or from a good you already hold part-way up the same climb. Here, the Round Knives in the Iliya storage.
+This chain starts from Level 4 Panaceas in the Iliya storage, loaded before casting off. Nothing is bought for it.
+A chain that starts ashore buys its first good on the Central Market, and is held to what is listed there. This one needs Fine Fancy Feathers, and the Market has none, so it cannot be ticked and says why.
+Search the chains for an island or a good, or narrow them to what is held, what is bought ashore, or the level a chain reaches.
+Or tick chains yourself. Every tick re-plans the whole run.
+"Fill the rest for me" adds the best chains around the ones you picked.
+Under the chains, the run adds up.
+Silver, net of the land goods bought.
+What one unit of Parley pays, and the Parley the run spends.
+The hold at its fullest, in LT and in slots. Level 5 and up, and Great Ocean goods, take a slot each; the levels under them stack, one slot a kind.
+The Parley left at the end, and how many of your vouchers the run draws on.
+And the time under way, at your ship’s own speed.
+Some islands pay a range. The run is laid at the least; the best case is beside it.
+If a ticked chain cannot get to the top — the hold shared out, or a chain that needs the same goods — it is said here, with the fix.
+The bar at the foot keeps the run’s totals in sight.
+That is the plan. Load at the wharf, and the run is laid stop by stop.
+
+== Ten — At the Wharf ==
+
+Bartering, part three. At the wharf: the plan becomes goods in your hold.
+Same board, same sailor, sailing from Iliya Island. This time we take the run that makes the most silver.
+Click "Load at the wharf".
+The hold, as it stands: its weight against the ship’s limit, and its slots. A Carrack Advance has forty.
+"Open the hold" lists every good aboard, with what a barterer pays for it, and every good waiting in the storage at your port, ready to load.
+Beside it, what there is to spend: the Parley, the vouchers, and what one trade costs at your barter level.
+This run is cut into trips. The hold cannot carry every chain’s first goods at once, so the run comes back to Iliya for the rest.
+Trip one is loaded now.
+Trip two is picked up at the wharf on the way, at stop nine. Each trip can be moved sooner or later with the arrows, or left out.
+Buy at the Market: the land goods the chains start from, how many, and what they cost.
+Tick a row when it is in your hold in game. The tick is real: the silver comes off your purse, and the goods go into the ship’s hold in the app.
+If your own workers make a good, click "my workers", and it costs the run nothing.
+Take from storage: goods the run climbs from, waiting at Iliya. "Tick them all" moves them from the storage to the hold.
+They show under "Already aboard" now, checked against the hold, each with "put it back".
+A tick never loads more than the hull has slots for. Level 5 and up take a slot each; if they do not fit, it loads what fits and says what did not.
+In the storage after: what comes home to Iliya, and the silver the wharf calls bring in.
+The dailies handed in at Iliya before casting off, and the ones this run passes by.
+Then the route, stop by stop: how many stops, how far, how long, and the quests handed in on the way.
+"Draw it on the chart" puts the whole route on the Map, in this order.
+Chains are climbed together, as many at once as the hold carries, the tops sold before the next lot.
+The rations: what the run eats, as an estimate. A tick every seven seconds: the hull’s share, plus the crew’s appetite.
+The first card is the hold as the lines are let go.
+Every stop says what you hand over, what you get back, and how many times.
+And on the right, the hold, its slots, the Parley and the rations after the stop.
+Where the Parley would run short, a voucher is drawn on — here, at the first island.
+Each leg is drawn on a small chart.
+A wharf call: buy supplies here, the goods it loads from storage for the next trip, what it sells and for how much, and the quests handed in.
+Every stop can be moved sooner or later, or skipped. Skip one, and the route is laid again round it.
+The change can be taken back with Undo, at the top of the page.
+One more thing. Back on the plan, choose "The whole board, loaded heavy".
+A wharf loads the hold only up to its limit. The exchanges can take it further, up to 170 percent.
+An amber figure means the hold is over its limit there. You still sail, only slower, until a wharf takes the extra off.
+Back to Light and fast, if you prefer to stay quick. Next, part four: casting off.
+
+== Eleven — Under Sail ==
+
+Bartering, part four. Under sail: one stop at a time, and the trip recorded at the end.
+Light and fast from Iliya, on a bar just refilled, with everything the run needs ticked aboard.
+Before you cast off, the clock’s chimes. A ship’s bell by default — click it to hear the next sound: three beeps, or none.
+"Notify me too" asks the browser for a notification as well, so a chime lands while the game has the screen. Signed in, a chip beside it sends the chimes to every device on your account.
+Click "Cast off".
+The ship sets sail. The clock starts at this run’s own estimate, and the tab moves to the third step: one stop at a time.
+This bar is the clock: the time to the next stop, and which stop it is.
+It chimes at each stop — a pair of bells as each comes up, and eight bells at the end — or only once, for the whole run.
+"Again" starts it over from now; "stop" puts it away.
+The stop, in letters you can read across the room: the island, what you hand over, what you get back, and how many times.
+Under it: the hold before and after, the Parley, and the rations.
+If the Parley in the game differs, type what the game shows here, and the rest of the run is counted from it.
+Trade in the game, then press Traded. The stop is written into the hold, and the next one comes up.
+If you traded a different number of times, say so under it.
+The hold, as it stands now and after this stop, with its slots.
+"Time my legs" adds an Arrived button: press it as the ship reaches each island. After five legs, the clock uses your ship’s own speed.
+Arrived.
+The stop opens in glance mode, large. "Full view" brings the rest of the cockpit round it; "Glance mode" goes back.
+"On the chart" opens the run on the Map, with the same checklist beside it.
+Every stop is a numbered pin with the route drawn between them. The side panel carries the same stop and clock, and the strip at the foot steps through the legs.
+Back to the Barter tab.
+Finished sailing and did not tick as you went? Click "All done".
+Tick off every stop and every quest handed in, at once.
+Stops that pay a range are left for you, because only you saw what they paid.
+Tap what each one paid, one after another. Each answer lays the rest of the run again, so the results add up to what you really got.
+Paid more than the least, the run carries more goods, so it can grow by a few stops further on. Those are ticked the same way.
+The results: stops, the trades made and your new Total Barters, the silver, the Parley spent and the time under way.
+The exchange, as recording will write it: what you handed over, and what you received.
+Click "Record the trip".
+The Parley, Total Barters, the quests and the log move together, as one change.
+So one Undo takes the whole trip back…
+…and Redo puts it back again.
+Below, today’s boards: every run since the refill, what it loaded and what it came back with, and the day’s totals.
+What to load for the next board is not guessed: a refresh deals a different board, so it waits until you have read it.
+The week, run by run, and every past run with all its stops.
+That is a whole run. The next parts sail the same board for other things: a stock, Crow Coins, a material.
+
+== Twelve — A Stock Day ==
+
+Bartering, part five. A stock day: the same board, sailed to fill your storage instead of your purse.
+This sailor is newer. Their storage at Iliya holds a few goods at each of the first four levels, and that is all.
+Click "A stock". Nothing is sold at a wharf on a stock day.
+The ladder now says where the stock ends: Level 4, by default. Level 5 and up are not sailed.
+Under each level, a target: how many to keep of every good at that level. Ten of each Level 1, thirty of each Level 2 and 3, forty of each Level 4.
+Beside it, how far short the storage is. Every level here is short.
+A target is a floor as well. The run fills a level before anything climbs from it, and never spends below it.
+And what the day is for: the stock itself, or the barter count — every trade toward the next unlock, whatever it trades.
+Down to the chains.
+This note says why every chain stops low: four levels are being filled, not climbed off. Nothing climbs from them until the stock is made up.
+The runs worth sailing are counted in goods now: the fullest stock, the most an hour, the most for each unit of Parley.
+Take the fullest stock.
+Each chain says where it stops, and why: the good it makes is still short of its target, so it stays as stock.
+The run: what the stock gains, level by level.
+The trades, with your barter count before and after.
+And under the figures, how far there is to go: the goods still short of the targets, how many more runs like this one, how many days at three boards a day, and how many storage slots the full stock will take. A storage is never capped, only counted.
+Say Level 1 does not matter to you. Set its target to nothing.
+Now the Level 1 goods climb straight on, and the run fills Level 2 instead.
+And the ceiling: click Level 3, and the stock stops there. Level 4 is not sailed today.
+Load at the wharf and tick the land goods aboard. The storage after shows what this run banks at Iliya, good by good.
+That is a stock day. Next, a day for Crow Coins.
+
+== Thirteen — A Crow Coin Day ==
+
+Bartering, part six. A day for Crow Coins.
+This sailor has 2,000 Crow Coins, and their builds want nearly twenty thousand from the Crow Coin Shop. The storage at Iliya holds a few Level 3 and Level 4 goods.
+Click "Crow Coins".
+Every board has islands that pay in Crow Coins, and they take a Level 4 and nothing else. So a coin day is a climb to Level 4, cashed in.
+The ladder shows it: Level 4 is cashed in, and the Crow Coins node beside it is the goal. On a silver day, that same node switches the day to coins.
+A keep number at Level 4 is held back from the coin islands too. A Level 4 you keep is one you do not cash.
+Climb to Level 4, cash it in, and how many chains on today’s board end at a coin island.
+The chains.
+The runs worth sailing are counted in coins now, and as a range: an island states a range, and the game pays one figure out of it. The most coins, the most an hour, the most for each unit of Parley.
+The first chains start from what is held: one Level 4 from the Iliya storage, straight to a coin island. One trade each, since a coin island deals once a refresh.
+Start from shows the other ways in: from the shore, or from the Level 3s in storage.
+Take the most coins.
+The run: the coins, as the islands state them, and how many islands pay.
+The trades, and the coins each unit of Parley brings.
+And the line under it, against your builds: what this run pays, how many coins are still short of what they want, and how many more runs like this one that is.
+Load, sail and record it like any other run; the coins go into your purse with the trip. Next, a material day.
+
+== Fourteen — A Material Day ==
+
+Bartering, part seven. A material day: the refresh dealt the ship material list.
+This sailor is building two Caravel parts, the Upgraded Plating and the Mayna Cannon, and keeps Level 3 and 4 goods at Port Epheria to hand over.
+Click "A material". The tab now reads the ship material list instead of the trade goods.
+The material list is one of the game’s forty-one material layouts, M1 to M41. Name it, and every island on it is known.
+Open Barter Information in the game, on the ship material list, and take a screenshot of the whole window.
+Paste it here, or click the box and choose the file.
+Each row paying a ship material is read and matched against what that island deals.
+The window’s head is read too: the Parley and your Total Barters. The app offers to write them in.
+Answer them.
+Seven islands fit three layouts. The bar says which island tells them apart, so read one more page.
+The second page.
+Layout M37. It agrees at every island read, and its other islands are filled in from the layout.
+The materials wanted: everything on this list your builds are short of, with how many.
+Pure Pearl Crystal: two islands today you can trade with, and the Parley it costs.
+Moon Scale Plywood: no island today deals it for a good you hold. Those are kept on the list and said plainly.
+"The islands" lists who deals a material today, best payers first: the good each takes, how many times a day, and what you hold of it. And the ones you cannot do today, because the give is not held.
+How to sail it: for the wants and then home, or every island you can trade with; the island order; vouchers; quests on the way; and whether goods stored at another harbour are fetched on the way.
+And what comes of it: how many of each want this refresh brings, and how many are still wanted after.
+What nothing on this list deals is said too.
+The islands, the trades, the harbour call to load the Level 3s from Port Epheria, the hold, the time and the Parley.
+The material book shows all forty-one layouts, with what each one pays.
+Open M37, today’s, island by island.
+The To Get screen reads the same board. Open To Get.
+Today’s board: on the material list, layout M37 — what it deals toward your list today, island by island, and what each brings.
+Tick an island off when you have traded there.
+The islands that cannot be done today are folded below.
+"Sail it on the Barter tab" hands this board to the Barter tab, and the run is planned the same way.
+A refresh deals the material list or the trade goods, never both. Reading one puts down the other. Next, a short trip.
+
+== Fifteen — A Short Trip ==
+
+Bartering, part eight. A short trip: one trade you are going for, and what fits round it.
+Same sailor, sailing from Iliya with last week’s goods in storage. The board is not read yet.
+At the head of the plan, switch "the run" from Full run to Short trip.
+Before the board is read, the short trip lists where what you hold could be traded, and on how many of the forty layouts each trade appears. These are maybes, not today’s board.
+Name the board, as in part one: Eveto shows Essence of Liquor for a Cherry Tree Seed Pouch.
+Now every trade on today’s board is listed on its own, best first for what it adds a minute: the island, the trade, what you hold of the good it takes, what it pays, and the minutes there and back from your harbour.
+Pick the trade you are going for. Pujara Island takes the six Level 4 Panaceas in the storage for Level 5 Portraits of the Ancient.
+The run is worked out at once: sixty million at the wharf, six trades, five or six minutes under way.
+Below it: what fits on the way. Each trade says what it adds to this trip and the minutes it costs, and the hold stays under its limit.
+Ostra Island costs a minute. Add it.
+Now a picked trade can take its goods one island further: the Rare Herb Piles from Ostra, on to Al-Naha for Level 4 Seashell Decos.
+"One island less" stops it one island sooner again.
+And the cross takes a trade off the trip.
+At the foot, folded: the trades that cannot be made, each with the reason — no slot left in the hold, the Parley runs out, nothing to hand over.
+The short trip came from a sailor who wanted to fetch the one good the storage was low on. Click "A stock".
+Now each trade says what it adds to the stock, and marks the goods you are low on against your targets.
+Load at the wharf, sail and record a short trip like any other run. Next, the character bag.
+
+== Sixteen — The Character Bag ==
+
+Bartering, part nine. Your character’s bag, used as a second hold.
+Same sailor, same board, sailing from Iliya. Your inventory weighs nothing on the ship, so goods for a later chain can ride in it.
+It is switched on under Before you sail. Find "your bag", and click "a second hold".
+It needs the two bars at the foot of the game’s Inventory window. Weight: 612.4 of a 2,150 LT limit.
+And Inventory Slot: 96 of 192 filled.
+Or click "Read the Inventory window" and give it a screenshot: it reads both.
+The app works out the room: a bag carries up to 170 percent of your weight limit, less what it already holds, in the slots still empty. Here, 3,042 LT and 96 slots.
+Goods in the bag go in and out at any wharf’s Load Cargo. Sales stay at the seven wharves with a storage keeper. And Level 5 and up, and Great Ocean goods, take a slot each in the bag too.
+Now sail it "An hour at most".
+A short run, and the hold has room: the hold tile says the bag is not used, and why. A run with the bag is only kept when it pays better an hour.
+Switch to the whole board at full speed, and take the most silver.
+A long run in trips, and this time the bag carries part of it: the hold tile says how much of the bag, at most.
+At the wharf, the bag has its own group on the packing list: what goes into your bag, from the Iliya storage, with the LT and slots it takes.
+And the trip it is for says where it comes out of the bag: at a wharf on the way, before the chain that needs it.
+In the route, that wharf stop says the same: out of your bag, aboard.
+Leave the bag on, and every run is planned both ways and the better one kept. That is the last of the barter parts.
+
+== Seventeen — The Harbour ==
+
+Everything so far runs in your browser alone. This part has other sailors in it, and it needs sign-in.
 One note first: the sailors on these boards are invented. A machine recording this has no server with real players on it. The tab, the digest and the ranking are the app's own.
-Sixteen boards, built from the players who chose to join them.
-They come in five sections: the sea, the runs, quests and hunts, the yard, and charts and hold.
-The question mark on a board tells you exactly how that one is counted.
+Signing in with Discord puts you on the boards by name. The first time, the tab says so, and what is shared: the numbers, never your stock, your notes or your traces.
+Change how you are shown picks your Discord name, or an unnamed sailor: still counted and ranked, but shown only as a sailor.
+Under it is the exact digest that would be shared right now. Nothing else of your save goes up.
 Your own places sit at the top, so you can see where you stand without hunting for yourself.
-And there is a search, if you are after one sailor by name.
-Click any place on a board to open that player's card.
+Sixteen boards, in five sections: the sea, the runs, quests and hunts, the yard, and charts and hold.
+Press a section to see just its boards.
+The question mark on a board says exactly how it is counted.
+And Find a sailor searches the boards by name. An unnamed sailor cannot be found that way; that is what unnamed means.
+Click any place on a board to open that sailor's card.
 Their fleet, their crew, their places, and what they have done at sea.
-Click Look, and their ship loads onto your own Ship tab, fully fitted.
-To look at, not to keep. One click puts yours back.
+Look stands their ship up on your own Ship tab, fully fitted and crewed.
+To look at, not to keep. One press puts yours back.
 The other half of the tab adds the whole fleet up.
-Which hulls people sail, which parts they fit, which crystals, which quests they run.
-Search it for anything, and sort by most-first or A to Z.
-It is the closest thing to an answer when you are wondering what everyone else fits.
-Nothing goes onto a board that you did not offer.
-You see the exact digest before you agree to it — the numbers, and nothing else.
-And leaving takes it back off again.
-One more door, under Menu. Feedback.
-Something wrong, an idea, or something else — and it reaches whoever runs this copy of the app.
-A report is a post, not a form. Bold, lists, quotes, a link — and a screenshot pasted straight in.
+Which hulls people sail, which parts they fit, which crystals, which islands they plot routes through, and which quests they run.
+Click a line, and its card opens: what it costs, and what it is made from.
+Search it for anything, and sort by most first or A to Z.
+Leave the boards takes your places off, and deletes the digest the server holds.
+Your save is untouched, and signing in again will not quietly put you back. Stay keeps you on.
+One more door, in the Menu: Feedback.
+Something wrong, an idea, or something else. It reaches whoever runs this copy of the app.
+A report is a post, not a form: bold, lists, quotes, a link, and a screenshot pasted straight in.
 Preview shows it the way it will be read.
 Your name, the screen you were on and the build you are running go with it, so nobody has to ask which version.
-It is worth doing. Five players wrote in before this release, and one of them wrote most of it.
+The Menu holds the rest of the app: Find, the trip log, Undo and Redo, at the top.
+Profiles keep separate saves on one browser. Export and Import move a save as a file or a link.
+Help plays this film, the Tour walks through your own screen, and What's new lists each release.
+And the theme, the water behind the page, and the language, which changes the app and every item name together.
 Your data stays in your browser. Sign in to sync it between machines, or to join in. Neither is required for anything else in the app.

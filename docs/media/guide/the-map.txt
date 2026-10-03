@@ -1,44 +1,45 @@
-This is the Map. It is the whole sea, with everything you need marked on it.
-Every pin is a barterer holding something you are short of.
-This says what it is marking. Everything you are short of, or one item you choose.
-These buttons across the top are the chart controls.
-Zoom out, and zoom in. You can also just scroll on the sea.
+This is the Map: the whole sea, with everything you are short of marked on it.
+Every pin is a barterer who can deal something on your list.
+The head says how many of the ninety-one barterers that is.
+Showing is what the chart marks. Everything you are short of, or one item you choose.
+Pick one, and only the islands dealing that one thing are left.
+Everything I am short of brings the rest back.
+The pill on the chart counts down to the barter refresh, the dailies and the weeklies.
+The buttons along the top are the chart's tools.
+Zoom out and in. Scrolling on the sea does the same, and dragging pans.
 This one fits everything marked back into view, if you get lost.
-This toggles the minimap in the corner.
-And this one stands the chart up.
-That is the game's own terrain, read out of your client. Not a picture of it — the real heightmap.
-Shift-drag to lean, and the islands come up out of the water.
-And the world curves away towards the horizon, the way the game's own map does. The pins, the route and your drawings all bend with it.
+The ruler measures any two points on the sea. Click one, then the other.
+It gives the distance in metres, and the time your ship takes to sail it.
+This hides or shows the minimap in the corner. Click on the minimap to jump anywhere.
+And 3D stands the chart up.
+That is the game's own terrain, read out of the client. Not a picture of it: the real heightmap.
+Shift-drag to lean it, and the islands come up out of the water.
+The world curves away toward the horizon, the way the game's own map does, and the pins and the routes bend with it.
 Ground paints it in the colours the client ships.
-Neon draws it as contours, the way the game's own world map does.
+Neon draws it as contours, the way the game's own 3D map does.
 And Level looks straight down again, facing north.
-And this is full screen. That is where the chart is worth using, so let us go there.
-Now the sea has the whole window.
-Hit fit again, now that the chart has the room. That pulls back until every mark is in view at once.
-Which is most of the sea, so zoom back in a couple of steps to where you actually work.
-The panel on the left is what drives it.
-Start with "On the chart". This controls what gets drawn.
-Barterers, habitats, wharves, guild wharves, island names, and your own drawings. Turn off what you do not need.
-There is a search, for finding an island or a good by name.
-And these five tabs are the tools. We will take them in order.
-Barter is the default. Every island that has something on your list, with what it trades.
-Click a row and the chart flies to that island.
-Route turns that list into a sailing route.
-Plot the loop, and it draws one, bent around the land rather than through it.
-Every leg gets a distance and a time, at the speed your ship actually sails.
-Save the route, share it as a link, or send it to the game map as bookmarks.
-Draw is for routes the list cannot describe. It gives you three tools.
-The pin drops a numbered stop, in the order you mean to sail.
-The pen draws a freehand line.
-And the text tool types a note straight onto the water.
-Name it and keep it, and it joins your library. Traces share as links too.
-Grounds is for hunting.
-It lists every species: sea monsters, young ones, ships, bosses, the Cox Pirates — and the Hollow Maretta, the song the Great Ocean is told to sail away from, with the thirty-eight spots it is rung at.
+The last button is full screen. That is where the chart is worth using.
+Now the sea has the whole window. The few buttons that matter come with it.
+Fit again, now that the chart has the room.
+The panel drives the chart, and the arrows swap it to the other side.
+On the chart is what gets drawn, whichever tab is open.
+Barterers, the habitats where each species lives, the wharf managers, guild wharves, island names, and your own drawings.
+The habitats are the pictures of where each species lives. Turn them off when the chart gets busy.
+The wharves mark every wharf manager, for repairs, rations and sailors.
+And the island names come up once you are close enough to read them.
+Five tabs: Who has it, Route, Draw, Hunt and Today. Route and Draw have a part of their own, after this one.
+Who has it lists every island dealing something on your list, the most first, with what it trades for.
+Narrow it to materials or to trade goods.
+One of N is that island's pool: each refresh it deals one offer out of N, so this is where the thing can turn up, not where it will.
+Click a row, and the chart flies to that island.
+Its card lists what it trades, and adds it to a route.
+Hunt is for what you kill rather than trade.
+At the top, the hunting quests you have taken. Work out today's loop picks a ground for each, and puts the calls in order.
+Every species is listed: sea monsters, young ones, ships, bosses, the Cox Pirates, and the Hollow Maretta, with the thirty-eight spots it rings at.
 Click one, and every spawn point it has goes on the chart.
-Tick as many as you like, and send the lot to the game map.
-Above them are the known sailing courses, each with a note.
-Today is your checklist for this refresh.
-Every island you need, ticked off as you visit it, with the total at the top.
-Drag to pan, scroll to zoom. The drawings and pins move with the chart.
+Tick as many as you like. The lot can be sent to the game's own world map as favourites.
+Above them are the known sailing courses, each with a note on what it is for.
+Today is a checklist for this refresh: every island you need, to tick off as you visit.
+The ring counts how many you have been to, and it all clears with the barter refresh.
 Escape, or the cross, brings the page back.
 That is the Map. Everything you are short of, where it is, and how long it takes to get there.

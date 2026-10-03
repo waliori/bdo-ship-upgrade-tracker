@@ -26,6 +26,8 @@
 // draws everything.
 
 import { MAX_ZOOM, TILE, TILES } from '../barter_npcs.js';
+import { T } from '../i18n.js';
+import { MAP_LOADING_DELAY, whileLoading } from '../loading.js';
 import { setProjector, tileSrc, levelFor } from '../map.js';
 
 /** Sea level, in chart units. js/worldmap.js has it in the game's own
@@ -258,20 +260,6 @@ export function seaAt(size, px, py) {
 /* ------------------------------------------------------------------ *
  * the tile pyramid
  * ------------------------------------------------------------------ */
-
-/**
- * A level for a zoom, taken as a whole.
- *
- * The ground itself no longer uses this -- visibleTiles picks a level
- * per tile, by how big it lands -- but the offline area and anything
- * else that wants one number for "how close is this view" still does.
- */
-export function levelForZoom(zoom) {
-	const lv = state.index ? state.index.levels : [];
-	if (!lv.length) return 1;
-	const lo = lv[0].level, hi = lv[lv.length - 1].level;
-	return Math.max(lo, Math.min(hi, Math.round(7.32 - zoom)));
-}
 
 function levelInfo(level) {
 	return state.index && state.index.levels.find(l => l.level === level);
@@ -829,7 +817,7 @@ function program(gl, vs, fs, attrs) {
 export function terrainSupported() {
 	if (state.failed) return false;
 	if (typeof DecompressionStream !== 'function') {
-		state.failed = 'this browser cannot unpack the terrain tiles';
+		state.failed = T('this browser cannot unpack the terrain tiles');
 		return false;
 	}
 	try {
@@ -844,7 +832,7 @@ async function loadIndex() {
 	if (state.index || state.indexTried) return state.index;
 	state.indexTried = true;
 	try {
-		const res = await fetch('map3d/index.json');
+		const res = await whileLoading(fetch('map3d/index.json'), T('Fetching the terrain…'), { at: state.host });
 		if (!res.ok) throw new Error(res.status);
 		const ix = await res.json();
 		for (const lv of ix.levels) {
@@ -856,7 +844,7 @@ async function loadIndex() {
 		ix.levels.sort((a, b) => a.level - b.level);
 		state.index = ix;
 	} catch (err) {
-		state.failed = `the terrain is not baked here (${err.message})`;
+		state.failed = T('the terrain is not baked here ({why})', { why: err.message });
 	}
 	return state.index;
 }
@@ -865,7 +853,7 @@ async function loadIndex() {
  *  nothing to show -- no WebGL2, or no bake on this deployment. */
 export async function enterTerrain(host) {
 	if (state.on) return true;
-	if (!terrainSupported()) { state.failed = 'this browser has no WebGL2'; return false; }
+	if (!terrainSupported()) { state.failed = T('this browser has no WebGL2'); return false; }
 	if (!await loadIndex()) return false;
 
 	const canvas = document.createElement('canvas');
@@ -878,7 +866,7 @@ export async function enterTerrain(host) {
 		alpha: false, antialias: true, depth: true,
 		powerPreference: 'high-performance'
 	});
-	if (!gl) { canvas.remove(); state.failed = 'this browser has no WebGL2'; return false; }
+	if (!gl) { canvas.remove(); state.failed = T('this browser has no WebGL2'); return false; }
 
 	state.canvas = canvas;
 	state.gl = gl;
@@ -1013,12 +1001,14 @@ function loadingLight(on) {
 	if (!host) return;
 	if (on) {
 		if (!lightTimer && !host.classList.contains('is-loading')) {
-			lightTimer = setTimeout(() => { lightTimer = null; if (state.on) host.classList.add('is-loading'); }, 300);
+			lightTimer = setTimeout(() => { lightTimer = null; if (state.on) host.classList.add('is-loading'); }, MAP_LOADING_DELAY);
 		}
+		host.setAttribute('aria-busy', 'true');
 		return;
 	}
 	if (lightTimer) { clearTimeout(lightTimer); lightTimer = null; }
 	host.classList.remove('is-loading');
+	host.removeAttribute('aria-busy');
 }
 
 let pendingDraw = null;

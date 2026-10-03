@@ -58,17 +58,56 @@ async function dump(to) {
 	fs.writeFileSync(to, JSON.stringify(out, null, '\t') + '\n');
 	for (const table of TABLES) console.log(`  ${table.padEnd(10)} ${tables[table].length} rows`);
 	console.log(`\nWritten to ${path.resolve(to)}`);
+	// The feedback screenshots live on disk, not in a table: copied beside
+	// the file, into <file>-uploads/, so a backup is the whole of the inbox.
+	if (config.uploadDir && fs.existsSync(config.uploadDir)) {
+		const dir = `${to.replace(/\.json$/, '')}-uploads`;
+		fs.mkdirSync(dir, { recursive: true });
+		let n = 0;
+		for (const f of fs.readdirSync(config.uploadDir)) {
+			const from = path.join(config.uploadDir, f);
+			if (fs.statSync(from).isFile()) { fs.copyFileSync(from, path.join(dir, f)); n++; }
+		}
+		console.log(`  ${n} uploaded pictures to ${path.resolve(dir)}`);
+	}
 }
+
+// The key each table is upserted on: its primary key, which is not
+// always a column called `id`. A table missing here would be written
+// with a conflict target it does not have, and SQLite refuses the whole
+// batch -- which is how a restore used to stop dead at `community` and
+// never reach the short links behind it.
+const KEYS = {
+	users: ['id'],
+	saves: ['user_id'],
+	push_subs: ['endpoint'],
+	push_alerts: ['id'],
+	feedback: ['id'],
+	feedback_files: ['id'],
+	community: ['user_id'],
+	presence: ['token'],
+	barter_boards: ['id'],
+	barter_board_seen: ['board_id', 'user_id'],
+	links: ['id'],
+	revoked_sessions: ['sid'],
+	presence_swept: ['id']
+};
 
 // One statement per row, each an upsert on the table's key, in the order
 // the foreign key wants: an account before its save.
 function upsert(table, row) {
 	const cols = Object.keys(row);
-	const key = table === 'saves' ? 'user_id' : table === 'push_subs' ? 'endpoint' : 'id';
-	const updates = cols.filter(c => c !== key).map(c => `${c} = excluded.${c}`).join(', ');
+	const key = KEYS[table];
+	if (!key) throw new Error(`No key known for ${table}; add it to KEYS in tools/backup.mjs.`);
+	const rest = cols.filter(c => !key.includes(c));
+	// A row that is all key -- nothing else to bring up to date -- is
+	// simply kept if it is already there.
+	const onConflict = rest.length
+		? `ON CONFLICT(${key.join(', ')}) DO UPDATE SET ${rest.map(c => `${c} = excluded.${c}`).join(', ')}`
+		: `ON CONFLICT(${key.join(', ')}) DO NOTHING`;
 	return {
 		sql: `INSERT INTO ${table} (${cols.join(', ')}) VALUES (${cols.map(() => '?').join(', ')})
-			ON CONFLICT(${key}) DO UPDATE SET ${updates}`,
+			${onConflict}`,
 		args: cols.map(c => row[c])
 	};
 }
@@ -89,6 +128,20 @@ async function restore(from) {
 		// or not at all rather than stopping half-way through the saves.
 		if (rows.length) await db().batch(rows.map(row => upsert(table, row)), 'write');
 		console.log(`  ${table.padEnd(10)} ${rows.length} rows`);
+	}
+	// The pictures go back where the server looks for them. A backup
+	// without its -uploads/ folder beside it -- one copied out on its own
+	// -- still restores the rows; the reports then say their images are
+	// no longer on disk, which is the truth.
+	const pics = `${from.replace(/\.json$/, '')}-uploads`;
+	if (config.uploadDir && fs.existsSync(pics)) {
+		fs.mkdirSync(config.uploadDir, { recursive: true });
+		let n = 0;
+		for (const f of fs.readdirSync(pics)) {
+			const at = path.join(pics, f);
+			if (fs.statSync(at).isFile()) { fs.copyFileSync(at, path.join(config.uploadDir, f)); n++; }
+		}
+		console.log(`  ${n} uploaded pictures back to ${path.resolve(config.uploadDir)}`);
 	}
 	console.log(`\nRestored into ${where}.`);
 }

@@ -26,6 +26,7 @@ globalThis.document = { addEventListener() {}, visibilityState: 'visible' };
 const otherTabWrote = () => window.handlers.storage.at(-1)({ key: 'bdo-tracker/v2' });
 
 const store = await import('../js/state.js');
+const { routeOf } = await import('../js/planner.js');
 
 const reset = () => store.adopt({
 	stock: { 'Tidal Black Stone': 400, 'Steel': 10 },
@@ -138,20 +139,38 @@ test('a route choice survives the disk, an adopt and a merge', () => {
 	store.setStrategy('Steel', 'buy');
 	store.flush();
 	const s = store.init();
-	assert.equal(s.strategy['Epheria Caravel'], 'improved', 'the route is read back');
-	assert.equal(s.strategy['Epheria Cog'], 'pirates');
+	assert.equal(routeOf('Epheria Caravel', s.strategy), 'improved', 'the route is read back');
+	assert.equal(routeOf('Epheria Cog', s.strategy), 'pirates');
 	assert.equal(s.strategy['Steel'], 'buy');
 
+	// A save from before the route had a key of its own: moved on load.
 	store.adopt({ stock: {}, targets: [], strategy: { 'Epheria Galleass': 'improved', 'Zinc Ingot': 'nonsense' } });
-	assert.equal(store.getStrategy('Epheria Galleass'), 'improved');
+	assert.equal(routeOf('Epheria Galleass', store.getAllStrategy()), 'improved');
+	assert.equal(store.getAllStrategy()['route:Epheria Galleass'], 'improved');
+	assert.equal(store.getStrategy('Epheria Galleass'), 'craft');
 	assert.equal(store.getStrategy('Zinc Ingot'), 'craft', 'a name no route has is dropped');
 
 	store.merge({ stock: {}, targets: [], strategy: { 'Epheria Cog': 'pirates' } });
-	assert.equal(store.getStrategy('Epheria Cog'), 'pirates');
+	assert.equal(routeOf('Epheria Cog', store.getAllStrategy()), 'pirates');
 	// And the undo stack keeps it too.
 	store.undo();
 	store.undo();
-	assert.equal(store.getStrategy('Epheria Caravel'), 'improved');
+	assert.equal(routeOf('Epheria Caravel', store.getAllStrategy()), 'improved');
+});
+
+test('the route and the buy-or-craft choice are kept apart', () => {
+	reset();
+	const ARTIFACT = "Cox Pirates' Artifact (Combat)";
+	store.setStrategy(ARTIFACT, 'buy');
+	store.setStrategy(ARTIFACT, 'cannons');
+	assert.equal(store.getStrategy(ARTIFACT), 'buy', 'picking a route does not switch a bought item to crafted');
+	assert.equal(routeOf(ARTIFACT, store.getAllStrategy()), 'cannons');
+	store.setStrategy(ARTIFACT, 'craft');
+	assert.equal(routeOf(ARTIFACT, store.getAllStrategy()), 'cannons', 'and crafting it keeps the route');
+	// An old save that kept the route in the item's own slot was crafting it.
+	store.adopt({ stock: {}, targets: [], strategy: { [ARTIFACT]: 'cannons' } });
+	assert.equal(store.getStrategy(ARTIFACT), 'craft');
+	assert.equal(routeOf(ARTIFACT, store.getAllStrategy()), 'cannons');
 });
 
 /* ------------------------------------------------------------------ *
@@ -209,4 +228,127 @@ test('a merge keeps this browser\'s views over the file\'s, and takes the file\'
 	store.undo();
 	assert.equal(store.getView('barter'), null);
 	assert.deepEqual(store.getView('map'), { mode: 'sail', stops: [1, 2] });
+});
+
+/* ------------------------------------------------------------------ *
+ * a look inside a look
+ * ------------------------------------------------------------------ */
+
+const onDisk = () => JSON.parse(localStorage.getItem(store.STORAGE_KEY));
+
+test('the tour over a shared plan puts the look back, and never saves the plan as the player\'s', async () => {
+	reset();
+	store.flush();
+	store.init();
+	// Look around a shared plan...
+	const mine = store.capture();
+	store.applyTransient(JSON.stringify({ stock: { 'Pine Plywood': 3 }, targets: [], strategy: {} }));
+	// ...start the tour over it, and finish the tour.
+	const look = store.capture();
+	store.applyTransient(JSON.stringify({ stock: { Demo: 1 }, targets: [], strategy: {} }));
+	assert.ok(store.restore(look));
+	await new Promise(r => setTimeout(r, 200));
+	assert.equal(store.isTransient(), true, 'still looking');
+	assert.equal(store.getStock('Pine Plywood'), 3, 'the shared plan is back on screen');
+	assert.equal(onDisk().stock['Pine Plywood'], undefined, 'and was never written');
+	assert.equal(onDisk().stock['Tidal Black Stone'], 400);
+	// "Back to mine".
+	assert.ok(store.restore(mine));
+	assert.equal(store.isTransient(), false);
+	assert.equal(store.getStock('Tidal Black Stone'), 400);
+});
+
+test('a look ended underneath the tour is not brought back by the tour', () => {
+	reset();
+	const mine = store.capture();
+	store.applyTransient(JSON.stringify({ stock: { 'Pine Plywood': 3 }, targets: [], strategy: {} }));
+	const look = store.capture();
+	store.applyTransient(JSON.stringify({ stock: { Demo: 1 }, targets: [], strategy: {} }));
+	store.restore(mine);
+	assert.equal(store.restore(look), false);
+	assert.equal(store.isTransient(), false);
+	assert.equal(store.getStock('Pine Plywood'), 0);
+});
+
+test('an edit made just before a look survives another tab saving during it', () => {
+	reset();
+	store.flush();
+	store.init();
+	store.setStock('Steel', 33);              // inside the debounce
+	const mine = store.capture();
+	store.applyTransient(JSON.stringify({ stock: {}, targets: [], strategy: {} }));
+	const disk = onDisk();
+	disk.stock['Cron Stone'] = 4;
+	localStorage.setItem(store.STORAGE_KEY, JSON.stringify(disk));
+	otherTabWrote();
+	store.restore(mine);
+	assert.equal(store.getStock('Cron Stone'), 4, 'theirs is taken');
+	assert.equal(store.getStock('Steel'), 33, 'and the edit made here is not lost');
+	store.flush();
+	assert.equal(onDisk().stock['Steel'], 33);
+});
+
+test('one Undo is not applied twice when another tab saves inside the debounce', () => {
+	reset();
+	store.flush();
+	store.init();
+	store.setStock('Steel', 20);
+	store.flush();
+	const was = store.getState().history.length;
+	store.undo();                             // pending: Steel back to 10
+	// The other tab saves first, its history still holding the change.
+	const disk = onDisk();
+	disk.settings = { ...disk.settings, theme: 'dark' };
+	localStorage.setItem(store.STORAGE_KEY, JSON.stringify(disk));
+	otherTabWrote();
+	assert.equal(store.getStock('Steel'), 10);
+	assert.equal(store.getState().history.length, was - 1, 'the undone entry is gone from the history taken in');
+	assert.notEqual(store.lastChange() && store.lastChange().label, '=20 Steel');
+	store.undo();
+	assert.notEqual(store.getStock('Steel'), 0, 'a second Undo does not reverse the same change again');
+});
+
+/* ------------------------------------------------------------------ *
+ * taking something from a link
+ * ------------------------------------------------------------------ */
+
+test('taking a slim shared plan keeps the views and diaries the link never carried', async () => {
+	const { SLIM_DROP } = await import('../js/share.js');
+	reset();
+	store.setProfileMany({ runs: [{ day: '2026-09-30', silver: 5 }], views: { map: { mode: 'sail' } } }, 'mine');
+	const viewsBefore = store.getProfile('views');
+	const runsBefore = store.getProfile('runs');
+	store.adopt({ stock: { Steel: 1 }, targets: [], strategy: {}, profile: { barterCount: 9 } }, 'Took a shared plan', { keepAbsent: SLIM_DROP });
+	assert.equal(store.getStock('Steel'), 1);
+	assert.equal(store.getProfile('barterCount'), 9, 'what the link carried is taken');
+	assert.deepEqual(store.getProfile('views'), viewsBefore, 'the traces and screens here stay');
+	assert.deepEqual(store.getProfile('runs'), runsBefore, 'the run log stays');
+	// A plain adopt -- a file, a synced copy -- still replaces the lot.
+	store.adopt({ stock: {}, targets: [], strategy: {}, profile: { barterCount: 9 } }, 'file');
+	assert.equal(store.getProfile('views'), null);
+});
+
+test('"Make it my ship" brings the crew aboard beside the roster here', async () => {
+	const { shipSetupPatch } = await import('../js/screen-crew.js');
+	const { shipStats } = await import('../js/ship_stats.js');
+	const ship = Object.keys(shipStats).find(s => shipStats[s].crew > 0);
+	reset();
+	const mine = [{ id: 'sA', name: 'Ana', type: 'Ahto', lv: 5, cond: 100 }, { id: 'sB', name: 'Bo', type: 'Ahto', lv: 3, cond: 100 }];
+	const other = 'Some Other Hull';
+	store.setProfileMany({ roster: mine, seats: { [other]: { 'sail:1': 'sA' } } }, 'mine');
+	const link = { ship, fitted: {}, crystal: null, roster: [{ id: '0', name: 'Cid', type: 'Ahto', lv: 8, cond: 100 }, { id: '1', name: 'Ana', type: 'Ahto', lv: 5, cond: 100 }], seats: { 'sail:1': '0', 'wheel:1': '1' } };
+	const patch = shipSetupPatch(link, undefined, { join: true });
+	assert.equal(patch.roster.length, 3, 'Cid joins; Ana is the one already here');
+	assert.deepEqual(patch.roster.slice(0, 2), mine, 'the roster here is kept as it was');
+	const cid = patch.roster[2];
+	assert.equal(cid.name, 'Cid');
+	assert.notEqual(cid.id, '0', 'a fresh id, not the link\'s');
+	assert.deepEqual(patch.seats[ship], { 'sail:1': cid.id, 'wheel:1': 'sA' });
+	assert.deepEqual(patch.seats[other], { 'sail:1': 'sA' }, 'seats on other hulls are untouched');
+
+	const empty = shipSetupPatch({ ...link, roster: [], seats: {} }, undefined, { join: true });
+	assert.equal(empty.roster, undefined, 'a link with no crew leaves the roster alone');
+	assert.equal(empty.seats, undefined);
+	// Only looking still shows their crew in place of yours.
+	assert.equal(shipSetupPatch(link).roster, link.roster);
 });

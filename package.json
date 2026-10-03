@@ -1,6 +1,6 @@
 {
   "name": "bdo-ship-upgrade-tracker",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "Track Black Desert Online ship upgrades against one shared inventory",
   "author": "waliori",
   "license": "SEE LICENSE IN LICENSE",
@@ -28,6 +28,10 @@
     "start": "node --env-file-if-exists=.env server.js",
     "test": "node --test \"test/*.test.mjs\"",
     "check": "node --env-file-if-exists=.env tools/check-env.mjs",
+    "lang": "node tools/build-lang.mjs",
+    "bake:barter": "node tools/bake-barter.mjs",
+    "record:market": "node tools/record-market.mjs",
+    "names": "node tools/fetch-names.mjs",
     "backup": "node --env-file-if-exists=.env tools/backup.mjs",
     "restore": "node --env-file-if-exists=.env tools/backup.mjs --restore",
     "capture": "tools/capture/shoot.sh",
@@ -43,6 +47,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "acorn": "^8.18.0",
     "eslint": "^10.9.1",
     "puppeteer-core": "^25.9.0"
   }

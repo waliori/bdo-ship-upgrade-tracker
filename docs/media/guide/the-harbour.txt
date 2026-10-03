@@ -1,25 +1,30 @@
-Everything so far runs in your browser alone. This last part is the one that needs sign-in.
+Everything so far runs in your browser alone. This part has other sailors in it, and it needs sign-in.
 One note first: the sailors on these boards are invented. A machine recording this has no server with real players on it. The tab, the digest and the ranking are the app's own.
-Sixteen boards, built from the players who chose to join them.
-They come in five sections: the sea, the runs, quests and hunts, the yard, and charts and hold.
-The question mark on a board tells you exactly how that one is counted.
+Signing in with Discord puts you on the boards by name. The first time, the tab says so, and what is shared: the numbers, never your stock, your notes or your traces.
+Change how you are shown picks your Discord name, or an unnamed sailor: still counted and ranked, but shown only as a sailor.
+Under it is the exact digest that would be shared right now. Nothing else of your save goes up.
 Your own places sit at the top, so you can see where you stand without hunting for yourself.
-And there is a search, if you are after one sailor by name.
-Click any place on a board to open that player's card.
+Sixteen boards, in five sections: the sea, the runs, quests and hunts, the yard, and charts and hold.
+Press a section to see just its boards.
+The question mark on a board says exactly how it is counted.
+And Find a sailor searches the boards by name. An unnamed sailor cannot be found that way; that is what unnamed means.
+Click any place on a board to open that sailor's card.
 Their fleet, their crew, their places, and what they have done at sea.
-Click Look, and their ship loads onto your own Ship tab, fully fitted.
-To look at, not to keep. One click puts yours back.
+Look stands their ship up on your own Ship tab, fully fitted and crewed.
+To look at, not to keep. One press puts yours back.
 The other half of the tab adds the whole fleet up.
-Which hulls people sail, which parts they fit, which crystals, which quests they run.
-Search it for anything, and sort by most-first or A to Z.
-It is the closest thing to an answer when you are wondering what everyone else fits.
-Nothing goes onto a board that you did not offer.
-You see the exact digest before you agree to it — the numbers, and nothing else.
-And leaving takes it back off again.
-One more door, under Menu. Feedback.
-Something wrong, an idea, or something else — and it reaches whoever runs this copy of the app.
-A report is a post, not a form. Bold, lists, quotes, a link — and a screenshot pasted straight in.
+Which hulls people sail, which parts they fit, which crystals, which islands they plot routes through, and which quests they run.
+Click a line, and its card opens: what it costs, and what it is made from.
+Search it for anything, and sort by most first or A to Z.
+Leave the boards takes your places off, and deletes the digest the server holds.
+Your save is untouched, and signing in again will not quietly put you back. Stay keeps you on.
+One more door, in the Menu: Feedback.
+Something wrong, an idea, or something else. It reaches whoever runs this copy of the app.
+A report is a post, not a form: bold, lists, quotes, a link, and a screenshot pasted straight in.
 Preview shows it the way it will be read.
 Your name, the screen you were on and the build you are running go with it, so nobody has to ask which version.
-It is worth doing. Five players wrote in before this release, and one of them wrote most of it.
+The Menu holds the rest of the app: Find, the trip log, Undo and Redo, at the top.
+Profiles keep separate saves on one browser. Export and Import move a save as a file or a link.
+Help plays this film, the Tour walks through your own screen, and What's new lists each release.
+And the theme, the water behind the page, and the language, which changes the app and every item name together.
 Your data stays in your browser. Sign in to sync it between machines, or to join in. Neither is required for anything else in the app.

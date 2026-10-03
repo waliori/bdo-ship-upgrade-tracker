@@ -10,12 +10,15 @@
 // aboard, the numbers the Crew screen sums.
 
 import * as store from './state.js';
+import { F } from './fmt.js';
+import { T, TT, gameName } from './i18n.js';
 import { skinFor, skinStats, SKIN_SLOTS } from './ship_skins.js';
 import { shipStats, bigShips } from './ship_stats.js';
 import { partStats, slotOf, fitsShip, statsAt, sumStats, loadout, partLT } from './part_stats.js';
 import { families, FAMILY_RANK } from './enhancement.js';
 import { crewTotals, mateAboard, fitSeats } from './sailors.js';
 import { crystalById, crystalStats } from './crystals.js';
+import { hullTick, BREEZY_EVERY } from './rations.js';
 
 export const SLOTS = ['cannon', 'sail', 'figurehead', 'plating'];
 
@@ -80,9 +83,8 @@ export function splitLevel(name) {
  * `gear` is what the parts weigh in themselves, which the hold pays for:
  * see the note on the hold in currentShip().
  */
-export function fittedFor(ship, stock = store.getAllStock()) {
+export function fittedFor(ship, stock = store.getAllStock(), chosen = (store.getProfile('fitted', {}) || {})[ship] || {}) {
 	const owned = loadout(ship, stock, families);
-	const chosen = (store.getProfile('fitted', {}) || {})[ship] || {};
 	const slots = owned.slots.map(o => {
 		const pick = chosen[o.slot];
 		const fromStock = () => (o.part ? { ...o, source: 'owned' } : { slot: o.slot, source: 'none' });
@@ -107,7 +109,11 @@ export function gearLT(slots) {
 
 /** The sea crystal on a hull, if one is set: the codex entry and its stats. */
 export function crystalFor(ship) {
-	const id = (store.getProfile('crystal', {}) || {})[ship];
+	return crystalOf((store.getProfile('crystal', {}) || {})[ship]);
+}
+
+/** A crystal by codex id, with its stats; null for none. */
+function crystalOf(id) {
 	const c = id ? crystalById[id] : null;
 	return c ? { ...c, stats: crystalStats(c) } : null;
 }
@@ -152,6 +158,49 @@ export function mateAtTheHelm(ship = shipName()) {
  * mastery up to 2,000 (20%), a quarter-point per fifty from there to
  * 3,000 (25%), and no more above that.
  */
+/**
+ * The Corsair's own point. A Corsair at the wheel gives the ship one
+ * per cent of speed, acceleration, turn and brake -- a flat point on
+ * each, like Sailing Mastery's, since those stats are percentages
+ * already. It is the class, not the hull, so it is a fact about the
+ * sailor and lives beside the Value Pack.
+ */
+export const CORSAIR_BONUS = 1;
+
+/**
+ * The sailing logs: life-skill gear worn by the character, not the
+ * ship. Each adds Sailing Mastery by its enhancement level -- the same
+ * ladder as the sailor's clothes, read off the in-game tooltips (TRI
+ * Loggia 130, TRI Srulk 180, TET Manos 300 match) and the 2025 update
+ * note (Loggia 3-280, Srulk 4-330, Manos 5-400) -- and a flat "Max Big
+ * Ship Speed" whatever the level.
+ *
+ * Two things follow from the game's own ship window. The mastery a log
+ * gives is already inside the Sailing Mastery the Life Skill tab shows,
+ * which is the figure typed into the pouch -- so it is said, not added
+ * again. And the top speed is not in the Speed % that window shows (a
+ * Carrack reads 197.1% with a Manos log aboard, with no 15% in it), so
+ * it goes where top speed matters: the time a leg takes at sea.
+ */
+export const LOG_LEVELS = ['+0', '+1', '+2', '+3', '+4', '+5', '+6', '+7', '+8', '+9', '+10', '+11', '+12', '+13', '+14', '+15', 'PRI', 'DUO', 'TRI', 'TET', 'PEN'];
+// The three share one picture in the game; the grade's frame and the
+// enhancement written on it are what tell them apart (the codex's
+// grade_frame_1 / _2 / _4: green, blue, orange).
+export const SAILING_LOGS = {
+	loggia: { name: 'Loggia Sailing Log', grade: 1, speed: 5, exp: 3, mastery: [3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 39, 45, 51, 57, 63, 70, 90, 130, 200, 280] },
+	srulk: { name: 'Srulk Sailing Log', grade: 2, speed: 10, exp: 5, mastery: [4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 50, 58, 66, 74, 80, 95, 125, 180, 250, 330] },
+	manos: { name: 'Manos Sailing Log', grade: 4, speed: 15, exp: 10, mastery: [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 70, 80, 90, 100, 120, 160, 220, 300, 400] }
+};
+/** The log worn, as { kind, lv, name, mastery, speed }, or null. */
+export function sailingLog() {
+	const raw = store.getProfile('sailingLog', null);
+	const log = raw && SAILING_LOGS[raw.kind];
+	if (!log) return null;
+	const lv = Math.max(0, Math.min(LOG_LEVELS.length - 1, Math.floor(Number(raw.lv) || 0)));
+	return { kind: raw.kind, lv, grade: log.grade, name: log.name, mastery: log.mastery[lv], speed: log.speed, exp: log.exp, level: LOG_LEVELS[lv] };
+}
+export const corsairBonus = () => (store.getProfile('corsair', false) === true ? CORSAIR_BONUS : 0);
+
 export function masteryBonus(mastery = store.getProfile('sailingMastery', 0) || 0) {
 	const m = Math.max(0, Math.min(3000, Math.floor(Number(mastery) || 0)));
 	const steps = Math.floor(m / 50);
@@ -255,7 +304,7 @@ export function setPets(tiers, alpha = false) {
 	return store.setProfileMany({
 		bosnJacks: next.length ? next : null,
 		bosnAlpha: alpha === true && next.includes(5) ? true : null
-	}, 'Changed the pets aboard');
+	}, T('Changed the pets aboard'));
 }
 
 
@@ -292,19 +341,75 @@ export function skinTotals(ship) {
 	return skinStats(ship, skinWorn(ship));
 }
 
+/**
+ * What the ship eats under sail: a tick of the hull's own take and the
+ * appetite of everyone seated, and a BreezySail every BREEZY_EVERY
+ * seconds when the sailor keeps it going (`breezy`: that interval, or
+ * 0). `measured` says whether this hull's take was read in game; `cal`
+ * is the rations a minute the sailor watched this ship's pool fall, or
+ * 0. rations.js drainRate turns it into a rate, the same way for the
+ * Map and the barter planner.
+ */
+export function rationDrain(me = currentShip()) {
+	const hull = hullTick(me.name);
+	const crew = (me.crew && me.crew.appetite) || 0;
+	return { tick: hull.n + crew, hull: hull.n, crew, measured: hull.measured, breezy: store.getProfile('breezy', false) === true ? BREEZY_EVERY : 0, cal: rationCalFor(me.name) };
+}
+
+/**
+ * The ration drain the sailor watched, for one hull. It is kept per
+ * ship, since a Carrack with a full crew eats three times a bare
+ * Sailboat's. It used to be one number for the device, and a save
+ * holding that number still has it: it goes on standing for every ship
+ * not watched since (filed under '*').
+ */
+export function rationCalFor(name) {
+	const raw = store.getSetting('rationCal', null);
+	if (Number(raw) > 0) return Number(raw);
+	if (!raw || typeof raw !== 'object') return 0;
+	if (Object.prototype.hasOwnProperty.call(raw, name)) return Number(raw[name]) > 0 ? Number(raw[name]) : 0;
+	return Number(raw['*']) > 0 ? Number(raw['*']) : 0;
+}
+
+/** Set (a rate) or clear (null) the watched drain for one hull. A clear
+ *  is kept as a 0, so a figure from before it was per ship does not
+ *  stand in for it again. */
+export function setRationCal(name, rate) {
+	const raw = store.getSetting('rationCal', null);
+	const all = Number(raw) > 0 ? { '*': Number(raw) } : raw && typeof raw === 'object' ? { ...raw } : {};
+	all[name] = Number(rate) > 0 ? Math.round(Number(rate)) : 0;
+	store.setSetting('rationCal', all);
+}
+
 export function currentShip() {
-	const name = shipName();
+	return shipFrom(currentSetup());
+}
+
+/**
+ * A ship worked out from a setup -- the hull, the parts picked by hand,
+ * the crystal, the seating and the skin -- the one sum every figure of
+ * a ship comes from. The ship sailed is the current setup put through
+ * it; a saved setup in the Fleet list is put through the same, so the
+ * two cannot disagree. They did: the Fleet row summed only the parts
+ * picked by hand (none of the best owned for the slots left alone),
+ * left the Corsair point out and read the seats as saved, and showed
+ * the setup being sailed at 115% beside a Ship card at 127.5%.
+ */
+export function shipFrom(setup) {
+	const name = setup.ship;
 	const stats = shipStats[name];
-	const fit = fittedFor(name);
-	const crystal = crystalFor(name);
+	const fit = fittedFor(name, store.getAllStock(), setup.fitted || {});
+	const crystal = crystalOf(setup.crystal);
 	const gem = k => (crystal && Number(crystal.stats[k])) || 0;
-	const seats = seatedOn(name);
+	const seats = fitSeats(name, setup.seats || {}, stats);
 	const crew = crewTotals(store.getProfile('roster', []) || [], seats, stats);
 	const parts = k => Number(fit.total[k]) || 0;
 	const mastery = masteryBonus();
+	const corsair = corsairBonus();
 	// The appearance set is not only a look: its four slots carry speed,
 	// weight, turn and durability, so it belongs in the same sum.
-	const skinT = skinStats(name, skinWorn(name));
+	const worn = setup.skin || {};
+	const skinT = skinStats(name, worn);
 	const skin = k => Number(skinT[k]) || 0;
 	// The pets are the player's, not the hull's, and they only count on
 	// a Big Ship -- but on one they are simply more hold, so they go in
@@ -325,41 +430,77 @@ export function currentShip() {
 	const aboard = crew.weight + gear;
 	// The hold as a sum, line by line, the way the speed already reads:
 	// what each thing aboard adds or takes.
-	const lines = [{ label: 'hull', lt: stats.weight }];
-	for (const s of fit.slots) if (s.stats && Number(s.stats.weight)) lines.push({ label: `${s.level ? `+${s.level} ` : ''}${s.part.replace(/^.*?: /, '')}`, lt: Number(s.stats.weight) });
-	if (gem('weight')) lines.push({ label: crystal.name, lt: gem('weight') });
-	if (skin('weight')) lines.push({ label: 'appearance set', lt: skin('weight') });
+	const lines = [{ label: T('hull'), lt: stats.weight }];
+	for (const s of fit.slots) if (s.stats && Number(s.stats.weight)) lines.push({ label: `${s.level ? `+${s.level} ` : ''}${gameName(s.part).replace(/^.*?: /, '')}`, lt: Number(s.stats.weight) });
+	if (gem('weight')) lines.push({ label: gameName(crystal.name), lt: gem('weight') });
+	if (skin('weight')) lines.push({ label: T('appearance set'), lt: skin('weight') });
 	if (pets) {
 		const jacks = bosnJacks().filter(Boolean).length;
-		lines.push({ label: `${jacks} Bos'n Jack${jacks === 1 ? '' : 's'}${bosnAlpha() ? ', one Alpha' : ''}`, lt: pets });
+		const pet = gameName("Bos'n Jack");
+		const alpha = bosnAlpha();
+		lines.push({
+			label: jacks === 1
+				? (alpha ? T('{n} {name}, one Alpha', { n: jacks, name: pet }) : T('{n} {name}', { n: jacks, name: pet }))
+				: (alpha ? T('{n} {name}s, one Alpha', { n: jacks, name: pet }) : T('{n} {name}s', { n: jacks, name: pet })),
+			lt: pets
+		});
 	}
-	if (crew.weight) lines.push({ label: `${crew.seated} sailor${crew.seated === 1 ? '' : 's'} aboard`, lt: -crew.weight });
+	if (crew.weight) lines.push({ label: crew.seated === 1 ? T('{n} sailor aboard', { n: crew.seated }) : T('{n} sailors aboard', { n: crew.seated }), lt: -crew.weight });
 	if (gear) {
 		const fitted = fit.slots.filter(s => s.part).length;
 		const what = [
-			fitted ? `${fitted} part${fitted === 1 ? '' : 's'}` : '',
-			crystal && Number(crystal.lt) ? 'the crystal' : '',
-			rod ? "the Otter's rod" : ''
+			fitted ? (fitted === 1 ? T('{n} part', { n: fitted }) : T('{n} parts', { n: fitted })) : '',
+			crystal && Number(crystal.lt) ? T('the crystal') : '',
+			rod ? T("the Otter's rod") : ''
 		].filter(Boolean);
-		const said = what.length > 1 ? `${what.slice(0, -1).join(', ')} and ${what[what.length - 1]}` : what[0];
+		const said = what.length > 1 ? T('{list} and {last}', { list: what.slice(0, -1).join(', '), last: what[what.length - 1] }) : what[0];
 		const one = what.length === 1 && fitted <= 1;
-		lines.push({ label: `${said}, ${one ? 'its' : 'their'} own weight`, lt: -gear });
+		lines.push({ label: one ? T('{what}, its own weight', { what: said }) : T('{what}, their own weight', { what: said }), lt: -gear });
 	}
 	return {
-		name, stats, fit, crew, crystal, mastery, skin: skinT, skinWorn: skinWorn(name),
-		speed: { hull: stats.speed, parts: parts('speed'), crystal: gem('speed'), crew: crew.speed, mastery, skin: skin('speed'), total: round1(stats.speed + parts('speed') + gem('speed') + crew.speed + mastery + skin('speed')) },
-		accel: round1(stats.accel + parts('accel') + gem('accel') + crew.accel + mastery + skin('accel')),
-		turn: round1(stats.turn + parts('turn') + gem('turn') + crew.turn + mastery + skin('turn')),
-		brake: round1(stats.brake + parts('brake') + gem('brake') + crew.brake + mastery + skin('brake')),
+		name, stats, fit, crew, crystal, mastery, corsair, skin: skinT, skinWorn: worn,
+		speed: (() => {
+			const total = round1(stats.speed + parts('speed') + gem('speed') + crew.speed + mastery + corsair + skin('speed'));
+			const log = sailingLog();
+			// `sea` is the speed a leg is timed at: the window's total with
+			// the log's top speed on it.
+			return { hull: stats.speed, parts: parts('speed'), crystal: gem('speed'), crew: crew.speed, mastery, corsair, skin: skin('speed'), total, log: log ? log.speed : 0, sea: round1(total * (1 + (log ? log.speed : 0) / 100)) };
+		})(),
+		// The same sum, term by term, for the three the ship card lists
+		// beside the speed.
+		terms: Object.fromEntries(['accel', 'turn', 'brake'].map(k => [k, { hull: stats[k], parts: parts(k), crystal: gem(k), crew: crew[k], mastery, corsair, skin: skin(k) }])),
+		dp: parts('dp') + gem('dp') + skin('dp'),
+		accel: round1(stats.accel + parts('accel') + gem('accel') + crew.accel + mastery + corsair + skin('accel')),
+		turn: round1(stats.turn + parts('turn') + gem('turn') + crew.turn + mastery + corsair + skin('turn')),
+		brake: round1(stats.brake + parts('brake') + gem('brake') + crew.brake + mastery + corsair + skin('brake')),
 		// The hold: hull plus what the plating and a crystal add, less what
 		// is aboard before anything is loaded -- the crew's own weight and
 		// the parts' -- and what is left is what a run can carry. `deal`
 		// is the most it carries and still barters, at BARTER_OVER; `max`
-		// the most the hull will move under at all, at OVERLOAD.
-		hold: { limit, crew: crew.weight, gear, aboard, free: Math.max(0, limit - aboard), deal: Math.max(0, Math.round(limit * BARTER_OVER) - aboard), max: Math.max(0, Math.round(limit * OVERLOAD) - aboard), lines },
+		// the most the hull will move under at all, at OVERLOAD. `slots` is
+		// the hull's inventory slots: nothing in the model sits in them
+		// but goods, and a [Level 5] and up takes one a unit.
+		hold: { limit, crew: crew.weight, gear, aboard, free: Math.max(0, limit - aboard), deal: Math.max(0, Math.round(limit * BARTER_OVER) - aboard), max: Math.max(0, Math.round(limit * OVERLOAD) - aboard), slots: stats.slots, lines },
 		durability: stats.durability + parts('durability') + gem('durability') + crew.durability + skin('durability'),
 		rations: stats.rations + parts('rations') + crew.rations,
 		damage: parts('damage') + gem('damage')
+	};
+}
+
+/**
+ * The hold's slots as every screen shows them, beside the LT: `used`
+ * slots of the hull's -- one a kind for what stacks, one a unit for a
+ * [Level 5] and up (slotsHeld in barter-plan.js).
+ */
+export function shownSlots(hold, used = 0) {
+	// An old saved plan kept a hold without slots: the count alone then.
+	const cap = hold && Number.isFinite(hold.slots) ? hold.slots : null;
+	const n = Math.max(0, Math.round(Number(used) || 0));
+	return {
+		used: n, cap, over: cap !== null && n > cap, full: cap !== null && n >= cap,
+		text: cap !== null ? T('{used} / {cap} slots', { used: F(n), cap: F(cap) }) : T('{n} slots', { n: F(n) }),
+		// The figures alone, for a place that labels them "slots" already.
+		short: cap !== null ? `${F(n)} / ${F(cap)}` : F(n)
 	};
 }
 
@@ -391,10 +532,10 @@ export function shownHold(hold, goods = 0) {
 		extra: max ? Math.max(0, Math.min(total, deal) - limit) / max * 100 : 0,
 		worse: max ? Math.max(0, Math.min(total, max) - deal) / max * 100 : 0,
 		mark: max ? Math.min(100, limit / max * 100) : 100,
-		text: `${Math.round(total).toLocaleString()} / ${Math.round(limit).toLocaleString()} LT`,
-		note: state === 'dead' ? 'more than the hull will move under, and past dealing — lighten first'
-			: state === 'heavy' ? 'too heavy to barter — lighten first'
-			: state === 'over' ? 'past the limit — sailing slower' : ''
+		text: T('{total} / {limit} LT', { total: F(total), limit: F(limit) }),
+		note: state === 'dead' ? T('more than the hull will move under, and past dealing — lighten first')
+			: state === 'heavy' ? T('too heavy to barter — lighten first')
+			: state === 'over' ? T('past the limit — sailing slower') : ''
 	};
 }
 
@@ -406,7 +547,7 @@ export function shownHold(hold, goods = 0) {
  */
 export function aboardWhat(hold) {
 	const crew = (hold && hold.crew) || 0, gear = (hold && hold.gear) || 0;
-	return crew && gear ? 'crew and gear' : crew ? 'crew' : gear ? 'gear' : '';
+	return crew && gear ? TT('crew and gear') : crew ? TT('crew') : gear ? TT('gear') : '';
 }
 
 /** Fit a part by hand: an item name with its level, '' for an empty
@@ -432,50 +573,27 @@ export function setFitted(ship, slot, value) {
  * currentShip() answers the same question for the setup that is
  * standing, but it reads the profile -- so comparing two saved setups
  * meant loading each in turn and remembering the numbers. This works
- * them out from the setup's own record instead, which is what lets the
- * Ship screen put them side by side.
+ * them out from the setup's own record instead, through the same
+ * shipFrom the sailed ship goes through, which is what lets the Ship
+ * screen put them side by side and agree with the Ship card.
  *
  * Crew is counted from the seats the setup kept, against the roster as
  * it is now: the roster is shared between setups, so a sailor who has
  * been dismissed since simply no longer counts, which is the truth.
  */
 export function setupSummary(setup) {
-	const stats = shipStats[setup && setup.ship];
-	if (!stats) return null;
-	const parts = [];
-	let gear = 0;
-	for (const raw of Object.values(setup.fitted || {})) {
-		if (!raw) continue;
-		const { part, level } = splitLevel(raw);
-		if (!partStats[part]) continue;
-		parts.push(statsAt(part, level));
-		gear += partLT(part);
-	}
-	const total = sumStats(...parts);
-	const c = setup.crystal ? crystalById[setup.crystal] : null;
-	// The crystal's litre and the rod's, the same as on the ship itself.
-	gear += (c ? Number(c.lt) || 0 : 0) + (rodAboard(setup.ship, setup.seats || {}) ? OTTER_ROD.lt : 0);
-	const gemStats = c ? crystalStats(c) : {};
-	const gem = k => Number(gemStats[k]) || 0;
-	const got = k => Number(total[k]) || 0;
-	const crew = crewTotals(store.getProfile('roster', []) || [], fitSeats(setup.ship, setup.seats || {}, stats), stats);
-	const mastery = masteryBonus();
-	// A setup keeps the skin it was saved with, so two setups of the same
-	// hull -- one skinned, one not -- compare as the different ships they
-	// actually are.
-	const skinT = skinStats(setup.ship, setup.skin || {});
-	const skin = k => Number(skinT[k]) || 0;
-	const limit = stats.weight + got('weight') + gem('weight') + skin('weight') + petWeight(setup.ship);
+	if (!setup || !shipStats[setup.ship]) return null;
+	const me = shipFrom(setup);
 	return {
 		ship: setup.ship,
 		skinned: Object.values(setup.skin || {}).filter(Boolean).length,
-		fittedCount: Object.values(setup.fitted || {}).filter(Boolean).length,
-		slots: stats.slots,
-		seated: Object.keys(setup.seats || {}).length,
-		crystal: c ? c.name : null,
-		speed: round1(stats.speed + got('speed') + gem('speed') + crew.speed + mastery + skin('speed')),
-		hold: Math.max(0, limit - crew.weight - gear),
-		durability: stats.durability + got('durability') + gem('durability') + crew.durability + skin('durability')
+		fittedCount: me.fit.slots.filter(sl => sl.part).length,
+		slots: me.stats.slots,
+		seated: me.crew.seated,
+		crystal: me.crystal ? me.crystal.name : null,
+		speed: me.speed.total,
+		hold: me.hold.free,
+		durability: me.durability
 	};
 }
 
@@ -522,7 +640,7 @@ export function saveSetup(name) {
 	const cur = currentSetup();
 	all[id] = { name: clean, ship: cur.ship, ...(Object.keys(cur.fitted).length ? { fitted: cur.fitted } : {}), ...(cur.crystal ? { crystal: cur.crystal } : {}), ...(Object.keys(cur.seats).length ? { seats: cur.seats } : {}), ...(Object.keys(cur.skin).length ? { skin: cur.skin } : {}) };
 	const gained = store.getStock(cur.ship) > 0 ? {} : { [cur.ship]: 1 };
-	store.applyDelta(gained, 'profile', `Kept "${clean}"${gained[cur.ship] ? ` and put the ${cur.ship} in the hold` : ''}`, { setups: all });
+	store.applyDelta(gained, 'profile', gained[cur.ship] ? T('Kept "{name}" and put the {ship} in the hold', { name: clean, ship: gameName(cur.ship) }) : T('Kept "{name}"', { name: clean }), { setups: all });
 	return id;
 }
 
@@ -578,7 +696,7 @@ export function loadSetup(id) {
 		seats: Object.keys(seats).length ? seats : null,
 		skins: Object.keys(skins).length ? skins : null,
 		crewShip: s.ship
-	}, `Sailed the setup "${s.name}"`);
+	}, T('Sailed the setup "{name}"', { name: s.name }));
 	return true;
 }
 

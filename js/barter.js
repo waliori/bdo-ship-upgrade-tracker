@@ -23,20 +23,25 @@
 // fold as the dearest thing you can barter for and are never offered
 // as the way to anything else.
 //
-// Trades turn into days through the attempt cap, not through Parley.
-// It is tempting to reach for Parley -- it is the resource with a bar
-// on it -- but a refilled bar buys sixty-nine exchanges at the top rung
-// and the list will never offer you that many, so it is never what
-// stops you. The cap is: an exchange for a Brilliant Pearl Shard can be
-// taken twice before the list has to be redrawn, and the ship-material
-// list -- its own list, with its own free draw and its own presses --
-// can be redrawn three times a day. Forty Shards is therefore twenty
-// redraws, which is a week, and no amount of Parley shortens it.
+// Trades turn into days through the attempt cap, and only then through
+// Parley. A refilled bar buys sixty-nine trade-good exchanges, more
+// than one draw of the list ever offers. A ship-material exchange is
+// dearer -- 61,430 base, about 45,000 after the usual discounts -- so a
+// bar buys some twenty of them, and no material exchange allows more
+// than four attempts a draw: one material's draw never runs the bar
+// dry either. (Several materials on the same draw could; the forecast
+// paces each material on draws of its own, which never stacks them,
+// and `bottleneck` caps a draw at what the bar pays for regardless.)
+// The cap is what stops you: an exchange for a Brilliant Pearl Shard
+// can be taken twice before the list has to be redrawn, and the
+// ship-material list -- its own list, with its own free draw and its
+// own presses -- can be redrawn three times a day. Forty Shards is
+// therefore twenty redraws, which is a week.
 //
-// Every number here is read from a patch note or folded out of the
-// barter data, and where the game has not published something it is
-// left out rather than guessed at. Parley is priced for the top rung
-// only, because that is the only rung Pearl Abyss has ever priced.
+// Every number here is read from a patch note, the client's own barter
+// tables or the barter data, and where the game says nothing it is left
+// out rather than guessed at. Each exchange's base Parley is in the
+// client's tables (barter_game.js), every rung of every ladder.
 //
 // What is deliberately not modelled: whether the route you want is on
 // today's list. It is redrawn at random from a pool whose weights are
@@ -46,6 +51,8 @@
 
 import { oddsFor, oddsText } from './barter-odds.js';
 import { npcs } from './barter_npcs.js';
+import { T, gameName } from './i18n.js';
+import { F } from './fmt.js';
 
 /* ------------------------------------------------------------------ *
  * the game's numbers
@@ -68,7 +75,8 @@ import { npcs } from './barter_npcs.js';
 export const REFRESH = {
 	points: 100,
 	pointsWithValuePack: 150,
-	refillHourUTC: 6,
+	// The refresh points come back at the barter reset, which is
+	// BARTER_RESET_UTC in clock.js -- kept there and only there.
 	cooldownHours: 2,
 
 	// Costs escalate with each press of the day, hence the arrays.
@@ -90,12 +98,12 @@ export const REFRESH = {
  * existing trades and standardized the costs across both trade goods
  * and Crow Coins."
  *
- * Read the scope carefully, because it is narrower than it looks. The
- * patch prices exactly two things -- a Crow Coin exchange, and the
- * [Great Ocean] goods that buy ship materials -- and says it adjusted
- * "certain Barter exchanges". What a [Level 2] costs was not published
- * then and has not been since, so nothing here is multiplied up the
- * ladder. These are the top rung's price and are quoted as such.
+ * The patch named two prices, and the client's own barter tables
+ * (baked into barter_game.js, one base a exchange) bear them out and
+ * fill in the rest: 14,286 on every normal trade whatever its rung,
+ * 21,650 on a Crow Coin exchange, 61,430 on a ship material and 29,430
+ * on a material paid in coins. The chain planner reads each exchange's
+ * own base; these are the same figures by kind, for the forecasts.
  */
 export const PARLEY = {
 	max: 1000000,
@@ -107,9 +115,9 @@ export const PARLEY = {
 	// (-16.12%) with a Value Pack (-10%), and only a base of 61,430
 	// floors to that under the additive discount -- reassuringly round.
 	perMaterialTrade: 61430,
-	// Value Pack; a crewed ship's own Parley reduction stacks another
-	// 10% on top since 2025-03-06, which the Barter Information window
-	// shows -- modelled as the opt-in `crew` flag, off by default.
+	// Value Pack; and Cleia seated as First Mate takes another 10% off
+	// (sailors.js), which the Barter Information window shows -- passed
+	// in as the `crew` flag when she is aboard.
 	valuePackDiscount: 0.1,
 	crewDiscount: 0.1,
 	voucher: 250000
@@ -152,12 +160,15 @@ export const ROUTE_UNLOCKS = [
 	{ barters: 20000, opens: "Margoria's Star — Shipwrecked Marine Vessel" }
 ];
 
+/** The count the Brilliant pair opens at, read off the table above so
+ *  the two can never disagree. */
+export const BRILLIANT_GATE = ROUTE_UNLOCKS.find(r => /Brilliant/.test(r.opens || '')).barters;
+
 // The coastal barterers who deal the [Level 6] and [Level 7] goods are
-// not on this table, and deliberately: no patch note in hand states a
-// barter count that opens them, and the 2026-08-29 table lists their
-// exchanges without one. Until a threshold is published they are
-// treated as open -- guessing a gate would grey out a route that a
-// player can sail to today.
+// not on this table: no patch note states a count that opens them. The
+// client's own tables gate their exchanges one by one instead, and the
+// bake carries those gates (barter-layouts.js filters the board by
+// them), so nothing here needs to.
 
 /**
  * Which barterer each threshold opens: npc id -> the count that opens
@@ -324,8 +335,8 @@ export const BARTER_TIERS = [
  * two. From Guru 50 it stops entirely at 25.27%, so the table ends there
  * and everything above reads the last value.
  *
- * This stacks with the Value Pack's 10% and, since 2025-03-06, a ship's
- * own 10% while you are aboard.
+ * This stacks with the Value Pack's 10% and the 10% Cleia takes off
+ * from the First Mate's seat.
  *
  * Checked 2026-09-07 against GrumpyG's Parley chart
  * (grumpygreen.cricket/bdo-barter-sailing), which lists the same value
@@ -408,10 +419,19 @@ const LEVEL = /^\[Level (\d)\]/;
 /** The top rung of the trade chain, as the table stands. */
 export const TOP_LEVEL = 7;
 
-/** The tier of a sea trade good, or null for a ship material. */
+/** The tier of a sea trade good, or null for a ship material. Asked
+ *  of every good at every weighing of a hold, so the answer is kept
+ *  by name: there are a few hundred names and the regex is the cost. */
+const LEVELS = new Map();
 export function levelOf(name) {
-	const m = LEVEL.exec(name || '');
-	return m ? Number(m[1]) : null;
+	const key = name || '';
+	let lv = LEVELS.get(key);
+	if (lv === undefined) {
+		const m = LEVEL.exec(key);
+		lv = m ? Number(m[1]) : null;
+		LEVELS.set(key, lv);
+	}
+	return lv;
 }
 
 /**
@@ -597,46 +617,6 @@ function countNpcs(item, barterData) {
 }
 
 /**
- * What a life of bartering adds to every exchange.
- *
- * Read out of the client's own `variedtradecount.bss` on 2026-09-14
- * (`PABR`, six records of three u64s: the first count in the band, the
- * last, and the percent). It is the one thing the total barter count
- * does besides opening routes, and the app had no idea it existed --
- * every coin figure it has ever shown a sailor past 2,500 barters was a
- * third short.
- *
- * The bands are wide and the last one is open: 2,501 barters is the end
- * of the ladder, and the jump there is ten points rather than five.
- */
-export const TRADE_COUNT_BONUS = [
-	{ from: 0, to: 500, pct: 0 },
-	{ from: 501, to: 1000, pct: 5 },
-	{ from: 1001, to: 1500, pct: 10 },
-	{ from: 1501, to: 2000, pct: 15 },
-	{ from: 2001, to: 2500, pct: 20 },
-	{ from: 2501, to: Infinity, pct: 30 }
-];
-
-/**
- * The percent a sailor's barter count adds, and the band it sits in.
- *
- * A count nobody has stated is nought here, not a guess: showing a
- * sailor who has not said what they have bartered a number a third
- * larger than the exchange window promises would be a lie in the
- * hopeful direction.
- */
-export function countBonus(barterCount) {
-	const n = Number.isFinite(barterCount) && barterCount > 0 ? barterCount : 0;
-	const band = TRADE_COUNT_BONUS.find(b => n >= b.from && n <= b.to) || TRADE_COUNT_BONUS[0];
-	const next = TRADE_COUNT_BONUS.find(b => b.from > n) || null;
-	return { pct: band.pct, band, next, count: n };
-}
-
-/** `n` with the barter-count bonus on it, as the purse will see it. */
-export const withBonus = (n, pct) => Math.floor(n * (1 + pct / 100));
-
-/**
  * What a trade good is worth on its own -- what it weighs, and what a
  * barterer pays for it in silver. Read off the goods' item pages on
  * 2026-08-29: the first two levels cannot be sold at all, and the two
@@ -655,6 +635,63 @@ export const GOODS = {
 };
 
 /**
+ * The goods a barterer pays for at their own price, not their level's.
+ *
+ * The five [Great Ocean] goods are [Level 5]s by name and weight, but a
+ * barterer pays 25,000,000 for each, not a [Level 5]'s ten million; and
+ * the three rare pays of the trade board carry no level at all, so they
+ * read as worth nothing. Checked on BDOCodex 2026-10-01 (items 800071-
+ * 800075, 45151-45153). Keyed by the app's names: the Great Ocean goods
+ * as "[Level 5] ...", as appName in barter-layouts.js writes them.
+ */
+export const SELL_PRICES = {
+	"[Level 5] Opulent Coral Trinket": 25000000,
+	"[Level 5] Cox Pirates' Journal": 25000000,
+	'[Level 5] Rust Repair Tool': 25000000,
+	'[Level 5] Otters Fish Hook': 25000000,
+	'[Level 5] Observatory Report': 25000000,
+	'Golden Galley Figurine': 100000000,
+	'Elaborate Pearl Necklace': 30000000,
+	'Obsidian Crystal Bracelet': 50000000
+};
+/** The rare pays weigh a tenth of an LT, as jewellery does. */
+export const RARE_WEIGHT = 0.1;
+
+/** Whether a good is one of the five [Great Ocean] goods: a [Level 5]
+ *  by name in the app (or the game's own "[Great Ocean] ..." name) with
+ *  a price of its own. */
+export function isGreatOcean(name) {
+	const key = name || '';
+	return key.startsWith('[Great Ocean]') || (levelOf(key) === 5 && SELL_PRICES[key] !== undefined);
+}
+
+/**
+ * Where a good stands among the others, for every order the planner
+ * keeps -- what to sell first and what to keep, what to load first, the
+ * tie-breaks, the orders' "sell from Level N": its level, except that a
+ * [Great Ocean] good stands above a [Level 5] and below a [Level 6]
+ * (5.5). It is worth more than a [Level 5], but nobody runs them any
+ * more, so it is never put ahead of a [Level 6] or [Level 7] (the
+ * owner's ruling, 2026-10-01). The rare pays carry no level and sell as
+ * a [Level 7] does; anything else that is not a trade good is 0.
+ */
+export function rankOf(name) {
+	if (isGreatOcean(name)) return 5.5;
+	const lv = levelOf(name);
+	if (lv !== null) return lv;
+	return SELL_PRICES[name] !== undefined ? TOP_LEVEL : 0;
+}
+
+/** What a barterer pays for a good: its own price where it has one,
+ *  else its level's; 0 for the unsellable levels and for anything that
+ *  is not a good. */
+export function goodSell(name) {
+	if (SELL_PRICES[name] !== undefined) return SELL_PRICES[name];
+	const lv = levelOf(name);
+	return lv && GOODS[lv] ? GOODS[lv].sell : 0;
+}
+
+/**
  * What the top rung of a ladder hands over for `qty` of the item: how
  * many of which good, what they weigh, and what selling them instead
  * would have paid. Null when the exchange is paid in something that
@@ -670,7 +707,7 @@ export function handedOver(top, qty = 1) {
 		level,
 		count,
 		weight: count * GOODS[level].weight,
-		worth: count * GOODS[level].sell
+		worth: count * goodSell(top.give)
 	};
 }
 
@@ -699,11 +736,13 @@ export function rungs(step) {
  * lists' full run of presses (the identity noted on REFRESH), so each
  * list is quoted at its whole allowance.
  *
- * Parley rides along as information rather than as a limit. It refills
- * on every press, and a full bar buys sixty-nine exchanges at the top
- * rung -- far more of them than the list will ever offer in one draw --
- * so it has never been what stops anybody. Quoting it as a ceiling
- * would also mean pricing rungs the patch notes have never priced.
+ * Parley refills on every press. A full bar buys sixty-nine trade-good
+ * exchanges -- more than one draw ever offers -- but only some twenty
+ * ship-material ones, at their dearer rate. `perBar` says how many of
+ * each kind a bar pays for, and `bottleneck` holds a draw to it; one
+ * material never comes near (four attempts a draw at most), and the
+ * forecasts pace each material on draws of its own, so it binds only
+ * where a caller stacks several on one draw.
  *
  * Instant refreshes are deliberately left out. They are bought with the
  * same point pool the ordinary presses spend, so a player who leans on
@@ -728,6 +767,12 @@ export function dailyCapacity({ valuePack = false, vouchers = 0, level = null, c
 		vouchers,
 		parley: refreshes * bar,
 		perTrade,
+		// Exchanges of each kind one bar pays for, vouchers included.
+		perBar: {
+			trade: Math.floor(bar / perTrade),
+			coin: Math.floor(bar / parleyPerTrade({ valuePack, level, crew, kind: 'coin' })),
+			material: Math.floor(bar / parleyPerTrade({ valuePack, level, crew, kind: 'material' }))
+		},
 		// Top-rung exchanges one refill covers, vouchers included. A
 		// voucher is a quarter of a bar and carries its own two-hour
 		// cooldown, so this is what a patient player can reach rather
@@ -756,10 +801,17 @@ export function parleyPerTrade({ valuePack = false, crowCoin = false, level = nu
 	const base = kind === 'material' ? PARLEY.perMaterialTrade
 		: (crowCoin || kind === 'coin') ? PARLEY.perCrowCoinTrade
 		: PARLEY.perGreatOceanTrade;
+	return Math.floor(base * parleyRate({ valuePack, level, crew }));
+}
+
+/** What the sailor pays of an exchange's base Parley: one less the
+ *  discounts, added together. An exchange's own base -- the game's
+ *  table has one for each -- times this, floored, is its price. */
+export function parleyRate({ valuePack = false, level = null, crew = false } = {}) {
 	const off = levelDiscount(level)
 		+ (valuePack ? PARLEY.valuePackDiscount : 0)
 		+ (crew ? PARLEY.crewDiscount : 0);
-	return Math.floor(base * Math.max(0, 1 - off));
+	return Math.max(0, 1 - off);
 }
 
 /* ------------------------------------------------------------------ *
@@ -821,7 +873,7 @@ export function triesFor(item, stated) {
  * keeps the old figure as what the trip takes if the sea is kind.
  * Without it the two are equal and the behaviour is exactly as before.
  */
-export function bottleneck(top, qty, lists = null, odds = null) {
+export function bottleneck(top, qty, lists = null, odds = null, perBar = null) {
 	const pace = lists || {
 		trade: 1 + REFRESH.tradeItem.perDay,
 		material: 1 + REFRESH.shipMaterial.perDay
@@ -830,14 +882,22 @@ export function bottleneck(top, qty, lists = null, odds = null) {
 	let needed = qty;
 
 	for (let r = top; r; r = r.from) {
-		const attempts = triesFor(r.item, r.attempts);
-		const list = exchangeKind(r.item) === 'material' ? 'material' : 'trade';
+		const kind = exchangeKind(r.item);
+		// A draw deals no more than the bar pays for: the attempts, or the
+		// exchanges a refilled bar buys, whichever runs out first.
+		const paid = perBar && perBar[kind] > 0 ? perBar[kind] : Infinity;
+		const attempts = Math.min(triesFor(r.item, r.attempts), paid);
+		const list = kind === 'material' ? 'material' : 'trade';
 		const chance = oddsFor(r.item, odds);
 		const perRefresh = attempts * r.received;
 		const bestRefreshes = needed / perRefresh;
 		// A draw the exchange is absent from buys nothing, so the draws
 		// needed are the best case over the share of draws it is on.
-		const refreshes = bestRefreshes / (chance.per > 0 ? chance.per : 1);
+		// A material the trade board also deals: a day's trade refreshes
+		// count for it too, at their own odds -- said as the material
+		// list's refreshes it would take, both lists together.
+		const trade = list === 'material' && chance.alsoTrade && pace.material > 0 ? chance.alsoTrade.per * (pace.trade || 0) / pace.material : 0;
+		const refreshes = bestRefreshes / ((chance.per > 0 ? chance.per : trade > 0 ? 0 : 1) + trade);
 		const days = refreshes / pace[list];
 		// The scarcest rung is the one that paces the climb, and scarcity
 		// is now part of what makes a rung slow -- a common rung wanted in
@@ -871,7 +931,7 @@ export function gateFor(item, barterCount, barterData = null) {
 	// the Crow Coin routes at the counts that used to gate levels --
 	// below the first of those a player has no Crow Coin route at all.
 	// The later ones just add islands; they do not lock the coin.
-	if (/^Brilliant /.test(item)) needed = 1500;
+	if (/^Brilliant /.test(item)) needed = BRILLIANT_GATE;
 	if (item === 'Crow Coin') {
 		const first = ROUTE_UNLOCKS.find(r => /Crow Coin/.test(r.opens || ''));
 		if (first) needed = first.barters;
@@ -919,10 +979,9 @@ export function forecast(item, qty, barterData, opts = {}) {
 	const trades = top.totalTrades * qty;
 
 	// The trip is paced by the rung that runs out first, each rung on
-	// its own list's clock. Parley is not that rung and is not modelled
-	// as one -- see dailyCapacity -- so it is priced only where a patch
-	// note prices it: the top exchange.
-	const limit = bottleneck(top, qty, day.lists, odds);
+	// its own list's clock, and no draw dealing more than a bar of Parley
+	// pays for -- see dailyCapacity.
+	const limit = bottleneck(top, qty, day.lists, odds, day.perBar);
 	const days = limit ? limit.days : 0;
 
 	// Every rung is checked, not just the one asked for: a ladder can
@@ -951,8 +1010,7 @@ export function forecast(item, qty, barterData, opts = {}) {
 		scarcest,
 		limit,
 		perUnit: top.totalTrades,
-		// What the top rung alone costs in Parley, which is the only
-		// rung the game has published a price for -- at the rate of the
+		// What the top rung alone costs in Parley -- at the rate of the
 		// exchange it actually is: a ship material at the material
 		// list's dearer flat rate, Crow Coin at its own, the chain at
 		// the Great Ocean one. The Get screen and the map already price
@@ -982,11 +1040,13 @@ export function summarise(f) {
 	if (f.gate) {
 		// Naming the door is the point: "2,520 more barters" is a wall,
 		// "2,520 more open the Wandering Merchant's Ship" is a plan.
-		const opens = f.gate.opens ? ` open ${f.gate.opens.replace(/^[^\u2014]*\u2014\s*/, '')}` : ` to reach ${fmt(f.gate.barters)}`;
-		return `locked — ${fmt(f.gate.short)} more barters${opens}`;
+		return f.gate.opens
+			? T('locked — {n} more barters open {place}', { n: fmt(f.gate.short), place: f.gate.opens.replace(/^[^\u2014]*\u2014\s*/, '') })
+			: T('locked — {n} more barters to reach {total}', { n: fmt(f.gate.short), total: fmt(f.gate.barters) });
 	}
 
-	const trades = `${fmt(Math.ceil(f.trades))} ${Math.ceil(f.trades) === 1 ? 'trade' : 'trades'}`;
+	const count = Math.ceil(f.trades);
+	const trades = count === 1 ? T('{n} trade', { n: fmt(count) }) : T('{n} trades', { n: fmt(count) });
 	const days = Math.ceil(f.days);
 	const best = Math.ceil(f.bestDays || f.days);
 
@@ -995,12 +1055,14 @@ export function summarise(f) {
 	// second what a kind sea would allow. Where they agree there is
 	// nothing to add, and the sentence reads as it always did.
 	if (days > best) {
-		const span = days === 1 ? 'about a day' : `about ${fmt(days)} days`;
-		return `${trades} — ${span}, ${best <= 1 ? 'one' : fmt(best)} if the offer is always up`;
+		const span = days === 1 ? T('about a day') : T('about {n} days', { n: fmt(days) });
+		return best <= 1
+			? T('{trades} — {span}, one if the offer is always up', { trades, span })
+			: T('{trades} — {span}, {n} if the offer is always up', { trades, span, n: fmt(best) });
 	}
-	if (f.days < 0.5) return `${trades} — one sitting`;
-	if (days <= 1) return `${trades} — a day's sailing at best`;
-	return `${trades} — ${fmt(days)} days at best`;
+	if (f.days < 0.5) return T('{trades} — one sitting', { trades });
+	if (days <= 1) return T('{trades} — a day\'s sailing at best', { trades });
+	return T('{trades} — {n} days at best', { trades, n: fmt(days) });
 }
 
 /** Why the forecast lands where it does, for the row that wants detail. */
@@ -1010,8 +1072,9 @@ export function explain(f) {
 	// Naming the rung is only worth the words when it is not the thing
 	// you asked for -- being told that Brilliant Pearl Shards are
 	// limited by Brilliant Pearl Shards teaches nobody anything.
-	const where = f.limit.item === f.item ? '' : ` on ${f.limit.item}`;
-	const pace = `${fmt(f.limit.perRefresh)} a refresh${where}, ${f.capacity.lists[f.limit.list]} refreshes of its list a day`;
+	const pace = f.limit.item === f.item
+		? T('{n} a refresh, {lists} refreshes of its list a day', { n: fmt(f.limit.perRefresh), lists: f.capacity.lists[f.limit.list] })
+		: T('{n} a refresh on {item}, {lists} refreshes of its list a day', { n: fmt(f.limit.perRefresh), item: gameName(f.limit.item), lists: f.capacity.lists[f.limit.list] });
 	const seen = f.limit.odds && f.limit.odds.recorded && f.limit.odds.per < 1
 		? ` · ${oddsText(f.limit.odds)}`
 		: '';
@@ -1019,5 +1082,5 @@ export function explain(f) {
 }
 
 function fmt(n) {
-	return Math.round(n).toLocaleString('en-GB');
+	return F(n);
 }

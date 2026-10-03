@@ -77,11 +77,13 @@ test('a save from before the field leaves the profile alone', () => {
 	reset();
 	store.setProfile('barterCount', 2000);
 	store.setProfile('valuePack', true);
+	store.setProfile('corsair', true);
 
 	store.adopt({ ...SAVE, stock: { Silver: 5 } }, 'from an older device');
 
 	assert.equal(store.getProfile('barterCount'), 2000);
 	assert.equal(store.getProfile('valuePack'), true);
+	assert.equal(store.getProfile('corsair'), true, 'the class at the wheel rides along with the pack');
 	assert.equal(store.getStock('Silver'), 5, 'the rest of the save still lands');
 });
 
@@ -302,4 +304,36 @@ test('the exchanges a barterer would not make are kept with the count the sailor
 	assert.equal(kept[kept.length - 1].npcId, 260);
 	// A save written before any of this is unchanged by it.
 	assert.equal('shutOffers' in readProfile({}), false);
+});
+
+test('the Parley written down stands until it is changed, and carries no day', async () => {
+	// The bar refills on a Barter Refresh, never at the 06:00 reset, so
+	// the day older saves stamped beside it means nothing: dropped on read.
+	assert.deepEqual(readProfile({ parleyHeld: 250000, parleyDay: '2026-09-30' }), { parleyHeld: 250000 });
+	assert.equal('parleyDay' in readProfile({ parleyDay: '2026-09-30' }), false);
+
+	// Read back through the profile the whole app plans with: the figure
+	// stands whatever day it was written on. A board carried over from
+	// yesterday carries its bar; only a refresh fills it.
+	const store = await import('../js/state.js');
+	const { barterProfile } = await import('../js/ui-state.js');
+	store.setProfileMany({ parleyHeld: 250000, parleyDay: '1999-01-01' });
+	assert.equal(barterProfile().parleyHeld, 250000, 'a figure from an earlier barter day still stands');
+	assert.equal('parleyDay' in store.saveShape().profile, false);
+});
+
+test('an island\'s four keep their count, and a count that is not a count is dropped', () => {
+	const p = readProfile({ sevens: {
+		58974: { item: '[Level 7] Golden Eagle Brooch', day: '2026-09-22', seen: { '[Level 7] Golden Eagle Brooch': 3, "[Level 7] Calpheon Knights' Combat Manual": 1, junk: -2, more: 'x' } },
+		58975: { item: '[Level 7] Golden Eagle Brooch', day: '2026-09-21' }
+	} });
+	assert.deepEqual(p.sevens[58974].seen, { '[Level 7] Golden Eagle Brooch': 3, "[Level 7] Calpheon Knights' Combat Manual": 1 });
+	assert.equal(p.sevens[58975].seen, undefined, 'an older save, with only the last one paid, reads as it was');
+});
+
+test('the bag as a second hold keeps whether it is on and the Inventory window\'s two bars, and nothing else', () => {
+	assert.deepEqual(readProfile({ bag: { on: true, now: 1628.74, max: 2779.6, used: 134, slots: 192 } }).bag, { on: true, now: 1628.7, max: 2779, used: 134, slots: 192 });
+	assert.deepEqual(readProfile({ bag: { on: 'yes', now: -5, max: 'x', extra: 1 } }).bag, { on: false, now: 0, max: 0, used: 0, slots: 0 });
+	assert.deepEqual(readProfile({ bag: { on: true, max: 1e9, slots: 5000 } }).bag, { on: true, now: 0, max: 99999, used: 0, slots: 999 });
+	assert.equal('bag' in readProfile({ bag: 'full' }), false);
 });

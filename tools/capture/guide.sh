@@ -3,7 +3,7 @@
 # narration under each and write its captions.
 #
 #   PORT=8765 node server.js &
-#   ./tools/capture/guide.sh                 # all seven
+#   ./tools/capture/guide.sh                 # every chapter
 #   ./tools/capture/guide.sh the-chart       # just one
 #
 # Re-rendering after a wording change is the cheap path and the one this
@@ -37,9 +37,11 @@ RAW=tools/capture/out/guide
 OUT=docs/media/guide
 mkdir -p "$RAW" "$OUT"
 
+# The running order lives in guide-kit.mjs, beside the chapters.
+mapfile -t ALL < <(node -e "import('./tools/capture/guide-kit.mjs').then(m => console.log(m.ORDER.join('\\n')))")
 CHAPTERS=("$@")
 if [ ${#CHAPTERS[@]} -eq 0 ]; then
-	CHAPTERS=(the-yard to-get quests your-ship the-map a-run the-harbour)
+	CHAPTERS=("${ALL[@]}")
 fi
 
 # Shot and mixed one at a time, rather than every shoot and then every
@@ -52,19 +54,19 @@ for name in "${CHAPTERS[@]}"; do
 	node tools/capture/mix.mjs "$RAW/$name" "$OUT"
 done
 
-# The seven end to end, as the README's walkthrough and the film the app
-# plays under Help. Rebuilt whenever all seven are on disk, so re-shooting
+# All of them end to end, as the README's walkthrough and the film the app
+# plays under Help. Rebuilt whenever every chapter is on disk, so re-shooting
 # one chapter replaces it in the joined cut too -- there is no separate
 # thing to remember to re-render.
 missing=0
-for name in the-yard to-get quests your-ship the-map a-run the-harbour; do
+for name in "${ALL[@]}"; do
 	[ -f "$OUT/$name.mp4" ] || missing=1
 done
 if [ "$missing" -eq 0 ]; then
 	echo "== the whole film"
 	node tools/capture/join.mjs "$OUT" docs/media/walkthrough
 else
-	echo "== skipping the joined film: not all seven chapters are shot yet"
+	echo "== skipping the joined film: not every chapter is shot yet"
 fi
 
 echo "done -- $OUT"

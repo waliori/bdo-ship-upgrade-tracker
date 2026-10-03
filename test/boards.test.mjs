@@ -25,6 +25,9 @@ process.env.SESSION_SECRET = 'test-secret-key-for-signing-sessions';
 process.env.FLUSH_DELAY_MS = '0';
 process.env.ADMIN_IDS = '3001';
 
+// Market prices from a recorded answer, never the live Market, so a run
+// plans the same on any day (see server/market.js).
+process.env.MARKET_FIXTURE = new URL('./fixtures/market.json', import.meta.url).href;
 const app = (await import('../server.js')).default;
 const { startSession } = await import('../server/session.js');
 const { upsertUser, insertSighting } = await import('../server/db.js');
@@ -188,4 +191,19 @@ test('a reading is kept two months as evidence, and swept after that', async () 
 	const left = (await (await call('GET', '/api/boards?days=60')).json()).boards.map(b => b.id);
 	assert.equal(left.includes(kept), true);
 	assert.equal(left.includes(gone), false);
+});
+
+test('the material list is not kept: a reading of it is refused in words, and the old ones are swept', async () => {
+	// It is one of the game's own layouts now, and nothing in the app
+	// sends a reading of it. A page that has not reloaded still might.
+	const mat = { day: DAY, list: 'material', layout: '16', offers: [[isle(9), '[Level 3] Round Knife', '1', 'Pure Pearl Crystal']] };
+	const sent = await call('POST', '/api/boards', { cookie: deckhand, body: mat });
+	assert.equal(sent.status, 400);
+	assert.match((await sent.json()).error, /material list/);
+	assert.deepEqual((await (await call('GET', '/api/boards?list=material')).json()).boards, []);
+	// What was kept of it before goes at the next sweep, however new.
+	const old = await insertSighting('3001', { day: DAY, list: 'material', layout: null, offers: [[isle(11), 'x', '1', 'y']] });
+	await sweep();
+	const { getSightingById } = await import('../server/db.js');
+	assert.equal(await getSightingById(old), null);
 });

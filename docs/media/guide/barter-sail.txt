@@ -1,0 +1,36 @@
+Bartering, part four. Under sail: one stop at a time, and the trip recorded at the end.
+Light and fast from Iliya, on a bar just refilled, with everything the run needs ticked aboard.
+Before you cast off, the clock’s chimes. A ship’s bell by default — click it to hear the next sound: three beeps, or none.
+"Notify me too" asks the browser for a notification as well, so a chime lands while the game has the screen. Signed in, a chip beside it sends the chimes to every device on your account.
+Click "Cast off".
+The ship sets sail. The clock starts at this run’s own estimate, and the tab moves to the third step: one stop at a time.
+This bar is the clock: the time to the next stop, and which stop it is.
+It chimes at each stop — a pair of bells as each comes up, and eight bells at the end — or only once, for the whole run.
+"Again" starts it over from now; "stop" puts it away.
+The stop, in letters you can read across the room: the island, what you hand over, what you get back, and how many times.
+Under it: the hold before and after, the Parley, and the rations.
+If the Parley in the game differs, type what the game shows here, and the rest of the run is counted from it.
+Trade in the game, then press Traded. The stop is written into the hold, and the next one comes up.
+If you traded a different number of times, say so under it.
+The hold, as it stands now and after this stop, with its slots.
+"Time my legs" adds an Arrived button: press it as the ship reaches each island. After five legs, the clock uses your ship’s own speed.
+Arrived.
+The stop opens in glance mode, large. "Full view" brings the rest of the cockpit round it; "Glance mode" goes back.
+"On the chart" opens the run on the Map, with the same checklist beside it.
+Every stop is a numbered pin with the route drawn between them. The side panel carries the same stop and clock, and the strip at the foot steps through the legs.
+Back to the Barter tab.
+Finished sailing and did not tick as you went? Click "All done".
+Tick off every stop and every quest handed in, at once.
+Stops that pay a range are left for you, because only you saw what they paid.
+Tap what each one paid, one after another. Each answer lays the rest of the run again, so the results add up to what you really got.
+Paid more than the least, the run carries more goods, so it can grow by a few stops further on. Those are ticked the same way.
+The results: stops, the trades made and your new Total Barters, the silver, the Parley spent and the time under way.
+The exchange, as recording will write it: what you handed over, and what you received.
+Click "Record the trip".
+The Parley, Total Barters, the quests and the log move together, as one change.
+So one Undo takes the whole trip back…
+…and Redo puts it back again.
+Below, today’s boards: every run since the refill, what it loaded and what it came back with, and the day’s totals.
+What to load for the next board is not guessed: a refresh deals a different board, so it waits until you have read it.
+The week, run by run, and every past run with all its stops.
+That is a whole run. The next parts sail the same board for other things: a stock, Crow Coins, a material.

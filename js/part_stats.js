@@ -21,6 +21,9 @@
 // 18. Small beside a sailor's 200, but it is the difference between the
 // figure here and the one the ship's own window shows.
 
+import { T, TT, said } from './i18n.js';
+import { F, FD } from './fmt.js';
+
 export const partStats = {
 	"Bartali Sailboat: Old Cannon": { id: 49760, lt: 3, levels: [
 		{"durability": 300, "damage": 156, "hits": 1},
@@ -1017,9 +1020,9 @@ export function gainAt(part, fromLevel) {
 }
 
 const LABEL = {
-	speed: ['speed', '%'], accel: ['accel', '%'], turn: ['turn', '%'], brake: ['brake', '%'],
-	dp: ['DP', ''], drr: ['damage reduction', '%'], weight: ['weight', ' LT'], rations: ['rations', ''],
-	durability: ['durability', ''], damage: ['cannon damage', ''], hits: ['hits', ''], reload: ['reload', ' s faster']
+	speed: [TT('speed'), '%'], accel: [TT('accel'), '%'], turn: [TT('turn'), '%'], brake: [TT('brake'), '%'],
+	dp: [TT('DP'), ''], drr: [TT('damage reduction'), '%'], weight: [TT('weight'), ' LT'], rations: [TT('rations'), ''],
+	durability: [TT('durability'), ''], damage: [TT('cannon damage'), ''], hits: [TT('hits'), ''], reload: [TT('reload'), TT(' s faster')]
 };
 
 /** "speed +1%, DP +2, 250 LT" -- a stat bag said out loud, deltas signed. */
@@ -1030,8 +1033,8 @@ export function describeStats(stats, { signed = true } = {}) {
 		const v = stats[k];
 		if (!v) continue;
 		const [name, unit] = LABEL[k];
-		const n = Math.abs(v) >= 1000 ? Math.round(v).toLocaleString() : String(v);
-		bits.push(k === 'hits' ? `×${n} hits` : `${name} ${signed && v > 0 ? '+' : ''}${n}${unit}`);
+		const n = Math.abs(v) >= 1000 ? F(v) : FD(v, 3);
+		bits.push(k === 'hits' ? T('×{n} hits', { n }) : `${said(name)} ${signed && v > 0 ? '+' : ''}${n}${unit ? said(unit) : ''}`);
 	}
 	return bits.join(', ');
 }

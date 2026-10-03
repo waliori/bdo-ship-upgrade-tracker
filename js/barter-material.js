@@ -7,13 +7,18 @@
 // The hold is the constraint. The gives an island takes weigh a
 // thousand a piece and the materials they pay weigh nothing, so a run
 // leaves heavy and comes back light -- and a hold cannot always carry
-// every give at once. Two paces. 'fast' sails once, loaded to the
-// limit the ship still sails at full speed under, and what does not
-// fit stays ashore and says so. 'full' sails everything ticked: what
-// the run will not spend is left in storage to make room, the hold is
-// loaded to the barter ceiling, and when the gives still do not fit
-// the run goes out in several departures, back to the harbour for the
-// rest between them.
+// every give at once. The run sails everything ticked: what it will
+// not spend is left in storage to make room, and when the gives do not
+// fit the run goes out in several departures, back to the harbour for
+// the rest between them, each loaded to the limit -- the most the game
+// lets a wharf put aboard. Only an island whose gives would not fit an
+// empty hold stays ashore.
+//
+// And the Parley: a material exchange costs three times a trade good's,
+// so a bar and its vouchers run out long before most wants are met.
+// Given `parley` -- { budget, costOf(exchange) } -- the run deals no
+// more than the bar and the vouchers pay for, the best rates first, and
+// says how many trades it went without.
 //
 // Not every give is a trade good. A few islands take a Gold Bar 100G,
 // which is bought ashore before casting off, and a few take a ship
@@ -29,82 +34,18 @@
 //
 // Pure: the ticked exchanges, the wants, what is held where, the hold
 // and the harbours come in; the stops in sailing order go out.
-// Distances are straight lines, which is enough to order the stops;
-// the screen bends the legs round the land.
+// Distances are by water, from the route module's table; the screen
+// bends the legs round the land the same way.
 
 import { levelOf } from './barter.js';
-import { goodsHeld, weightHeld, weightOf } from './barter-plan.js';
+import { goodsHeld, weightHeld, weightOf, slotsHeld, slotFit } from './barter-plan.js';
 import { isLandGood } from './land_goods.js';
+import { seaDist, tour } from './barter-route.js';
 
-const dist = (a, b) => (a && b ? Math.hypot(a.x - b.x, a.y - b.y) : 0);
+const dist = seaDist;
 
-/**
- * The shortest way through `points` ({ x, y }), as an order of their
- * indices: from `start` when given, ending at `end` when given, else
- * wherever it ends. Nearest-first for a beginning, then the path is
- * untangled two edges at a time until nothing shortens it -- for the
- * dozen or two islands a day ticks, that is as good as exact.
- */
-export function tour(points, { start = null, end = null } = {}) {
-	const n = points.length;
-	if (n < 2) return points.map((_, i) => i);
-	const d = (i, j) => dist(points[i], points[j]);
-	// The path's cost with its fixed ends, if any.
-	const cost = path => {
-		let c = start ? dist(start, points[path[0]]) : 0;
-		for (let k = 1; k < path.length; k++) c += d(path[k - 1], path[k]);
-		if (end) c += dist(points[path[path.length - 1]], end);
-		return c;
-	};
-	const nearestFrom = first => {
-		const left = new Set(points.map((_, i) => i));
-		const path = [];
-		let at = first === null ? null : first;
-		if (at !== null) { path.push(at); left.delete(at); }
-		while (left.size) {
-			let best = -1, bd = Infinity;
-			for (const i of left) {
-				const dd = at === null ? dist(start, points[i]) : d(at, i);
-				if (dd < bd) { bd = dd; best = i; }
-			}
-			path.push(best); left.delete(best); at = best;
-		}
-		return path;
-	};
-	const untangle = path => {
-		const p = path.slice();
-		let better = true;
-		while (better) {
-			better = false;
-			for (let i = 0; i < p.length - 1; i++) {
-				for (let j = i + 1; j < p.length; j++) {
-					// Reversing p[i..j] swaps the edge into i and the edge out
-					// of j for the edges start->j and i->next.
-					const inOld = i === 0 ? (start ? dist(start, points[p[i]]) : 0) : d(p[i - 1], p[i]);
-					const outOld = j === p.length - 1 ? (end ? dist(points[p[j]], end) : 0) : d(p[j], p[j + 1]);
-					const inNew = i === 0 ? (start ? dist(start, points[p[j]]) : 0) : d(p[i - 1], p[j]);
-					const outNew = j === p.length - 1 ? (end ? dist(points[p[i]], end) : 0) : d(p[i], p[j + 1]);
-					if (inNew + outNew < inOld + outOld - 1e-6) {
-						let a = i, b = j;
-						while (a < b) { [p[a], p[b]] = [p[b], p[a]]; a++; b--; }
-						better = true;
-					}
-				}
-			}
-		}
-		return p;
-	};
-	// With a start the nearest-first beginning is from it; without one
-	// every island is tried as the first stop and the shortest kept.
-	const firsts = start ? [null] : points.map((_, i) => i);
-	let best = null, bc = Infinity;
-	for (const f of firsts) {
-		const p = untangle(nearestFrom(f));
-		const c = cost(p);
-		if (c < bc) { bc = c; best = p; }
-	}
-	return best;
-}
+/** The shortest way through points once each: see barter-route.js. */
+export { tour };
 
 /**
  * The run. `picks` are the exchanges ticked as showing today, rows as
@@ -136,9 +77,18 @@ export function tour(points, { start = null, end = null } = {}) {
  * casting off (`bought`: { item, n, each, how, total }) and their
  * `cost`; how many times the run went back to a harbour (`returns`).
  */
-export function materialRun({ picks = [], wants = new Map(), reach = 'want', pace = 'full', calls = true, buy = true, assume = true, stock = {}, dock = {}, stores = [], bags = {}, prices = {}, hold, start = null, startWharf = null, npcById } = {}) {
+export function materialRun({ picks = [], wants = new Map(), reach = 'want', pace = 'full', calls = true, buy = true, assume = true, stock = {}, dock = {}, stores = [], bags = {}, prices = {}, hold, start = null, startWharf = null, npcById, parley = null, order = 'short', at = null } = {}) {
 	const wantOf = wants instanceof Map ? wants : new Map(Object.entries(wants));
-	const limit = pace === 'fast' ? hold.free : (hold.deal ?? hold.free);
+	// Everything a material run carries is loaded at a wharf, and the game
+	// loads no cargo past the hold's limit -- the barter ceiling is only
+	// ever reached by exchanges, and a material run's exchanges make the
+	// hold lighter. So every departure is loaded to the limit, whatever
+	// the pace.
+	const limit = hold.free;
+	// And the slots: a [Level 5] and up takes one a unit, the rest one a
+	// kind, and a wharf loads nothing into a hold whose slots are full.
+	// Goods recorded aboard past them stay; nothing is added to them.
+	const slotCap = Number.isFinite(hold.slots) && hold.slots >= 0 ? hold.slots : Infinity;
 	const place = x => npcById.get(x.npcId);
 	const isGood = name => levelOf(name) !== null;
 
@@ -184,14 +134,25 @@ export function materialRun({ picks = [], wants = new Map(), reach = 'want', pac
 	const mine = picks.filter(x => wantOf.has(x.item) && npcById.has(x.npcId));
 	const need = new Map(wantOf);
 	const missing = new Map();   // give -> { n, islands }
-	mine.sort((a, b) => Number(availOf(b.give) > 0) - Number(availOf(a.give) > 0) || (b.recv / b.giveN) - (a.recv / a.giveN) || dist(start, place(a)) - dist(start, place(b)));
+	// The best rate first: what a trade brings for what it costs -- the
+	// Parley, when the run has a bar to spend, since that is what runs
+	// out; a coin island on the trade goods list pays as much as one on
+	// the material list for three quarters of the Parley.
+	const rate = x => (parley && parley.costOf(x) > 0 ? x.recv / parley.costOf(x) : x.recv / x.giveN);
+	mine.sort((a, b) => Number(availOf(b.give) > 0) - Number(availOf(a.give) > 0) || rate(b) - rate(a) || dist(start, place(a)) - dist(start, place(b)));
 	const isles = [];
 	const bought = new Map();   // land good -> n
+	let budget = parley ? parley.budget : Infinity;
+	let dry = 0;   // trades the Parley did not pay for
 	for (const x of mine) {
 		const left = need.get(x.item) || 0;
 		const want = reach === 'all' ? x.tries : Math.max(0, Math.ceil(left / x.recvMin - 1e-9));
 		const canPay = Math.floor(availOf(x.give) / x.giveN + 1e-9);
-		const times = Math.min(x.tries, want, canPay);
+		const cost = parley ? parley.costOf(x) : 0;
+		const afford = cost > 0 ? Math.floor(budget / cost + 1e-9) : Infinity;
+		const times = Math.min(x.tries, want, canPay, afford);
+		if (afford < Math.min(x.tries, want, canPay)) dry += Math.min(x.tries, want, canPay) - Math.max(0, times);
+		if (times > 0) budget -= times * cost;
 		if (want > 0 && times < Math.min(x.tries, want)) {
 			const m = missing.get(x.give) || { n: 0, islands: [] };
 			m.n += (Math.min(x.tries, want) - times) * x.giveN;
@@ -232,10 +193,21 @@ export function materialRun({ picks = [], wants = new Map(), reach = 'want', pac
 	// shortest way; then the nearest harbour a give waits at, loaded the
 	// same way; and so on until every island is dealt with or set aside.
 	const heldMax = new Map(aboard);   // aboard, weighed at the most
+	// The gives that are no trade good -- bought ashore, or out of the
+	// bags -- sail from the start too, and weigh something: a few hundred
+	// ingots are a few dozen LT the limit has to have room for.
+	for (const i of isles) for (const nd of i.needs) if (!isGood(nd.give) && nd.loaded) heldMax.set(nd.give, (heldMax.get(nd.give) || 0) + nd.n);
 	let weight = weightHeld(heldMax);
 	const weightStart = weight;
 	let peak = weight;
-	let pos = start;
+	const slotLim = Math.max(slotCap, slotsHeld(heldMax));
+	// Whether the gives `nds` find slots beside what is aboard.
+	const slotsFor = nds => { const m = new Map(heldMax); for (const nd of nds) m.set(nd.give, (m.get(nd.give) || 0) + nd.n); return slotsHeld(m); };
+	const fitsSlots = nds => slotsFor(nds) <= slotLim;
+	let slotsPeak = slotsHeld(heldMax);
+	// Where the ship is: the start harbour, or -- a run taken up again at
+	// sea -- the island it stopped at, with what is aboard.
+	let pos = at || start;
 	const stops = [];
 	const noRoom = new Map();   // give -> { n, islands }
 	const called = new Map();   // town -> times called
@@ -266,6 +238,39 @@ export function materialRun({ picks = [], wants = new Map(), reach = 'want', pac
 	};
 	const weighs = nds => nds.reduce((a, nd) => a + nd.n * weightOf(nd.give), 0);
 
+	// The order a trip takes its islands in. 'short' is the shortest way.
+	// 'rich' is the best payers first -- a coin day's islands pay from
+	// four hundred down to sixty, and a run cut short by the clock or the
+	// Parley should have had the four hundreds. 'tiers' is between the
+	// two: the rich islands and the middling ones close to them, by the
+	// shortest way, then the other middling ones, then the poor. What an
+	// island pays is weighed against the best payer of the same material.
+	const bestOf = new Map();
+	for (const i of isles) bestOf.set(i.item, Math.max(bestOf.get(i.item) || 0, (i.recvMin + i.recvMax) / 2));
+	const valueOf = i => ((i.recvMin + i.recvMax) / 2) / (bestOf.get(i.item) || 1);
+	const ordered = (list, from, end) => {
+		const byTour = (xs, a, b) => tour(xs.map(place), { start: a, end: b }).map(k => xs[k]);
+		if (order === 'short' || list.length < 2) return byTour(list, from, end);
+		if (order === 'rich') return [...list].sort((a, b) => valueOf(b) - valueOf(a) || dist(from, place(a)) - dist(from, place(b)));
+		const high = list.filter(i => valueOf(i) >= 0.7), mid = list.filter(i => valueOf(i) >= 0.4 && valueOf(i) < 0.7), low = list.filter(i => valueOf(i) < 0.4);
+		// "Close" is as close as the rich islands are to one another.
+		const gaps = high.map(h => Math.min(...high.filter(x => x !== h).map(x => dist(place(h), place(x))))).filter(Number.isFinite);
+		const reachOf = gaps.length ? gaps.reduce((a, b) => a + b, 0) / gaps.length : Infinity;
+		const near = mid.filter(i => high.some(h => dist(place(h), place(i)) <= reachOf));
+		const groups = [[...high, ...near], mid.filter(i => !near.includes(i)), low].filter(g => g.length);
+		const out = [];
+		let at = from;
+		groups.forEach((g, k) => {
+			const seq = byTour(g, at, k === groups.length - 1 ? end : null);
+			out.push(...seq);
+			at = place(seq[seq.length - 1]);
+		});
+		return out;
+	};
+	// Whether some island still to come is paid for from what is aboard:
+	// the hold gets lighter at it, so a give that does not fit now may.
+	const later = () => pending.some(i => i.needs.every(nd => nd.loaded) && i.needs.some(nd => isGood(nd.give)));
+
 	// A call at harbour `H`: the islands it feeds in the order a run
 	// from here would take them, so a departure that cannot take them
 	// all takes the ones that go together; what is not spent left
@@ -274,9 +279,9 @@ export function materialRun({ picks = [], wants = new Map(), reach = 'want', pac
 	const callAt = H => {
 		const stop = { wharf: H.wharf, dropped: [], sale: null, loads: [], hold };
 		const feeds = pending.filter(i => i.needs.some(nd => !nd.loaded && nd.src === H.town));
-		const seq = tour(feeds.map(place), { start: H.wharf }).map(k => feeds[k]);
+		const seq = ordered(feeds, H.wharf, null);
 		const loadOf = i => i.needs.filter(nd => !nd.loaded && nd.src === H.town);
-		if (weight + weighs(seq.flatMap(loadOf)) > limit + 1e-6) {
+		if (weight + weighs(seq.flatMap(loadOf)) > limit + 1e-6 || !fitsSlots(seq.flatMap(loadOf))) {
 			for (const [name, n] of spare()) {
 				heldMax.set(name, heldMax.get(name) - n);
 				if (heldMax.get(name) <= 1e-9) heldMax.delete(name);
@@ -294,20 +299,23 @@ export function materialRun({ picks = [], wants = new Map(), reach = 'want', pac
 		};
 		for (const isle of seq) {
 			const nds = loadOf(isle);
-			if (weight + weighs(nds) <= limit + 1e-6) {
+			if (weight + weighs(nds) <= limit + 1e-6 && fitsSlots(nds)) {
 				nds.forEach(load);
 				weight = weightHeld(heldMax);
 				loaded++;
 				continue;
 			}
-			// No room for this island's gives on this departure. A fast
-			// run has only the one, so they stay ashore; a full run comes
-			// back for them once the hold is empty -- unless nothing has
-			// been loaded here yet, when the hold is as light as it gets
-			// and they will never fit: then as many attempts as do.
-			if (pace === 'full' && loaded) continue;
+			// No room for this island's gives on this departure: the run
+			// comes back for them once the hold is empty -- unless nothing
+			// has been loaded here yet and nothing aboard is still to be
+			// spent, when the hold is as light as it gets and they will
+			// never fit: then as many attempts as do.
+			if (loaded || later()) continue;
 			const each = isle.giveN * weightOf(isle.give);
-			const fit = pace === 'full' && each > 0 && nds.length === 1 ? Math.floor((limit - weight) / each + 1e-9) : 0;
+			const byWeight = each > 0 && nds.length === 1 ? Math.floor((limit - weight) / each + 1e-9) : 0;
+			// As many attempts as find slots, too: a slot a unit, so an
+			// attempt's gives take giveN of them when they do not stack.
+			const fit = byWeight > 0 ? Math.min(byWeight, Math.floor(slotFit(isle.give, byWeight * isle.giveN, heldMax.get(isle.give) || 0, slotsHeld(heldMax), slotLim) / isle.giveN + 1e-9)) : 0;
 			if (fit >= 1) {
 				const cut = (isle.times - fit) * isle.giveN;
 				isle.times = fit;
@@ -322,6 +330,9 @@ export function materialRun({ picks = [], wants = new Map(), reach = 'want', pac
 			}
 		}
 		if (!loaded && !stop.dropped.length) {
+			// Nothing fits yet, but the goods aboard are for islands still
+			// to come: they are dealt first, and the run comes back.
+			if (later()) return false;
 			// Nothing could be loaded here and nothing was left: the rest
 			// this harbour feeds cannot sail.
 			for (const isle of seq) if (pending.includes(isle)) {
@@ -332,6 +343,8 @@ export function materialRun({ picks = [], wants = new Map(), reach = 'want', pac
 		}
 		peak = Math.max(peak, weight);
 		stop.weightAfter = weight;
+		stop.slotsAfter = slotsHeld(heldMax);
+		slotsPeak = Math.max(slotsPeak, stop.slotsAfter);
 		stops.push(stop);
 		if (called.get(H.town)) returns++;
 		called.set(H.town, (called.get(H.town) || 0) + 1);
@@ -342,9 +355,9 @@ export function materialRun({ picks = [], wants = new Map(), reach = 'want', pac
 	// The start harbour first: its storage is loaded before casting
 	// off, and what the run will not spend is left there rather than
 	// carried round the sea.
-	if (home) {
+	if (home && !at) {
 		if (harbours.has(home.town)) callAt(home);
-		else if (weight > limit + 1e-6 && spare().length) {
+		else if ((weight > limit + 1e-6 || slotsHeld(heldMax) > slotCap) && spare().length) {
 			const stop = { wharf: startWharf, dropped: [], sale: null, loads: [], hold };
 			for (const [name, n] of spare()) {
 				heldMax.set(name, heldMax.get(name) - n);
@@ -353,6 +366,7 @@ export function materialRun({ picks = [], wants = new Map(), reach = 'want', pac
 			}
 			weight = weightHeld(heldMax);
 			stop.weightAfter = weight;
+			stop.slotsAfter = slotsHeld(heldMax);
 			stops.push(stop);
 			called.set(start.name, 1);
 			pos = startWharf;
@@ -362,24 +376,26 @@ export function materialRun({ picks = [], wants = new Map(), reach = 'want', pac
 	// The hold at its fullest is what the run sails with, not what was
 	// aboard at the pier before the storage took its share.
 	peak = weight;
+	const slotsStart = slotsHeld(heldMax);
+	slotsPeak = slotsStart;
 
 	let guard = 0;
 	while (pending.length && guard++ < 1000) {
 		const ready = pending.filter(i => i.needs.every(nd => nd.loaded));
 		if (ready.length) {
 			const H = nextHarbour();
-			const order = tour(ready.map(place), { start: pos, end: H ? H.wharf : null });
-			for (const k of order) {
-				const isle = ready[k];
+			for (const isle of ordered(ready, pos, H ? H.wharf : null)) {
 				for (const nd of isle.needs) {
-					if (!isGood(nd.give)) continue;
+					if (!heldMax.has(nd.give)) continue;
 					heldMax.set(nd.give, (heldMax.get(nd.give) || 0) - nd.n);
 					if (heldMax.get(nd.give) <= 1e-9) heldMax.delete(nd.give);
 				}
 				if (weightOf(isle.item) > 0) heldMax.set(isle.item, (heldMax.get(isle.item) || 0) + isle.times * isle.recvMax);
 				weight = weightHeld(heldMax);
 				peak = Math.max(peak, weight);
-				stops.push({ ...isle, weightAfter: weight });
+				const slotsAfter = slotsHeld(heldMax);
+				slotsPeak = Math.max(slotsPeak, slotsAfter);
+				stops.push({ ...isle, weightAfter: weight, slotsAfter });
 				pos = place(isle);
 				drop(isle);
 			}
@@ -412,6 +428,8 @@ export function materialRun({ picks = [], wants = new Map(), reach = 'want', pac
 		calls: stops.filter(s => s.wharf).length,
 		returns,
 		weightStart, weightPeak: peak,
-		ticked: mine.length
+		slotsStart, slotsPeak,
+		ticked: mine.length,
+		dry, parleyLeft: parley ? budget : null
 	};
 }

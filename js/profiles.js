@@ -10,6 +10,7 @@
 // an alt's day is not the main's. Sync mirrors the main profile only.
 
 import { esc } from './fmt.js';
+import { T } from './i18n.js';
 import { keyFor, ACTIVE_PROFILE } from './state.js';
 import { openDialog, closeDialog } from './dialogs.js';
 
@@ -31,11 +32,11 @@ export const slugify = name => String(name).toLowerCase().replace(/[^a-z0-9]+/g,
 
 /** Every profile, the main one first. */
 export function listProfiles() {
-	return [{ slug: '', name: 'Main' }, ...readList()];
+	return [{ slug: '', name: T('Main') }, ...readList()];
 }
 
 export function activeProfile() {
-	return listProfiles().find(p => p.slug === ACTIVE_PROFILE) || { slug: ACTIVE_PROFILE, name: ACTIVE_PROFILE || 'Main' };
+	return listProfiles().find(p => p.slug === ACTIVE_PROFILE) || { slug: ACTIVE_PROFILE, name: ACTIVE_PROFILE || T('Main') };
 }
 
 /** A new profile, empty or a copy of the one this page is on. */
@@ -75,21 +76,21 @@ export function switchProfile(slug) {
 export function openProfiles({ toast }) {
 	const list = listProfiles();
 	const rows = list.map(p => `<div class="profile-row${p.slug === ACTIVE_PROFILE ? ' on' : ''}">
-		<span class="profile-name">${esc(p.name)}${p.slug === ACTIVE_PROFILE ? ' <span class="profile-tag">this page</span>' : ''}${!p.slug ? ' <span class="profile-tag">syncs</span>' : ''}</span>
-		${p.slug === ACTIVE_PROFILE ? '' : `<button class="ghost-btn" data-profile-switch="${esc(p.slug)}">Switch</button>`}
-		${p.slug ? `<button class="map-x" data-profile-del="${esc(p.slug)}" aria-label="Delete ${esc(p.name)}">×</button>` : ''}
+		<span class="profile-name">${esc(p.name)}${p.slug === ACTIVE_PROFILE ? ` <span class="profile-tag">${T('this page')}</span>` : ''}${!p.slug ? ` <span class="profile-tag">${T('syncs')}</span>` : ''}</span>
+		${p.slug === ACTIVE_PROFILE ? '' : `<button class="ghost-btn" data-profile-switch="${esc(p.slug)}">${T('Switch')}</button>`}
+		${p.slug ? `<button class="map-x" data-profile-del="${esc(p.slug)}" aria-label="${T('Delete {name}', { name: esc(p.name) })}">×</button>` : ''}
 	</div>`).join('');
 	const full = list.length >= PROFILE_MAX;
 	const host = openDialog(`
-		<h2>Profiles</h2>
-		<p class="dialog-copy">A profile is a separate save on this browser — its own stock, builds, crew and undo — for an alt, or for trying a plan without touching your real numbers. Sync mirrors <b>Main</b> only. The prices and the preferences are shared; the chart and the Barter tab are each profile's own.</p>
+		<h2>${T('Profiles')}</h2>
+		<p class="dialog-copy">${T('A profile is a separate save on this browser — its own stock, builds, crew and undo — for an alt, or for trying a plan without touching your real numbers. Sync mirrors <b>Main</b> only. The prices and the preferences are shared; the chart and the Barter tab are each profile\'s own.')}</p>
 		<div class="profile-list">${rows}</div>
-		${full ? `<p class="dialog-copy">Up to ${PROFILE_MAX} profiles.</p>` : `<div class="profile-new">
-			<input class="field" type="text" maxlength="30" placeholder="New profile — a name" data-profile-name>
-			<label class="inline-check"><input type="checkbox" data-profile-copy> start from a copy of this one</label>
-			<button class="act" data-profile-create>Create and switch</button>
+		${full ? `<p class="dialog-copy">${T('Up to {n} profiles.', { n: PROFILE_MAX })}</p>` : `<div class="profile-new">
+			<input class="field" type="text" maxlength="30" placeholder="${T('New profile — a name')}" data-profile-name>
+			<label class="inline-check"><input type="checkbox" data-profile-copy> ${T('start from a copy of this one')}</label>
+			<button class="act" data-profile-create>${T('Create and switch')}</button>
 		</div>`}
-		<div class="dialog-actions"><button class="ghost-btn" data-close>Close</button></div>`);
+		<div class="dialog-actions"><button class="ghost-btn" data-close>${T('Close')}</button></div>`);
 	host.addEventListener('click', evt => {
 		const sw = evt.target.closest('[data-profile-switch]');
 		if (sw) return switchProfile(sw.dataset.profileSwitch);
@@ -97,20 +98,20 @@ export function openProfiles({ toast }) {
 		if (del) {
 			if (del.dataset.sure !== '1') {
 				del.dataset.sure = '1';
-				del.textContent = 'sure?';
+				del.textContent = T('sure?');
 				del.classList.add('sure');
 				return;
 			}
 			deleteProfile(del.dataset.profileDel);
 			closeDialog();
-			if (toast) toast('Profile deleted');
+			if (toast) toast(T('Profile deleted'));
 			return;
 		}
 		if (evt.target.closest('[data-profile-create]')) {
 			const name = host.querySelector('[data-profile-name]').value.trim();
-			if (!name) return toast && toast('Give it a name');
+			if (!name) return toast && toast(T('Give it a name'));
 			const slug = createProfile(name, { copy: host.querySelector('[data-profile-copy]').checked });
-			if (!slug) return toast && toast(`Up to ${PROFILE_MAX} profiles`);
+			if (!slug) return toast && toast(T('Up to {n} profiles', { n: PROFILE_MAX }));
 			switchProfile(slug);
 		}
 	});

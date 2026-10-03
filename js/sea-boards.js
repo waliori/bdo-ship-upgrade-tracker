@@ -9,13 +9,24 @@
 // agrees with the forty the app knows, and what to do when it does not
 // are screen-barter's questions -- this only carries the post.
 
+import { T } from './i18n.js';
 import { feature, me } from './sync.js';
+import { whileLoading } from './loading.js';
 
 /** What the last call brought back, so a redraw does not ask again.
  *  Short: a sighting sent by somebody else is worth having quickly. */
 const FRESH_MS = 60_000;
+
+// The trade list's readings only: the material list is one of the
+// game's forty-one layouts, known from the client's tables, and the
+// fleet no longer shares readings of it (2026-09-28).
 let held = { at: 0, boards: [] };
 let asking = null;
+let shelf = { at: 0, boards: [] };
+const stale = () => {
+	held = { at: 0, boards: held.boards };
+	shelf = { at: 0, boards: shelf.boards };
+};
 
 async function api(method, path, body) {
 	const res = await fetch(path, {
@@ -37,12 +48,12 @@ export function shared() {
 
 /** Everything the fleet has read lately, newest first. Held for a
  *  minute; `force` is for just after sending one of your own. */
-export async function fleetBoards({ force = false } = {}) {
+async function fleetBoards({ force = false } = {}) {
 	if (!shared()) return [];
 	if (!force && Date.now() - held.at < FRESH_MS) return held.boards;
 	if (asking) return asking;
 	asking = (async () => {
-		const res = await api('GET', '/api/boards');
+		const res = await whileLoading(api('GET', '/api/boards'), T('Asking what the fleet has read…'));
 		if (res.ok && res.body && Array.isArray(res.body.boards)) {
 			held = { at: Date.now(), boards: res.body.boards };
 		}
@@ -55,11 +66,10 @@ export async function fleetBoards({ force = false } = {}) {
 /** As far back as the server keeps them: what the layout book is
  *  written from. Asked for when the book is opened and not before --
  *  two months of readings are of no use to a bar that wants today's. */
-let shelf = { at: 0, boards: [] };
 export async function fleetHistory({ days = 60, force = false } = {}) {
 	if (!shared()) return [];
 	if (!force && Date.now() - shelf.at < FRESH_MS) return shelf.boards;
-	const res = await api('GET', `/api/boards?days=${days}`);
+	const res = await whileLoading(api('GET', `/api/boards?days=${days}`), T('Asking what the fleet has read…'));
 	if (res.ok && res.body && Array.isArray(res.body.boards)) shelf = { at: Date.now(), boards: res.body.boards };
 	return shelf.boards;
 }
@@ -81,40 +91,30 @@ export async function boardsFor(day, opts) {
  * again whenever another island has been looked at.
  */
 export async function tellFleet(day, layout, offers) {
-	if (!shared()) return { ok: false, why: 'This deployment keeps no boards.' };
-	if (!me()) return { ok: false, why: 'Sign in to put your name to a reading.' };
-	const res = await api('POST', '/api/boards', {
+	if (!shared()) return { ok: false, why: T('This deployment keeps no boards.') };
+	if (!me()) return { ok: false, why: T('Sign in to put your name to a reading.') };
+	const res = await whileLoading(api('POST', '/api/boards', {
 		day,
 		layout: layout || null,
 		offers: offers.map(o => [o.npcId, o.give, String(o.qty || 1), o.recv])
-	});
-	held = { at: 0, boards: held.boards };   // ask again next time
-	shelf = { at: 0, boards: shelf.boards };
-	if (!res.ok) return { ok: false, why: (res.body && res.body.error) || 'The reading did not reach the server.' };
+	}), T('Telling the fleet…'));
+	stale();   // ask again next time
+	if (!res.ok) return { ok: false, why: (res.body && res.body.error) || T('The reading did not reach the server.') };
 	return { ok: true, id: res.body.id, offers: res.body.offers };
 }
 
 /** Somebody else's reading is the board you are looking at too. */
 export async function sawItToo(id) {
 	if (!shared() || !me()) return { ok: false };
-	const res = await api('POST', `/api/boards/${id}/seen`);
-	held = { at: 0, boards: held.boards };
-	shelf = { at: 0, boards: shelf.boards };
+	const res = await whileLoading(api('POST', `/api/boards/${id}/seen`), T('Telling the fleet…'));
+	stale();
 	return { ok: res.ok, why: res.body && res.body.error };
 }
 
 /** Take your own reading back. */
 export async function unsay(id) {
 	if (!shared() || !me()) return { ok: false };
-	const res = await api('DELETE', `/api/boards/${id}`);
-	held = { at: 0, boards: held.boards };
-	shelf = { at: 0, boards: shelf.boards };
+	const res = await whileLoading(api('DELETE', `/api/boards/${id}`), T('Telling the fleet…'));
+	stale();
 	return { ok: res.ok, why: res.body && res.body.error };
-}
-
-/** Forget what was fetched -- the barter day turned over, or an account
- *  signed in and the answers now have a name to them. */
-export function forgetBoards() {
-	held = { at: 0, boards: [] };
-	shelf = { at: 0, boards: [] };
 }

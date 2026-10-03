@@ -15,6 +15,8 @@ import { recipes, routes, buyFirst } from './recipes.js';
 import { items as vendorItems } from './vendor_items.js';
 import { coins } from './sea_coins.js';
 import { tradeGoodNames } from './trade_goods.js';
+import { landGoods } from './land_goods.js';
+import { T } from './i18n.js';
 const BASE_KEY = 'bdo-tracker/v2';
 const ACTIVE_PROFILE_KEY = 'bdo-tracker/profile';
 
@@ -102,6 +104,8 @@ const emptyState = () => ({
 	settings: {}
 });
 
+// The stock as it stood before a run's ticks: see readingAsWas.
+let asWas = null;
 let state = emptyState();
 let listeners = new Set();
 let writeTimer = null;
@@ -122,6 +126,13 @@ let transient = false;
 // Set when another tab saves mid-tour, so restore() knows the capture it
 // holds is older than the disk and yields to it.
 let staleWhileTransient = false;
+// The save text this tab last read from the disk or wrote there. A disk
+// that no longer says this has had another tab's write land on it, and
+// an Undo looks at that before it takes anything back -- see catchUp().
+let lastText = null;
+// An Undo or Redo already on screen whose write is waiting for the
+// 'sail-undo' lock -- see settle().
+let owed = false;
 
 /* ------------------------------------------------------------------ *
  * Persistence
@@ -205,22 +216,40 @@ function normalise(input) {
 	if (Array.isArray(raw.targets)) {
 		s.targets = raw.targets
 			.filter(t => t && typeof t.item === 'string')
-			.map(t => ({
-				id: String(t.id || makeId()),
-				item: t.item,
-				qty: Math.max(1, Math.floor(Number(t.qty) || 1)),
-				active: t.active !== false,
-				note: typeof t.note === 'string' ? t.note : ''
-			}));
+			.map(t => {
+				const qty = Math.max(1, Math.floor(Number(t.qty) || 1));
+				// How many of it are made already. Always short of the
+				// whole: a build made in full is closed, not kept.
+				const made = Math.min(qty - 1, Math.max(0, Math.floor(Number(t.made) || 0)));
+				return {
+					id: String(t.id || makeId()),
+					item: t.item,
+					qty,
+					...(made > 0 ? { made } : {}),
+					active: t.active !== false,
+					note: typeof t.note === 'string' ? t.note : ''
+				};
+			});
 	}
 	if (raw.strategy && typeof raw.strategy === 'object') {
 		for (const [item, mode] of Object.entries(raw.strategy)) {
-			if (isStrategy(mode)) s.strategy[item] = mode;
+			if (!isStrategy(mode)) continue;
+			// A route kept in the buy-or-craft slot (before 2026-10-01) moves
+			// to its own key (planner.js routeKey); picking it meant crafting.
+			if (mode !== 'buy' && mode !== 'craft' && routes[item] && Object.hasOwn(routes[item], mode)) {
+				if (!(`route:${item}` in raw.strategy)) s.strategy[`route:${item}`] = mode;
+				if (buyFirst.has(item) && !(item in s.strategy)) s.strategy[item] = 'craft';
+				continue;
+			}
+			s.strategy[item] = mode;
 		}
 	}
 	s.profile = readProfile(raw.profile);
 	s.history = readHistory(raw.history);
 	if (raw.settings && typeof raw.settings === 'object') s.settings = { ...raw.settings };
+	// The Vell timer is gone (1.5): its own times and its reminder
+	// switches are let go rather than carried for ever.
+	for (const k of ['vellTimes', 'vellNotify', 'vellPush']) delete s.settings[k];
 	// Anything a newer version wrote that this one does not know rides
 	// along untouched, so opening a save in an old tab cannot strip what
 	// the new one added.
@@ -229,6 +258,21 @@ function normalise(input) {
 	}
 	if (Number(raw.v) > SCHEMA) s.v = Number(raw.v);
 	return s;
+}
+
+/** The id an entry saved without one is known by: the same in every tab. */
+function legacyId(e) {
+	const text = `${e.t}|${e.type}|${e.label}`;
+	let h = 5381;
+	for (let i = 0; i < text.length; i++) h = ((h * 33) ^ text.charCodeAt(i)) >>> 0;
+	return 'h' + e.t.toString(36) + h.toString(36);
+}
+
+/** Whether a history entry is the one an Undo named. The id first; the
+ *  time, kind and label for a copy written by an older build in another
+ *  tab, which drops the id and so has its entries named afresh on read. */
+function sameChange(e, u) {
+	return (!!u.id && e.id === u.id) || (e.t === u.t && e.type === u.type && e.label === u.label);
 }
 
 /**
@@ -245,6 +289,11 @@ function readHistory(raw) {
 	for (const e of raw.slice(-HISTORY_CAP)) {
 		if (!e || typeof e !== 'object') continue;
 		const entry = { t: Number(e.t) || 0, type: String(e.type || 'stock'), label: String(e.label || '') };
+		// Every entry carries an id, so two tabs can agree on which change
+		// an Undo took back. Entries saved before ids existed are given one
+		// here, on read: worked out from what the entry already says, so
+		// every tab that reads the same old save gives it the same id.
+		entry.id = typeof e.id === 'string' && e.id ? e.id.slice(0, 40) : legacyId(entry);
 		if (e.delta && typeof e.delta === 'object') {
 			const delta = {};
 			for (const [item, diff] of Object.entries(e.delta)) {
@@ -265,6 +314,10 @@ function readHistory(raw) {
 		if (isProfile(e.prevProfileFields)) {
 			const fields = readProfileFields(e.prevProfileFields);
 			if (Object.keys(fields).length) entry.prevProfileFields = fields;
+		}
+		if (e.viewKeys && typeof e.viewKeys === 'object') {
+			const keys = Object.fromEntries(Object.entries(e.viewKeys).filter(([, ks]) => Array.isArray(ks)).map(([ns, ks]) => [ns, ks.filter(k => typeof k === 'string').slice(0, 40)]));
+			if (Object.keys(keys).length) entry.viewKeys = keys;
 		}
 		if (entry.delta || entry.prevTargets || entry.prevStrategy || entry.prevProfile || entry.prevProfileFields) out.push(entry);
 	}
@@ -302,6 +355,24 @@ function patchProfile(profile, fields) {
 
 /** The fields of `profile` a patch names, as they stand now -- what
  *  putting the patch on would overwrite, and so what undoes it. */
+/**
+ * Fields to patch in, with a view's own keys only where the change named
+ * them: an edit made on a screen and undone after the screen had quietly
+ * written more -- a run cast off, a chain ticked -- takes back the edit,
+ * not everything the screen wrote since.
+ */
+function withViews(profile, fields, viewKeys) {
+	if (!viewKeys || !('views' in fields)) return fields;
+	const views = { ...(profile.views || {}) };
+	for (const [ns, keys] of Object.entries(viewKeys)) {
+		const src = (fields.views || {})[ns] || {};
+		const dst = { ...(views[ns] || {}) };
+		for (const k of keys) { if (k in src) dst[k] = src[k]; else delete dst[k]; }
+		views[ns] = dst;
+	}
+	return { ...fields, views };
+}
+
 function fieldsOf(profile, fields) {
 	const out = {};
 	for (const k of Object.keys(fields)) out[k] = k in profile ? profile[k] : null;
@@ -335,7 +406,9 @@ function serialise() {
 /** Put the state on the disk, and say how it went. */
 function write() {
 	try {
-		localStorage.setItem(KEY, serialise());
+		const text = serialise();
+		localStorage.setItem(KEY, text);
+		lastText = text;
 		pending = [];
 		written = { targets: JSON.stringify(state.targets), strategy: JSON.stringify(state.strategy) };
 		if (!health.ok) {
@@ -360,7 +433,8 @@ function persist() {
 	if (writeTimer) clearTimeout(writeTimer);
 	writeTimer = setTimeout(() => {
 		writeTimer = null;
-		write();
+		if (owed) settleNow();
+		else write();
 	}, 150);
 }
 
@@ -372,9 +446,62 @@ function persist() {
  * our in-memory state would silently overwrite that.
  */
 export function flush() {
-	if (transient || !writeTimer) return;
+	if (transient) return;
+	if (owed) return settleNow();
+	if (!writeTimer) return;
 	clearTimeout(writeTimer);
 	writeTimer = null;
+	write();
+}
+
+/** The save text on the disk now, or null if there is none to read. */
+function diskText() {
+	try { return localStorage.getItem(KEY); } catch { return null; }
+}
+
+/**
+ * Take in another tab's write that has landed on the disk but whose
+ * storage event has not reached this tab yet. An Undo is decided on the
+ * newest copy there is: the other tab may already have taken the same
+ * change back.
+ */
+function catchUp() {
+	if (diskText() !== lastText) reload();
+}
+
+/**
+ * Put an Undo or Redo on the disk at once rather than after the debounce,
+ * so another tab sees it before it can take back the same change.
+ *
+ * The change is already made here when this runs -- the toast, the screens
+ * and anything the caller reads next see it straight away, as they always
+ * have. Where the browser has Web Locks, the write itself waits for the
+ * 'sail-undo' lock, which every tab of this origin takes for the same
+ * step: the disk is read again under it, and a copy on which another tab
+ * has undone the same entry first is taken as it stands, with this tab's
+ * undo of it dropped (reload() tells the two apart by the entry's id).
+ * Without the lock the same steps run now.
+ */
+function settle() {
+	owed = true;
+	const locks = typeof navigator !== 'undefined' && navigator.locks && typeof navigator.locks.request === 'function' ? navigator.locks : null;
+	if (!locks) return settleNow();
+	const then = () => { if (owed) settleNow(); };
+	try {
+		locks.request('sail-undo', then).catch(then);
+	} catch {
+		then();
+	}
+}
+
+function settleNow() {
+	owed = false;
+	if (transient) return;
+	catchUp();
+	if (writeTimer) {
+		clearTimeout(writeTimer);
+		writeTimer = null;
+	}
 	write();
 }
 
@@ -412,7 +539,13 @@ function notify(reason) {
  * Change bookkeeping -- every mutation records how to undo itself
  * ------------------------------------------------------------------ */
 
-function commit(type, label, mutate) {
+function commit(type, label, mutate, extra = null) {
+	const was = asWas;
+	asWas = null;
+	try { return commitReal(type, label, mutate, extra); } finally { asWas = was; }
+}
+
+function commitReal(type, label, mutate, extra = null) {
 	// While the tour's example data is in: act, but leave no record. A
 	// history entry written against demo quantities would hand undo a
 	// delta that was never true of the real inventory.
@@ -429,7 +562,7 @@ function commit(type, label, mutate) {
 
 	mutate();
 
-	const entry = { t: Date.now(), type, label };
+	const entry = { id: makeId(), t: Date.now(), type, label, ...(extra || {}) };
 
 	// Stock is undone by its inverse delta, so only changed keys are kept.
 	const delta = {};
@@ -497,22 +630,36 @@ export function undo() {
 	// The history is real; the stock on show mid-tour is not. Undoing a
 	// real entry against demo quantities would lose the entry for good.
 	if (transient) return null;
+	// The change on show when Undo was pressed, then the disk read again:
+	// if another tab has taken that change back already, it is not taken
+	// back a second time here -- nor is the one beneath it, which nobody
+	// asked to undo.
+	const wanted = lastChange();
+	catchUp();
+	if (wanted && !state.history.some(e => sameChange(e, wanted))) {
+		announce('tracker-undo-gone', { label: wanted.label });
+		return null;
+	}
 	const entry = state.history.pop();
 	if (!entry) return null;
 
 	// Captured before the revert touches anything: the values this undo
 	// is about to replace are exactly what redo will need.
-	const redoEntry = { type: entry.type, label: entry.label };
+	const redoEntry = { of: entry.id, type: entry.type, label: entry.label };
 	if (entry.delta) redoEntry.delta = entry.delta;
 	if (entry.prevTargets) redoEntry.nextTargets = state.targets;
 	if (entry.prevStrategy) redoEntry.nextStrategy = state.strategy;
 	if (entry.prevProfile) redoEntry.nextProfile = state.profile;
 	if (entry.prevProfileFields) redoEntry.nextProfileFields = fieldsOf(state.profile, entry.prevProfileFields);
+	if (entry.viewKeys) redoEntry.viewKeys = entry.viewKeys;
 	future.push(redoEntry);
 
-	// Undo is replayed as the change it made, with no entry of its own:
-	// the entry it took off is the other tab's to keep or not.
-	const replay = {};
+	// Undo is replayed as the change it made, with no entry of its own,
+	// and names the entry it took off by its id: another tab's save that
+	// lands before this one's still has that entry, and taking its
+	// history with the entry left in would let a second Undo reverse the
+	// same change twice.
+	const replay = { undone: { id: entry.id, t: entry.t, type: entry.type, label: entry.label } };
 	if (entry.delta) {
 		replay.delta = {};
 		for (const [item, diff] of Object.entries(entry.delta)) {
@@ -526,25 +673,28 @@ export function undo() {
 	if (entry.prevStrategy) replay.strategy = state.strategy = entry.prevStrategy;
 	if (entry.prevProfile) state.profile = entry.prevProfile;
 	if (entry.prevProfileFields) {
-		state.profile = patchProfile(state.profile, entry.prevProfileFields);
+		state.profile = patchProfile(state.profile, withViews(state.profile, entry.prevProfileFields, entry.viewKeys));
 		replay.profile = fieldsOf(state.profile, entry.prevProfileFields);
 	}
 	queue(replay);
 
-	persist();
+	settle();
 	notify('undo');
-	return entry.label || 'Change';
+	return entry.label || T('Change');
 }
 
 /** Put back the most recently undone change, itself undoable again. */
 export function redo() {
 	if (transient) return null;
+	// Another tab's write taken in first: if it changed what the redo
+	// rests on, reload() lets the redo go rather than replay it there.
+	catchUp();
 	const entry = future.pop();
 	if (!entry) return null;
 
 	// Rebuilt as a history entry as it goes back on, so redo and undo
 	// can trade the same change back and forth indefinitely.
-	const hist = { t: Date.now(), type: entry.type, label: entry.label };
+	const hist = { id: makeId(), t: Date.now(), type: entry.type, label: entry.label };
 	const replay = { entry: hist };
 	if (entry.delta) {
 		hist.delta = entry.delta;
@@ -569,7 +719,8 @@ export function redo() {
 	}
 	if (entry.nextProfileFields) {
 		hist.prevProfileFields = fieldsOf(state.profile, entry.nextProfileFields);
-		state.profile = patchProfile(state.profile, entry.nextProfileFields);
+		if (entry.viewKeys) hist.viewKeys = entry.viewKeys;
+		state.profile = patchProfile(state.profile, withViews(state.profile, entry.nextProfileFields, entry.viewKeys));
 		replay.profile = fieldsOf(state.profile, entry.nextProfileFields);
 	}
 
@@ -577,9 +728,9 @@ export function redo() {
 	if (state.history.length > HISTORY_CAP) state.history.shift();
 	queue(replay);
 
-	persist();
+	settle();
 	notify('redo');
-	return entry.label || 'Change';
+	return entry.label || T('Change');
 }
 
 export function canUndo() {
@@ -588,6 +739,11 @@ export function canUndo() {
 
 export function canRedo() {
 	return !transient && future.length > 0;
+}
+
+/** Whether the change stamped `t` is still in the history: not undone. */
+export function hasChange(t) {
+	return !!t && state.history.some(e => e.t === t);
 }
 
 export function lastChange() {
@@ -608,11 +764,44 @@ export function getState() {
 }
 
 export function getStock(item) {
-	return state.stock[item] || 0;
+	return (asWas ? asWas.stock : state.stock)[item] || 0;
 }
 
 export function getAllStock() {
-	return state.stock;
+	return asWas ? asWas.stock : state.stock;
+}
+
+/**
+ * The stock read as it stood before some changes, for as long as `fn`
+ * runs: a run under way writes each stop into the hold as it is
+ * ticked, and the run itself is still laid from the hold it cast off
+ * with. `undo` is what was written since, { delta, moves }, and is
+ * taken back on a copy -- nothing is written. A write made inside
+ * `fn` is made to the real stock, and reads after it read the real
+ * stock too.
+ */
+export function readingAsWas(undo, fn) {
+	const delta = (undo && undo.delta) || {}, moves = (undo && undo.moves) || [];
+	if (!Object.keys(delta).length && !moves.length) return fn();
+	const stock = { ...state.stock };
+	const stash = Object.fromEntries(Object.entries(state.profile.stash || {}).map(([k, v]) => [k, { ...v }]));
+	const put = (item, town, n) => {
+		if (!town) return;
+		const towns = stash[item] || (stash[item] = {});
+		towns[town] = (towns[town] || 0) + n;
+		if (towns[town] <= 0) delete towns[town];
+	};
+	// The moves backwards first, then the counts: a good handed over
+	// came off the ship, so it goes back on the ship.
+	for (const m of moves) { put(m.item, m.to, -m.n); put(m.item, m.from, m.n); }
+	for (const [item, d] of Object.entries(delta)) {
+		const n = Math.max(0, (stock[item] || 0) - d);
+		if (n > 0) stock[item] = n; else delete stock[item];
+		if (d < 0 && (stash[item] || {})[ABOARD] !== undefined) put(item, ABOARD, -d);
+	}
+	const prev = asWas;
+	asWas = { stock, stash };
+	try { return fn(); } finally { asWas = prev; }
 }
 
 export function getTargets() {
@@ -661,37 +850,39 @@ export function getProfile(key, fallback = null) {
 // as two barter facts and grew the whole ship and crew; a sailor renamed
 // or a hull swapped is not "your barter profile" to the person undoing it.
 const PROFILE_LABELS = {
-	barterCount: 'Changed your barter count',
-	valuePack: 'Changed the Value Pack',
-	level: 'Changed your barter level',
-	vouchers: 'Changed your vouchers',
-	parleyHeld: 'Changed the parley you hold',
-	failstacks: 'Changed a failstack',
-	crewShip: 'Changed the ship you sail',
-	roster: 'Changed the roster',
-	seats: 'Changed who sits where',
-	presets: 'Changed a crew preset',
-	fitted: 'Changed what is fitted',
-	crystal: 'Changed the sea crystal',
-	skins: 'Changed the appearance set',
-	setups: 'Changed your saved setups',
-	sailingMastery: 'Changed your sailing mastery',
-	bosnJacks: 'Changed the pets aboard',
-	bosnAlpha: 'Changed the Alpha Pet',
-	questFavs: 'Changed your favourite quests',
-	questGroups: 'Changed a quest group',
-	stash: 'Changed where things are kept',
-	homes: 'Changed where new things land',
-	orders: 'Changed the sailing orders',
-	getOrders: 'Changed how the list is to be got',
-	homemade: 'Changed what your workers make',
-	matSeen: 'Noted what the material list shows',
-	shutOffers: 'Noted an island that would not trade'
+	barterCount: () => T('Changed your barter count'),
+	valuePack: () => T('Changed the Value Pack'),
+	breezy: () => T('Changed BreezySail'),
+	level: () => T('Changed your barter level'),
+	vouchers: () => T('Changed your vouchers'),
+	parleyHeld: () => T('Changed the parley you hold'),
+	failstacks: () => T('Changed a failstack'),
+	crewShip: () => T('Changed the ship you sail'),
+	roster: () => T('Changed the roster'),
+	seats: () => T('Changed who sits where'),
+	presets: () => T('Changed a crew preset'),
+	fitted: () => T('Changed what is fitted'),
+	crystal: () => T('Changed the sea crystal'),
+	skins: () => T('Changed the appearance set'),
+	setups: () => T('Changed your saved setups'),
+	sailingMastery: () => T('Changed your sailing mastery'),
+	bosnJacks: () => T('Changed the pets aboard'),
+	bosnAlpha: () => T('Changed the Alpha Pet'),
+	questFavs: () => T('Changed your favourite quests'),
+	questGroups: () => T('Changed a quest group'),
+	stash: () => T('Changed where things are kept'),
+	homes: () => T('Changed where new things land'),
+	orders: () => T('Changed the sailing orders'),
+	bag: () => T('Changed how your bag is used'),
+	getOrders: () => T('Changed how the list is to be got'),
+	homemade: () => T('Changed what your workers make'),
+	matSeen: () => T('Noted what the material list shows'),
+	shutOffers: () => T('Noted an island that would not trade')
 };
 
 export function setProfile(key, value, label = null) {
 	const next = readProfile({ ...state.profile, [key]: value });
-	commit('profile', label || PROFILE_LABELS[key] || 'Changed your profile', () => {
+	commit('profile', label || (PROFILE_LABELS[key] ? PROFILE_LABELS[key]() : T('Changed your profile')), () => {
 		state.profile = next;
 	});
 }
@@ -705,7 +896,7 @@ export function setProfile(key, value, label = null) {
 export function setProfileMany(patch, label) {
 	const next = readProfile({ ...state.profile, ...patch });
 	if (JSON.stringify(next) === JSON.stringify(state.profile)) return null;
-	return commit('profile', label || 'Changed your profile', () => {
+	return commit('profile', label || T('Changed your profile'), () => {
 		state.profile = next;
 	});
 }
@@ -740,6 +931,22 @@ export function setProfileQuiet(key, value) {
 export function getView(ns) {
 	const views = state.profile.views;
 	return views && isProfile(views[ns]) ? views[ns] : null;
+}
+
+/** A screen's view written as a change of its own, with a label, so
+ *  Undo takes it back: the route as the sailor edited it on the wharf. */
+export function setViewNamed(ns, obj, label) {
+	const views = { ...(state.profile.views || {}) };
+	const before = views[ns] || {};
+	const clean = readView(ns, obj);
+	if (clean) views[ns] = clean;
+	else delete views[ns];
+	if (JSON.stringify(views) === JSON.stringify(state.profile.views || {})) return;
+	// The keys this change moved, so its Undo moves those and no others.
+	const after = clean || {};
+	const keys = [...new Set([...Object.keys(before), ...Object.keys(after)])].filter(k => JSON.stringify(before[k]) !== JSON.stringify(after[k]));
+	const next = readProfile({ ...state.profile, views });
+	commit('profile', label, () => { state.profile = next; }, { viewKeys: { [ns]: keys } });
 }
 
 /** Write a screen's view, or clear it with null. */
@@ -802,6 +1009,9 @@ export function homeOf(item) {
 
 /** The storage that is the ship itself: goods noted here are aboard. */
 export const ABOARD = "Ship's hold";
+/** The sailor's own bag on a barter run: goods carried off the ship's
+ *  weight, not in the hold and not in a storage. */
+export const BAG = 'Your bag';
 
 /**
  * Write an item's total. `at` says where the change happens: `true`
@@ -840,6 +1050,24 @@ function writeStock(item, qty, at = true) {
 	state.profile = readProfile({ ...state.profile, stash: { ...state.profile.stash, [item]: next } });
 }
 
+/**
+ * Items taken out of the Inventory entirely -- the bags, the hold and
+ * every storage -- as one change, so one Undo brings every one of them
+ * back where it was.
+ */
+export function removeItems(items, label) {
+	const stash0 = state.profile.stash || {};
+	const list = [...new Set(items)].filter(it => getStock(it) > 0 || stash0[it]);
+	if (!list.length) return null;
+	return commit('stock', label, () => {
+		for (const it of list) writeStock(it, 0, false);
+		const stash = { ...(state.profile.stash || {}) };
+		let changed = false;
+		for (const it of list) if (it in stash) { delete stash[it]; changed = true; }
+		if (changed) state.profile = readProfile({ ...state.profile, stash });
+	});
+}
+
 /** Set an item's owned quantity outright; `at` names the place the
  *  change is made at, when it is not the bags or the kind's home. */
 export function setStock(item, qty, label, at = true) {
@@ -854,7 +1082,7 @@ export function setStock(item, qty, label, at = true) {
  * claims; `ABOARD` is the ship's hold.
  */
 export function stockAt(item, town) {
-	const places = (state.profile.stash && state.profile.stash[item]) || {};
+	const places = ((asWas ? asWas.stash : state.profile.stash) || {})[item] || {};
 	if (town === '') return Math.max(0, getStock(item) - Object.values(places).reduce((a, b) => a + b, 0));
 	return places[town] || 0;
 }
@@ -905,7 +1133,7 @@ export function addStock(item, delta, label, at = true) {
 export function applyDelta(delta, type, label, profile = null) {
 	const entries = Object.entries(delta).filter(([, d]) => Number(d));
 	if (!entries.length && !profile) return null;
-	return commit(type || 'stock', label || 'Inventory change', () => {
+	return commit(type || 'stock', label || T('Inventory change'), () => {
 		for (const [item, d] of entries) writeStock(item, getStock(item) + Math.floor(d));
 		// Laid on the profile as the stock writes left it, not as it was
 		// before them: writeStock keeps the stash, and a patch worked out
@@ -948,7 +1176,7 @@ export function tallied(delta) {
 export function claimQuest(id, delta, key, label) {
 	const done = { ...(state.profile.questsDone || {}), [id]: key };
 	const next = readProfile({ ...state.profile, questsDone: done, tally: tallied({ quests: { [id]: 1 } }) });
-	return commit('quest', label || 'Claimed a quest', () => {
+	return commit('quest', label || T('Claimed a quest'), () => {
 		for (const [item, d] of Object.entries(delta || {})) {
 			if (Number(d)) writeStock(item, getStock(item) + Math.floor(d));
 		}
@@ -996,7 +1224,7 @@ export function setStashAll(entries, town, label) {
 	if (!list.length) return null;
 	const before = new Map(list.map(e => [e.item, stockAt(e.item, town)]));
 	if (list.every(e => before.get(e.item) === e.n)) return null;
-	return commit('stock', label || `${list.length} counts at ${town || 'the bags'}`, () => {
+	return commit('stock', label || T('{n} counts at {town}', { n: list.length, town: town || T('the bags') }), () => {
 		const stash = { ...(state.profile.stash || {}) };
 		const totals = [];
 		for (const { item, n } of list) {
@@ -1045,10 +1273,13 @@ export function placeAll(items, town, label) {
  * '' for the ship), and a profile patch, the run's entry in the log.
  * One Undo takes the whole trip back.
  */
-export function applyTrip({ delta = {}, moves = [], profile = null, label = 'Sailed a run' } = {}) {
+export function applyTrip({ delta = {}, moves = [], profile = null, label = T('Sailed a run'), at = false, viewKeys = null } = {}) {
 	const entries = Object.entries(delta).filter(([, d]) => Number(d));
 	return commit('trip', label, () => {
-		for (const [item, d] of entries) writeStock(item, getStock(item) + Math.floor(d), false);
+		// `at` names the place a good comes off first, or goes onto: the
+		// ship's hold, for a stop ticked on a run under way. A function
+		// answers it good by good.
+		for (const [item, d] of entries) writeStock(item, getStock(item) + Math.floor(d), (typeof at === 'function' ? at(item, d) : d < 0 ? at : false) || false);
 		const stash = { ...(state.profile.stash || {}) };
 		for (const m of moves) {
 			const qty = Math.min(Math.floor(Number(m.n) || 0), m.from === '' ? Math.max(0, getStock(m.item) - Object.values(stash[m.item] || {}).reduce((a, b) => a + b, 0)) : ((stash[m.item] || {})[m.from] || 0));
@@ -1059,7 +1290,7 @@ export function applyTrip({ delta = {}, moves = [], profile = null, label = 'Sai
 			if (Object.keys(towns).length) stash[m.item] = towns; else delete stash[m.item];
 		}
 		state.profile = readProfile({ ...state.profile, stash, ...(profile || {}) });
-	});
+	}, viewKeys ? { viewKeys } : null);
 }
 
 /** Where new counts of a kind land: '' for the bags. */
@@ -1081,7 +1312,7 @@ export function claimQuests(entries, label) {
 	const counts = {};
 	for (const e of list) { done[e.id] = e.key; counts[e.id] = 1; }
 	const next = readProfile({ ...state.profile, questsDone: done, tally: tallied({ quests: counts }) });
-	return commit('quest', label || `Claimed ${list.length} quests`, () => {
+	return commit('quest', label || T('Claimed {n} quests', { n: list.length }), () => {
 		for (const e of list) {
 			for (const [item, d] of Object.entries(e.delta || {})) {
 				if (Number(d)) writeStock(item, getStock(item) + Math.floor(d));
@@ -1104,12 +1335,12 @@ export function unclaimQuest(id, label) {
 		if (tally.quests[id] <= 0) delete tally.quests[id];
 	}
 	const next = readProfile({ ...state.profile, questsDone: done, tally });
-	return commit('quest', label || 'Marked a quest not done', () => { state.profile = next; });
+	return commit('quest', label || T('Marked a quest not done'), () => { state.profile = next; });
 }
 
 /** Replace the whole stock table (used by the v1 import review screen). */
 export function replaceStock(next, label) {
-	return commit('stock', label || 'Inventory replaced', () => {
+	return commit('stock', label || T('Inventory replaced'), () => {
 		state.stock = {};
 		for (const [item, qty] of Object.entries(next || {})) writeStock(item, qty, false);
 		// The places noted can never hold more than the total: an item no
@@ -1152,10 +1383,31 @@ export function removeTarget(id) {
 export function setTargetQty(id, qty) {
 	const t = getTarget(id);
 	if (!t) return null;
-	const n = Math.max(1, Math.floor(Number(qty) || 1));
+	// Never down to what is already made: that one is Mark done's.
+	const n = Math.max((t.made || 0) + 1, Math.floor(Number(qty) || 1));
 	if (n === t.qty) return null;
 	return commit('target', `${t.item} ×${n}`, () => {
 		state.targets = state.targets.map(x => (x.id === id ? { ...x, qty: n } : x));
+	});
+}
+
+/**
+ * `n` more of a build made. The made ones stay in the inventory -- the
+ * Ship tab reads the fleet and the fitted parts from it -- so the build
+ * keeps count of them and the plan sets them aside; made in full, the
+ * build is closed, and what it made is free for whatever comes next.
+ */
+export function markTargetMade(id, n = 1) {
+	const t = getTarget(id);
+	if (!t) return null;
+	const made = Math.min(t.qty, (t.made || 0) + Math.max(1, Math.floor(Number(n) || 1)));
+	if (made >= t.qty) {
+		return commit('target', `Finished ${t.item}`, () => {
+			state.targets = state.targets.filter(x => x.id !== id);
+		});
+	}
+	return commit('target', `${t.item}: ${made} of ${t.qty} made`, () => {
+		state.targets = state.targets.map(x => (x.id === id ? { ...x, made } : x));
 	});
 }
 
@@ -1183,17 +1435,6 @@ export function moveTarget(id, direction) {
 	});
 }
 
-/** Reorder wholesale from a list of ids (drag and drop). */
-export function reorderTargets(ids) {
-	const byId = new Map(state.targets.map(t => [t.id, t]));
-	const next = ids.map(id => byId.get(id)).filter(Boolean);
-	for (const t of state.targets) if (!next.includes(t)) next.push(t);
-	if (next.length !== state.targets.length) return null;
-	return commit('target', 'Reordered priorities', () => {
-		state.targets = next;
-	});
-}
-
 /* ------------------------------------------------------------------ *
  * Strategy: craft an item, or buy it and stop exploding its recipe
  * ------------------------------------------------------------------ */
@@ -1208,10 +1449,13 @@ export function reorderTargets(ids) {
  * recognise the name, so an unknown value is inert rather than wrong.
  */
 export function setStrategy(item, mode) {
+	// A route goes under its own key (planner.js routeKey), never over the
+	// item's buy-or-craft choice.
+	if (typeof mode === 'string' && mode !== 'buy' && mode !== 'craft' && routes[item] && Object.hasOwn(routes[item], mode)) item = `route:${item}`;
 	const next = typeof mode === 'string' && mode ? mode : 'craft';
 	if (getStrategy(item) === next) return null;
 	const how = next === 'buy' ? 'buy it' : next === 'craft' ? 'craft it' : `via ${next}`;
-	return commit('strategy', `${item}: ${how}`, () => {
+	return commit('strategy', `${String(item).replace(/^route:/, '')}: ${how}`, () => {
 		const s = { ...state.strategy };
 		// The default is not stored, so a save only holds decisions.
 		if (next === defaultStrategy(item)) delete s[item];
@@ -1255,7 +1499,7 @@ export function importJSON(text) {
 	if (!parsed || typeof parsed !== 'object' || !parsed.stock) {
 		throw new Error('That file does not contain tracker data.');
 	}
-	return adopt(parsed, 'Imported tracker data');
+	return adopt(parsed, T('Imported tracker data'));
 }
 
 // Every name the app knows: what the recipes make and eat, what the
@@ -1272,6 +1516,9 @@ function knownItems() {
 	for (const item of Object.keys(vendorItems)) catalogue.add(item);
 	for (const item of Object.keys(coins)) catalogue.add(item);
 	for (const item of tradeGoodNames) catalogue.add(item);
+	// The shore goods a barter chain starts from: a save that holds a
+	// count of them is not a save from a newer build.
+	for (const item of Object.keys(landGoods)) catalogue.add(item);
 	// The currencies sit in the stock like anything else (ui-state.js
 	// names them), but no table lists them as items.
 	for (const item of ['Silver', 'Crow Coin', 'Sangpyeong Coin']) catalogue.add(item);
@@ -1301,8 +1548,9 @@ export function inspectImport(parsed) {
 			.map(t => t.item))];
 	}
 	if (parsed.strategy && typeof parsed.strategy === 'object' && !Array.isArray(parsed.strategy)) {
-		for (const [item, route] of Object.entries(parsed.strategy)) {
+		for (const [key, route] of Object.entries(parsed.strategy)) {
 			if (route === 'buy' || route === 'craft') continue;
+			const item = key.replace(/^route:/, '');
 			if (routes[item] && typeof route === 'string' && route in routes[item]) continue;
 			out.unknownRoutes.push({ item, route: String(route) });
 		}
@@ -1343,7 +1591,7 @@ export function saveShape() {
  * every other device. An empty object still clears it, so a deliberate
  * reset survives the round trip.
  */
-export function adopt(data, label = 'Replaced tracker data') {
+export function adopt(data, label = T('Replaced tracker data'), { keepAbsent = [] } = {}) {
 	const incoming = normalise(data);
 	// `isProfile` and not a bare typeof check: an array is an object to
 	// JavaScript but is not a profile, and treating one as a deliberate
@@ -1353,7 +1601,16 @@ export function adopt(data, label = 'Replaced tracker data') {
 		state.stock = incoming.stock;
 		state.targets = incoming.targets;
 		state.strategy = incoming.strategy;
-		if (carriesProfile) state.profile = incoming.profile;
+		// `keepAbsent` names the fields a copy leaves out by design -- a
+		// slim link carries no views and no diaries -- and those stay as
+		// they are here when it does: taking a plan is not clearing the
+		// traces drawn, the run log or the barter checklist. A copy that
+		// does carry one replaces it like any other field.
+		if (carriesProfile) {
+			const kept = {};
+			for (const k of keepAbsent) if (!(k in data.profile) && k in state.profile) kept[k] = state.profile[k];
+			state.profile = Object.keys(kept).length ? readProfile({ ...incoming.profile, ...kept }) : incoming.profile;
+		}
 		// The profile kept is the old one, and its places were noted
 		// against the old counts: an item no longer owned is no longer
 		// anywhere, and a place cannot hold more than the new total.
@@ -1407,7 +1664,7 @@ function pruneStash(profile, stock) {
  * at this browser, looking at this one's screens. One undo reverses
  * the lot.
  */
-export function merge(data, label = 'Merged tracker data') {
+export function merge(data, label = T('Merged tracker data')) {
 	const incoming = normalise(data);
 	let items = 0;
 	let targets = 0;
@@ -1438,13 +1695,23 @@ export function merge(data, label = 'Merged tracker data') {
  * Temporary state, for the guided tour
  * ------------------------------------------------------------------ */
 
-/** A copy of everything that matters, to put back later. */
+/**
+ * A copy of everything that matters, to put back later.
+ *
+ * A copy taken while something is already on show -- the tour started
+ * over a shared plan someone is looking around -- is marked as one, so
+ * putting it back puts the look back and not the save: the tour's
+ * capture used to be the shared plan, and its restore wrote that plan
+ * to the disk as the player's own. The looks nest, each restore going
+ * back one level, and only the outermost one writes.
+ */
 export function capture() {
 	return JSON.stringify({
 		stock: state.stock,
 		targets: state.targets,
 		strategy: state.strategy,
-		profile: state.profile
+		profile: state.profile,
+		...(transient ? { transient: true } : {})
 	});
 }
 
@@ -1462,13 +1729,18 @@ export function applyTransient(json) {
 	} catch {
 		return false;
 	}
-	transient = true;
-	// Drop any queued write from before the swap, so it cannot land later
-	// carrying example data.
-	if (writeTimer) {
+	// A write still inside the debounce goes out now, before the swap:
+	// it is the player's real change, and once the example is in it could
+	// only land carrying example data. Written here, it is on the disk
+	// whatever happens next -- another tab saving mid-look used to make
+	// restore() take the disk copy, which never had it.
+	if (!transient && owed) settleNow();
+	if (!transient && writeTimer) {
 		clearTimeout(writeTimer);
 		writeTimer = null;
+		write();
 	}
+	transient = true;
 	// Through the same bounds as a save from the disk: a link is a save
 	// somebody else made, and one made by hand must not put a string or
 	// a negative count in front of the planner.
@@ -1489,15 +1761,30 @@ export function applyTransient(json) {
 
 /** Put back a captured copy and start saving again. */
 export function restore(json) {
+	let raw;
+	try {
+		raw = JSON.parse(json);
+	} catch {
+		return false;
+	}
+	// A copy of a look, taken from inside it: back to that look, and
+	// still nothing saved. See capture(). If the look has already ended
+	// underneath -- "Back to mine" pressed while the tour was up -- the
+	// player's own data is on screen and stays there.
+	if (raw && raw.transient === true) {
+		if (!transient) return false;
+		if (!applyTransient(json)) return false;
+		notify('restore');
+		return true;
+	}
 	// Another tab may have saved while the demo data was in. Its write is
 	// newer than our capture, so the disk copy wins -- the same rule the
-	// storage listener applies when we are not mid-tour.
+	// storage listener applies when we are not mid-tour, and by the same
+	// steps: anything this tab had not yet written goes back on top.
 	if (staleWhileTransient) {
 		transient = false;
 		staleWhileTransient = false;
-		state = normalise(readRaw());
-		written = { targets: JSON.stringify(state.targets), strategy: JSON.stringify(state.strategy) };
-		pending = [];
+		reload();
 		future = [];
 		notify('restore');
 		return true;
@@ -1639,7 +1926,7 @@ export function markLegacyImported() {
 
 /** Apply a reviewed legacy import. */
 export function applyLegacyImport(stock, shipNames) {
-	commit('import', 'Imported your previous progress', () => {
+	commit('import', T('Imported your previous progress'), () => {
 		for (const [item, qty] of Object.entries(stock)) {
 			writeStock(item, Math.max(getStock(item), qty), false);
 		}
@@ -1677,6 +1964,7 @@ function reload() {
 		writeTimer = null;
 	}
 	const before = JSON.stringify(saveShape());
+	lastText = diskText();
 	const theirs = normalise(readRaw());
 	const untouched = {
 		targets: JSON.stringify(theirs.targets) === written.targets,
@@ -1684,6 +1972,20 @@ function reload() {
 	};
 	state = theirs;
 	for (const r of queued) {
+		// An Undo made here and not yet written takes its entry off the
+		// history it now stands on. If that history no longer has the
+		// entry, another tab undid the same change first: theirs already
+		// shows it reversed, so this one is dropped whole -- the delta
+		// laid on again would reverse it twice -- and so is its redo.
+		if (r.undone) {
+			const at = state.history.findLastIndex(e => sameChange(e, r.undone));
+			if (at < 0) {
+				future = future.filter(f => f.of !== r.undone.id);
+				announce('tracker-undo-gone', { label: r.undone.label });
+				continue;
+			}
+			state.history.splice(at, 1);
+		}
 		if (r.delta) {
 			for (const [item, diff] of Object.entries(r.delta)) {
 				const next = Math.min(STOCK_CAP, Math.max(0, (state.stock[item] || 0) + diff));
@@ -1706,6 +2008,7 @@ function reload() {
 }
 
 export function init() {
+	lastText = diskText();
 	state = normalise(readRaw());
 	written = { targets: JSON.stringify(state.targets), strategy: JSON.stringify(state.strategy) };
 	pending = [];

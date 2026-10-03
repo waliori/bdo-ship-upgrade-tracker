@@ -30,18 +30,20 @@
 // have and says whether they are an admin.
 
 import { esc } from './fmt.js';
+import { T, TT, said } from './i18n.js';
 import { openDialog, closeDialog, toast } from './dialogs.js';
 import { feature, me, call, signIn } from './sync.js';
 import { view } from './ui-state.js';
-import { RELEASE } from './about.js';
+import { RELEASE } from './release.js';
+import { whileLoading, loadingNote } from './loading.js';
 import { renderMarkup, renderPlain, fileURL, MAX_MARKUP } from './markup.js';
 
 const ISSUES = 'https://github.com/waliori/bdo-ship-upgrade-tracker/issues';
 
 const KINDS = [
-	{ id: 'bug', label: 'Something is wrong', hint: 'a number that is off, a button that does nothing, a screen that breaks' },
-	{ id: 'idea', label: 'An idea', hint: 'something the app should do, or do differently' },
-	{ id: 'other', label: 'Something else', hint: 'a question, a thank-you, a correction to the data' }
+	{ id: 'bug', label: TT('Something is wrong'), hint: TT('a number that is off, a button that does nothing, a screen that breaks') },
+	{ id: 'idea', label: TT('An idea'), hint: TT('something the app should do, or do differently') },
+	{ id: 'other', label: TT('Something else'), hint: TT('a question, a thank-you, a correction to the data') }
 ];
 
 // What the box may take, until the server says otherwise. These are the
@@ -90,17 +92,17 @@ function toBlob(canvas, type, quality) {
  */
 async function shrink(file, limits) {
 	if (file.size > limits.bytes * 6) {
-		throw new Error(`That file is ${MB(file.size)}; ${MB(limits.bytes)} is the most a report can carry.`);
+		throw new Error(T('That file is {size}; {most} is the most a report can carry.', { size: MB(file.size), most: MB(limits.bytes) }));
 	}
 	if (file.type === 'image/gif') {
-		if (file.size > limits.bytes) throw new Error(`That animation is ${MB(file.size)}, and ${MB(limits.bytes)} is the most.`);
+		if (file.size > limits.bytes) throw new Error(T('That animation is {size}, and {most} is the most.', { size: MB(file.size), most: MB(limits.bytes) }));
 		return file;
 	}
 
 	const bitmap = await createImageBitmap(file).catch(() => null);
 	if (!bitmap) {
 		if (file.size <= limits.bytes) return file;
-		throw new Error('That image could not be read here, and it is too large to send as it is.');
+		throw new Error(T('That image could not be read here, and it is too large to send as it is.'));
 	}
 	const long = Math.max(bitmap.width, bitmap.height);
 	if (long <= limits.pixels && file.size <= limits.bytes) {
@@ -123,8 +125,8 @@ async function shrink(file, limits) {
 	const first = file.type === 'image/jpeg' ? 'image/jpeg' : file.type === 'image/webp' ? 'image/webp' : 'image/png';
 	let blob = await toBlob(canvas, first, 0.92);
 	if (blob && blob.size > limits.bytes && first !== 'image/jpeg') blob = await toBlob(canvas, 'image/jpeg', 0.85);
-	if (!blob) throw new Error('This browser would not re-encode that image.');
-	if (blob.size > limits.bytes) throw new Error(`That one is still ${MB(blob.size)} once shrunk; ${MB(limits.bytes)} is the most.`);
+	if (!blob) throw new Error(T('This browser would not re-encode that image.'));
+	if (blob.size > limits.bytes) throw new Error(T('That one is still {size} once shrunk; {most} is the most.', { size: MB(blob.size), most: MB(limits.bytes) }));
 	return blob;
 }
 
@@ -142,7 +144,7 @@ async function upload(blob, name) {
 	} catch {
 		// A proxy's error page rather than ours.
 	}
-	if (!res.ok) throw new Error((payload && payload.error) || 'That image did not go up.');
+	if (!res.ok) throw new Error(payload && payload.error ? said(payload.error) : T('That image did not go up.'));
 	return payload;
 }
 
@@ -154,15 +156,15 @@ async function upload(blob, name) {
 // either side of it; `line` puts a mark at the head of every line it
 // covers, which is what a list and a quote are.
 const MARKS = {
-	bold: { wrap: '**', hint: 'bold' },
-	italic: { wrap: '*', hint: 'italic' },
-	strike: { wrap: '~~', hint: 'struck out' },
-	code: { wrap: '`', hint: 'code' },
-	spoiler: { wrap: '||', hint: 'hidden until asked for' },
-	head: { line: '## ', hint: 'A heading' },
-	list: { line: '- ', hint: 'one thing' },
-	steps: { line: '1. ', hint: 'first' },
-	quote: { line: '> ', hint: 'what it said' }
+	bold: { wrap: '**', hint: TT('bold') },
+	italic: { wrap: '*', hint: TT('italic') },
+	strike: { wrap: '~~', hint: TT('struck out') },
+	code: { wrap: '`', hint: TT('code') },
+	spoiler: { wrap: '||', hint: TT('hidden until asked for') },
+	head: { line: '## ', hint: TT('A heading') },
+	list: { line: '- ', hint: TT('one thing') },
+	steps: { line: '1. ', hint: TT('first') },
+	quote: { line: '> ', hint: TT('what it said') }
 };
 
 /** Put a mark around, or in front of, whatever is selected. */
@@ -182,13 +184,13 @@ function mark(box, what) {
 		const head = box.value.lastIndexOf('\n', Math.max(0, from - 1)) + 1;
 		const after = box.value.indexOf('\n', to);
 		const end = after === -1 ? box.value.length : after;
-		const region = box.value.slice(head, end) || rule.hint;
+		const region = box.value.slice(head, end) || said(rule.hint);
 		const numbered = rule.line === '1. ';
 		text = region.split('\n').map((line, i) => `${numbered ? `${i + 1}. ` : rule.line}${line}`).join('\n');
 		box.value = box.value.slice(0, head) + text + box.value.slice(end);
 		caret = [head + text.length, head + text.length];
 	} else {
-		const body = chosen || rule.hint;
+		const body = chosen || said(rule.hint);
 		text = rule.wrap + body + rule.wrap;
 		box.value = box.value.slice(0, from) + text + box.value.slice(to);
 		caret = chosen
@@ -236,7 +238,7 @@ function postHTML(entry) {
 	const gallery = loose.length
 		? `<div class="fb-gallery">${loose.map(f => `
 			<a class="mk-shot" href="${esc(fileURL(f.id))}" data-file="${esc(f.id)}">
-				<img src="${esc(fileURL(f.id))}" alt="${esc(f.name || 'a screenshot')}" loading="lazy" decoding="async">
+				<img src="${esc(fileURL(f.id))}" alt="${esc(f.name || T('a screenshot'))}" loading="lazy" decoding="async">
 			</a>`).join('')}</div>`
 		: '';
 	return `<div class="fb-body mk">${body}</div>${gallery}`;
@@ -256,7 +258,7 @@ function enhance(root) {
 		if (!card) return;
 		const frame = document.createElement('iframe');
 		frame.src = `${card.dataset.embed}?autoplay=1`;
-		frame.title = `${card.dataset.host} video`;
+		frame.title = T('{host} video', { host: card.dataset.host });
 		frame.allow = 'autoplay; fullscreen; encrypted-media; picture-in-picture';
 		frame.allowFullscreen = true;
 		frame.loading = 'lazy';
@@ -284,7 +286,7 @@ function lightbox(href, img) {
 	const box = document.createElement('div');
 	box.className = 'fb-lightbox';
 	box.innerHTML = `<img src="${esc(href)}" alt="${esc(img ? img.alt : '')}">
-		<a class="fb-lightbox-out" href="${esc(href)}" target="_blank" rel="noopener">Open the file ↗</a>`;
+		<a class="fb-lightbox-out" href="${esc(href)}" target="_blank" rel="noopener">${T('Open the file ↗')}</a>`;
 	const shut = () => {
 		box.remove();
 		document.removeEventListener('keydown', onKey);
@@ -299,6 +301,21 @@ function lightbox(href, img) {
  * The form
  * ------------------------------------------------------------------ */
 
+/*
+ * Which build a report came from. The release ("1.5") spans weeks of
+ * deploys, so a report naming only that could not be matched to the
+ * code it was sent from; the server's stamp names the deploy -- the same
+ * stamp the offline cache is named for -- and is asked for once, the
+ * first time the box opens. The release stays beside it, for a reader.
+ */
+let stamp = '';
+let asked = null;
+const deployStamp = () => asked || (asked = call('GET', '/api/config').then(
+	res => { stamp = res && res.ok && res.body && typeof res.body.build === 'string' ? res.body.build : ''; return stamp; },
+	() => ''
+));
+const buildName = () => (stamp ? `${RELEASE} (${stamp})` : RELEASE);
+
 /** The feedback form. */
 export function openFeedback(kind = 'bug') {
 	const inbox = feature('feedback');
@@ -308,47 +325,47 @@ export function openFeedback(kind = 'bug') {
 	let picked = KINDS.some(k => k.id === kind) ? kind : 'bug';
 
 	const host = openDialog(`
-		<h2>Feedback</h2>
+		<h2>${T('Feedback')}</h2>
 		<p class="dialog-copy">${inbox
-		? 'Say what is wrong, or what you want. It goes straight to whoever runs this copy of the app, with the section you are on and the build you are running attached. <b>Reports are public</b> — the words, the pictures and your name — so anyone can read what has already been asked and what has been answered. The way to reach you is not.'
-		: 'This copy of the app has no inbox of its own, so feedback goes to the project on GitHub — the button below opens an issue with the section and the build filled in.'}</p>
-		<div class="fb-kinds" role="radiogroup" aria-label="What kind of feedback">
-			${KINDS.map(k => `<button type="button" class="fb-kind${k.id === picked ? ' on' : ''}" role="radio" aria-checked="${k.id === picked}" data-kind="${k.id}"><b>${esc(k.label)}</b><small>${esc(k.hint)}</small></button>`).join('')}
+		? T('Say what is wrong, or what you want. It goes straight to whoever runs this copy of the app, with the section you are on and the build you are running attached. <b>Reports are public</b> — the words, the pictures and your name — so anyone can read what has already been asked and what has been answered. The way to reach you is not.')
+		: T('This copy of the app has no inbox of its own, so feedback goes to the project on GitHub — the button below opens an issue with the section and the build filled in.')}</p>
+		<div class="fb-kinds" role="radiogroup" aria-label="${T('What kind of feedback')}">
+			${KINDS.map(k => `<button type="button" class="fb-kind${k.id === picked ? ' on' : ''}" role="radio" aria-checked="${k.id === picked}" data-kind="${k.id}"><b>${esc(said(k.label))}</b><small>${esc(said(k.hint))}</small></button>`).join('')}
 		</div>
 		${inbox && !who ? signInPanel() : ''}
 		<div class="fb-compose"${inbox && !who ? ' hidden' : ''}>
-			<div class="fb-bar" role="toolbar" aria-label="How the words look">
-				<button type="button" class="fb-mark" data-mark="bold" title="Bold (Ctrl+B)" aria-label="Bold"><b>B</b></button>
-				<button type="button" class="fb-mark" data-mark="italic" title="Italic (Ctrl+I)" aria-label="Italic"><i>I</i></button>
-				<button type="button" class="fb-mark" data-mark="strike" title="Struck out" aria-label="Struck out"><s>S</s></button>
-				<button type="button" class="fb-mark" data-mark="code" title="Code" aria-label="Code">&lt;/&gt;</button>
-				<button type="button" class="fb-mark" data-mark="spoiler" title="Hidden until asked for" aria-label="Spoiler">▨</button>
+			<div class="fb-bar" role="toolbar" aria-label="${T('How the words look')}">
+				<button type="button" class="fb-mark" data-mark="bold" title="${T('Bold (Ctrl+B)')}" aria-label="${T('Bold')}"><b>B</b></button>
+				<button type="button" class="fb-mark" data-mark="italic" title="${T('Italic (Ctrl+I)')}" aria-label="${T('Italic')}"><i>I</i></button>
+				<button type="button" class="fb-mark" data-mark="strike" title="${T('Struck out')}" aria-label="${T('Struck out')}"><s>S</s></button>
+				<button type="button" class="fb-mark" data-mark="code" title="${T('Code')}" aria-label="${T('Code')}">&lt;/&gt;</button>
+				<button type="button" class="fb-mark" data-mark="spoiler" title="${T('Hidden until asked for')}" aria-label="${T('Spoiler')}">▨</button>
 				<span class="fb-bar-gap"></span>
-				<button type="button" class="fb-mark" data-mark="head" title="A heading" aria-label="Heading">H</button>
-				<button type="button" class="fb-mark" data-mark="list" title="A list" aria-label="List">•</button>
-				<button type="button" class="fb-mark" data-mark="steps" title="Steps, in order" aria-label="Numbered list">1.</button>
-				<button type="button" class="fb-mark" data-mark="quote" title="Something quoted" aria-label="Quote">❝</button>
-				<button type="button" class="fb-mark" data-act="link" title="A link (Ctrl+K)" aria-label="Link">↗</button>
+				<button type="button" class="fb-mark" data-mark="head" title="${T('A heading')}" aria-label="${T('Heading')}">H</button>
+				<button type="button" class="fb-mark" data-mark="list" title="${T('A list')}" aria-label="${T('List')}">•</button>
+				<button type="button" class="fb-mark" data-mark="steps" title="${T('Steps, in order')}" aria-label="${T('Numbered list')}">1.</button>
+				<button type="button" class="fb-mark" data-mark="quote" title="${T('Something quoted')}" aria-label="${T('Quote')}">❝</button>
+				<button type="button" class="fb-mark" data-act="link" title="${T('A link (Ctrl+K)')}" aria-label="${T('Link')}">↗</button>
 				<span class="fb-bar-gap"></span>
-				<button type="button" class="fb-mark fb-attach" data-act="attach" title="A screenshot">🖼<span class="btn-label"> Image</span></button>
-				<button type="button" class="fb-mark fb-eye" data-act="preview" aria-pressed="false">Preview</button>
+				<button type="button" class="fb-mark fb-attach" data-act="attach" title="${T('A screenshot')}">🖼<span class="btn-label"> ${T('Image')}</span></button>
+				<button type="button" class="fb-mark fb-eye" data-act="preview" aria-pressed="false">${T('Preview')}</button>
 			</div>
 			<textarea class="field fb-text" rows="8" maxlength="${MAX_MARKUP}"
-				placeholder="What happened, or what you would like — and if it went wrong, what you had done just before.&#10;&#10;A screenshot can be pasted straight in."
-				aria-label="Your feedback"></textarea>
+				placeholder="${T('What happened, or what you would like — and if it went wrong, what you had done just before.')}&#10;&#10;${T('A screenshot can be pasted straight in.')}"
+				aria-label="${T('Your feedback')}"></textarea>
 			<div class="fb-preview mk" hidden></div>
 			<div class="fb-shots" hidden></div>
-			<p class="fb-hint"><b>**bold**</b> · <i>*italic*</i> · <code>\`code\`</code> · &gt; quote · - list · ||spoiler|| · a link to a film becomes the film</p>
+			<p class="fb-hint">${T('<b>**bold**</b> · <i>*italic*</i> · <code>`code`</code> · &gt; quote · - list · ||spoiler|| · a link to a film becomes the film')}</p>
 			<input type="file" class="fb-file" accept="${ACCEPT}" multiple hidden>
-			${inbox && who ? '<input class="field fb-contact" maxlength="120" placeholder="Somewhere else a reply could reach you (optional, not shown to anyone else)" aria-label="How to reach you — not public">' : ''}
+			${inbox && who ? `<input class="field fb-contact" maxlength="120" placeholder="${T('Somewhere else a reply could reach you (optional, not shown to anyone else)')}" aria-label="${T('How to reach you — not public')}">` : ''}
 		</div>
-		<p class="fb-meta">${inbox ? `Sent ${who ? `as <b>${esc(who.username)}</b>` : 'once you are signed in'} · ` : ''}on <b>${esc(view)}</b> · build <b>${esc(RELEASE)}</b> · ${esc(agent())}</p>
+		<p class="fb-meta">${inbox ? `${who ? T('Sent as <b>{name}</b>', { name: esc(who.username) }) : T('Sent once you are signed in')} · ` : ''}${T('on <b>{view}</b>', { view: esc(view) })} · ${T('build <b>{build}</b>', { build: `<span class="fb-build">${esc(buildName())}</span>` })} · ${esc(agent())}</p>
 		<div class="dialog-actions">
-			<a class="ghost-btn fb-issues" href="${ISSUES}/new" target="_blank" rel="noopener">Open an issue on GitHub ↗</a>
-			${inbox ? '<button class="ghost-btn" data-reports title="Every report anyone has sent, and which of them have been answered">What people have written ↗</button>' : ''}
+			<a class="ghost-btn fb-issues" href="${ISSUES}/new" target="_blank" rel="noopener">${T('Open an issue on GitHub ↗')}</a>
+			${inbox ? `<button class="ghost-btn" data-reports title="${T('Every report anyone has sent, and which of them have been answered')}">${T('What people have written ↗')}</button>` : ''}
 			<span class="fb-space"></span>
-			<button class="act quiet" data-close>Cancel</button>
-			${inbox ? `<button class="act" data-send${who ? '' : ' disabled'}>Send</button>` : ''}
+			<button class="act quiet" data-close>${T('Cancel')}</button>
+			${inbox ? `<button class="act" data-send${who ? '' : ' disabled'}>${T('Send')}</button>` : ''}
 		</div>`);
 
 	// The list is the other half of the box, and it is worth reaching
@@ -374,6 +391,12 @@ export function openFeedback(kind = 'bug') {
 		const link = host.querySelector('[data-act="signin"]');
 		if (link) link.addEventListener('click', () => signIn());
 		wireIssues();
+	if (!stamp) deployStamp().then(() => {
+		if (!host.isConnected) return;
+		const shown = host.querySelector('.fb-build');
+		if (shown) shown.textContent = buildName();
+		fillIssue();
+	});
 		return;
 	}
 	if (attach && !limits.images) attach.hidden = true;
@@ -392,10 +415,10 @@ export function openFeedback(kind = 'bug') {
 		paintShots();
 		const left = limits.exempt ? null : (limits.open || 0) - (res.body.open || 0);
 		if (left !== null && left <= 0) {
-			note(`You have ${res.body.open} reports waiting on an answer — that is as many as the box takes at once. The GitHub link still works.`);
+			note(T('You have {n} reports waiting on an answer — that is as many as the box takes at once. The GitHub link still works.', { n: res.body.open }));
 			if (send) send.disabled = true;
 		} else if (left !== null && left === 1 && res.body.open) {
-			note(`${res.body.open} of your reports are still open; this would be the last one the box takes until they are answered.`);
+			note(T('{n} of your reports are still open; this would be the last one the box takes until they are answered.', { n: res.body.open }));
 		}
 	}).catch(() => {
 		// The ceilings are the server's to enforce anyway; without this
@@ -417,7 +440,7 @@ export function openFeedback(kind = 'bug') {
 	host.querySelectorAll('[data-mark]').forEach(btn => btn.addEventListener('click', () => mark(text, btn.dataset.mark)));
 	host.querySelector('[data-act="link"]').addEventListener('click', () => {
 		const chosen = text.value.slice(text.selectionStart, text.selectionEnd);
-		const words = chosen || 'what it is';
+		const words = chosen || T('what it is');
 		insert(text, `[${words}](https://)`);
 		// The caret lands on the part that still has to be typed.
 		const at = text.selectionStart - 1;
@@ -427,14 +450,14 @@ export function openFeedback(kind = 'bug') {
 	eye.addEventListener('click', () => {
 		const showing = preview.hidden;
 		preview.innerHTML = showing
-			? (renderMarkup(text.value, { files: shots }) || '<p class="fb-hint">Nothing written yet.</p>')
+			? (renderMarkup(text.value, { files: shots }) || `<p class="fb-hint">${T('Nothing written yet.')}</p>`)
 			: '';
 		if (showing) enhance(preview);
 		preview.hidden = !showing;
 		text.hidden = showing;
 		eye.classList.toggle('on', showing);
 		eye.setAttribute('aria-pressed', String(showing));
-		eye.textContent = showing ? 'Write' : 'Preview';
+		eye.textContent = showing ? T('Write') : T('Preview');
 		if (!showing) text.focus();
 	});
 
@@ -452,20 +475,20 @@ export function openFeedback(kind = 'bug') {
 		strip.hidden = !shots.length;
 		strip.innerHTML = shots.map(f => `
 			<figure class="fb-shot" data-id="${esc(f.id)}">
-				<img src="${esc(fileURL(f.id))}" alt="${esc(f.name || 'a screenshot')}">
-				<figcaption>${esc(f.name || 'screenshot')}</figcaption>
-				<button type="button" class="fb-shot-in" data-put="${esc(f.id)}" title="Put it in the text where the caret is">Place</button>
-				<button type="button" class="fb-shot-x" data-drop="${esc(f.id)}" aria-label="Take this one off">×</button>
+				<img src="${esc(fileURL(f.id))}" alt="${esc(f.name || T('a screenshot'))}">
+				<figcaption>${esc(f.name || T('screenshot'))}</figcaption>
+				<button type="button" class="fb-shot-in" data-put="${esc(f.id)}" title="${T('Put it in the text where the caret is')}">${T('Place')}</button>
+				<button type="button" class="fb-shot-x" data-drop="${esc(f.id)}" aria-label="${T('Take this one off')}">×</button>
 			</figure>`).join('');
 		strip.querySelectorAll('[data-put]').forEach(btn => btn.addEventListener('click', () => {
 			const file = shots.find(f => f.id === btn.dataset.put);
-			insert(text, `![${(file && file.name) || 'screenshot'}](attachment:${btn.dataset.put})`);
+			insert(text, `![${(file && file.name) || T('screenshot')}](attachment:${btn.dataset.put})`);
 		}));
 		strip.querySelectorAll('[data-drop]').forEach(btn => btn.addEventListener('click', async () => {
 			btn.disabled = true;
 			const id = btn.dataset.drop;
-			const res = await call('DELETE', `/api/feedback/image/${id}`).catch(() => null);
-			if (!res || !res.ok) { btn.disabled = false; return toast('That one would not come off.'); }
+			const res = await call('DELETE', `/api/feedback/image/${id}`, null, { label: T('Saving…'), by: btn }).catch(() => null);
+			if (!res || !res.ok) { btn.disabled = false; return toast(T('That one would not come off.')); }
 			const at = shots.findIndex(f => f.id === id);
 			if (at >= 0) shots.splice(at, 1);
 			// The text may still point at it; a picture the post no longer
@@ -479,20 +502,19 @@ export function openFeedback(kind = 'bug') {
 	async function take(files) {
 		const list = [...files].filter(f => f && /^image\//.test(f.type));
 		if (!list.length) return;
-		if (!limits.images) return toast('This copy of the app cannot take images.');
+		if (!limits.images) return toast(T('This copy of the app cannot take images.'));
 		for (const file of list) {
-			if (shots.length >= limits.images) { toast(`${limits.images} images is the most one report carries.`); break; }
+			if (shots.length >= limits.images) { toast(T('{n} images is the most one report carries.', { n: limits.images })); break; }
 			strip.hidden = false;
 			const waiting = document.createElement('div');
 			waiting.className = 'fb-shot waiting';
-			waiting.textContent = 'sending…';
+			waiting.innerHTML = loadingNote(T('sending…'));
 			strip.appendChild(waiting);
 			try {
-				const blob = await shrink(file, limits);
-				const landed = await upload(blob, file.name);
+				const landed = await whileLoading(async () => upload(await shrink(file, limits), file.name), T('Sending the image…'), { at: strip });
 				shots.push(landed);
 			} catch (err) {
-				toast(err.message || 'That image did not go up.');
+				toast(err.message || T('That image did not go up.'));
 			}
 			waiting.remove();
 			paintShots();
@@ -526,7 +548,7 @@ export function openFeedback(kind = 'bug') {
 	function fillIssue() {
 		const issues = host.querySelector('.fb-issues');
 		const title = { bug: 'Something is wrong', idea: 'An idea', other: 'Feedback' }[picked];
-		const body = `${text ? text.value.trim() : ''}\n\n---\nSection: ${view}\nBuild: ${RELEASE}\nBrowser: ${agent()}`;
+		const body = `${text ? text.value.trim() : ''}\n\n---\nSection: ${view}\nBuild: ${buildName()}\nBrowser: ${agent()}`;
 		issues.href = `${ISSUES}/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`;
 	}
 	function wireIssues() {
@@ -540,36 +562,36 @@ export function openFeedback(kind = 'bug') {
 	if (!send) return;
 	send.addEventListener('click', async () => {
 		const words = text.value.trim();
-		if (words.length < 3 && !shots.length) return toast('Say a little more than that');
+		if (words.length < 3 && !shots.length) return toast(T('Say a little more than that'));
 		send.disabled = true;
 		const contact = host.querySelector('.fb-contact');
 		let res;
 		try {
 			res = await call('POST', '/api/feedback', {
-				kind: picked, text: words, format: 'md', page: view, version: RELEASE,
+				kind: picked, text: words, format: 'md', page: view, version: buildName(),
 				files: shots.map(f => f.id),
 				contact: contact ? contact.value.trim() : '',
 				username: who.username
-			});
+			}, { label: T('Sending…'), by: send });
 		} catch {
 			res = null;
 		}
 		if (!res || !res.ok) {
 			send.disabled = false;
-			return toast(res && res.body && res.body.error ? res.body.error : 'That did not send — the server did not answer. The GitHub link still works.');
+			return toast(res && res.body && res.body.error ? said(res.body.error) : T('That did not send — the server did not answer. The GitHub link still works.'));
 		}
 		closeDialog();
-		toast(picked === 'bug' ? 'Sent — thank you for saying' : 'Sent — thank you');
+		toast(picked === 'bug' ? T('Sent — thank you for saying') : T('Sent — thank you'));
 	});
 }
 
 /** What stands where the box would be, for anyone signed out. */
 function signInPanel() {
 	return `<div class="fb-signin">
-		<p>Reports come from accounts now — so that an answer has somewhere to go, and so that a screenshot belongs to somebody. Signing in asks Discord for a name and nothing else.</p>
+		<p>${T('Reports come from accounts now — so that an answer has somewhere to go, and so that a screenshot belongs to somebody. Signing in asks Discord for a name and nothing else.')}</p>
 		<div class="fb-signin-acts">
-			<button type="button" class="act" data-act="signin">Sign in with Discord</button>
-			<span class="fb-hint">or write it in public, with the GitHub link below</span>
+			<button type="button" class="act" data-act="signin">${T('Sign in with Discord')}</button>
+			<span class="fb-hint">${T('or write it in public, with the GitHub link below')}</span>
 		</div>
 	</div>`;
 }
@@ -580,10 +602,10 @@ function signInPanel() {
 
 /** What people have written in: the list, for anyone. */
 export async function openReports() {
-	const host = openDialog(`<h2>${TITLE.public}</h2><p class="dialog-copy">Fetching…</p>`);
-	const res = await call('GET', '/api/feedback').catch(() => null);
+	const host = openDialog(`<h2>${said(TITLE.public)}</h2><p class="dialog-copy">${loadingNote(T('Fetching…'))}</p>`);
+	const res = await call('GET', '/api/feedback', null, { label: T('Fetching…'), at: host }).catch(() => null);
 	if (!res || !res.ok) {
-		host.querySelector('.dialog-box').innerHTML = `<h2>${TITLE.public}</h2><p class="dialog-copy">${esc(res && res.body && res.body.error ? res.body.error : 'The box did not answer.')}</p><div class="dialog-actions"><button class="ghost-btn" data-close>Close</button></div>`;
+		host.querySelector('.dialog-box').innerHTML = `<h2>${said(TITLE.public)}</h2><p class="dialog-copy">${esc(res && res.body && res.body.error ? said(res.body.error) : T('The box did not answer.'))}</p><div class="dialog-actions"><button class="ghost-btn" data-close>${T('Close')}</button></div>`;
 		return;
 	}
 	// Whether the buttons are drawn is the server's answer, not a guess
@@ -591,9 +613,9 @@ export async function openReports() {
 	paintInbox(host, res.body.entries || [], 'all', res.body.admin === true);
 }
 
-const TITLE = { admin: 'Feedback inbox', public: 'What people have written in' };
+const TITLE = { admin: TT('Feedback inbox'), public: TT('What people have written in') };
 
-const KIND_WORD = { bug: 'wrong', idea: 'idea', other: 'other' };
+const KIND_WORD = { bug: TT('wrong'), idea: TT('idea'), other: TT('other') };
 
 /**
  * The list, drawn for whoever is reading it.
@@ -613,36 +635,36 @@ function paintInbox(host, entries, only, admin) {
 
 	const row = e => `<div class="fb-entry ${esc(e.kind)}${e.status === 'open' ? '' : ' done'}" data-id="${e.id}">
 		<div class="fb-entry-head">
-			<span class="fb-entry-kind">${esc(KIND_WORD[e.kind] || e.kind)}</span>
-			<span class="fb-entry-who">${e.username ? esc(e.username) : 'a visitor'}${admin && e.contact ? ` · ${esc(e.contact)}` : ''}${e.mine ? ' · <b>yours</b>' : ''}</span>
-			<span class="fb-entry-when">#${e.id} · ${when(e.createdAt)}${e.status === 'done' ? ' · answered' : e.status === 'hidden' ? ' · hidden' : ''}</span>
+			<span class="fb-entry-kind">${esc(said(KIND_WORD[e.kind]) || e.kind)}</span>
+			<span class="fb-entry-who">${e.username ? esc(e.username) : e.former ? T('a former sailor') : T('a visitor')}${admin && e.contact ? ` · ${esc(e.contact)}` : ''}${e.mine ? ` · <b>${T('yours')}</b>` : ''}</span>
+			<span class="fb-entry-when">#${e.id} · ${when(e.createdAt)}${e.status === 'done' ? ` · ${T('answered')}` : e.status === 'hidden' ? ` · ${T('hidden')}` : ''}</span>
 		</div>
 		${postHTML(e)}
 		<div class="fb-entry-foot">
 			<span>${[
-		e.page ? `on ${e.page}` : '',
-		e.version ? `build ${e.version}` : '',
-		e.files && e.files.length ? `${e.files.length} image${e.files.length === 1 ? '' : 's'}` : '',
-		admin && e.userId ? `id ${e.userId}` : '',
+		e.page ? T('on {page}', { page: e.page }) : '',
+		e.version ? T('build {version}', { version: e.version }) : '',
+		e.files && e.files.length ? (e.files.length === 1 ? T('{n} image', { n: e.files.length }) : T('{n} images', { n: e.files.length })) : '',
+		admin && e.userId ? T('id {id}', { id: e.userId }) : '',
 		admin && e.agent ? e.agent.replace(/^Mozilla\/5\.0 /, '').slice(0, 70) : ''
 	].filter(Boolean).map(esc).join(' · ')}</span>
 			${admin ? `<span class="fb-entry-acts">
-				<button class="chip tiny" data-status="${e.status === 'open' ? 'done' : 'open'}">${e.status === 'open' ? 'Mark done' : 'Reopen'}</button>
-				<button class="chip tiny" data-status="${e.status === 'hidden' ? 'open' : 'hidden'}" title="${e.status === 'hidden' ? 'Put it back in the public list' : 'Take it out of the public list, without throwing it away'}">${e.status === 'hidden' ? 'Show' : 'Hide'}</button>
-				<button class="chip tiny danger" data-drop="${e.id}">Delete</button>
+				<button class="chip tiny" data-status="${e.status === 'open' ? 'done' : 'open'}">${e.status === 'open' ? T('Mark done') : T('Reopen')}</button>
+				<button class="chip tiny" data-status="${e.status === 'hidden' ? 'open' : 'hidden'}" title="${e.status === 'hidden' ? T('Put it back in the public list') : T('Take it out of the public list, without throwing it away')}">${e.status === 'hidden' ? T('Show') : T('Hide')}</button>
+				<button class="chip tiny danger" data-drop="${e.id}">${T('Delete')}</button>
 			</span>` : ''}
 		</div>
 	</div>`;
 
 	const counts = kind => entries.filter(e => kind === 'all' || e.kind === kind).length;
-	box.innerHTML = `<h2>${admin ? TITLE.admin : TITLE.public}</h2>
-		<p class="dialog-copy">${open.length} waiting · ${done.length} answered${admin && hidden.length ? ` · ${hidden.length} hidden` : ''} · the newest ${entries.length} entries${admin ? '' : ' — anyone can read these; only the operator can answer one'}</p>
+	box.innerHTML = `<h2>${said(admin ? TITLE.admin : TITLE.public)}</h2>
+		<p class="dialog-copy">${T('{n} waiting', { n: open.length })} · ${T('{n} answered', { n: done.length })}${admin && hidden.length ? ` · ${T('{n} hidden', { n: hidden.length })}` : ''} · ${T('the newest {n} entries', { n: entries.length })}${admin ? '' : ` — ${T('anyone can read these; only the operator can answer one')}`}</p>
 		<div class="fb-filter">${['all', 'bug', 'idea', 'other'].map(k =>
-		`<button type="button" class="chip${k === only ? ' on' : ''}" data-only="${k}">${k === 'all' ? 'Everything' : esc(KIND_WORD[k])} <span class="n">${counts(k)}</span></button>`).join('')}</div>
-		<div class="fb-list">${open.map(row).join('') || '<p class="dialog-copy">Nothing waiting.</p>'}</div>
-		${done.length ? `<details class="fb-done"><summary>Answered (${done.length})</summary><div class="fb-list">${done.map(row).join('')}</div></details>` : ''}
-		${admin && hidden.length ? `<details class="fb-done"><summary>Hidden (${hidden.length})</summary><div class="fb-list">${hidden.map(row).join('')}</div></details>` : ''}
-		<div class="dialog-actions">${admin ? '' : '<button class="act" data-write>Write one</button>'}<button class="ghost-btn" data-close>Close</button></div>`;
+		`<button type="button" class="chip${k === only ? ' on' : ''}" data-only="${k}">${k === 'all' ? T('Everything') : esc(said(KIND_WORD[k]))} <span class="n">${counts(k)}</span></button>`).join('')}</div>
+		<div class="fb-list">${open.map(row).join('') || `<p class="dialog-copy">${T('Nothing waiting.')}</p>`}</div>
+		${done.length ? `<details class="fb-done"><summary>${T('Answered ({n})', { n: done.length })}</summary><div class="fb-list">${done.map(row).join('')}</div></details>` : ''}
+		${admin && hidden.length ? `<details class="fb-done"><summary>${T('Hidden ({n})', { n: hidden.length })}</summary><div class="fb-list">${hidden.map(row).join('')}</div></details>` : ''}
+		<div class="dialog-actions">${admin ? '' : `<button class="act" data-write>${T('Write one')}</button>`}<button class="ghost-btn" data-close>${T('Close')}</button></div>`;
 
 	enhance(box);
 
@@ -658,8 +680,8 @@ function paintInbox(host, entries, only, admin) {
 		const id = Number(btn.closest('.fb-entry').dataset.id);
 		const status = btn.dataset.status;
 		btn.disabled = true;
-		const res = await call('POST', `/api/feedback/${id}/status`, { status }).catch(() => null);
-		if (!res || !res.ok) { btn.disabled = false; return toast('That did not stick.'); }
+		const res = await call('POST', `/api/feedback/${id}/status`, { status }, { label: T('Saving…'), by: btn }).catch(() => null);
+		if (!res || !res.ok) { btn.disabled = false; return toast(T('That did not stick.')); }
 		const entry = entries.find(e => e.id === id);
 		if (entry) entry.status = status;
 		again(only);
@@ -672,14 +694,14 @@ function paintInbox(host, entries, only, admin) {
 		btn.addEventListener('click', async () => {
 			if (!asked) {
 				asked = true;
-				btn.textContent = 'Really?';
-				setTimeout(() => { asked = false; btn.textContent = 'Delete'; }, 4000);
+				btn.textContent = T('Really?');
+				setTimeout(() => { asked = false; btn.textContent = T('Delete'); }, 4000);
 				return;
 			}
 			const id = Number(btn.dataset.drop);
 			btn.disabled = true;
-			const res = await call('DELETE', `/api/feedback/${id}`).catch(() => null);
-			if (!res || !res.ok) { btn.disabled = false; return toast('That one would not go.'); }
+			const res = await call('DELETE', `/api/feedback/${id}`, null, { label: T('Saving…'), by: btn }).catch(() => null);
+			if (!res || !res.ok) { btn.disabled = false; return toast(T('That one would not go.')); }
 			const at = entries.findIndex(e => e.id === id);
 			if (at >= 0) entries.splice(at, 1);
 			again(only);

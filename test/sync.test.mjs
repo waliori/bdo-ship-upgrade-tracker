@@ -28,6 +28,9 @@ process.env.SESSION_SECRET = 'test-secret-key-for-signing-sessions';
 // the deletion test reaches it -- the race it exists to cover.
 process.env.FLUSH_DELAY_MS = '0';
 
+// Market prices from a recorded answer, never the live Market, so a run
+// plans the same on any day (see server/market.js).
+process.env.MARKET_FIXTURE = new URL('./fixtures/market.json', import.meta.url).href;
 const app = (await import('../server.js')).default;
 const { startSession } = await import('../server/session.js');
 const { upsertUser } = await import('../server/db.js');
@@ -78,7 +81,9 @@ test('the page is still served', async () => {
 
 test('the client is told sync is available', async () => {
 	const res = await call('GET', '/api/config');
-	assert.deepEqual(await res.json(), { sync: true, push: false, feedback: true, uploads: true, community: true, presence: true });
+	const { build, ...offered } = await res.json();
+	assert.deepEqual(offered, { sync: true, push: false, discordDm: false, feedback: true, uploads: true, community: true, presence: true, links: true });
+	assert.equal(typeof build, 'string', 'the deploy is named');
 });
 
 test('being signed out is an answer, not an error', async () => {
@@ -420,11 +425,30 @@ test('a change from another site is refused, whatever cookie it carries', async 
 	// The same request from this site goes through as before.
 	const ours = await from(base);
 	assert.equal(ours.status, 200);
-	const same = await call('POST', '/auth/logout', { cookie: alice, headers: { 'Sec-Fetch-Site': 'same-origin' } });
+	// A cookie of its own: signing out hands the cookie back, and alice's
+	// is wanted below.
+	const same = await call('POST', '/auth/logout', { cookie: cookieFor('1001'), headers: { 'Sec-Fetch-Site': 'same-origin' } });
 	assert.equal(same.status, 200);
 	// And a refusal never reads the body: the stored save did not move.
 	const after = await (await call('GET', '/api/state', { cookie: alice })).json();
 	assert.equal(after.rev, rev + 1);
+});
+
+test('signing out hands the cookie back: a copy of it opens nothing, another device stays in', async () => {
+	const laptop = cookieFor('1001');
+	const phone = cookieFor('1001');
+	assert.equal((await call('GET', '/api/state', { cookie: laptop })).status, 200);
+	const out = await call('POST', '/auth/logout', { cookie: laptop });
+	assert.equal(out.status, 200);
+	assert.match(out.headers.get('set-cookie') || '', /sail_session=;/);
+	// The same cookie, sent again -- the copy somebody lifted -- is refused.
+	assert.equal((await call('GET', '/api/state', { cookie: laptop })).status, 401);
+	assert.deepEqual(await (await call('GET', '/api/me', { cookie: laptop })).json(), { signedIn: false });
+	// The account's other cookie is its own session, untouched.
+	assert.equal((await call('GET', '/api/state', { cookie: phone })).status, 200);
+	// And the refusal is on file, not only in this process's memory.
+	const { listRevokedSessions } = await import('../server/db.js');
+	assert.equal((await listRevokedSessions()).length >= 1, true);
 });
 
 test('a read is never asked where it came from', async () => {

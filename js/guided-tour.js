@@ -1,17 +1,38 @@
 // Guided tour, built on Driver.js.
 //
-// The tour walks every section in the order someone would actually use
-// them: the yard first -- see the plan, queue a build, record what you
-// own, craft, go shopping -- then the sea, where the day is spent: the
-// quests, the ship, the chart, and the run planned on today's board --
-// and the harbour, where there is one. Each step switches tab by
+// The tour walks the app in the order someone would actually use it:
+// the yard first -- the plan, the builds, what you own and how it is
+// read off a screenshot, the shopping list, what you carry -- then the
+// sea: a run on the Barter tab in its four steps, the hold it keeps to
+// and the clock it sails by, the chart, the ship and the quests, and
+// last the masthead and the menu behind it. Each step switches tab by
 // clicking the real tab button, so there is no second copy of the
-// navigation logic to keep in sync, and it works the same on a phone,
-// where that button is in the bar at the thumb or behind "Menu".
+// navigation logic to keep in sync.
+//
+// The same tour has to read on a desk and on a phone, and those are two
+// different pages: the tab row is a bar at the thumb that seats four
+// sections and keeps the rest behind Menu, the chart's panel is folded,
+// a control is often in the page twice with only one copy showing. So
+// a step does not name an element, it names how to find one -- the
+// first copy that is actually on the screen, per layout -- and says
+// what it says per layout too. Its target is looked up again whenever
+// the page repaints or is turned on its side.
 
 import * as store from './state.js';
 import { isPhone } from './viewport.js';
 import { feature } from './sync.js';
+import { T } from './i18n.js';
+import { barterKey } from './clock.js';
+import { hushTimer } from './sail-timer.js';
+import { holdSlotsUsed, hullSlots } from './hold-room.js';
+import { F } from './fmt.js';
+import { V as barterView } from './barter/state.js';
+import { flushView, keepLayoutSeen } from './barter/view.js';
+import { noteTourStart, putBackTourKeys } from './tour-leftovers.js';
+import { sailKey, sailRecord, runMarks, runLabel } from './barter/sail.js';
+import { sailCal, fromPort } from './barter/board.js';
+import { toldOf } from './barter/packing.js';
+import { legsOf } from './barter/route.js';
 
 const DONE_KEY = 'bdo_ship_upgrade-tour_completed';
 
@@ -19,14 +40,60 @@ const DONE_KEY = 'bdo_ship_upgrade-tour_completed';
 const stillness = () => typeof window !== 'undefined' && typeof window.matchMedia === 'function'
 	&& window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-/**
+/*
  * A worked-through example to talk over: a Carrack part part-way built,
- * with something craftable, something short, and a part mid-enhancement.
- * It is never saved -- the real data is captured first and put back when
- * the tour ends.
+ * with something craftable, something short, and a part mid-enhancement
+ * -- and a barter run on today's board, so the Barter steps point at a
+ * real one. It is never saved: the real data is captured first and put
+ * back when the tour ends, and the store writes nothing while it is in.
+ *
+ * The run is layout 4 of the game's forty, read off two islands, from
+ * Iliya Island: two [Level 5]s and a [Level 1] climbed to [Level 7] and
+ * sold at the wharf. The chain ids are the Barter tab's own for these
+ * goods on that layout; a patch that re-deals layout 4 is caught by the
+ * tour's tests (the hold and the clock steps then have no run to show).
+ * For the clock step the run is cast off the way the Sail press casts
+ * it off -- from the route the Load step laid -- so the clock's stops
+ * are the cockpit's, and in the page's language.
  */
-const DEMO = JSON.stringify({
-	stock: {
+const PORT = 1002;   // Iliya Island
+const LAYOUT = '4';
+const CHAINS = [
+	'hold:[Level 5] Elixir of Youth:58977.58973',
+	'hold:[Level 5] Mysterious Rock:58980.58954',
+	'hold:[Level 1] Raft Toy:58955.58942.58907.58949'
+];
+// The two islands whose offers settle the layout.
+const ANSWERS = [
+	{ npcId: 50814, give: "[Level 4] Boatman's Manual", recv: 'Crow Coin' },
+	{ npcId: 50815, give: '[Level 4] Headless Dragon Figurine', recv: 'Crow Coin' }
+];
+const HOLD = "Ship's hold";
+const ILIYA = 'Iliya Island';
+// Where the goods are: two [Level 5]s and two [Level 3]s aboard, the
+// rest in the storage at Iliya. The same at sea: the run is cast off as
+// the packing list stood, nothing ticked.
+const GOODS = {
+	'[Level 5] Elixir of Youth': { [HOLD]: 4 },
+	'[Level 3] Scout Binoculars': { [HOLD]: 2 },
+	'[Level 5] Mysterious Rock': { [ILIYA]: 4 },
+	'[Level 1] Raft Toy': { [ILIYA]: 4 },
+	'[Level 1] Golden Sand': { [ILIYA]: 18 },
+	'[Level 2] Big Stone Slab': { [ILIYA]: 5 }
+};
+// How long ago the example cast off: the clock is a few minutes short
+// of the first island.
+const UNDER_WAY = 150;
+
+/**
+ * The example as the store takes it, with the board of today, so it
+ * reads as read this morning. `sea` is the run cast off -- its record
+ * and its clock, from castOff() -- for the Sail step; without it the
+ * run is at the wharf, on the Load step and its packing list.
+ */
+function example(sea = null) {
+	const day = barterKey();
+	const stock = {
 		'Violent Wave Plywood': 120,
 		"Violent Sea Monster's Scale": 60,
 		"Saltwater Crocodile's Scale": 55,
@@ -38,56 +105,149 @@ const DEMO = JSON.stringify({
 		'Epheria Carrack: Toro Cannon': 1,
 		'Crow Coin': 3000,
 		Silver: 42000000
-	},
-	targets: [
-		{ id: 'demo-1', item: "Epheria Carrack: Valor (Chiro's Sail)", qty: 1, active: true },
-		{ id: 'demo-2', item: "Epheria Carrack: Valor (Chiro's Cannon)", qty: 1, active: true }
-	],
-	strategy: {},
-	// The sailor's own numbers belong to a worked example as much as the
-	// stock does. Left unset the bar reads "0 barters · no level" and asks
-	// to be filled in -- which is the right thing for a new save and the
-	// wrong thing to walk somebody past while saying that the count
-	// decides which islands will deal with you at all. The hull is the
-	// one the queued parts are for, so the Ship step is about the boat
-	// the example is building rather than the sloop a save starts on.
-	profile: {
-		barterCount: 4205,
-		level: 'Master 5',
-		sailingMastery: 750,
-		crewShip: 'Carrack (Valor)'
-	}
-});
-
-/** Click a tab and give the render a moment to land. */
-function goToTab(id) {
-	const btn = document.querySelector(`[data-act="view"][data-id="${id}"]`);
-	if (btn) btn.click();
-}
-
-/** Open an inventory tile so the detail panel has something in it. */
-function selectSampleItem() {
-	const tile = [...document.querySelectorAll('.tile')]
-		.find(t => t.title === 'Violent Wave Plywood') || document.querySelector('.tile');
-	if (tile) tile.click();
+	};
+	for (const [name, at] of Object.entries(GOODS)) stock[name] = Object.values(at).reduce((a, n) => a + n, 0);
+	const barter = { port: PORT, routes: { key: `${day}|${LAYOUT}|`, ids: CHAINS }, board: { day, answers: ANSWERS }, ...(sea ? { sail: sea.sail } : {}) };
+	return JSON.stringify({
+		stock,
+		targets: [
+			{ id: 'demo-1', item: "Epheria Carrack: Valor (Chiro's Sail)", qty: 1, active: true },
+			{ id: 'demo-2', item: "Epheria Carrack: Valor (Chiro's Cannon)", qty: 1, active: true }
+		],
+		strategy: {},
+		// The sailor's own numbers belong to a worked example as much as the
+		// stock does. Left unset the bar reads "0 barters · no level" and asks
+		// to be filled in -- which is the right thing for a new save and the
+		// wrong thing to walk somebody past while saying that the count
+		// decides which islands will deal with you at all. The hull is the
+		// one the queued parts are for, so the Ship step is about the boat
+		// the example is building rather than the sloop a save starts on --
+		// and the hold step's twenty slots are that Valor's.
+		profile: {
+			barterCount: 4205,
+			level: 'Master 5',
+			sailingMastery: 750,
+			crewShip: 'Carrack (Valor)',
+			stash: GOODS,
+			views: { barter, ...(sea ? { timer: sea.timer } : {}) }
+		}
+	});
 }
 
 /**
- * The Map, with its side panel out and a given tab up.
- *
- * The panel is open on a wide screen and folded to a pill on a narrow
- * one, where it would be the whole screen -- so it is asked for rather
- * than assumed, and a step can point at a tab that is really there.
+ * The example run cast off, as the Sail press does it: the run's record
+ * from the route on screen, and a clock set on its stops -- started a
+ * few minutes ago, so it is counting towards the first island. Null
+ * while no route of the example's is laid yet: the tour clears the
+ * tab's route when it starts, so one there now was laid on the example.
  */
-function goToMap(mode) {
-	goToTab('map');
-	if (!document.querySelector('.map-side')) {
-		const pill = document.querySelector('[data-act="map-panel"]');
-		if (pill) pill.click();
+function castOff() {
+	const plan = barterView.shownPlan;
+	if (!plan || !Array.isArray(plan.stops) || !plan.stops.length) return null;
+	const marks = runMarks(plan, legsOf(plan.stops));
+	if (!marks.length) return null;
+	const sail = { key: sailKey(), done: [], seen: {}, got: {}, kept: [], laidFor: '{}', cal: sailCal(), ...sailRecord(plan), packLog: { delta: {}, moves: [] }, told: toldOf(plan, fromPort()) };
+	const seconds = Math.max(30, Math.min(6 * 3600, Math.round(marks[marks.length - 1].at)));
+	const timer = {
+		startedAt: Date.now() - UNDER_WAY * 1000, seconds, label: runLabel(plan).slice(0, 60),
+		chimed: false, marks, done: 0, reached: 0, legAt: 0, of: plan.stops.length,
+		base: { seconds, marks }
+	};
+	return { sail, timer };
+}
+
+/**
+ * The Barter tab's memory, and what the tour's screens keep in this
+ * browser beside the save, kept to be put back. The tab's state lives in
+ * one object of the module's own, beside the store: the board, the run,
+ * the step up, the searches out. The example's view is read into it when
+ * the tab draws, so the sailor's is copied here first -- any write of it
+ * still owed is made now, while the store still saves -- and put back
+ * whole when the tour ends. The live handles (the workers, the request
+ * out, the timers) are left as they are by then.
+ */
+const LIVE = new Set(['worker', 'presetWorker', 'expectWorker', 'pending', 'untilBeat', 'writeTimer', 'writing', 'reqSeq', 'expectSeq']);
+function keepBarter() {
+	flushView();
+	const kept = {};
+	for (const [k, v] of Object.entries(barterView)) {
+		if (LIVE.has(k)) continue;
+		try { kept[k] = window.structuredClone(v); } catch { kept[k] = v; }
 	}
-	if (!mode) return;
-	const btn = document.querySelector(`[data-act="map-mode"][data-id="${mode}"]`);
-	if (btn) btn.click();
+	// What the tour's screens keep in this browser beside the save -- the
+	// Barter tab's step, the chart's panel -- noted in the session too, so
+	// a reload mid-tour puts it back as well (tour-leftovers.js).
+	const local = noteTourStart();
+	const seen = keepLayoutSeen();
+	return () => {
+		// A write of the example's view still owed is dropped: made now, it
+		// would land on the sailor's save.
+		if (barterView.writeTimer) {
+			clearTimeout(barterView.writeTimer);
+			barterView.writeTimer = null;
+		}
+		for (const k of Object.keys(barterView)) if (!LIVE.has(k) && !(k in kept)) delete barterView[k];
+		Object.assign(barterView, kept);
+		seen();
+		putBackTourKeys(local);
+	};
+}
+
+/** On the screen: drawn with a size, not hidden, not invisible. */
+function onScreen(el) {
+	if (!el || !el.isConnected) return false;
+	const r = el.getBoundingClientRect();
+	if (!(r.width > 0 && r.height > 0)) return false;
+	return getComputedStyle(el).visibility !== 'hidden';
+}
+
+/**
+ * The first match that is actually on the screen.
+ *
+ * A selector alone is ambiguous here: a section button is both in the
+ * tab row (hidden on a phone) and in the bar at the thumb (hidden on a
+ * desk), and the old tour, taking whichever came first, highlighted a
+ * box of no size and floated its popover over nothing. Several
+ * selectors are tried in turn, so a step can say what it wants and
+ * what will do instead.
+ */
+function shown(...sels) {
+	for (const sel of sels) {
+		for (const el of document.querySelectorAll(sel)) if (onScreen(el)) return el;
+	}
+	return null;
+}
+
+/** Fixed or sticky: scrolling the page does not move it. */
+function pinned(el) {
+	for (let at = el; at && at !== document.body; at = at.parentElement) {
+		const pos = getComputedStyle(at).position;
+		if (pos === 'fixed' || pos === 'sticky') return true;
+	}
+	return false;
+}
+
+/** Click a tab. The tab row's copy is clicked even on a phone, where it
+ *  is not drawn: a click is a click, and it is always in the page. */
+function goToTab(id) {
+	const btn = document.querySelector(`[data-act="view"][data-id="${id}"]`);
+	if (btn && document.body.dataset.view !== id) btn.click();
+}
+
+/** The section's name as the page says it, in the page's language. */
+function tabName(id) {
+	const label = document.querySelector(`#tabs [data-id="${id}"] .tab-label`);
+	return label ? label.textContent.trim() : id;
+}
+
+/**
+ * Where a section is on a phone, when it is not one of the four at the
+ * thumb: "☰ Menu › Builds", above the step's text. A desk shows every
+ * tab in the row at the top, so it needs no telling.
+ */
+function whereOnPhone(id) {
+	if (!isPhone() || document.querySelector(`#tabbar [data-act="view"][data-id="${id}"]`)) return '';
+	return `<span class="tour-where">☰ ${T('Menu')} › ${tabName(id)}</span>`;
 }
 
 class GuidedTour {
@@ -100,6 +260,20 @@ class GuidedTour {
 		// highlight on its element across a repaint, and its debounce.
 		this.stopWatching = null;
 		this.restage = null;
+		// The steps being driven, and the layout their words were dressed for.
+		this.list = [];
+		this.phone = false;
+		// What the tour moved and must put back: the tab it started on,
+		// the scroll, the Barter tab's memory, the chart's panel.
+		this.was = null;
+		// The example's run is cast off (the clock step) rather than at
+		// the wharf, and the run, once cast off.
+		this.sea = false;
+		this.run = null;
+		// A step is being moved to; the watchers keep their hands off.
+		this.moving = false;
+		// The step last shown.
+		this.at = 0;
 	}
 
 	resolveDriver() {
@@ -141,314 +315,459 @@ class GuidedTour {
 		return this.loading;
 	}
 
-	create(steps) {
+	create() {
 		const driverFn = this.resolveDriver();
 		if (!driverFn) return null;
-
-		// Driver.js resolves a step's element the moment it moves to it, so
-		// the tab has to change *before* the move, not from inside the
-		// step's own highlight hook.
-		//
-		// And a tab change repaints the screen twice -- the render the
-		// click causes, and one more a frame behind it. Moving in
-		// between staged an element that was thrown away with the nodes
-		// it stood on a moment later, which is why half the steps used
-		// to land as a popover in the middle of the page instead of
-		// pointing at anything. So the move waits for the second paint,
-		// and a refresh afterwards catches anything later still.
-		const hop = delta => {
-			const at = this.driver ? this.driver.getActiveIndex() : 0;
-			const next = steps[at + delta];
-			if (next && next.before) next.before();
-			setTimeout(() => {
-				// Skip may have landed inside that wait.
-				if (!this.running || !this.driver) return;
-				if (delta > 0) this.driver.moveNext();
-				else this.driver.movePrevious();
-				// Twice: once for the repaint a tab change causes, and again
-				// for anything slower behind it -- a screen that waits on
-				// the chart's tiles, say. Refresh only re-measures where
-				// the popover should sit, so a second one is invisible.
-				for (const at of [140, 420]) {
-					setTimeout(() => {
-						if (this.running && this.driver) this.driver.refresh();
-					}, at);
-				}
-			}, 90);
-		};
-
 		return driverFn({
-			onNextClick: () => hop(1),
-			onPrevClick: () => hop(-1),
+			// Back, Next and the arrow keys all come here, so a step can
+			// open its screen before it is shown and be passed over when
+			// that screen has nothing for it.
+			onNextClick: () => this.hop(1),
+			onPrevClick: () => this.hop(-1),
 			showProgress: true,
 			showButtons: ['next', 'previous', 'close'],
+			// Dressed in the app's own tokens (tracker-recent.css).
+			popoverClass: 'sail-tour',
 			overlayOpacity: 0.55,
 			overlayColor: '#03080f',
 			stagePadding: 8,
 			stageRadius: 12,
 			allowClose: true,
+			// What is highlighted is the example's, to be looked at: a
+			// press on it -- a packing tick, the clock's stop, the step
+			// buttons -- would act on example data, or write the step up as
+			// this device's own.
+			disableActiveInteraction: true,
+			// The keys are the tour's own; see startTour().
+			allowKeyboardControl: false,
 			// A browser that asked for less movement gets the stage cut,
 			// not slid, and the page jumped to each step rather than
-			// scrolled there.
+			// scrolled there. A phone is always jumped: its sheet moves
+			// the target again straight after, and two scrolls in a row
+			// read as the page lurching.
 			animate: !stillness(),
-			smoothScroll: !stillness(),
-			doneBtnText: 'Finish',
-			closeBtnText: 'Skip',
-			nextBtnText: 'Next',
-			prevBtnText: 'Back',
-			onDestroyed: () => {
-				this.running = false;
-				this.driver = null;
-				clearTimeout(this.restage);
-				if (this.stopWatching) this.stopWatching();
-				this.stopWatching = null;
-				this.restoreRealData();
-				try {
-					localStorage.setItem(DONE_KEY, 'true');
-				} catch {
-					/* ignore */
-				}
-			}
+			smoothScroll: !stillness() && !isPhone(),
+			doneBtnText: T('Finish'),
+			closeBtnText: T('Skip'),
+			nextBtnText: T('Next'),
+			prevBtnText: T('Back'),
+			onPopoverRender: popover => {
+				// The step on screen, for finish() once Driver.js has let go.
+				if (this.driver) this.at = this.driver.getActiveIndex();
+				// The keyboard lands on Next, so Enter goes on. Driver.js
+				// focuses the first button it finds, which is the close
+				// cross -- Enter on it ended the tour -- and it does so
+				// right after this hook, so this waits a tick.
+				setTimeout(() => {
+					if (popover.nextButton && popover.wrapper.isConnected) popover.nextButton.focus({ preventScroll: true });
+					this.place();
+				}, 0);
+			},
+			onDestroyed: () => this.finish()
 		});
 	}
 
-	steps() {
+	/**
+	 * Move a step forward or back.
+	 *
+	 * Driver.js finds a step's element the moment it moves to it, so the
+	 * tab has to change *before* the move, not from inside the step's
+	 * own highlight hook -- and a tab change repaints the screen twice,
+	 * the render the click causes and one more a frame behind it. So the
+	 * step is moved to once its element is really there, and a step
+	 * whose element never comes (an empty queue has no build rows; a
+	 * phone has no tab row) is passed over rather than shown as a
+	 * popover pointing at nothing.
+	 */
+	async hop(delta) {
+		if (!this.running || !this.driver || this.moving) return;
+		const from = this.driver.getActiveIndex() ?? 0;
+		this.moving = true;
+		try {
+			for (let to = from + delta; ; to += delta) {
+				if (to < 0) return;
+				if (to >= this.list.length) {
+					this.driver.destroy();
+					return;
+				}
+				if (await this.ready(to, from)) {
+					this.show(to);
+					return;
+				}
+				// Skip may have landed inside that wait.
+				if (!this.running || !this.driver) return;
+			}
+		} finally {
+			this.moving = false;
+		}
+	}
+
+	/** Open step `to`'s screen and wait for its element; false if none comes. */
+	async ready(to, from = -1) {
+		const step = this.list[to];
+		const left = this.list[from];
+		if (left && left.leave && left !== step) left.leave();
+		if (step.before) step.before();
+		if (!step.find) return true;
+		for (let waited = 0; waited < 1500; waited += 60) {
+			await new Promise(r => setTimeout(r, 60));
+			if (!this.running) return false;
+			// A screen drawn a moment after the click -- the chart, a lazy
+			// tab -- has its fold opened once it is there.
+			if (step.again) step.again();
+			// Twice over a frame apart, so a screen still being drawn again
+			// a moment later is not caught half way.
+			if (waited >= 120 && step.find()) return true;
+		}
+		return false;
+	}
+
+	/** Show step `i`, its words dressed for the layout as it is now. */
+	show(i) {
+		if (!this.driver) return;
+		this.dress();
+		this.driver.moveTo(i);
+		// Anything slower behind it -- the chart's tiles, a lazy screen --
+		// is caught by one more look.
+		setTimeout(() => this.check(), 450);
+	}
+
+	/**
+	 * On a phone the step is a sheet across the foot of the screen, and a
+	 * sheet over the thing it is talking about is no help. So the page is
+	 * scrolled until the target sits in the space above the sheet --
+	 * centred there, or from its top when it is taller than that -- and
+	 * when that cannot be done (the bar at the thumb is fixed to the
+	 * bottom; the last row of a page cannot scroll any higher) the sheet
+	 * goes to the top of the screen instead.
+	 */
+	place() {
+		if (!this.running || !this.driver) return;
+		const pop = document.querySelector('.driver-popover.sail-tour');
+		if (!pop) return;
+		pop.classList.remove('tour-top');
+		const el = this.driver.getActiveElement();
+		if (!isPhone() || !el || el.id === 'driver-dummy-element' || !el.isConnected) return;
+		const gap = 10;
+		const sheet = pop.getBoundingClientRect();
+		let r = el.getBoundingClientRect();
+		if (!pinned(el)) {
+			const room = sheet.top - gap * 2;
+			const want = r.height >= room ? gap : gap + (room - r.height) / 2;
+			const dy = r.top - want;
+			if (Math.abs(dy) > 2) window.scrollBy({ top: dy, behavior: 'instant' });
+			r = el.getBoundingClientRect();
+		}
+		if (r.bottom > sheet.top - 2 && r.top > sheet.height + gap * 2) pop.classList.add('tour-top');
+		this.driver.refresh();
+	}
+
+	/**
+	 * Is the highlight still on something? Anything that repaints the
+	 * screen throws away the node the highlight was on -- the icon
+	 * mapping lands, the barter catalogue lands, a Market price lands --
+	 * and refresh only re-measures the node it has, so a thrown-away one
+	 * left the ring and the popover at the top-left corner of nothing.
+	 * A lost target is found again and the step shown on it; one still
+	 * there is only re-measured, which is invisible.
+	 */
+	check() {
+		if (!this.running || !this.driver || this.moving) return;
+		const i = this.driver.getActiveIndex();
+		const step = this.list[i];
+		if (!step) return;
+		const el = this.driver.getActiveElement();
+		if (step.find && (!el || el.id === 'driver-dummy-element' || !onScreen(el))) {
+			if (step.find()) this.show(i);
+			return;
+		}
+		this.driver.refresh();
+		this.place();
+		// A repaint under the step (the example's run laid again, a screen
+		// drawn late) can drop the focus to the page; it goes back to Next,
+		// so Enter still goes on.
+		const next = document.querySelector('.driver-popover.sail-tour .driver-popover-next-btn');
+		const at = document.activeElement;
+		const pop = next && next.closest('.driver-popover');
+		if (next && (!at || !at.isConnected || !pop.contains(at))) next.focus({ preventScroll: true });
+	}
+
+	/**
+	 * Turned on its side, or a window dragged across the phone's width:
+	 * the page swaps its tab row for the bar at the thumb, so the step
+	 * is opened again for the layout it is now on -- its screen, its
+	 * target and its words.
+	 */
+	relayout() {
+		if (!this.running || !this.driver || this.moving) return;
 		const phone = isPhone();
+		if (phone === this.phone) {
+			this.check();
+			return;
+		}
+		this.phone = phone;
+		const i = this.driver.getActiveIndex() ?? 0;
+		this.moving = true;
+		this.ready(i).then(ok => {
+			this.moving = false;
+			if (!this.running || !this.driver) return;
+			if (ok) this.show(i);
+			else this.hop(1);
+		});
+	}
+
+	/** Each step's title and text, said for the layout it is on now. */
+	dress() {
+		for (const step of this.list) {
+			step.popover.title = step.title();
+			step.popover.description = step.text();
+		}
+	}
+
+	/**
+	 * The steps. Each says how to find its element (`find`, the first
+	 * copy on the screen, tried per layout), what to open first
+	 * (`before`) and what to close behind it (`leave`), and its words as
+	 * functions, so they are said for the layout the step is shown on.
+	 */
+	steps() {
+		const phone = () => isPhone();
 		// The Community tab is only there where the server has accounts
 		// to stand on its boards; the tour says nothing about it otherwise.
 		const harbour = feature('community');
-		const all = [
-			{
-				popover: {
-					title: '⚓ Parts, quests, routes and the map',
-					description: 'This tracker keeps a single record of what you own. Every build draws from it, so the same 100 planks are never promised to two ships at once.<br><br><b>The next few screens show an example so there is something to point at — your own data comes back when the tour ends.</b>',
-					align: 'center'
-				},
-				before: () => goToTab('plan')
-			},
-			{
-				// A phone has the bar at the thumb instead of the dock above.
-				element: phone ? '#tabbar' : '#tabs',
-				popover: {
-					title: 'Every section, in one dock',
-					description: 'The <b>yard</b>, where a build is planned and made: <b>Plan</b> is what every build needs, <b>Builds</b> is the queue and its priority, <b>Inventory</b> is what you own, <b>Tree</b> shows why a build needs a thing, <b>Workshop</b> is where you craft and enhance, <b>To Get</b> is the shopping list.<br><br>Then the <b>sea</b>, where the day is spent: <b>Map</b> charts the barterers and plots the loop, <b>Quests</b> is what the sea hands out for free, <b>Ship</b> is the hull\'s own numbers and the crew to fill it, and <b>Barter</b> plans a run on today\'s board.'
-						+ (harbour ? ' And the <b>harbour</b>: <b>Community</b>, the boards every sailor who takes part is on.' : '')
-						+ (phone ? '<br><br>Four sit in the bar at your thumb; <b>Menu</b> opens the rest.' : '<br><br>The digits <b>1</b>–<b>9</b> switch between them, <b>0</b> is the tenth.'),
-					side: phone ? 'top' : 'bottom'
-				}
-			},
-			{
-				element: '.today',
-				popover: {
-					title: 'What today can do about it',
-					description: 'The plan says what is left; this says what today can do about it — the ship you are sailing, the quests still open that pay in something on your list, how long until the dailies, the weeklies and the barter refill reset, and when <b>Vell</b> is next up on your servers.',
-					side: 'bottom'
-				},
-				before: () => goToTab('plan')
-			},
-			{
-				element: '.stats',
-				popover: {
-					title: 'Where you stand',
-					description: 'Overall coverage, the Crow Coins and silver still to spend, and how many recipes you could make from stock this second.',
-					side: 'bottom'
-				},
-				before: () => goToTab('plan')
-			},
-			{
-				element: '.readybar',
-				popover: {
-					title: 'Craft it here',
-					description: 'Anything you can make right now shows up here. One click crafts it: the ingredients leave your inventory and the product arrives.',
-					side: 'bottom'
-				}
-			},
-			{
-				element: '.row',
-				popover: {
-					title: 'Reading a material, and recording it',
-					description: 'The bar splits three ways — <span style="color:#4ec9ae">green</span> is covered from stock, <span style="color:#3a89c9">blue</span> is still to craft, <span style="color:#e87a6d">red</span> is missing.<br><br>The <b>− number +</b> box on the right is how many you own. Change it here as you gather and every build updates at once — that is the main thing you will do day to day.',
-					side: 'top'
-				}
-			},
-			{
-				element: '#pouch',
-				popover: {
-					title: 'What you are carrying',
-					description: 'Coins, silver and enhancement stones sit above every tab, because you spend them from every tab. Type in what you have and each one tells you whether it covers your builds or how far <b>short</b> you are.'
-						+ (phone
-							? '<br><br>On a phone it is one line — what is held, and in red what is missing. Press it and <b>Carrying</b> opens with the fields in it, the numbers about you among them: total barters, barter level, Parley, vouchers, Value Pack, Sailing Mastery, the Bos\'n Jacks you have out and the region your Market prices come from.'
-							: '<br><br>Beside them, <b>The sailor</b>: your total barters, barter level, Parley, vouchers, Value Pack, Sailing Mastery, the Bos\'n Jacks you have out and the region your Market prices come from. Press it to open the fields.')
-						+ ' They are read by every screen, so they are set once, here — and the barter count decides which islands will deal with you at all.',
-					side: 'bottom'
-				},
-				before: () => goToTab('plan')
-			},
-			{
-				element: '.queue-head',
-				popover: {
-					title: 'Your build queue',
-					description: 'Add any ship, part or material as a build. Order matters: when stock is short, the build nearest the top gets it first. Use ▲▼ to re-order, ⏸ to park one without losing it.<br><br>Each build says what is still left to pay for it, which falls as you record what you gather.<br><br>Some ships can be reached more than one way — a Caravel from a plain Epheria Sailboat or an Improved one. Queue one and it asks which, shows what each costs, and the build then says the route it is taking.',
-					side: 'bottom'
-				},
-				before: () => goToTab('builds')
-			},
-			{
-				element: '.inv-grid',
-				popover: {
-					title: 'What you actually own',
-					description: 'Set quantities here as you gather. The small bar on each tile shows how much is already spoken for by a build versus how much is still free.',
-					side: 'top'
-				},
-				before: () => goToTab('inventory')
-			},
-			{
-				element: '.detail',
-				before: () => {
-					goToTab('inventory');
-					selectSampleItem();
-				},
-				popover: {
-					title: 'Why an item is reserved',
-					description: 'Pick a tile and this panel shows who reserved it and through which recipe, and every way of getting it priced end to end — the shop\'s number beside what making one costs once <i>its</i> ingredients are priced too. Coins and silver stay apart, and anything bartered for is named rather than counted as free.<br><br>Any item name in the app opens its <b>BDOCodex</b> page in a new tab.',
-					side: phone ? 'top' : 'left'
-				}
-			},
-			{
-				element: '.tpanel',
-				popover: {
-					title: 'Why it needs what it needs',
-					description: 'The Plan is one row per material, which answers "what am I short of". This is the same thing unflattened, and answers the other question: a Carrack sits over the Caravel it is made from, over the Sailboat before that, with the materials of each hanging off the step that wants them.<br><br>Enhancement chains start folded — a +10 pulling in +9 pulling in +8 is ten rows that all say the same thing.',
-					side: 'top'
-				},
-				before: () => goToTab('tree')
-			},
-			{
-				element: '.craft-grid',
-				popover: {
-					title: 'The workshop',
-					description: 'Every recipe you have the materials for, with exactly what it will consume.',
-					side: 'top'
-				},
-				before: () => goToTab('workshop')
-			},
-			{
-				element: '[data-base]',
-				popover: {
-					title: 'Enhancing',
-					description: 'Every part you own that can go higher is listed — whether or not a build is waiting on it — with the stones the next attempt costs and a box for the <b>failstack</b> you are on.<br><br>Blue and green ship parts keep their level when an attempt fails; the yellow Falasi and Cheongun tier drops one, so its cost includes the Cron Stones that prevent it. Record <b>Succeeded</b> or <b>Failed</b> and the materials come off your stock either way.',
-					side: 'top'
-				},
-				before: () => goToTab('workshop')
-			},
-			{
-				// Scoped to the screen: the pouch above it carries a
-				// `.summary` of its own -- the sailor's numbers, folded
-				// into their line -- and a bare '.summary' picked that
-				// instead, so the tour lit the bar while talking about
-				// the shopping list.
-				element: '#screen .summary',
-				popover: {
-					title: 'The shopping list',
-					description: 'Everything still missing, as its own icon and number — biggest shortfall first, tinted by the money it wants, and a press on any of them narrows the screen to that one thing. The whole list copies out as text or CSV. <b>The way to get it</b> reads the whole list at once and gives each thing one way — the quests, the Crow Coin Shop, barter, Falasi, the Market — with its reason on the line and the days it takes, following the goal you pick above it.<br><br><b>Every way</b> is the other reading: grouped by where a thing is got, each line pricing the whole quantity, with what making it instead would cost.',
-					side: 'bottom'
-				},
-				before: () => goToTab('get')
-			},
-			{
-				element: '.quest-clocks',
-				popover: {
-					title: 'What the sea hands out free',
-					description: 'Every quest that pays in a ship material, grouped by how often it comes round, with the ones paying in something your plan still wants marked.<br><br>Tick what you did and <b>Finish</b> records them together: the rewards go into stock as one undoable change, and the tick wears off at the reset by itself. A set you run every day can be kept as a named <b>group</b>, or starred.',
-					side: 'bottom'
-				},
-				before: () => goToTab('quests')
-			},
-			{
-				element: '.ship-card-main',
-				popover: {
-					title: 'The other half of a ship',
-					description: 'Every hull in the game\'s own numbers — weight, slots, cannons, speed — fitted out as five slots: the four parts and the <b>sea crystal</b>. Each takes the best you hold, or one you choose. Your <b>Sailing Mastery</b> goes in beside it and counts toward speed, acceleration, turn and brake.<br><br>Below sits the crew: sailors against the hull\'s seats and cabin space, what their contracts cost, and the certificates on the shopping list.<br><br>A crew is <b>read off your own screenshots</b>: open Manage Sailors in game, drop the picture in, and the names, levels, condition and every growth come back in a table to check before a thing is written — in whichever of the sixteen languages the game is played in. <b>Auto assign</b> asks what the boat is <i>for</i> — bartering, speed, sea monsters — and seats them for that, since the seat that doubles two growths at once makes the sums disagree. Keep a whole fit-out as a named <b>setup</b> and switch between them here or from the Map.',
-					side: 'bottom'
-				},
-				before: () => goToTab('crew')
-			},
-			{
-				element: '#map',
-				popover: {
-					title: 'The list, drawn on the sea',
-					description: 'Every pin is a barterer holding something you are short of, on the game\'s own chart. Drag to pan, scroll or pinch to zoom.<br><br>The strip above the tabs — <b>On the chart</b> — is what gets drawn: barterers, monster habitats, the 58 wharf managers, guild wharves, island names, and any route you have traced.',
-					side: phone ? 'top' : 'left'
-				},
-				before: () => goToMap('sail')
-			},
-			{
-				// The ⛰ in the zoom bar. The step describes the lean
-				// rather than performing it: standing the chart up
-				// fetches terrain, and the tour has no business pulling
-				// down a few hundred tiles to make a point.
-				element: '[data-act="map-3d"]',
-				popover: {
-					title: 'And stood up on the real ground',
-					description: 'Overhead is the right way to read a route and the wrong way to read a coast. <b>⛰</b> leans the chart over and puts the game\'s own terrain under the sea — the same chart, the same pins and the same plotted loop, placed on the ground instead of beside it.<br><br>Shift-drag leans and turns it, an ordinary drag carries the water, and <b>Level</b> puts you back overhead facing north. <b>Ground</b> paints the islands in the colours you know; <b>Neon</b> draws contour lines over dark water instead. Where you leave it is where it opens next time.',
-					side: phone ? 'top' : 'left'
-				},
-				before: () => goToMap('sail')
-			},
-			{
-				element: '.map-tabs',
-				popover: {
-					title: 'Five things to do with a chart',
-					description: '<b>Barter</b> is who has what you are short of. <b>Route</b> plots the loop through them and gives every leg its distance and its minutes, at the speed your ship actually makes — says the stop the rations run low after — then keeps it by name, in a link, or writes it into the game\'s own world map.<br><br><b>Draw</b> is for the routes a shopping list cannot express: click the sea for a stop, drag to sketch a line, or type a word straight onto the water. <b>Grounds</b> is the monsters and the community courses, and <b>Today</b> is what you have already sailed.<br><br>A run laid out on the Barter tab is sailed here too: the route on the chart, and this panel the run sheet, stop by stop.',
-					side: phone ? 'top' : 'left'
-				},
-				before: () => goToMap('route')
-			},
-			{
-				element: '.barter-bar',
-				popover: {
-					title: 'Today\'s board',
-					description: 'The trade-goods barters are not rolled island by island: every refresh the whole sea shows one of forty fixed layouts. So this asks what <i>one</i> island is showing — tap it from that island\'s possible offers — and the whole board follows: every chain the day allows, listed by how far it reaches and what it pays.<br><br>Then say what the day is <i>for</i>, because the same board is sailed four ways. <b>Silver</b> climbs the chains you tick and sells the tops at a wharf. <b>A stock</b> sells nothing at all: say how many of every good you want at a level and the run is scored on what it banks, with the climbs stopped where the stock ends. <b>Crow Coins</b> is a climb to [Level 4], cashed in at the ten to fourteen islands on every board that pay in coins. <b>A material</b> is one route through every island dealing the thing your plan is short of.<br><br>Only the islands your <b>total barters</b> have opened are planned through: the rest sit locked under the list, with a line saying how many more barters open them. Nothing is ever routed through a barterer you cannot reach.',
-					side: 'bottom'
-				},
-				before: () => goToTab('barter')
-			},
-			{
-				element: '.hold-bar',
-				popover: {
-					title: 'The hold, and the run',
-					description: 'Two columns: <b>the hold</b> — what is actually aboard, weighed against the ship as fitted and the ceiling the islands still deal under, with goods ashore listed by harbour and a way into the hold — and <b>to spend</b>, the Parley the bar holds and what one trade costs you. Under them the <b>sailing orders</b>: cash out today or sell the top and keep a floor, the pace, the vouchers, which levels a wharf sells, and the figures every chain comes to.<br><br>Tick chains and a strip along the foot keeps the run in a line. <b>Lay it out</b> opens the sheet on two shelves — what to load before casting off, and what is in the storage after — with every stop in order below them. <b>Sail this run</b> takes it to the Map as a checklist, and the <b>clock</b> beside it starts at that run\'s own estimate: it counts up, rings a ship\'s bell at every stop rather than only at the end, and reaches every device signed in to your account.<br><br><b>Record the trip</b> puts the whole of it in the Inventory as one change, and the run joins <b>Today\'s boards</b> — every board sailed since the refill, what it loaded, what it came back with, and the day\'s totals across the Parley bar.',
-					side: 'bottom'
-				},
-				before: () => goToTab('barter')
-			},
-			...(harbour ? [{
-				element: '.comm-head',
-				popover: {
-					title: 'The harbour',
-					description: 'Sixteen boards — mastery, the best ship, the best sailor, the most silver from runs, the most monsters hunted, the luckiest at the anvil — and the fleet in numbers: the hulls most sailed, the parts most fitted, the islands most plotted.<br><br>Only the sailors who take part are on it, by name or as an unnamed sailor, and you see exactly what would be shared before you agree. A place on a board opens what it is about: another sailor\'s ship, stood up on the Ship tab to look at.',
-					side: 'bottom'
-				},
-				before: () => goToTab('community')
-			}] : []),
-			{
-				// The masthead's verbs, and the menu that holds the rest.
-				element: phone ? '#tabbar' : '.masthead-actions',
-				popover: {
-					title: 'Undo, and your data',
-					description: 'Every change can be undone, and redone. <b>Log a trip</b> records everything you brought back as one change, <b>Help</b> plays a film of the whole app end to end and lists when each dataset was checked, and <b>Discord</b> is the sailors\' own server — the room this was written for.<br><br><b>Menu</b> (M) is the one menu the app has: every section, <b>Find</b> (Ctrl+K) for any item or tab, Profiles, Export and Import — a JSON backup, or a link carrying the whole plan — the theme, <b>What\'s new</b> and <b>Feedback</b>.'
-						+ (phone ? ' On a phone the thumb bar\'s last slot opens it.' : '')
-						+ '<br><br>Where the deployment offers it, signing in with Discord keeps this same inventory on your phone as well; without it nothing leaves this browser at all.',
-					side: phone ? 'top' : 'bottom'
-				},
-				before: () => goToTab('plan')
-			}
-		];
+		const accounts = feature('sync');
+		const list = [];
+		const add = (id, s) => {
+			const step = {
+				id,
+				...s,
+				popover: { side: s.side, align: s.align }
+			};
+			if (s.find) step.element = () => s.find() || undefined;
+			list.push(step);
+		};
 
-		// Every step is kept: when its element is absent (an empty queue has
-		// no build rows) Driver.js simply centres the popover, which still
-		// reads correctly.
-		return all;
+		// Fourteen stops, a few lines each. The tour was twenty-three, some
+		// of them a hundred and twenty words, and most people closed it at
+		// "1 of 23"; what it leaves out is one press away on each screen.
+		add('welcome', {
+			title: () => T('⚓ Parts, quests, routes and the map'),
+			text: () => T('One record of what you own, and every build draws from it — the same 100 planks are never promised twice.<br><br><b>The next screens use an example; your own data comes back when the tour ends.</b>'),
+			align: 'center',
+			before: () => goToTab('plan')
+		});
+		add('sections', {
+			// A desk has the row of sections at the top; a phone the bar at
+			// the thumb, which is fixed, so its sheet goes up top.
+			find: () => (phone() ? shown('#tabbar') : shown('#tabs')),
+			title: () => (phone() ? T('Every section, at your thumb') : T('Every section, in one dock')),
+			text: () => (phone()
+				? T('<b>Plan</b>, <b>Inventory</b>, <b>Map</b> and <b>Barter</b> sit at your thumb. The last seat, <b>Menu</b>, opens every other section, and takes the name of the one you are on.')
+				: T('The <b>yard</b> on the left plans and makes a build; the <b>sea</b> on the right is where the day is spent.')
+					+ (harbour ? ' ' + T('<b>Community</b> is the harbour.') : '')
+					+ ' ' + T('The digits <b>1</b>–<b>9</b> and <b>0</b> switch between them.')),
+			side: 'bottom',
+			before: () => goToTab('plan')
+		});
+		add('plan', {
+			find: () => shown('#screen .row'),
+			title: () => T('Reading a material, and recording it'),
+			text: () => T('<span style="color:#4ec9ae">Green</span> is covered from stock, <span style="color:#3a89c9">blue</span> still to craft, <span style="color:#e87a6d">red</span> missing. The <b>− number +</b> box is how many you own: change it as you gather and every build updates.'),
+			side: 'top',
+			before: () => goToTab('plan')
+		});
+		add('builds', {
+			find: () => shown('#screen .queue-head'),
+			title: () => T('Your build queue'),
+			text: () => whereOnPhone('builds') + T('Add a ship, part or material. When stock is short the build nearest the top gets it first; ▲▼ re-order, ⏸ parks one. The <b>Workshop</b> crafts and enhances what you have the materials for.'),
+			side: 'bottom',
+			before: () => goToTab('builds')
+		});
+		add('inventory', {
+			find: () => shown('#screen [data-act="inv-shot"]', '#screen .inv-left .controls'),
+			title: () => T('What you actually own'),
+			text: () => T('Type a count on any tile, or <b>📷 Read a storage</b> off screenshots of the game’s window — read in this browser, nothing uploaded. The Ship tab reads Manage Sailors and the Barter tab the barter window the same way.'),
+			side: 'bottom',
+			before: () => goToTab('inventory')
+		});
+		add('get', {
+			// The way to get it is To Get's first view; a sailor who left it
+			// on Every way gets the list's own head instead.
+			find: () => shown('#screen .way-head-top', '#screen .summary > :first-child'),
+			title: () => T('The shopping list'),
+			text: () => whereOnPhone('get') + T('Everything still missing, and <b>the way to get it</b>: one way for each thing — quests, the Crow Coin Shop, barter, the Market — in the order it is done, with the days it takes.'),
+			side: 'bottom',
+			before: () => goToTab('get')
+		});
+		add('pouch', {
+			find: () => shown('#pouch'),
+			title: () => T('What you are carrying'),
+			text: () => T('Coins, silver and stones, set once and read by every screen — each says whether it covers your builds. <b>The sailor</b> beside them holds your barter count, which decides the islands that will deal with you.'),
+			side: 'bottom',
+			before: () => goToTab('plan')
+		});
+		add('run', {
+			find: () => shown('#screen .barter-screen .steps'),
+			title: () => T('A run in four steps'),
+			text: () => T('<b>Plan</b>: say what the day is for, tell it today’s board — one island, or a screenshot of the barter window — and tick the chains. <b>Load</b> packs the hold, <b>Sail</b> goes one stop at a time, and <b>Results</b> records the trip as one change.'),
+			side: 'bottom',
+			before: () => goToTab('barter')
+		});
+		// The hold is drawn on the Load step, over the example's packing
+		// list; the clock on the Sail step, the example run cast off a few
+		// minutes ago. The step up is switched in memory only -- a press on
+		// the step's button would write it down as this device's -- and the
+		// one the sailor had is put back when the tour ends.
+		const onStep = id => {
+			if (barterView.step === id && shown(`#screen .steps [data-act="barter-step"][data-id="${id}"].on`)) return;
+			barterView.step = id;
+			const again = document.querySelector('[data-act="barter-redraw"]');
+			if (again) again.click();
+			// The redraw is not the store's, so nothing else looks again.
+			setTimeout(() => this.check(), 0);
+		};
+		add('hold', {
+			find: () => shown('#screen .hold-col-ship', '#screen .hold-bar'),
+			title: () => T('The hold: LT and slots'),
+			text: () => T('The gauge weighs the hold against the hull’s limit and counts its slots. Every [Level 5] good and up takes a slot of its own: {used} of {slots} here.', { used: F(holdSlotsUsed()), slots: F(hullSlots()) })
+				+ ' ' + T('A tick on the packing list loads it for real, and never more than fits.'),
+			side: 'bottom',
+			before: () => {
+				this.atSea(false);
+				goToTab('barter');
+				onStep('load');
+			},
+			again: () => onStep('load')
+		});
+		add('clock', {
+			find: () => shown('#screen .cockpit-clock .sail-timer.running', '#screen .hold-bar-timer'),
+			title: () => T('The sailing clock'),
+			text: () => T('Here the example run has cast off. The clock counts down to the next island and waits there until you press <b>Traded</b>. It chimes when the ship should be in; the chips beside it choose how.'),
+			side: 'bottom',
+			// Cast off from the route the Load step laid; if it has not laid
+			// one yet, the Load step is drawn first and the run cast off on
+			// the next look.
+			before: () => {
+				goToTab('barter');
+				onStep(this.atSea(true) ? 'sail' : 'load');
+			},
+			again: () => onStep(this.atSea(true) ? 'sail' : 'load'),
+			leave: () => this.atSea(false)
+		});
+		add('map', {
+			find: () => shown('#screen .map-tabs'),
+			title: () => T('The list, drawn on the sea'),
+			text: () => T('<b>Who has it</b> pins the barterers holding what you are short of; <b>Route</b> plots the loop at your ship\'s real speed; <b>Draw</b> sketches on the water; <b>Hunt</b> shows the grounds; <b>Today</b> ticks off where you have been.'),
+			side: 'right',
+			// The panel is out on a desk and folded on a phone, where it
+			// would cover the chart: opened for the step, folded again after.
+			before: () => {
+				goToTab('map');
+				this.unfoldMapPanel();
+			},
+			again: () => this.unfoldMapPanel(),
+			leave: () => this.foldMapPanel()
+		});
+		add('ship', {
+			find: () => shown('#screen .ship-card-main'),
+			title: () => T('Your ship'),
+			text: () => whereOnPhone('crew') + T('The hull in the game\'s own numbers, its four parts and crystal, and the crew — read off a screenshot of Manage Sailors and seated for what the boat is for.'),
+			side: 'bottom',
+			before: () => goToTab('crew')
+		});
+		add('quests', {
+			find: () => shown('#screen .quest .quest-main', '#screen .quest', '#screen .quest-clocks'),
+			title: () => T('What the sea hands out free'),
+			text: () => whereOnPhone('quests') + T('Every quest that pays in a ship material, the ones your plan wants marked. Tick several and <b>Finish</b> records them as one change; the ticks wear off at the reset.'),
+			side: 'bottom',
+			before: () => goToTab('quests')
+		});
+		add('menu', {
+			// The masthead on both: a desk's spells out Help and Menu, a
+			// phone's keeps the flag, the account and ⋯ for the menu.
+			find: () => shown('#masthead-actions'),
+			title: () => T('Undo, the language and the menu'),
+			text: () => (phone()
+				? T('Every change can be undone, and the flag picks the language. <b>⋯</b>, or the last seat of the bar, opens the <b>Menu</b>: every section, Help’s film, Find, Export and Import, the theme.')
+				: T('Every change can be undone, and the flag picks the language. <b>Help</b> plays a film of the whole app; <b>Menu</b> (M) holds the rest: Find (Ctrl+K), Export and Import, the theme.'))
+				+ (accounts ? ' ' + (harbour
+					? T('<b>Sign in</b> keeps one save on every device and puts you on the <b>Community</b> boards — only numbers are shared.')
+					: T('<b>Sign in</b> keeps one save on every device.')) : ''),
+			side: 'bottom',
+			before: () => goToTab('plan')
+		});
+		return list;
+	}
+
+	/** The chart's panel out, if it is folded; remembered, to fold again. */
+	unfoldMapPanel() {
+		const pill = shown('#screen .map-side-pill');
+		if (!pill || !this.was) return;
+		pill.click();
+		this.was.panelOpened = true;
+	}
+
+	/** The chart's panel folded again, if the tour was what opened it. */
+	foldMapPanel() {
+		if (!this.was || !this.was.panelOpened) return;
+		const close = shown('#screen .map-side [data-act="map-panel"]');
+		if (close) close.click();
+		this.was.panelOpened = false;
+	}
+
+	/**
+	 * Everything the tour moved, put back: the chart's panel, the Barter
+	 * tab's memory, the sailor's own data, the clock, the tab and the
+	 * scroll it started on. The panel goes first, while the example is
+	 * still in: a press on the chart writes its view, and that write must
+	 * land on the example and not on the real save. The Barter tab's
+	 * memory goes back before the save does, so the redraw the save's
+	 * return sets off reads the sailor's own run and not the example's.
+	 */
+	finish() {
+		const was = this.was;
+		this.running = false;
+		this.driver = null;
+		clearTimeout(this.restage);
+		clearInterval(this.watchdog);
+		if (this.stopWatching) this.stopWatching();
+		this.stopWatching = null;
+		if (this.unhook) this.unhook();
+		this.unhook = null;
+		const left = this.list[this.at];
+		if (left && left.leave) left.leave();
+		this.foldMapPanel();
+		if (was && was.barter) was.barter();
+		this.restoreRealData();
+		this.sea = false;
+		this.run = null;
+		hushTimer(false);
+		if (was && was.view) goToTab(was.view);
+		if (was) window.scrollTo(0, was.scroll || 0);
+		this.was = null;
+		try {
+			localStorage.setItem(DONE_KEY, 'true');
+		} catch {
+			/* ignore */
+		}
+	}
+
+	/**
+	 * The example at the wharf, or cast off: swapped in when it changes.
+	 * False when it cannot be cast off yet, the Load step not having laid
+	 * its route; it is cast off once, and the same run sailed after that.
+	 */
+	atSea(on) {
+		if (!this.realData) return false;
+		if (this.sea === on) return true;
+		if (on && !this.run) this.run = castOff();
+		if (on && !this.run) return false;
+		this.sea = on;
+		// The tab reads a view again only when no write of its own is owed,
+		// so the one owed is made first (to the example; nothing is saved).
+		flushView();
+		store.applyTransient(example(on ? this.run : null));
+		return true;
 	}
 
 	/** Put the user's own data back after the walkthrough. */
@@ -472,37 +791,104 @@ class GuidedTour {
 		// Two clicks in quick succession: the second waited on the same
 		// load and must not start a second tour behind the first.
 		if (this.running) return true;
-		const steps = this.steps();
-		this.driver = this.create(steps);
+		this.driver = this.create();
 		if (!this.driver) {
 			console.warn('[tour] Driver.js is not available yet');
 			return false;
 		}
+		this.was = {
+			view: document.body.dataset.view || 'plan',
+			scroll: window.scrollY,
+			barter: keepBarter(),
+			panelOpened: false
+		};
+		// The route on the tab is the sailor's until the example's is laid;
+		// see castOff().
+		barterView.shownPlan = null;
+		this.run = null;
 
 		// Swap in the example, keeping the real data to hand back later.
+		// The clock is hushed first: from here it reads the example's run,
+		// which must not chime or reach the server as the sailor's.
+		hushTimer(true);
 		this.realData = store.capture();
-		store.applyTransient(DEMO);
+		this.sea = false;
+		store.applyTransient(example(false));
 
-		// Anything that repaints the screen throws away the node the
-		// highlight was on, and the popover is left pointing at a gap.
-		// Plenty does, long after the tour has started: the icon mapping
-		// lands, the barter catalogue lands, Market prices land, a clock
-		// ticks over. So every repaint re-measures the step -- refresh
-		// only moves the ring and the popover to where the element is
-		// now, so doing it often is invisible and doing it too rarely is
-		// the bug.
+		// A repaint can throw away the node the highlight is on; see check().
 		this.stopWatching = store.subscribe(() => {
 			if (!this.running || !this.driver) return;
 			clearTimeout(this.restage);
-			this.restage = setTimeout(() => {
-				if (this.running && this.driver) this.driver.refresh();
-			}, 60);
+			this.restage = setTimeout(() => this.check(), 60);
 		});
+		// Not every repaint goes through the store -- the barter table
+		// arriving, a screen drawn lazily -- so the highlight is also
+		// looked at twice a second. Re-measuring a node still there is
+		// invisible; only a lost one is shown again.
+		this.watchdog = setInterval(() => this.check(), 500);
 
-		goToTab('plan');
+		// A turn of the phone, a window dragged narrower.
+		let resized = null;
+		const onResize = () => {
+			clearTimeout(resized);
+			resized = setTimeout(() => this.relayout(), 150);
+		};
+		// While the tour is up the keyboard is the tour's: Find would open
+		// a palette behind the overlay, and Undo would step back a change
+		// to the example nobody can see.
+		//
+		// The arrows and Escape are answered here rather than by Driver.js,
+		// which ignores them while its stage is still sliding -- and a
+		// stage slides on animation frames, which a tab in the background
+		// does not get, so a key could be lost for good.
+		const onKey = evt => {
+			if (!this.running || !this.driver) return;
+			if ((evt.ctrlKey || evt.metaKey) && ['k', 'z', 'y'].includes(String(evt.key).toLowerCase())) {
+				evt.preventDefault();
+				evt.stopPropagation();
+				return;
+			}
+			if (evt.ctrlKey || evt.metaKey || evt.altKey) return;
+			const move = { ArrowRight: 1, ArrowLeft: -1 }[evt.key];
+			if (move) {
+				evt.preventDefault();
+				evt.stopPropagation();
+				this.hop(move);
+			} else if (evt.key === 'Escape') {
+				evt.preventDefault();
+				evt.stopPropagation();
+				this.driver.destroy();
+			}
+		};
+		// The popover is a dialog, and the focus stays in it: anything that
+		// takes it elsewhere while a step is up -- a repaint under the step,
+		// a screen drawn late -- hands it back to Next, so Enter goes on and
+		// a keyboard never wanders under the example.
+		const onFocus = evt => {
+			if (!this.running || this.moving) return;
+			const pop = document.querySelector('.driver-popover.sail-tour');
+			if (!pop || pop.contains(evt.target)) return;
+			const next = pop.querySelector('.driver-popover-next-btn');
+			if (next) next.focus({ preventScroll: true });
+		};
+		window.addEventListener('resize', onResize);
+		document.addEventListener('keydown', onKey, true);
+		document.addEventListener('focusin', onFocus, true);
+		this.unhook = () => {
+			clearTimeout(resized);
+			window.removeEventListener('resize', onResize);
+			document.removeEventListener('keydown', onKey, true);
+			document.removeEventListener('focusin', onFocus, true);
+		};
+
+		this.phone = isPhone();
+		this.list = this.steps();
+		this.dress();
 		this.running = true;
-		this.driver.setSteps(steps);
-		this.driver.drive();
+		this.driver.setSteps(this.list);
+		await this.ready(0);
+		if (!this.running || !this.driver) return true;
+		this.driver.drive(0);
 		return true;
 	}
 

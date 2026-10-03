@@ -14,10 +14,11 @@ import fs from 'fs';
 import path from 'path';
 import { execFileSync } from 'child_process';
 import { fileURLToPath } from 'url';
-import { config, syncEnabled, pushEnabled, feedbackEnabled, uploadsEnabled, communityEnabled, presenceEnabled, ephemeralSecret, describe } from './server/config.js';
-import { presenceRoutes } from './server/presence.js';
+import { config, syncEnabled, pushEnabled, dmEnabled, botCommandsEnabled, feedbackEnabled, uploadsEnabled, communityEnabled, presenceEnabled, ephemeralSecret, describe } from './server/config.js';
+import { presenceRoutes, startPresenceSweep } from './server/presence.js';
 import { marketRoutes } from './server/market.js';
 import { accessLog, counters } from './server/log.js';
+import { previewPage, picturesIn, picturesStamp } from './server/preview.js';
 
 // NOTE: run exactly one of these.
 //
@@ -144,7 +145,8 @@ app.use((req, res, next) => {
 // another -- so a plain `npm start` needs a stamp as much as the Docker
 // image does. In order: APP_VERSION when the operator set one, the
 // commit when there is a checkout to ask, whatever the Docker build
-// wrote into sw.js, and failing all of that the package version with
+// wrote into sw.js (the version and a fingerprint of the shell, see
+// tools/build-stamp.mjs), and failing all of that the package version with
 // the moment this process started, which at least turns over on
 // restart.
 function buildStamp() {
@@ -167,6 +169,19 @@ function buildStamp() {
 // It lands inside a quoted string in the worker, so only characters that
 // cannot end the quote are kept.
 export const VERSION = buildStamp().replace(/[^A-Za-z0-9._-]/g, '').slice(0, 64) || 'dev';
+// When the image was made, which the stamp no longer says: it is a
+// fingerprint of what the build holds (tools/build-stamp.mjs), the same
+// for two builds of the same files. The build writes the moment beside
+// it; a plain checkout has no such file, and no build date to tell.
+function builtAt() {
+	try {
+		const { built } = JSON.parse(fs.readFileSync(path.join(__dirname, 'build-info.json'), 'utf8'));
+		return typeof built === 'string' && !Number.isNaN(Date.parse(built)) ? built : null;
+	} catch {
+		return null;
+	}
+}
+export const BUILT = builtAt();
 
 // Filled in below when a database is configured; /healthz reads them.
 let dbPing = null;
@@ -201,22 +216,23 @@ if (syncEnabled) {
 	}
 }
 
-// Vell reminders by push: a key pair and a table are all it takes, so
-// it can run on a deployment without Discord. Off without the keys.
+// The bot's slash commands (/ship, /sailors): Discord posts them here,
+// signed. They read the sailor's saved account, so sync has to be on.
+if (botCommandsEnabled) app.use('/api', (await import('./server/discord-bot.js')).botRoutes());
+
+// Chimes by push: a key pair and a table. Off without the keys.
 if (pushEnabled) {
-	const [{ migrate, ping }, { pushRoutes, startVellPushes, startAlertPushes }] = await Promise.all([
+	const [{ migrate, ping }, { pushRoutes, startAlertPushes }] = await Promise.all([
 		import('./server/db.js'),
 		import('./server/push.js')
 	]);
 	if (!syncEnabled) migrate().catch(err => console.warn('[db] tables not ready yet:', err.message));
 	dbPing = ping;
 	app.use('/api', pushRoutes());
-	if (process.env.NODE_ENV !== 'test') {
-		startVellPushes();
-		// An account's own chimes: a clock set on one device reaching the
-		// rest. Needs sign-in, so it only runs where sync does.
-		if (syncEnabled) startAlertPushes();
-	}
+	if (dmEnabled) app.use('/api', (await import('./server/discord-dm.js')).dmRoutes());
+	// An account's own chimes: a clock set on one device reaching the
+	// rest. Needs sign-in, so it only runs where sync does.
+	if (process.env.NODE_ENV !== 'test' && syncEnabled) startAlertPushes();
 }
 
 // Feedback needs a table and nothing else, so like the push reminders it
@@ -251,16 +267,20 @@ if (presenceEnabled) {
 	if (config.turso.url) {
 		const m = await import('./server/db.js');
 		if (!syncEnabled && !pushEnabled && !feedbackEnabled) m.migrate().catch(err => console.warn('[db] tables not ready yet:', err.message));
-		presenceDb = { touchPresence: m.touchPresence, countPresence: m.countPresence };
+		presenceDb = { touchPresence: m.touchPresence, countPresence: m.countPresence, sweepPresence: m.sweepPresence };
 	}
 	app.use('/api', presenceRoutes({ db: presenceDb }));
+	if (process.env.NODE_ENV !== 'test') startPresenceSweep(presenceDb);
 }
 
 // So the page knows whether to offer sign-in at all. A deployment with no
 // Discord app should not show a button that cannot work.
 app.get('/api/config', (req, res) => {
 	res.set('Cache-Control', 'no-store');
-	res.json({ sync: syncEnabled, push: pushEnabled, feedback: feedbackEnabled, uploads: uploadsEnabled, community: communityEnabled, presence: presenceEnabled });
+	// `build` is the deploy's stamp, the one the service worker's cache is
+	// named for: what a bug report says it was sent from, so a report can
+	// be matched to a deploy rather than to a release that spans dozens.
+	res.json({ sync: syncEnabled, push: pushEnabled, discordDm: dmEnabled, feedback: feedbackEnabled, uploads: uploadsEnabled, community: communityEnabled, presence: presenceEnabled, links: syncEnabled, build: VERSION });
 });
 
 // Is it up, and is the database behind it answering? `db` is 'off' on a
@@ -268,6 +288,16 @@ app.get('/api/config', (req, res) => {
 // supervisor can tell a site that is up from one whose sync is not.
 // One statement, one attempt, and a short leash on it: the container
 // healthcheck gives this three seconds.
+//
+// The rest -- the build, the counters, what memory is holding -- is for
+// the operator, and answered only on the machine itself: the container's
+// own healthcheck and `docker compose exec` ask from loopback, while
+// anything through the proxy arrives from another address with a
+// forwarding header on it. The world is told up or down and no more.
+const fromHere = req => {
+	const a = String((req.socket && req.socket.remoteAddress) || '');
+	return (a === '127.0.0.1' || a === '::1' || a === '::ffff:127.0.0.1') && !req.headers['x-forwarded-for'];
+};
 app.get('/healthz', async (req, res) => {
 	res.set('Cache-Control', 'no-store');
 	let db = 'off';
@@ -275,6 +305,7 @@ app.get('/healthz', async (req, res) => {
 		const leash = new Promise((_, reject) => setTimeout(() => reject(new Error('slow')), 2500).unref());
 		db = await Promise.race([dbPing(), leash]).then(() => 'ok', () => 'down');
 	}
+	if (!fromHere(req)) return res.status(db === 'down' ? 503 : 200).json({ ok: db !== 'down', db });
 	const held = saveStats ? saveStats() : { dirty: 0, queued: 0 };
 	res.status(db === 'down' ? 503 : 200).json({
 		ok: db !== 'down',
@@ -283,13 +314,14 @@ app.get('/healthz', async (req, res) => {
 		queued: held.queued,
 		uptime: Math.round((Date.now() - started) / 1000),
 		version: VERSION,
+		built: BUILT,
 		counters
 	});
 });
 
 // Only what the page actually asks for. Serving the repository root would
 // hand out package.json, the Dockerfile and the capture harness too.
-const PUBLIC = ['css', 'js', 'icons', 'map', 'map3d', 'guide', 'reader'];
+const PUBLIC = ['css', 'js', 'icons', 'map', 'map3d', 'guide', 'reader', 'og'];
 const FILES = [
 	'index.html', 'icon.png', 'og.png', 'icon_mapping.json',
 	'icon-192.png', 'icon-512.png', 'manifest.webmanifest'
@@ -308,6 +340,19 @@ const MUST_REVALIDATE = /\.(html|json|webmanifest)$/;
 // exists. `no-cache` is not "do not store": it stores and revalidates,
 // so the usual answer is a 304 costing a header round-trip.
 const REVALIDATE = { maxAge: 0, etag: true, setHeaders: res => res.set('Cache-Control', 'no-cache') };
+
+// And the same rule spelled out for whatever sits in front. The proxy and
+// the CDN ahead of the live site were seen turning the modules' no-cache
+// into a day's max-age, which hands a browser -- and a service worker
+// installing the next deploy -- yesterday's module beside today's. These
+// two headers speak to the edge alone: `CDN-Cache-Control` to any CDN
+// that reads it, Cloudflare's own to Cloudflare. The browser never sees
+// a difference; it still stores and revalidates by the header above.
+const notAtTheEdge = res => {
+	res.set('CDN-Cache-Control', 'no-store');
+	res.set('Cloudflare-CDN-Cache-Control', 'no-store');
+};
+const CODE = { ...REVALIDATE, setHeaders: res => { REVALIDATE.setHeaders(res); notAtTheEdge(res); } };
 
 // Icons are addressed by the game's own item id, so a given name really
 // does keep its contents. Long, but not `immutable` -- a wrong icon
@@ -343,11 +388,34 @@ app.use('/reader', express.static(path.join(__dirname, 'reader'), FOREVER));
 // name whenever the UI moves, so it revalidates like the modules do.
 app.use('/docs/media', express.static(path.join(__dirname, 'docs', 'media'), REVALIDATE));
 for (const dir of PUBLIC.filter(d => d !== 'icons' && d !== 'map' && d !== 'map3d' && d !== 'reader')) {
-	app.use(`/${dir}`, express.static(path.join(__dirname, dir), REVALIDATE));
+	app.use(`/${dir}`, express.static(path.join(__dirname, dir), dir === 'js' || dir === 'css' ? CODE : REVALIDATE));
 }
+// The page, with the tags a chat app reads written for the link it was
+// opened by -- `?s=<id>` or `?l=<kind>` (server/preview.js). A link's
+// kind is looked up only where links are kept at all.
+const previews = previewPage({
+	file: path.join(__dirname, 'index.html'),
+	stamp: `${VERSION}.${picturesStamp(path.join(__dirname, 'og'))}`,
+	lookup: syncEnabled ? async id => (await import('./server/db.js')).getLink(id) : null,
+	have: picturesIn(path.join(__dirname, 'og'))
+});
+// Whatever goes wrong writing the tags, the page itself still goes out.
+const sendPage = (req, res) => {
+	const origin = config.publicOrigin || `${req.protocol}://${req.get('host')}`;
+	previews(req.query, origin).then(
+		html => res.type('html').send(html),
+		() => res.sendFile(path.join(__dirname, 'index.html'))
+	);
+};
+
 for (const file of FILES) {
 	app.get(`/${file}`, (req, res) => {
 		res.set('Cache-Control', MUST_REVALIDATE.test(file) ? 'no-cache' : 'public, max-age=604800');
+		if (MUST_REVALIDATE.test(file)) notAtTheEdge(res);
+		if (file === 'index.html') {
+			res.set('X-Build', VERSION);
+			return sendPage(req, res);
+		}
 		// Express does not know this one by extension.
 		if (file.endsWith('.webmanifest')) res.type('application/manifest+json');
 		res.sendFile(path.join(__dirname, file));
@@ -364,6 +432,7 @@ app.get('/sw.js', (req, res, next) => {
 	fs.readFile(path.join(__dirname, 'sw.js'), 'utf8', (err, source) => {
 		if (err) return next(err);
 		res.set('Cache-Control', 'no-cache');
+		notAtTheEdge(res);
 		res.type('application/javascript');
 		res.send(source.replace(/^const VERSION = '[^']*';/m, `const VERSION = '${VERSION}';`));
 	});
@@ -376,9 +445,14 @@ app.get('/favicon.ico', (req, res) => {
 	res.sendFile(path.join(__dirname, 'icon.png'));
 });
 
+// The page names the deploy it belongs to, so the service worker can
+// tell whether the network and its cache are the same deploy before it
+// lets one stand in for the other (sw.js, "Waiting on a slow network").
 app.get('/', (req, res) => {
 	res.set('Cache-Control', 'no-cache');
-	res.sendFile(path.join(__dirname, 'index.html'));
+	res.set('X-Build', VERSION);
+	notAtTheEdge(res);
+	sendPage(req, res);
 });
 
 // A thrown error inside a route would otherwise take the process with it
@@ -403,7 +477,7 @@ app.use((err, req, res, next) => {
 if (process.env.NODE_ENV !== 'test') {
 	app.listen(config.port, () => {
 		console.log(`Sailor’s Log running at http://localhost:${config.port}`);
-		console.log(`${describe()} -- build ${VERSION}`);
+		console.log(`${describe()} -- build ${VERSION}${BUILT ? `, built ${BUILT}` : ''}`);
 		if (ephemeralSecret) {
 			console.warn('[config] No SESSION_SECRET set -- sign-ins will not survive a restart.');
 		}

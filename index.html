@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
@@ -13,7 +13,11 @@
     <link rel="canonical" href="https://sail.walior.it/">
     <link rel="manifest" href="manifest.webmanifest">
 
-    <!-- How the link looks when someone drops it in Discord. -->
+    <!-- How the link looks when someone drops it in Discord. The server
+         rewrites what is between these two marks for each link -- a ship
+         reads as that ship, a drawing as a drawing (server/preview.js);
+         what is here is the card a static copy of the page shows. -->
+    <!-- preview -->
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="Sailor’s Log">
     <meta property="og:title" content="Sailor’s Log — Black Desert sailing">
@@ -27,6 +31,7 @@
     <meta name="twitter:title" content="Sailor’s Log — Black Desert sailing">
     <meta name="twitter:description" content="One inventory behind every ship part, the sailing quests, an optimized barter route, and a map you can draw on, share and export into the game.">
     <meta name="twitter:image" content="https://sail.walior.it/og.png">
+    <!-- /preview -->
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -66,8 +71,8 @@
             <div class="brand">
                 <div class="brand-mark" aria-hidden="true">&#9875;</div>
                 <div>
-                    <div class="brand-name">Sailor’s Log</div>
-                    <div class="brand-sub">Parts, quests, routes and the map &middot; Black Desert</div>
+                    <div class="brand-name" data-t>Sailor’s Log</div>
+                    <div class="brand-sub" data-t>Parts, quests, routes and the map &middot; Black Desert</div>
                 </div>
             </div>
             <!-- The masthead's verbs. The trip log, Undo, Redo and Help
@@ -77,21 +82,31 @@
                  not among them -- it answers to Ctrl+K and to the search
                  box each screen carries, and the menu keeps it. -->
             <div class="masthead-actions" id="masthead-actions">
-                <button class="ghost-btn wide-only" data-act="trip-log" title="Record everything you brought back from a trip, as one change">&#65291; Log a trip</button>
-                <button class="ghost-btn" id="undo-btn" data-act="undo" aria-label="Undo">&#8630; <span class="btn-label">Undo</span></button>
-                <button class="ghost-btn wide-only" id="redo-btn" data-act="redo">&#8631; Redo</button>
+                <button class="ghost-btn wide-only" data-act="trip-log" data-t-title="Record everything you brought back from a trip, as one change" title="Record everything you brought back from a trip, as one change">&#65291; <span data-t>Log a trip</span></button>
+                <button class="ghost-btn" id="undo-btn" data-act="undo" data-t-aria="Undo" aria-label="Undo">&#8630; <span class="btn-label" data-t>Undo</span></button>
+                <button class="ghost-btn wide-only" id="redo-btn" data-act="redo">&#8631; <span data-t>Redo</span></button>
                 <!-- Help stands here rather than Find: Find has a key of
                      its own (Ctrl+K) and a slash on every screen, while
                      the first thing a newcomer looks for is the one
                      thing that was three presses deep in the menu. -->
-                <button class="ghost-btn wide-only" data-act="help" title="How the tracker works: the film, and where the data comes from">&#63; Help</button>
-                <!-- The sailors' own server (412710365475110953). Not a
-                     verb of this app but the room it was written for, so it
-                     stands in the masthead on every screen rather than a
-                     page deep; on a phone it keeps its mark and drops the
-                     word, like the rest of them. -->
-                <a class="ghost-btn discord-btn" href="https://discord.gg/bdo-sailing" target="_blank" rel="noopener"
-                   title="BDO Sailing on Discord — the community server (opens in a new tab)">
+                <button class="ghost-btn wide-only" data-act="help" data-t-title="How the tracker works: the film, and where the data comes from" title="How the tracker works: the film, and where the data comes from">&#63; <span data-t>Help</span></button>
+                <!-- The language, as the flag it flies. It was three
+                     presses deep in the menu, which is no place for the
+                     one setting a player who cannot read the screen has
+                     to find; here it stands on every screen, phone
+                     included, and says which language is on without a
+                     word. The picker behind it names them all. -->
+                <button class="ghost-btn lang-btn" id="lang-btn" data-act="language"
+                        title="Language" aria-label="Language">
+                    <span class="lang-flag" aria-hidden="true">&#127482;&#127480;</span>
+                </button>
+                <!-- The app's own server (1552089463633739798): questions,
+                     bugs, ideas and the release notes. It stands in the
+                     masthead on every screen rather than a page deep; on a
+                     phone it keeps its mark and drops the word, like the
+                     rest of them. The invite never expires. -->
+                <a class="ghost-btn discord-btn" href="https://discord.gg/nAhfqxZRhf" target="_blank" rel="noopener"
+                   data-t-title="Sailor’s Log on Discord — the app’s own server (opens in a new tab)" title="Sailor’s Log on Discord — the app’s own server (opens in a new tab)">
                     <svg class="discord-mark" viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M20.317 4.37a19.79 19.79 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.865-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.028C.533 9.046-.32 13.58.099 18.058a.082.082 0 0 0 .031.056 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.1 13.1 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 0 1 .078-.011c3.928 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .079.01c.12.099.246.198.373.292a.077.077 0 0 1-.006.128c-.598.349-1.22.65-1.873.891a.077.077 0 0 0-.041.107c.36.698.772 1.363 1.225 1.993a.076.076 0 0 0 .084.028 19.84 19.84 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.548-13.66a.061.061 0 0 0-.031-.029zM8.02 15.331c-1.183 0-2.157-1.086-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.211 0 2.176 1.095 2.157 2.419 0 1.333-.956 2.419-2.157 2.419zm7.975 0c-1.183 0-2.157-1.086-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.211 0 2.176 1.095 2.157 2.419 0 1.333-.946 2.419-2.157 2.419z"/></svg>
                     <span class="btn-label">Discord</span>
                 </a>
@@ -102,24 +117,24 @@
                 <!-- Sign-in, and who is signed in. Stays empty unless the
                      deployment has been given a Discord app and a database. -->
                 <span class="account" id="account"></span>
-                <button class="ghost-btn menu-btn" data-act="more" aria-haspopup="dialog" aria-label="Menu" title="Every section and everything else (M)">&#8943; <span class="btn-label">Menu</span></button>
+                <button class="ghost-btn menu-btn" data-act="more" aria-haspopup="dialog" data-t-aria="Menu" aria-label="Menu" data-t-title="Every section and everything else (M)" title="Every section and everything else (M)">&#8943; <span class="btn-label" data-t>Menu</span></button>
             </div>
         </header>
 
-        <nav class="tabs" id="tabs" role="tablist" aria-label="Sections"></nav>
+        <nav class="tabs" id="tabs" role="tablist" data-t-aria="Sections" aria-label="Sections"></nav>
 
         <!-- Currencies and enhancement stones are spent from every screen,
              so they live in the shell rather than on any one tab. -->
-        <div class="pouch" id="pouch" aria-label="What you are carrying"></div>
+        <div class="pouch" id="pouch" data-t-aria="What you are carrying" aria-label="What you are carrying"></div>
         <div class="status-bar" id="status" role="status" aria-live="polite" hidden></div>
 
-        <main class="screen" id="screen" role="tabpanel" aria-label="Current section"></main>
+        <main class="screen" id="screen" role="tabpanel" data-t-aria="Current section" aria-label="Current section"></main>
     </div>
 
     <!-- The phone's own way between sections: a bar at the thumb, and
          a sheet behind "All" holding every one of them. Empty and out
          of the way on a wide screen, where the tab row above does it. -->
-    <nav class="tabbar" id="tabbar" aria-label="Sections"></nav>
+    <nav class="tabbar" id="tabbar" data-t-aria="Sections" aria-label="Sections"></nav>
 
     <div class="peek" id="peek" role="tooltip" hidden></div>
     <div class="toast" id="toast" role="status" hidden></div>

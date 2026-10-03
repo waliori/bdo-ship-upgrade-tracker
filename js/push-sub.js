@@ -1,17 +1,16 @@
-// The browser's one push subscription, and what it is for.
+// The browser's one push subscription, for a sailor's own chimes.
 //
-// A browser gets a single endpoint from its push service, and this app
-// has two things to say through it: the Vell reminder, which follows a
-// region's timetable and wants no account at all, and a sailor's own
-// chimes, which follow a clock set on one device and are meant to reach
-// the others. One row, two purposes, so subscribing for the second must
-// not quietly sign anybody up for the first.
+// A browser gets a single endpoint from its push service. Signed in, the
+// server files it under the account, which is how a clock set on one
+// device reaches the others.
 //
 // Everything here fails soft: a deployment without keys, a browser
 // without a worker, a refused permission and a server that says no all
 // come back the same way -- false, and the page keeps its own clock.
 
-import { me } from './sync.js';
+import { me, onAccount } from './sync.js';
+import { T } from './i18n.js';
+import { whileLoading } from './loading.js';
 
 const b64ToBytes = s => {
 	const b = atob(s.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - s.length % 4) % 4));
@@ -30,47 +29,26 @@ export async function pushAvailable() {
 }
 
 /**
- * Subscribe this browser, or bring the row up to date. `region` is the
- * Vell timetable to follow and `vell` whether the reminder is wanted;
- * pass `vell: false` for a subscription made only so that an account's
- * chimes can reach this device. Signed in, the row is the account's as
- * well, which is the whole of how one device's clock reaches another.
+ * Subscribe this browser, or bring the row up to date. Signed in, the
+ * row is the account's as well, which is the whole of how one device's
+ * clock reaches another.
  */
-export async function subscribeFor({ region, vell }) {
+export const subscribePush = () => whileLoading(subscribeNow, T('Setting up the chimes…'));
+async function subscribeNow() {
 	if (!(await pushAvailable())) return false;
 	try {
 		const { key } = await (await fetch('/api/push/key')).json();
 		const reg = await navigator.serviceWorker.ready;
 		const had = await reg.pushManager.getSubscription();
 		const sub = had || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToBytes(key) });
-		// What to say about the Vell reminder. A yes or a no is passed
-		// straight on; `null` means "whatever this row already said",
-		// which is right for a device that has subscribed before -- and
-		// for one that has not, a row made for the sailor's own chimes
-		// should not put them on the timetable, so it says no outright.
-		const wants = typeof vell === 'boolean' ? vell : had ? null : false;
 		const res = await fetch('/api/push/subscribe', {
 			method: 'POST', headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ subscription: sub.toJSON(), region, ...(wants === null ? {} : { vell: wants }) })
+			body: JSON.stringify({ subscription: sub.toJSON() })
 		});
 		return res.ok;
 	} catch {
 		return false;
 	}
-}
-
-/** Give up the subscription entirely: both purposes go with it. */
-export async function dropSubscription() {
-	try {
-		const reg = await navigator.serviceWorker.ready;
-		const sub = await reg.pushManager.getSubscription();
-		if (!sub) return;
-		await fetch('/api/push/subscribe', {
-			method: 'DELETE', headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ endpoint: sub.endpoint })
-		}).catch(() => {});
-		await sub.unsubscribe();
-	} catch { /* then the server's copy dies of a 410 on its next send */ }
 }
 
 /* ------------------------------------------------------------------ *
@@ -109,5 +87,49 @@ export async function clearAlerts(tag) {
 		return res.ok;
 	} catch {
 		return false;
+	}
+}
+
+/* ------------------------------------------------------------------ *
+ * Chimes as Discord messages
+ * ------------------------------------------------------------------ */
+
+let dm = null;
+
+/** What the server said last: `{ available, on }`, or null when the
+ *  deployment has no bot or nobody is signed in. */
+export const discordDm = () => dm;
+
+export async function loadDiscordDm() {
+	dm = null;
+	if (!canReachDevices()) return null;
+	try {
+		const cfg = await (await fetch('/api/config')).json();
+		if (!cfg || !cfg.discordDm) return null;
+		const res = await fetch('/api/discord-dm');
+		dm = res.ok ? await res.json() : null;
+	} catch {
+		dm = null;
+	}
+	return dm;
+}
+
+onAccount(() => { loadDiscordDm(); });
+
+/** Switch the messages on or off. `{ ok, error }`: the server sends the
+ *  first one itself, so a refusal from Discord comes back here. */
+export const setDiscordDm = on => whileLoading(() => setDmNow(on), T('Asking the Discord bot…'));
+async function setDmNow(on) {
+	try {
+		const res = await fetch('/api/discord-dm', {
+			method: 'PUT', headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ on })
+		});
+		const body = await res.json().catch(() => ({}));
+		if (!res.ok) return { ok: false, error: body.error || '' };
+		dm = { available: true, on: Boolean(body.on) };
+		return { ok: true };
+	} catch {
+		return { ok: false, error: '' };
 	}
 }

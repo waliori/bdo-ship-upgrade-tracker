@@ -19,9 +19,10 @@
 
 import { esc } from './fmt.js';
 import * as store from './state.js';
-import { canReachDevices, subscribeFor, putAlerts, clearAlerts } from './push-sub.js';
-import { pushRegion } from './today.js';
+import { canReachDevices, subscribePush, putAlerts, clearAlerts, discordDm, setDiscordDm } from './push-sub.js';
 import { toast } from './dialogs.js';
+import { T, TT, said } from './i18n.js';
+import { mountScene } from './sail-scene.js';
 
 const NS = 'timer';
 
@@ -36,8 +37,8 @@ const NS = 'timer';
  * a sound, so it can be changed in the middle of a run.
  */
 export const MARK_CHOICES = [
-	['each', 'each stop', 'A chime as the ship reaches every stop, and three at the end'],
-	['whole', 'the whole run', 'One chime, when the run should be done']
+	['each', TT('each stop'), TT('A chime as the ship reaches every stop, and three at the end')],
+	['whole', TT('the whole run'), TT('One chime, when the run should be done')]
 ];
 export const marksMode = () => (store.getSetting('timerMarks', 'each') === 'whole' ? 'whole' : 'each');
 export const setMarksMode = mode => store.setSetting('timerMarks', mode === 'whole' ? 'whole' : 'each');
@@ -57,15 +58,34 @@ export function timerNow() {
 	if (!t || !(Number(t.startedAt) > 0) || !(Number(t.seconds) > 0)) return null;
 	if (Date.now() - Number(t.startedAt) > 24 * 3600 * 1000) return null;
 	const marks = Array.isArray(t.marks)
-		? t.marks.filter(m => m && Number(m.at) > 0).map(m => ({ at: Math.round(Number(m.at)), label: String(m.label || '').slice(0, 40), hold: Math.max(0, Math.round(Number(m.hold) || 0)) })).slice(0, 40)
+		? t.marks.filter(m => m && Number(m.at) > 0).map(m => ({ at: Math.round(Number(m.at)), label: String(m.label || '').slice(0, 40), hold: Math.max(0, Math.round(Number(m.hold) || 0)), ...(Number.isFinite(Number(m.k)) ? { k: Math.floor(Number(m.k)) } : {}) })).slice(0, 40)
 		: [];
 	return {
 		startedAt: Number(t.startedAt),
 		seconds: Number(t.seconds),
 		label: typeof t.label === 'string' ? t.label.slice(0, 60) : '',
+		// How many stops the run has: a stop the ship is already at when
+		// it gets there -- the first island of a run begun at it, a second
+		// exchange at the same one -- has no mark, so the marks alone
+		// would number the stops short.
+		...(Number(t.of) > 0 ? { of: Math.floor(Number(t.of)) } : {}),
 		chimed: t.chimed === true,
 		marks,
-		done: Math.max(0, Math.min(marks.length, Math.floor(Number(t.done) || 0)))
+		// The estimate the clock was first given, kept so a restart goes
+		// back to it rather than to wherever ticking the stops off left
+		// the marks. Carried through every write, which is why it is read
+		// back here with the rest.
+		base: t.base && Number(t.base.seconds) > 0
+			? { seconds: Number(t.base.seconds), marks: Array.isArray(t.base.marks) ? t.base.marks : [] }
+			: null,
+		done: Math.max(0, Math.min(marks.length, Math.floor(Number(t.done) || 0))),
+		// The stops the clock has reached and chimed for. Reaching is not
+		// passing: the clock waits at a stop until Traded is pressed.
+		reached: Math.max(0, Math.min(marks.length, Math.floor(Number(t.reached) || 0))),
+		// When the leg under way began, in seconds from the start: the
+		// moment Traded let the ship go. The picture of the ship on the
+		// clock is timed from it.
+		legAt: Number(t.legAt) >= 0 ? Number(t.legAt) : null
 	};
 }
 
@@ -77,15 +97,54 @@ const write = t => store.setView(NS, t);
  * [{ at, label }] in seconds from the start. Starting again replaces
  * what was running.
  */
-export function startTimer(seconds, label = '', marks = []) {
-	const list = marks.filter(m => m && Number(m.at) > 0).map(m => ({ at: Math.round(Number(m.at)), label: String(m.label || '').slice(0, 40), hold: Math.max(0, Math.round(Number(m.hold) || 0)) })).slice(0, 40);
+/** A mark's place on the run, as the run numbers its stops. */
+const stopNo = (t, m, i) => (Number.isFinite(m && m.k) ? m.k : i) + 1;
+const stopsOf = t => t.of || t.marks.length;
+
+export function startTimer(seconds, label = '', marks = [], of = 0) {
+	const list = marks.filter(m => m && Number(m.at) > 0).map(m => ({ at: Math.round(Number(m.at)), label: String(m.label || '').slice(0, 40), hold: Math.max(0, Math.round(Number(m.hold) || 0)), ...(Number.isFinite(Number(m.k)) ? { k: Math.floor(Number(m.k)) } : {}) })).slice(0, 40);
 	// The end of the run is the last mark, or what was asked for.
 	const end = list.length ? list[list.length - 1].at : Number(seconds) || 0;
 	const s = Math.max(30, Math.min(6 * 3600, Math.round(end)));
-	write({ startedAt: Date.now(), seconds: s, label: String(label || '').slice(0, 60), chimed: false, marks: list, done: 0 });
+	write({ startedAt: Date.now(), seconds: s, label: String(label || '').slice(0, 60), chimed: false, marks: list, done: 0, reached: 0, legAt: 0, base: { seconds: s, marks: list }, ...(Number(of) > 0 ? { of: Math.floor(Number(of)) } : {}) });
 	arm();
 	sendSchedule();
 	return s;
+}
+
+/**
+ * A clock whose marks are not the run's -- started on the route before
+ * a call was put in or a stop moved, or kept from a start pressed
+ * earlier -- counts to the wrong stop: one ahead for every call it has
+ * not got. When the run's own marks are to hand and do not line up
+ * with the clock's, they are taken, laid from now: the mark for stop
+ * `index` at `ran` (arrived) or its pause over at `ran` (passed).
+ */
+function adopt(t, fresh, index, passed, of = 0) {
+	if (!Array.isArray(fresh) || !fresh.length || !fresh.every(m => Number.isFinite(m.k))) return null;
+	const lines = fresh.length === t.marks.length && fresh.every((m, j) => m.k === t.marks[j].k);
+	if (lines) return null;
+	const ran = Math.max(1, Math.round((Date.now() - t.startedAt) / 1000));
+	const behind = fresh.filter(m => m.k < index).length;
+	const i = fresh.findIndex(m => m.k === index);
+	const done = passed ? fresh.filter(m => m.k <= index).length : behind;
+	const anchor = passed ? fresh[done - 1] : fresh[i];
+	if (!anchor) return null;
+	const shift = ran - (anchor.at + (passed ? anchor.hold : 0));
+	const marks = fresh.map((m, j) => (j < done || (!passed && j === i) ? { ...m, at: Math.max(1, Math.min(m.at + shift, ran)) } : { ...m, at: Math.max(ran + 1, m.at + shift) }));
+	// The run itself has changed -- a supply call put in, a stop skipped
+	// -- so its count of stops goes with it, or the strip would go on
+	// saying "of 37" beside a cockpit that says "of 38". What the clock
+	// goes back to on a restart is this run too, not the one cast off.
+	const count = Number(of) > 0 ? { of: Math.floor(Number(of)) } : {};
+	const seconds = Math.max(30, marks[marks.length - 1].at);
+	return {
+		...t, ...count, marks, done, reached: passed ? done : i >= 0 ? i + 1 : done, legAt: passed ? ran : t.legAt, seconds,
+		base: { seconds: Math.max(30, fresh[fresh.length - 1].at), marks: fresh.map(m => ({ ...m })) },
+		// The end bell has rung only if the clock had reached the end of
+		// the run as it now stands.
+		chimed: t.chimed && (passed ? done : i + 1) >= marks.length
+	};
 }
 
 /**
@@ -95,17 +154,73 @@ export function startTimer(seconds, label = '', marks = []) {
  * they go gets a clock that corrects itself; one who does not gets the
  * estimate it started with, which is the best anything here can do.
  */
-export function passedStop(index) {
+export function passedStop(index, fresh = null, of = 0) {
 	const t = timerNow();
 	if (!t || !t.marks.length) return;
-	const done = Math.max(0, Math.min(t.marks.length, Math.floor(index) + 1));
+	const re = adopt(t, fresh, index, true, of);
+	if (re) { write(re); arm(); sendSchedule(); return; }
+	// `index` is the stop in the run; a mark carries the stop it is for.
+	// A stop with no leg of its own (a second exchange at the same
+	// island) has no mark and is passed with the one before it.
+	const done = Math.max(0, Math.min(t.marks.length, t.marks.some(m => Number.isFinite(m.k))
+		? t.marks.filter(m => m.k <= index).length
+		: Math.floor(index) + 1));
 	if (done <= t.done) return;
 	const ran = Math.max(0, Math.round((Date.now() - t.startedAt) / 1000));
-	const here = t.marks[done - 1].at;
-	const shift = ran - here;
-	if (!shift) return write({ ...t, done });
-	const marks = t.marks.map((m, i) => (i < done ? m : { ...m, at: Math.max(ran + 1, m.at + shift) }));
-	write({ ...t, marks, done, seconds: Math.max(30, marks[marks.length - 1].at), chimed: false });
+	// Traded pressed is the ship leaving: the next leg starts now, early
+	// or late, and takes as long as its own leg -- the stop's own pause
+	// is over, whatever the estimate allowed for it.
+	const prev = t.marks[done - 1];
+	const shift = ran - (prev.at + prev.hold);
+	let marks = t.marks.map((m, i) => (i < done ? { ...m, at: Math.max(1, Math.min(m.at, ran)) } : { ...m, at: Math.max(ran + 1, m.at + shift) }));
+	// The run's marks laid again at the pace known now: the legs still
+	// ahead are spaced as they say. A pace learned mid-run -- or a new
+	// default -- would otherwise wait for the next cast-off, and the
+	// clock kept ringing on the speed the run left with.
+	const byK = t.marks.some(m => Number.isFinite(m.k));
+	if (Array.isArray(fresh) && fresh.length === marks.length && fresh.every((m, j) => !byK || m.k === marks[j].k)) {
+		const from = fresh[done - 1].at + fresh[done - 1].hold;
+		marks = marks.map((m, j) => (j < done ? m : { ...m, at: Math.max(ran + 1, ran + fresh[j].at - from), hold: fresh[j].hold }));
+	}
+	// `chimed` is carried, not cleared: it says the end bell has rung, and
+	// a Traded pressed after that -- the last stop's, as a rule -- is not a
+	// reason to ring it again. Clearing it here rang the end twice.
+	write({ ...t, ...(Number(of) > 0 ? { of: Math.floor(Number(of)) } : {}), marks, done, reached: Math.max(done, Math.min(t.reached, done)), legAt: ran, seconds: Math.max(30, marks[marks.length - 1].at) });
+	arm();
+	sendSchedule();
+}
+
+/**
+ * The ship is at stop `index` -- said by the sailor, not guessed. The
+ * clock stops counting toward it (and will not chime for it later),
+ * and waits there for Traded as it would have at the estimate. `fresh`
+ * is the run's marks laid again, when the pace has just been learned:
+ * the stops still ahead are spaced as they say, from this one, so the
+ * clock that rang early all run long is put right mid-run rather than
+ * at the next cast-off.
+ */
+export function arrivedAt(index, fresh = null, of = 0) {
+	const t = timerNow();
+	if (!t || !t.marks.length) return;
+	const re = adopt(t, fresh, index, false, of);
+	if (re) { write(re); arm(); sendSchedule(); return; }
+	const byK = t.marks.some(m => Number.isFinite(m.k));
+	const i = byK ? t.marks.findIndex(m => m.k === index) : Math.floor(index);
+	if (i < t.done || i < 0 || i >= t.marks.length) return;
+	const ran = Math.max(1, Math.round((Date.now() - t.startedAt) / 1000));
+	const marks = t.marks.map(m => ({ ...m }));
+	const was = marks[i].at;
+	marks[i].at = Math.min(was, ran);
+	const same = Array.isArray(fresh) && fresh.length === marks.length && fresh.every((m, j) => !byK || m.k === marks[j].k);
+	for (let j = i + 1; j < marks.length; j++) {
+		marks[j].at = same ? marks[i].at + (fresh[j].at - fresh[i].at) + (marks[i].hold - fresh[i].hold) : marks[j].at + (marks[i].at - was);
+		marks[j].hold = same ? fresh[j].hold : marks[j].hold;
+	}
+	// Arrived at a stop further on than the one the clock was counting to
+	// -- the ones between skipped -- puts those behind it as well: the
+	// clock waits at the stop the ship is at, and says its name, not the
+	// skipped one's.
+	write({ ...t, ...(Number(of) > 0 ? { of: Math.floor(Number(of)) } : {}), marks, done: Math.max(t.done, i), reached: Math.max(t.reached, i + 1), seconds: Math.max(30, marks[marks.length - 1].at) });
 	arm();
 	sendSchedule();
 }
@@ -118,7 +233,8 @@ export function passedStop(index) {
  * changes, since the schedule is replaced rather than added to.
  */
 export function sendSchedule() {
-	if (!pushOn()) return;
+	if (hushed) return;
+	if (!pushOn() && !discordOn()) return;
 	const t = timerNow();
 	if (!t) return clearAlerts(TAG);
 	const from = t.startedAt;
@@ -126,13 +242,17 @@ export function sendSchedule() {
 	const marks = t.marks.length ? t.marks : [{ at: t.seconds, label: t.label }];
 	const alerts = marks
 		.map((m, i) => ({ m, i, last: i === marks.length - 1 }))
-		.filter(({ i, last }) => (each || last) && i >= t.done)
+		// Stop by stop, only the next stop is known: the ones after it come
+		// when Traded is pressed, and are sent again then -- and a stop the
+		// sailor has already said they are at is not rung for. The whole
+		// run rings once, at its end, however many stops are still open.
+		.filter(({ i, last }) => (each ? i === t.done && t.reached <= t.done : last && !t.chimed))
 		.map(({ m, i, last }) => ({
 			at: from + m.at * 1000,
-			title: last ? (t.marks.length ? 'The run should be done' : 'The ship should be in') : `${m.label || 'A stop'} should be in reach`,
+			title: last ? (t.marks.length ? T('The run should be done') : T('The ship should be in')) : T('{stop} should be in reach', { stop: m.label || T('A stop') }),
 			body: last
-				? `${m.label || t.label || 'the last stop'} — every stop on the run has come up.`
-				: `Stop ${i + 1} of ${marks.length} — ${marks.length - i - 1} more after this one.`
+				? T('{stop} — every stop on the run has come up.', { stop: m.label || t.label || T('the last stop') })
+				: T('Stop {n} of {total} — {left} more after this one.', { n: stopNo(t, m, i), total: stopsOf(t), left: stopsOf(t) - stopNo(t, m, i) })
 		}));
 	putAlerts(TAG, alerts);
 }
@@ -140,7 +260,37 @@ export function sendSchedule() {
 export function stopTimer() {
 	write(null);
 	arm();
-	if (pushOn()) clearAlerts(TAG);
+	if (!hushed && (pushOn() || discordOn())) clearAlerts(TAG);
+}
+
+/**
+ * The clock set back to nought and run again from now, at the estimate
+ * it was first given.
+ *
+ * A clock that is only ever started by casting off, and can only be
+ * thrown away, is wrong for as long as the sailor is away from the
+ * keyboard -- and somebody who wanders off from a ship on auto-path is
+ * exactly who this was written for. Oni sailed a run, left the desk,
+ * came back to a clock long past the end of a short run, and asked how
+ * to start it again. He could not: the only control was a cross, and
+ * the cross meant forget it.
+ *
+ * The marks go back to where they were first laid rather than to
+ * wherever ticking the stops off moved them, so a run sailed again
+ * chimes at its own legs and not at the last attempt's drift.
+ */
+export function restartTimer() {
+	const now = timerNow();
+	if (!now) return null;
+	const base = now.base || { seconds: now.seconds, marks: now.marks };
+	const marks = Array.isArray(base.marks) ? base.marks : [];
+	write({
+		...now, base, startedAt: Date.now(), chimed: false, done: 0, reached: 0, legAt: 0,
+		marks, seconds: Math.max(30, marks.length ? marks[marks.length - 1].at : base.seconds)
+	});
+	arm();
+	sendSchedule();
+	return timerNow();
 }
 
 /**
@@ -153,16 +303,18 @@ export function timerState(now = Date.now()) {
 	const t = timerNow();
 	if (!t) return null;
 	const ran = Math.max(0, Math.round((now - t.startedAt) / 1000));
-	const at = t.marks.findIndex(m => m.at > ran);
-	const next = at < 0 ? null : { ...t.marks[at], i: at, left: t.marks[at].at - ran };
-	// Between arriving somewhere and being under way again, the clock is
-	// counting the stop rather than a leg: the sailor is at the island
-	// with the barter window open, and what they want to know is how
-	// long they have before the plan expects them to have moved on.
-	const back = at < 0 ? t.marks.length - 1 : at - 1;
-	const on = back >= 0 ? t.marks[back] : null;
-	const here = on && on.hold > 0 && ran < on.at + on.hold ? { ...on, i: back, left: on.at + on.hold - ran } : null;
-	return { ...t, ran, left: t.seconds - ran, over: ran >= t.seconds, next, here, stops: t.marks.length };
+	// The stop the ship is making for is the first not yet passed. Once
+	// its time has come the clock waits there -- counting nothing more,
+	// chiming for nothing further -- until Traded is pressed for it.
+	const at = t.done < t.marks.length ? t.done : -1;
+	const due = at >= 0 && ran >= t.marks[at].at;
+	const wait = due ? { ...t.marks[at], i: at, over: ran - t.marks[at].at } : null;
+	const next = at >= 0 && !due ? { ...t.marks[at], i: at, left: t.marks[at].at - ran } : null;
+	// While it waits, the end moves with it: what is left is the rest of
+	// the run after this stop, and it is not over until the last is passed.
+	const left = wait ? t.seconds - t.marks[at].at : t.seconds - ran;
+	const over = t.marks.length ? t.done >= t.marks.length && ran >= t.seconds : ran >= t.seconds;
+	return { ...t, ran, left, over, next, wait, here: null, stops: stopsOf(t) };
 }
 
 /* ------------------------------------------------------------------ *
@@ -183,6 +335,27 @@ export const soundOn = () => soundKind() !== 'off';
  */
 export const pushOn = () => store.getSetting('timerPush', false) === true && canReachDevices();
 export const canPush = () => canReachDevices();
+
+/** Each chime also as a Discord message from the community bot, once the
+ *  sailor has asked and the bot has managed to say hello. */
+export const discordOn = () => canReachDevices() && !!(discordDm() && discordDm().on);
+
+export async function toggleDiscord() {
+	if (discordOn()) {
+		const off = await setDiscordDm(false);
+		if (off.ok && !pushOn()) await clearAlerts(TAG);
+		toast(off.ok ? T('Chimes stay out of Discord now') : T('That did not go through — try again'));
+		return false;
+	}
+	const on = await setDiscordDm(true);
+	if (!on.ok) {
+		toast(on.error ? said(on.error) : T('That did not go through — try again'), true);
+		return false;
+	}
+	sendSchedule();
+	toast(T('A message just reached you on Discord — each chime will come there too'), true);
+	return true;
+}
 
 /** The tag every chime of a sailing clock is filed under: one clock,
  *  one schedule, so setting it again replaces what was there. */
@@ -221,9 +394,9 @@ export function unlockSound() {
  * timer rather than a ship.
  */
 export const SOUND_CHOICES = [
-	['bell', 'a ship’s bell', 'Struck bronze: a pair as each stop comes up, and eight bells — the end of the watch — when the run is done'],
-	['beeps', 'three beeps', 'The plain microwave sort'],
-	['off', 'no sound', 'Nothing here; a notification can still be shown']
+	['bell', TT('a ship’s bell'), TT('Struck bronze: a pair as each stop comes up, and eight bells — the end of the watch — when the run is done')],
+	['beeps', TT('three beeps'), TT('The plain microwave sort')],
+	['off', TT('no sound'), TT('Nothing here; a notification can still be shown')]
 ];
 
 /** Which sound, reading the older on-or-off setting as one of these. */
@@ -452,6 +625,19 @@ function notify(title, body) {
 
 let pending = null;
 let redraw = null;
+// Set while the guided tour has its example run on screen. The clock
+// drawn then is the example's, read from the example's own view: it is
+// shown counting, and nothing else -- no chime, no notification, no
+// moment handed to the server. The sailor's own clock is not lost by
+// it: it is armed again the moment the hush ends, and anything that
+// fell due meanwhile rings then, as it does for a tab that slept.
+let hushed = false;
+
+/** The clock shown and not kept, for as long as `on` -- see `hushed`. */
+export function hushTimer(on) {
+	hushed = !!on;
+	arm();
+}
 
 /**
  * The page's own hand on the timer: `onFire` is called when it goes
@@ -469,6 +655,7 @@ export function watchTimer(onFire = null) {
 
 function arm() {
 	if (pending) { clearTimeout(pending); pending = null; }
+	if (hushed) return;
 	const t = timerState();
 	if (!t) return;
 	// The next thing to sound: a stop the ship has reached, or the end
@@ -476,7 +663,20 @@ function arm() {
 	// ten minutes comes back to several of them at once -- so the check
 	// is "has it gone by", not "is it now".
 	if (t.marks.length) {
-		if (t.done < t.marks.length && t.ran >= t.marks[t.done].at) return fireMark();
+		// The whole run rings at the end of the estimate whether or not
+		// the stops on the way were ticked off: a sailor who asked for one
+		// chime when the run should be done is the one least likely to be
+		// pressing Traded. Before, the clock reached stop 1, waited there
+		// for a Traded that never came, and the chime never rang.
+		const end = t.marks[t.marks.length - 1].at;
+		if (marksMode() === 'whole' && !t.chimed && t.ran >= end) return fireWhole();
+		if (t.done < t.marks.length && t.reached <= t.done && t.ran >= t.marks[t.done].at) return fireMark();
+		if (t.done < t.marks.length && t.reached > t.done) {
+			// Waiting at a stop: nothing to count to, but the whole run's
+			// end, if that is what was asked for.
+			if (marksMode() === 'whole' && !t.chimed) pending = setTimeout(arm, Math.min(Math.max(end - t.ran, 0) * 1000 + 50, 60000));
+			return;
+		}
 		if (t.done >= t.marks.length && !t.chimed) return fireEnd();
 	} else if (t.over && !t.chimed) return fireEnd();
 	const wait = t.marks.length && t.done < t.marks.length ? t.marks[t.done].at - t.ran : t.left;
@@ -497,15 +697,32 @@ function fireMark() {
 	const mark = t.marks[t.done];
 	const done = t.done + 1;
 	const last = done >= t.marks.length;
-	write({ ...t, done, chimed: last });
-	if (last) {
+	// Reached, and chimed for -- not passed: that is the sailor's press.
+	// The end bell may already have rung, in whole-run mode, at the
+	// estimate; it is not rung a second time when the stop is reached.
+	write({ ...t, reached: done, chimed: t.chimed || last });
+	if (last && !t.chimed) {
 		chime();
-		notify('The run should be done', `${mark.label || t.label || 'the last stop'} — every stop on the run has come up.`);
+		notify(T('The run should be done'), T('{stop} — every stop on the run has come up.', { stop: mark.label || t.label || T('the last stop') }));
 	} else if (marksMode() === 'each') {
 		chimeStop();
-		const left = t.marks.length - done;
-		notify(`${mark.label || 'A stop'} should be in reach`, `Stop ${done} of ${t.marks.length} — ${left} more after this one.`);
+		const n = stopNo(t, mark, t.done);
+		notify(T('{stop} should be in reach', { stop: mark.label || T('A stop') }), T('Stop {n} of {total} — {left} more after this one.', { n, total: stopsOf(t), left: stopsOf(t) - n }));
 	}
+	if (redraw) redraw();
+	arm();
+}
+
+/** The whole run's single chime, at the end of its estimate. The stops
+ *  are left as they are: the clock still waits for each Traded, it just
+ *  no longer keeps the bell waiting with it. */
+function fireWhole() {
+	const t = timerNow();
+	if (!t || t.chimed || !t.marks.length) return;
+	write({ ...t, chimed: true });
+	const mark = t.marks[t.marks.length - 1];
+	chime();
+	notify(T('The run should be done'), T('{stop} — every stop on the run has come up.', { stop: mark.label || t.label || T('the last stop') }));
 	if (redraw) redraw();
 	arm();
 }
@@ -515,7 +732,7 @@ function fireEnd() {
 	if (!t || t.chimed) return;
 	write({ ...t, chimed: true });
 	chime();
-	notify('The ship should be in', t.label ? `${t.label} — the time you set is up.` : 'The time you set is up.');
+	notify(T('The ship should be in'), t.label ? T('{label} — the time you set is up.', { label: t.label }) : T('The time you set is up.'));
 	if (redraw) redraw();
 }
 
@@ -526,10 +743,10 @@ function fireEnd() {
 /** A span of seconds as a sailor reads it: 45 s, 4 m 12 s, 1 h 06 m. */
 export function spanText(secs) {
 	const s = Math.max(0, Math.round(secs));
-	if (s < 60) return `${s} s`;
+	if (s < 60) return T('{s} s', { s });
 	const m = Math.floor(s / 60), rest = s % 60;
-	if (m < 60) return `${m} m ${String(rest).padStart(2, '0')} s`;
-	return `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')} m`;
+	if (m < 60) return T('{m} m {s} s', { m, s: String(rest).padStart(2, '0') });
+	return T('{h} h {m} m', { h: Math.floor(m / 60), m: String(m % 60).padStart(2, '0') });
 }
 
 /**
@@ -541,17 +758,17 @@ export function spanText(secs) {
  * The clock's text carries `data-timer-clock` so the second hand can
  * move without repainting the screen under it.
  */
-export function timerHTML({ suggest = 0, label = '', marks = [] } = {}) {
+export function timerHTML({ suggest = 0, label = '', marks = [], ship = '', of = 0 } = {}) {
 	const t = timerState();
 	// The bell says what this browser is actually going to do: ask,
 	// explain why it cannot, or nothing at all once it has said yes.
 	const support = notifySupport();
-	const bellText = { default: '🔔 notify me too', denied: '🔔 blocked', install: '🔔 on the Home Screen', insecure: '🔔 needs https', none: '' };
+	const bellText = { default: T('🔔 notify me too'), denied: T('🔔 blocked'), install: T('🔔 on the Home Screen'), insecure: T('🔔 needs https'), none: '' };
 	const bellWhy = {
-		default: 'Ask the browser for a notification as well, so a chime lands with the tab in the background',
-		denied: 'This site is blocked from showing notifications — press to see where to change it',
-		install: 'Safari shows notifications once the app is on the Home Screen — press to see how',
-		insecure: 'This page is served over plain http, where no browser allows notifications — press to see what does work',
+		default: T('Ask the browser for a notification as well, so a chime lands with the tab in the background'),
+		denied: T('This site is blocked from showing notifications — press to see where to change it'),
+		install: T('Safari shows notifications once the app is on the Home Screen — press to see how'),
+		insecure: T('This page is served over plain http, where no browser allows notifications — press to see what does work'),
 		none: ''
 	};
 	const bell = support === 'granted' || support === 'none' ? ''
@@ -562,38 +779,45 @@ export function timerHTML({ suggest = 0, label = '', marks = [] } = {}) {
 	const sound = soundKind();
 	const soundName = (SOUND_CHOICES.find(([id]) => id === sound) || SOUND_CHOICES[0])[1];
 	const soundWhy = (SOUND_CHOICES.find(([id]) => id === sound) || SOUND_CHOICES[0])[2];
-	const ear = `<button class="chip tiny sail-sound${sound === 'off' ? ' off' : ''}" data-act="barter-timer-sound" title="${esc(soundWhy)} — press to hear the next one">${sound === 'off' ? '🔇' : '🔔'} ${esc(soundName)}</button>`;
+	const ear = `<button class="chip tiny sail-sound${sound === 'off' ? ' off' : ''}" data-act="barter-timer-sound" title="${T('{why} — press to hear the next one', { why: esc(said(soundWhy)) })}">${sound === 'off' ? '🔇' : '🔔'} ${esc(said(soundName))}</button>`;
 	// Signed in, the chimes can be said again on every device the
 	// account has -- the phone in a pocket while the game has the screen.
 	const devices = canPush()
-		? `<button class="chip tiny${pushOn() ? ' active' : ''}" data-act="barter-timer-devices" title="${pushOn() ? 'Chiming on every device signed in to this account; press to keep it to this one' : 'Chime on every device signed in to this account — the phone in your pocket as well as this tab'}">📱 ${pushOn() ? 'every device' : 'my devices too'}</button>`
+		? `<button class="chip tiny${pushOn() ? ' active' : ''}" data-act="barter-timer-devices" title="${pushOn() ? T('Chiming on every device signed in to this account; press to keep it to this one') : T('Chime on every device signed in to this account — the phone in your pocket as well as this tab')}">📱 ${pushOn() ? T('every device') : T('my devices too')}</button>`
+		: '';
+	const discord = canPush() && discordDm() && discordDm().available
+		? `<button class="chip tiny${discordOn() ? ' active' : ''}" data-act="barter-timer-discord" title="${discordOn() ? T('Each chime is also a Discord message from the bot; press to stop them') : T('Have the bot message you on Discord at every chime — you will need to be in the community server')}">💬 ${discordOn() ? T('on Discord') : T('Discord too')}</button>`
 		: '';
 	// Which stops make a sound. Offered wherever a run is in hand, and
 	// beside a running clock that has stops of its own.
 	const mode = marksMode();
 	const modes = (marks.length || (t && t.marks.length))
-		? `<span class="sail-timer-modes" role="group" aria-label="What chimes">${MARK_CHOICES.map(([id, text, why]) => `<button class="chip tiny${mode === id ? ' active' : ''}" data-act="barter-timer-marks" data-id="${id}" title="${esc(why)}">${esc(text)}</button>`).join('')}</span>`
+		? `<span class="sail-timer-modes" role="group" aria-label="${T('What chimes')}">${MARK_CHOICES.map(([id, text, why]) => `<button class="chip tiny${mode === id ? ' active' : ''}" data-act="barter-timer-marks" data-id="${id}" title="${esc(said(why))}">${esc(said(text))}</button>`).join('')}</span>`
 		: '';
 	if (!t) {
 		// The estimate as a sailor reads it: a three-hour run said "354 m"
 		// before this, which is a number rather than a time.
-		const stops = marks.length ? ` · ${marks.length} stop${marks.length === 1 ? '' : 's'}` : '';
+		const stops = marks.length ? ` · ${marks.length === 1 ? T('{n} stop', { n: marks.length }) : T('{n} stops', { n: marks.length })}` : '';
 		const run = suggest > 0
-			? `<button class="chip tiny primary" data-act="barter-timer-start" data-secs="${Math.round(suggest)}" data-label="${esc(label)}" data-marks="${esc(JSON.stringify(marks))}" title="Start the clock at this run's own estimate${marks.length ? ', chiming at every stop on the way' : ''}">⏱ start · ≈ ${esc(spanText(suggest))}${stops}</button>`
+			? `<button class="chip tiny primary" data-act="barter-timer-start" data-secs="${Math.round(suggest)}" data-label="${esc(label)}" data-marks="${esc(JSON.stringify(marks))}"${of > 0 ? ` data-of="${of}"` : ''} title="${marks.length ? T('Start the clock at this run\'s own estimate, chiming at every stop on the way') : T('Start the clock at this run\'s own estimate')}">⏱ ${T('start')} · ≈ ${esc(spanText(suggest))}${stops}</button>`
 			: '';
 		// Nothing to start when there is no run in hand: the clock is the
 		// run's own, not a kitchen timer.
-		if (!run) return `<span class="sail-timer">${ear}${bell}${devices}</span>`;
-		return `<span class="sail-timer">${run}${modes}${ear}${bell}${devices}</span>`;
+		if (!run) return `<span class="sail-timer">${ear}${bell}${devices}${discord}</span>`;
+		return `<span class="sail-timer">${run}${modes}${ear}${bell}${devices}${discord}</span>`;
 	}
 	const pct = Math.max(0, Math.min(100, (t.ran / t.seconds) * 100));
 	// The run's name is the chime's to say, not the chip's: on a phone a
 	// long one pushes the clock off its own line.
-	return `<span class="sail-timer running${t.over ? ' over' : ''}"${t.label ? ` title="${esc(t.label)}"` : ''}>
-		<span class="sail-timer-bar"><i style="width:${pct.toFixed(1)}%"></i></span>
+	// The ship crossing the leg, when there is a ship to draw: its own
+	// picture, on the sea, to the pier (sail-scene.js moves it).
+	const scene = ship ? `<span class="sail-scene" aria-hidden="true"><canvas data-sail-scene data-ship="${esc(ship)}"></canvas><b class="sail-scene-cheer">${T('Made fast')}</b></span>` : '';
+	return `<span class="sail-timer running${t.over ? ' over' : ''}${scene ? ' with-scene' : ''}"${t.label ? ` title="${esc(t.label)}"` : ''}>
+		${scene}<span class="sail-timer-bar"><i style="width:${pct.toFixed(1)}%"></i></span>
 		<b data-timer-clock>${esc(clockText(t))}</b>
-		${modes}${ear}${devices}
-		<button class="map-x" data-act="barter-timer-stop" aria-label="Stop the clock" title="Stop the clock">×</button>
+		<span class="sail-timer-ctl">${modes}${ear}${devices}${discord}
+		<button class="chip tiny sail-timer-again" data-act="barter-timer-restart" title="${T('Set the clock back to nought and run it again from now, at this run’s own estimate')}">↻ ${T('again')}</button>
+		<button class="chip tiny sail-timer-off" data-act="barter-timer-stop" title="${T('Stop the clock and forget it')}">${T('stop')}</button></span>
 	</span>`;
 }
 
@@ -604,10 +828,10 @@ export function timerHTML({ suggest = 0, label = '', marks = [] } = {}) {
  */
 export function clockText(t = timerState()) {
 	if (!t) return '';
-	if (t.here) return `at ${t.here.label || `stop ${t.here.i + 1}`} · under way in ${spanText(t.here.left)}`;
-	if (t.next) return `${spanText(t.next.left)} to ${t.next.label || `stop ${t.next.i + 1}`} · stop ${t.next.i + 1} of ${t.stops}`;
-	if (t.over) return `${spanText(t.ran)} · ${spanText(t.ran - t.seconds)} past the ${spanText(t.seconds)} it was set for`;
-	return `${spanText(t.ran)} of ≈ ${spanText(t.seconds)}`;
+	if (t.wait) return T('at {stop} · stop {n} of {total} — waiting for Traded', { stop: t.wait.label || T('stop {n}', { n: stopNo(t, t.wait, t.wait.i) }), n: stopNo(t, t.wait, t.wait.i), total: t.stops });
+	if (t.next) return T('{left} to {stop} · stop {n} of {total}', { left: spanText(t.next.left), stop: t.next.label || T('stop {n}', { n: stopNo(t, t.next, t.next.i) }), n: stopNo(t, t.next, t.next.i), total: t.stops });
+	if (t.over) return T('{ran} · {past} past the {set} it was set for', { ran: spanText(t.ran), past: spanText(t.ran - t.seconds), set: spanText(t.seconds) });
+	return T('{ran} of ≈ {of}', { ran: spanText(t.ran), of: spanText(t.seconds) });
 }
 
 
@@ -627,6 +851,7 @@ export function tickTimer() {
 	}
 	const text = clockText(t);
 	for (const el of els) el.textContent = text;
+	mountScene();
 	if (!beat) beat = setInterval(tickTimer, 1000);
 }
 
@@ -638,60 +863,58 @@ export function tickTimer() {
 export async function wantNotify() {
 	const before = notifySupport();
 	if (before === 'insecure') {
-		toast('Notifications need a secure page. This one is plain http, so no browser will allow them — they work on the live site, or at localhost. The clock still beeps here.', true);
+		toast(T('Notifications need a secure page. This one is plain http, so no browser will allow them — they work on the live site, or at localhost. The clock still beeps here.'), true);
 		return 'insecure';
 	}
 	if (before === 'none') {
-		toast('This browser has no notifications — the clock will still beep while this tab is open');
+		toast(T('This browser has no notifications — the clock will still beep while this tab is open'));
 		return 'none';
 	}
 	if (before === 'install') {
-		toast('On iPhone, notifications arrive once the app is added to the Home Screen — Share ▸ Add to Home Screen', true);
+		toast(T('On iPhone, notifications arrive once the app is added to the Home Screen — Share ▸ Add to Home Screen'), true);
 		return 'install';
 	}
 	if (before === 'denied') {
-		toast('Notifications are blocked for this site — turn them on in the browser’s site settings', true);
+		toast(T('Notifications are blocked for this site — turn them on in the browser’s site settings'), true);
 		return 'denied';
 	}
 	const perm = await askNotify();
 	if (perm !== 'granted') {
-		toast(perm === 'denied' ? 'The browser said no — it can be changed in the site settings' : 'No answer from the browser, so nothing has changed');
+		toast(perm === 'denied' ? T('The browser said no — it can be changed in the site settings') : T('No answer from the browser, so nothing has changed'));
 		return perm;
 	}
-	const shown = await showNote('Notifications are on', 'This is what a chime will look like when the ship is in.', 'bdo-sail-hello');
+	const shown = await showNote(T('Notifications are on'), T('This is what a chime will look like when the ship is in.'), 'bdo-sail-hello');
 	toast(shown
-		? 'Notifications are on — one just came through to show you'
-		: 'The browser allowed them but would not show one; the clock will still beep here', true);
+		? T('Notifications are on — one just came through to show you')
+		: T('The browser allowed them but would not show one; the clock will still beep here'), true);
 	return 'granted';
 }
 
 /**
  * Turn the account's own chimes on or off. Turning them on needs the
- * browser's permission and a subscription -- made for this and nothing
- * else, so nobody is signed up for the Vell reminder by the back door.
+ * browser's permission and a subscription.
  */
 export async function togglePush() {
 	if (pushOn()) {
 		store.setSetting('timerPush', false);
 		await clearAlerts(TAG);
-		toast('Chimes stay in this tab now');
+		toast(T('Chimes stay in this tab now'));
 		return false;
 	}
 	if (!canReachDevices()) return false;
 	const perm = await askNotify();
 	if (perm !== 'granted') {
-		toast('The browser would not allow notifications — check the site settings');
+		toast(T('The browser would not allow notifications — check the site settings'));
 		return false;
 	}
-	const region = pushRegion();
-	const ok = await subscribeFor({ region: region || 'na', vell: null });
+	const ok = await subscribePush();
 	store.setSetting('timerPush', ok === true);
 	if (ok) {
 		sendSchedule();
 		// Each device has its own subscription, so each has to be told
 		// once. Saying so here is cheaper than the question it saves.
-		toast('Chimes will reach this device with the tab shut — turn it on once on every device you want them on', true);
-	} else toast('This copy of the app cannot send to your other devices');
+		toast(T('Chimes will reach this device with the tab shut — turn it on once on every device you want them on'), true);
+	} else toast(T('This copy of the app cannot send to your other devices'));
 	return ok === true;
 }
 
@@ -710,7 +933,7 @@ function readMarks(raw) {
  *  and the screen should be drawn again. */
 export function timerAction(act, el, then = null) {
 	if (act === 'barter-timer-start') {
-		startTimer(Number(el.dataset.secs) || 600, el.dataset.label || '', readMarks(el.dataset.marks));
+		startTimer(Number(el.dataset.secs) || 600, el.dataset.label || '', readMarks(el.dataset.marks), Number(el.dataset.of) || 0);
 		// The press that starts the clock is also what lets the page make
 		// a sound later: the browser wants a gesture, and this is it. It
 		// wakes the audio without making a noise -- a beep on starting
@@ -718,7 +941,12 @@ export function timerAction(act, el, then = null) {
 		if (soundOn()) unlockSound();
 		return true;
 	}
-	if (act === 'barter-timer-stop') { stopTimer(); return true; }
+	if (act === 'barter-timer-stop') { stopTimer(); toast(T('The clock is stopped')); return true; }
+	if (act === 'barter-timer-restart') {
+		const t = restartTimer();
+		if (t) toast(T('The clock is running again — {span} to go', { span: spanText(t.seconds) }));
+		return true;
+	}
 	if (act === 'barter-timer-sound') {
 		// Round the choices, and let the new one be heard at once -- the
 		// press is also what wakes the audio, so the first one is not
@@ -738,6 +966,10 @@ export function timerAction(act, el, then = null) {
 	}
 	if (act === 'barter-timer-devices') {
 		togglePush().then(() => { if (then) then(); });
+		return true;
+	}
+	if (act === 'barter-timer-discord') {
+		toggleDiscord().then(() => { if (then) then(); });
 		return true;
 	}
 	if (act === 'barter-timer-notify') {

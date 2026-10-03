@@ -27,6 +27,9 @@ process.env.ADMIN_IDS = '2001';
 process.env.COMMUNITY_TTL_MS = '0';   // every read rebuilds, so a change shows at once
 delete process.env.FEEDBACK_WEBHOOK_URL;
 
+// Market prices from a recorded answer, never the live Market, so a run
+// plans the same on any day (see server/market.js).
+process.env.MARKET_FIXTURE = new URL('./fixtures/market.json', import.meta.url).href;
 const app = (await import('../server.js')).default;
 const { startSession } = await import('../server/session.js');
 const { upsertUser } = await import('../server/db.js');
@@ -68,6 +71,31 @@ const save = (profile, stock = { 'Tidal Black Stone': 10 }) => ({ stock, targets
 /* ------------------------------------------------------------------ *
  * The digest
  * ------------------------------------------------------------------ */
+
+test('the digest counts which [Level 7] each island paid, for the fleet\'s share on the chips', () => {
+	const d = digest(save({ sevens: {
+		58974: { item: '[Level 7] Calpheon Golden Candle Stand', day: '2026-09-25', seen: { '[Level 7] Calpheon Golden Candle Stand': 3, "[Level 7] Top-Quality Heidelian Wine": 1 } },
+		58984: { item: '[Level 7] Combat Manual', day: '2026-09-20' }
+	} }));
+	assert.deepEqual(d.sevens['58974'], { '[Level 7] Calpheon Golden Candle Stand': 3, "[Level 7] Top-Quality Heidelian Wine": 1 });
+	assert.deepEqual(d.sevens['58984'], { '[Level 7] Combat Manual': 1 }, 'an island known before counts were kept is one sighting');
+});
+
+test('the digest counts what each roll showed, per layout and island, and nothing that is not one', () => {
+	const d = digest(save({ rolls: {
+		'31|58966': { day: '2026-09-27', pick: '[Level 4] Panacea|Crow Coin', seen: { '[Level 4] Panacea|Crow Coin': 3, "[Level 4] Panacea|[Level 5] Statue's Tear": 1 } },
+		'no such|key': { seen: { 'a|b': 1 } }
+	} }));
+	assert.deepEqual(d.rolls, { '31|58966': { '[Level 4] Panacea|Crow Coin': 3, "[Level 4] Panacea|[Level 5] Statue's Tear": 1 } });
+});
+
+test('the digest counts what each exchange that pays a range paid, and nothing that is not a count', () => {
+	const d = digest(save({ ratios: {
+		'58966|[Level 4] Panacea|Crow Coin': { 380: 2, 400: 1, bad: 3 },
+		'not a key': { 5: 1 }
+	} }));
+	assert.deepEqual(d.paid, { '58966|[Level 4] Panacea|Crow Coin': { 380: 2, 400: 1 } });
+});
 
 test('the digest reads the fleet, the crew and the career off a save', () => {
 	const d = digest(save({
@@ -162,7 +190,7 @@ test('the best ship is scored on what is on it, not only how far it is taken', (
 	assert.deepEqual(full.sets, ['yellow']);
 	assert.deepEqual(mixed.sets, ['Chiro', 'Toro']);
 	const b = BOARDS.find(x => x.id === 'ship');
-	assert.equal(b.detail({ fleet: { best: mixed } }), 'Carrack (Advance) · Chiro, Toro · +40 in all');
+	assert.equal(b.detail({ fleet: { best: mixed } }), 'Epheria Carrack: Advance · Chiro, Toro · +40 in all');
 	// A digest written before sets existed still reads.
 	assert.equal(b.detail({ fleet: { best: { ship: 'Panokseon', levels: 12 } } }), 'Panokseon · +12 in all');
 
@@ -222,9 +250,9 @@ test('the boards are empty until someone takes part, and readable signed out', a
 
 test('taking part puts the digest of the save on the boards, by name or unnamed', async () => {
 	for (const [cookie, profile] of [
-		[admiral, { sailingMastery: 1500, barterCount: 300, tally: { runs: 50, silver: 5e9 }, boardLog: [['2026-09-10', '16', 0], ['2026-09-11', '7', 0]] }],
-		[deckhand, { sailingMastery: 900, barterCount: 20, tally: { runs: 5, silver: 1e8 }, boardLog: [['2026-09-10', '16', 1]] }],
-		[stranger, { sailingMastery: 2900, barterCount: 999 }]
+		[admiral, { sailingMastery: 1500, barterCount: 300, level: 'Artisan 3', tally: { runs: 50, silver: 5e9 }, boardLog: [['2026-09-10', '16', 0], ['2026-09-11', '7', 0]], rolls: { '31|58966': { day: '2026-09-27', pick: '[Level 4] Panacea|Crow Coin', seen: { '[Level 4] Panacea|Crow Coin': 2 } } }, ratios: { '58966|[Level 4] Panacea|Crow Coin': { 380: 2 } } }],
+		[deckhand, { sailingMastery: 900, barterCount: 20, tally: { runs: 5, silver: 1e8 }, boardLog: [['2026-09-10', '16', 1]], rolls: { '31|58966': { day: '2026-09-26', pick: "[Level 4] Panacea|[Level 5] Statue's Tear", seen: { '[Level 4] Panacea|Crow Coin': 1, "[Level 4] Panacea|[Level 5] Statue's Tear": 1 } } }, ratios: { '58966|[Level 4] Panacea|Crow Coin': { 400: 1 } } }],
+		[stranger, { sailingMastery: 2900, barterCount: 999, rolls: { '31|58966': { day: '2026-09-25', pick: '[Level 4] Panacea|Crow Coin', seen: { '[Level 4] Panacea|Crow Coin': 1 } } } }]
 	]) {
 		const res = await call('PUT', '/api/state', { cookie, body: { rev: 0, data: save(profile), device: 'test' } });
 		assert.equal(res.status, 200);
@@ -274,6 +302,12 @@ test('taking part puts the digest of the save on the boards, by name or unnamed'
 	// ...and the boards each was dealt: which layouts come up most, fleet-wide.
 	assert.deepEqual(out.stats.layouts, { 16: 2, 7: 1 });
 	assert.equal(out.stats.totals.boards, 3);
+	// ...and what the islands a layout leaves to chance showed them --
+	// and the stranger, who left the boards: what the game dealt is
+	// counted from every signed-in save, on the boards or not.
+	assert.deepEqual(out.stats.rolls['31|58966'], { '[Level 4] Panacea|Crow Coin': 4, "[Level 4] Panacea|[Level 5] Statue's Tear": 1 });
+	// ...and what a range paid them, kept apart by barter level and Total Barters.
+	assert.deepEqual(out.stats.paid['58966|[Level 4] Panacea|Crow Coin'], { 'Artisan|0': { 380: 2 }, '-|0': { 400: 1 } });
 });
 
 test('a place opens a card by an opaque handle, a board shows whole, and a name can be found', async () => {
@@ -320,12 +354,6 @@ test('a fresh push reaches the boards, and leaving takes the digest down', async
 	const { db } = await import('../server/db.js');
 	const { rows } = await db().execute("SELECT COUNT(*) AS n FROM community WHERE user_id = '2002'");
 	assert.equal(Number(rows[0].n), 0, 'the row is gone, not marked');
-});
-
-test('the caller can see its own digest before agreeing', async () => {
-	assert.equal((await call('GET', '/api/community/mine')).status, 401);
-	const body = await (await call('GET', '/api/community/mine', { cookie: stranger })).json();
-	assert.equal(body.digest.mastery, 2900);
 });
 
 test('deleting the account takes it off the boards', async () => {
@@ -386,4 +414,44 @@ test('the list is anyone\'s to read; answering one is the admin\'s', async () =>
 	const after = (await (await call('GET', '/api/feedback', { cookie: admiral })).json()).entries;
 	assert.equal(after[0].status, 'open', 'the open one comes first');
 	assert.equal(after[1].status, 'done');
+});
+
+test('the migrations after 10 take nobody off the boards', async () => {
+	// A database as it stood under the opt-out rule: one sailor who
+	// pressed Take part, one shown unnamed, one who left, and one whom
+	// signing in put on by name. Every later step leaves them as they are.
+	const { createClient } = await import('@libsql/client');
+	const { MIGRATIONS } = await import('../server/db.js');
+	const c = createClient({ url: `file:${path.join(dir, 'migrate.db')}` });
+	const run = statement => c.execute(statement);
+	await run('CREATE TABLE schema_version (version INTEGER PRIMARY KEY, applied_at INTEGER NOT NULL)');
+	for (const step of MIGRATIONS.filter(m => m.version <= 10)) {
+		await step.up(run);
+		await run({ sql: 'INSERT INTO schema_version (version, applied_at) VALUES (?, ?)', args: [step.version, 1] });
+	}
+	for (const id of ['early', 'anon', 'left', 'auto']) await run({ sql: 'INSERT INTO users (id, username, created_at, seen_at) VALUES (?, ?, 0, 0)', args: [id, id] });
+	await run("UPDATE users SET community_off = 1 WHERE id = 'left'");
+	for (const [id, share, at] of [['early', 'named', 1000], ['anon', 'anon', 9000], ['auto', 'named', 9000]]) {
+		await run({ sql: "INSERT INTO community (user_id, share, stats, rev, joined_at, updated_at) VALUES (?, ?, '{}', 0, ?, ?)", args: [id, share, at, at] });
+	}
+	for (const step of MIGRATIONS.filter(m => m.version > 10)) await step.up(run);
+
+	const on = (await run('SELECT user_id FROM community ORDER BY user_id')).rows.map(r => r.user_id);
+	assert.deepEqual(on, ['anon', 'auto', 'early']);
+	c.close();
+});
+
+test('a save never read into memory still adds its barter counts, read with the rest in one go', async () => {
+	const { writeSave } = await import('../server/db.js');
+	const { invalidate } = await import('../server/community.js');
+	const { heldSave } = await import('../server/saves.js');
+	await upsertUser({ id: '2010', username: 'Quiet', avatar: null });
+	const profile = { rolls: { '31|58966': { day: '2026-09-28', pick: '[Level 4] Panacea|Crow Coin', seen: { '[Level 4] Panacea|Crow Coin': 3 } } } };
+	invalidate();
+	const before = (await (await call('GET', '/api/community')).json()).stats.rolls['31|58966']['[Level 4] Panacea|Crow Coin'];
+	await writeSave('2010', { rev: 1, payload: JSON.stringify(save(profile)), updatedAt: Date.now(), device: 'x' });
+	invalidate();
+	const after = (await (await call('GET', '/api/community')).json()).stats.rolls['31|58966']['[Level 4] Panacea|Crow Coin'];
+	assert.equal(after, before + 3);
+	assert.equal(heldSave('2010'), null, 'counting the fleet pulled a save into the cache');
 });

@@ -1,0 +1,51 @@
+Bartering, part one. Before the app can plan a run, it has to know which board the game dealt you.
+The Barter tab starts with what today is for. Silver, a stock and Crow Coins all sail the trade goods list. A material reads the ship material list.
+A Barter Refresh deals one of those two lists, never both. This part is about the trade goods list; materials have a part of their own.
+The trade goods list is always one of the game’s forty layouts. Name the layout, and every island’s offer is known.
+There are three ways to name it: one island, a screenshot, or another sailor’s reading.
+This button is the quickest by hand. It asks about the island that tells the layouts apart best — here, Baeza Island.
+But you can look at any island. Click "another island".
+The islands that split the layouts best come first. Islands your Total Barters have not opened are greyed, with the count that opens them.
+Type Eveto, and pick it.
+Now it lists every offer Eveto can show, and how many of the forty layouts have each one.
+In the game, open Barter Information and find Eveto Island. It hands over Essence of Liquor for a Level 1 Cherry Tree Seed Pouch.
+Pick that same trade here.
+One island was enough. Today is layout 4.
+Every chain this board allows is already worked out further down the tab.
+Beside the layout: your barter count and barter level, taken from the sailor bar at the top of the page.
+And your Parley. A dashed outline means assumed: the bar refills to one million at every Barter Refresh, so a full bar is the guess until you type yours.
+The islands you looked at are kept here, with an Undo for the last one.
+A layout does not fix every island. This chip says how many islands draw their offer at random.
+Some Level 4 islands pay a Level 5 good on one refresh and Crow Coins on another. Until you say which, the likelier one is planned on.
+Pujara Island shows Crow Coins in my window, so I click that.
+Further down, islands that draw from a pool of offers: materials, Tidal Black Stone, a Lost Trade Box. Nothing is planned on those until you say what they show.
+This line counts the islands your barter count has not opened. The game opens each exchange at its own count, so these show nothing to you today.
+"Which ones" lists them, grouped by the count that opens them. The run is planned without them.
+Your count lives in the sailor bar. Open it, and set Total Barters to 1,082 — a newer sailor.
+Now many more islands are shut, and every chain that climbs through one is gone from the plan.
+Put it back to 4,205. Recording a trip adds its trades to this count for you.
+Now the second way. Press "Refreshed in game" — what you do after every refresh — and the board is a question again.
+Take a screenshot of the same Barter Information window, and paste it with Control V — or click the box and choose the file.
+Every row is read: the island, what it takes, and what it pays.
+Each row is matched against what that island is known to deal, so a name the window cut short still reads. Every row can be corrected from its list.
+Answer the six islands, and the layout is named from all of them at once. Nothing is uploaded; the reading happens in your browser.
+The third way needs other sailors. The fleet in this part is staged: a machine recording a film has nobody else on its server.
+Throw the board away once more.
+When a signed-in sailor has read today’s board, the bar says so: who read it, how many islands, and how many others saw the same.
+Click "take their reading", and every island they named is answered for you.
+The layout book keeps all forty layouts.
+Each card shows the land goods its Level 1 islands want, the goods its coin islands take, how many exchanges it has at each level, and how often it has been seen.
+Filter them: all forty, the ones still standing today, the ones the fleet has read, and yours — the boards you have been dealt yourself.
+Above the shelf: boards that sailors read and that fit no layout on file, each with the layout it is nearest to.
+Open a layout, and it lists every island level by level. Islands you saw today are ticked; the ones above your count are locked.
+The level chips narrow it, say to the Level 5 exchanges.
+And the search finds a layout by an island, a good or its number.
+Sometimes an island in game shows something the layout does not. Click "An island shows something else".
+It lists every island, and beside each one what today’s board says it shows. Pick the island.
+Ostra Island should show Rare Herb Pile. Mine shows Gooey Monster Blood, so I choose "Something else"…
+…and pick it from every exchange Ostra is known to deal.
+The board is now layout 4 with one island as you saw it. The game moves a slot at a maintenance without renumbering the layout, and the run is planned on what you saw.
+That is a reading worth passing on, so "Tell the fleet" appears. It needs you signed in: the reading goes up with your name on it.
+One last press of "Refreshed in game". Besides forgetting the board, it sets your Parley back to a full bar, because the game refills it at every refresh.
+Choose a material, and the tab reads the ship material list instead. Naming one list puts down the other, because a refresh deals only one.
+That is the board. The next parts plan runs on it.

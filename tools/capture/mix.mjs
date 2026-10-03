@@ -132,11 +132,14 @@ export async function mix(stem, outDir = null) {
 	}
 
 	args.push(
-		'-c:v', 'libx264', '-preset', 'slow', '-crf', process.env.CRF || '30',
+		'-c:v', 'libx264', '-preset', 'slow', '-crf', process.env.CRF || '32',
 		'-pix_fmt', 'yuv420p', '-profile:v', 'high', '-level', '4.0',
 		'-movflags', '+faststart'
 	);
-	if (lines.length) args.push('-c:a', 'aac', '-b:a', '128k', '-shortest');
+	// One voice, so one channel: 128k of stereo was a third of every
+	// chapter and over half the joined film, which has to stay under the
+	// hundred megabytes a git host will take in one file.
+	if (lines.length) args.push('-c:a', 'aac', '-b:a', '56k', '-ac', '1', '-shortest');
 	args.push(mp4);
 
 	await exec('ffmpeg', args, { maxBuffer: 1 << 26 });

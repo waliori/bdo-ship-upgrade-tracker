@@ -1,5 +1,7 @@
 // A recipe dictionary
 
+import { TT } from './i18n.js';
+
 export const recipes = {
 	// Ships
 	"Epheria Sailboat": {
@@ -1487,43 +1489,43 @@ export const routes = {
 /** How the choice is described, and what taking it buys you. */
 export const routeInfo = {
 	"Epheria Caravel": {
-		direct: { label: "Straight from the Epheria Sailboat", via: "Epheria Sailboat" },
+		direct: { label: TT("Straight from the Epheria Sailboat"), via: "Epheria Sailboat" },
 		improved: {
-			label: "By way of the Improved Epheria Sailboat",
+			label: TT("By way of the Improved Epheria Sailboat"),
 			via: "Improved Epheria Sailboat",
-			gains: "Adds a solo cannon volley, and the upgrade quests can be done alone."
+			gains: TT("Adds a solo cannon volley, and the upgrade quests can be done alone.")
 		}
 	},
 	"Epheria Galleass": {
-		direct: { label: "Straight from the Epheria Frigate", via: "Epheria Frigate" },
+		direct: { label: TT("Straight from the Epheria Frigate"), via: "Epheria Frigate" },
 		improved: {
-			label: "By way of the Improved Epheria Frigate",
+			label: TT("By way of the Improved Epheria Frigate"),
 			via: "Improved Epheria Frigate",
-			gains: "Adds a solo cannon volley, and the upgrade quests can be done alone."
+			gains: TT("Adds a solo cannon volley, and the upgrade quests can be done alone.")
 		}
 	},
 	"Epheria Cog": {
 		permit: {
-			label: "Kalis-Certified design, with Falasi's permit",
+			label: TT("Kalis-Certified design, with Falasi's permit"),
 			via: "Ship Building Permit: Epheria Cog",
-			gains: "Seven million silver for the permit, and land materials the Market sells."
+			gains: TT("Seven million silver for the permit, and land materials the Market sells.")
 		},
 		pirates: {
-			label: "Fallen Vell Pirates' Legacy design",
+			label: TT("Fallen Vell Pirates' Legacy design"),
 			via: "Island Tree Coated Plywood",
-			gains: "No permit: four bartered materials instead, for a boat that is the same in every way."
+			gains: TT("No permit: four bartered materials instead, for a boat that is the same in every way.")
 		}
 	},
 	"Cox Pirates' Artifact (Combat)": {
 		seals: {
-			label: "200 Extermination Seals, by Simple Alchemy",
+			label: TT("200 Extermination Seals, by Simple Alchemy"),
 			via: "Cox Pirates Extermination Seal",
-			gains: "Seals drop from every Cox Pirates' camp, flag and cargo ship, and a [Level 3] good barters for 25 to 50 of them."
+			gains: TT("Seals drop from every Cox Pirates' camp, flag and cargo ship, and a [Level 3] good barters for 25 to 50 of them.")
 		},
 		cannons: {
-			label: "Ten Broken Cannons, by Simple Alchemy",
+			label: TT("Ten Broken Cannons, by Simple Alchemy"),
 			via: "Cox Pirates' Broken Cannon",
-			gains: "The cannons only come off the Cox Pirates' Shadow Ghost, and rarely."
+			gains: TT("The cannons only come off the Cox Pirates' Shadow Ghost, and rarely.")
 		}
 	}
 };

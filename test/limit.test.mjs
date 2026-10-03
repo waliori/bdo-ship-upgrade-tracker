@@ -32,3 +32,17 @@ test('the process-wide ceiling holds whoever is asking', () => {
 	assert.equal(fifth.passed, false);
 	assert.equal(fifth.res.body.error, 'enough');
 });
+
+test('one address looping on its refusal does not spend everybody else\'s minute', () => {
+	// The market's own numbers: thirty an address, a hundred and twenty
+	// in all. Two hundred calls from one host used to leave the next
+	// player refused.
+	const limiter = perAddress(30, 120);
+	for (let i = 0; i < 200; i++) call(limiter, '1.1.1.1');
+	assert.equal(call(limiter, '1.1.1.1').passed, false);
+	assert.ok(call(limiter, '2.2.2.2').passed, 'a different player was refused for the first one\'s loop');
+	// What the first one was let through still counts: three more hosts
+	// at their full share reach the ceiling, and the fifth is refused.
+	for (const ip of ['3.3.3.3', '4.4.4.4', '5.5.5.5']) for (let i = 0; i < 30; i++) call(limiter, ip);
+	assert.equal(call(limiter, '6.6.6.6').passed, false);
+});

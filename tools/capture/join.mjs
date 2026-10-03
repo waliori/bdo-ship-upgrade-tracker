@@ -21,6 +21,7 @@ import { readFile, writeFile, mkdtemp, rm } from 'node:fs/promises';
 import { promisify } from 'node:util';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { ORDER, numberOf } from './guide-kit.mjs';
 
 const exec = promisify(execFile);
 
@@ -35,7 +36,7 @@ const RAW = process.env.RAW || 'tools/capture/out/guide';
  * of each chapter's own timeline, so a chapter renamed in guides.mjs
  * cannot end up captioned one thing and marked another.
  */
-const ORDER = ['the-yard', 'to-get', 'quests', 'your-ship', 'the-map', 'a-run', 'the-harbour'];
+// Kept with the chapters, in guide-kit.mjs.
 
 const seconds = async file => {
 	const { stdout } = await exec('ffprobe', [
@@ -89,6 +90,11 @@ try {
 			// still holds and the mark still lands; it just carries the
 			// file's name instead of its title.
 		}
+		// The mark carries the chapter's place in the film as it stands;
+		// a chapter shot before it moved says another number on its own
+		// title card, and only a re-shoot changes that.
+		if (n && n !== numberOf(id)) console.warn(`  ! ${id} was shot as chapter ${n} and is chapter ${numberOf(id)} now: shoot it again`);
+		n = numberOf(id) || n;
 		chapters.push({ id, mp4, at, dur: await seconds(mp4), label: n ? `${n} — ${title}` : title });
 		at += chapters.at(-1).dur;
 	}

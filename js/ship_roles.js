@@ -26,6 +26,8 @@
 //   * blackdesertfoundry.com/ships-guide and the Pearl Abyss forum's
 //     "Guide On Choosing your Carrack": the four Carracks' roles.
 
+import { TT } from './i18n.js';
+
 /**
  * A hull's job, in one line each.
  *
@@ -36,55 +38,55 @@
 export const SHIP_ROLES = {
 	'Carrack (Advance)': {
 		role: 'bartering',
-		why: 'the biggest hold of the four, and a barter run pays by what it carries',
+		why: TT('the biggest hold of the four, and a barter run pays by what it carries'),
 		crystal: 'weight',
-		note: 'the usual first Carrack: bartering out-earns monster hunting, and this is the hull that barters'
+		note: TT('the usual first Carrack: bartering out-earns monster hunting, and this is the hull that barters')
 	},
 	'Carrack (Volante)': {
 		role: 'speed',
-		why: 'the fastest hull, for runs where the sailing time is the cost',
+		why: TT('the fastest hull, for runs where the sailing time is the cost'),
 		crystal: 'speed',
-		note: 'quicker between islands, but it carries less than the Advance, so a barter run trades cargo for minutes'
+		note: TT('quicker between islands, but it carries less than the Advance, so a barter run trades cargo for minutes')
 	},
 	'Carrack (Valor)': {
 		role: 'sea monsters',
-		why: 'the heaviest guns of the four',
+		why: TT('the heaviest guns of the four'),
 		crystal: 'damage',
-		note: 'no advantage at bartering — it gives up hold for firepower'
+		note: TT('no advantage at bartering — it gives up hold for firepower')
 	},
 	'Carrack (Balance)': {
 		role: 'both, neither best',
-		why: 'even across cargo and guns',
+		why: TT('even across cargo and guns'),
 		crystal: 'weight',
-		note: 'the choice for not choosing; the Advance out-barters it and the Valor out-shoots it'
+		note: TT('the choice for not choosing; the Advance out-barters it and the Valor out-shoots it')
 	},
 	Panokseon: {
 		role: 'sea monsters',
-		why: 'built around its cannons and its crew',
+		why: TT('built around its cannons and its crew'),
 		crystal: 'damage',
-		note: 'its own upgrade line, the Cheongun parts, rather than the Carrack’s'
+		note: TT('its own upgrade line, the Cheongun parts, rather than the Carrack’s')
 	},
 	'Epheria Caravel': {
 		role: 'bartering, before a Carrack',
-		why: 'the hold to run [Level 5]s while the Carrack is being built',
+		why: TT('the hold to run [Level 5]s while the Carrack is being built'),
 		crystal: 'weight',
-		note: 'the Carrack is the upgrade, not a different ship'
+		note: TT('the Carrack is the upgrade, not a different ship')
 	},
 	'Epheria Galleass': {
 		role: 'sea monsters, before a Carrack',
-		why: 'the guns to hunt while the Carrack is being built',
+		why: TT('the guns to hunt while the Carrack is being built'),
 		crystal: 'damage',
 		note: ''
 	},
 	'Improved Epheria Sailboat': {
 		role: 'bartering, early',
-		why: 'the first hull that carries enough to make a run worth sailing',
+		why: TT('the first hull that carries enough to make a run worth sailing'),
 		crystal: 'weight',
 		note: ''
 	},
 	'Improved Epheria Frigate': {
 		role: 'sea monsters, early',
-		why: 'the first hull that fights back',
+		why: TT('the first hull that fights back'),
 		crystal: 'damage',
 		note: ''
 	}
@@ -101,28 +103,28 @@ export const SHIP_ROLES = {
  */
 export const CRYSTAL_FOR = {
 	weight: {
-		label: 'more cargo',
-		who: 'bartering',
-		why: 'a run pays by what it carries, and a weight crystal is worth several sailors of hold — the Rusalka one is the strongest in the game at +1,350 LT'
+		label: TT('more cargo'),
+		who: TT('bartering'),
+		why: TT('a run pays by what it carries, and a weight crystal is worth several sailors of hold — the Rusalka one is the strongest in the game at +1,350 LT')
 	},
 	speed: {
-		label: 'faster between islands',
-		who: 'long runs, and travelling',
-		why: 'the second choice for bartering when the route is long enough that the sailing, not the hold, is the cost'
+		label: TT('faster between islands'),
+		who: TT('long runs, and travelling'),
+		why: TT('the second choice for bartering when the route is long enough that the sailing, not the hold, is the cost')
 	},
 	damage: {
-		label: 'harder hits',
-		who: 'sea monsters',
-		why: 'the hunting choice; it does nothing for a barter run'
+		label: TT('harder hits'),
+		who: TT('sea monsters'),
+		why: TT('the hunting choice; it does nothing for a barter run')
 	},
 	durability: {
-		label: 'takes more punishment',
-		who: 'sea monsters',
-		why: 'for hunts long enough that repairs, not damage, end them'
+		label: TT('takes more punishment'),
+		who: TT('sea monsters'),
+		why: TT('for hunts long enough that repairs, not damage, end them')
 	},
-	accel: { label: 'quicker to top speed', who: 'stop-and-go routes', why: 'a great many short legs, where a hull spends its time getting up to speed' },
-	turn: { label: 'turns tighter', who: 'monster fights', why: 'taste, mostly — worth little on a barter loop' },
-	brake: { label: 'stops shorter', who: 'monster fights', why: 'taste, mostly — worth little on a barter loop' }
+	accel: { label: TT('quicker to top speed'), who: TT('stop-and-go routes'), why: TT('a great many short legs, where a hull spends its time getting up to speed') },
+	turn: { label: TT('turns tighter'), who: TT('monster fights'), why: TT('taste, mostly — worth little on a barter loop') },
+	brake: { label: TT('stops shorter'), who: TT('monster fights'), why: TT('taste, mostly — worth little on a barter loop') }
 };
 
 /**
@@ -135,9 +137,9 @@ export const CRYSTAL_FOR = {
  * end of the line and nobody calls it a starting point.
  */
 export const PART_PATH = [
-	{ family: 'toro', line: 'green at +10 first — much the cheapest step, and enough to start on: it alone takes an Advance past 20,000 LT' },
-	{ family: 'chiro', line: 'blue next, and crafted rather than bought with Crow Coins' },
-	{ family: 'yellow', line: 'yellow last, once the rest is done' }
+	{ family: 'toro', line: TT('green at +10 first — much the cheapest step, and enough to start on: it alone takes an Advance past 20,000 LT') },
+	{ family: 'chiro', line: TT('blue next, and crafted rather than bought with Crow Coins') },
+	{ family: 'yellow', line: TT('yellow last, once the rest is done') }
 ];
 
 /** The role note for a hull, or null where the app has nothing to add. */
@@ -145,6 +147,6 @@ export const roleOf = ship => SHIP_ROLES[ship] || null;
 
 /** Sailors, in the one sentence that decides a barter roster. */
 export const SAILOR_NOTE = {
-	barter: 'every sailor aboard is cargo you cannot carry — the goblins (Innocent, Ambitious) are the lightest at 200 LT and still quick, which is why barter rosters are goblin rosters',
-	hunt: 'weight matters less than growth here — Born-in-the-Sea has the best speed and acceleration of any sailor, at 500 LT'
+	barter: TT('every sailor aboard is cargo you cannot carry — the goblins (Innocent, Ambitious) are the lightest at 200 LT and still quick, which is why barter rosters are goblin rosters'),
+	hunt: TT('weight matters less than growth here — Born-in-the-Sea has the best speed and acceleration of any sailor, at 500 LT')
 };

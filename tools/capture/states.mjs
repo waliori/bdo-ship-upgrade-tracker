@@ -99,3 +99,100 @@ export const emptyStart = {
 	history: [],
 	settings: {}
 };
+
+/* ------------------------------------------------------------------ *
+ * the barter chapters' saves
+ * ------------------------------------------------------------------ */
+
+/** Goods noted at one storage: the stock and the place it is kept, as
+ *  the Inventory writes them. A trade good with no place noted is in
+ *  the ship's hold, so a storage has to be said. */
+const keptAt = (town, goods) => ({
+	stock: goods,
+	stash: Object.fromEntries(Object.keys(goods).map(k => [k, { [town]: goods[k] }]))
+});
+
+/** The sailor every barter chapter sails as: the Carrack and the count
+ *  the other chapters use, a Master 5 barter level. */
+const SAILOR = { barterCount: 4205, level: 'Master 5', sailingMastery: 750, crewShip: 'Carrack (Advance)' };
+
+/**
+ * A sailor a few runs in: last week's goods in the Iliya storage at
+ * every level -- the stacking ones and a handful of Level 5s and a 6,
+ * which take a slot each -- some plywood of their own, two vouchers,
+ * and a bar part spent on an earlier board.
+ */
+const iliya = keptAt('Iliya Island', {
+	'[Level 1] Naval Ration': 30, '[Level 1] Fertile Soil': 12, '[Level 1] Raft Toy': 8,
+	'[Level 2] Pirate Ship Mast': 24, '[Level 2] Narvo Sea Cucumber': 10, '[Level 2] Balanced Stone Pagoda': 6,
+	'[Level 3] Lopters Fishnet': 15, '[Level 3] Round Knife': 9, '[Level 3] Rare Herb Pile': 4,
+	'[Level 4] Seashell Deco': 12, '[Level 4] Panacea': 6, '[Level 4] Solidified Lava': 5,
+	'[Level 5] Stuffed Morpho Butterfly': 3, '[Level 5] Azure Quartz': 2,
+	'[Level 6] Valencian Desert Fine Sword': 1,
+	'Pine Plywood': 200
+});
+export const barterHand = {
+	...fittedShip,
+	stock: { ...fittedShip.stock, ...iliya.stock },
+	profile: { ...SAILOR, stash: iliya.stash, vouchers: 2, parleyHeld: 742300 }
+};
+
+/**
+ * A thin storage, for a stock day: a few of each level, so the targets
+ * leave every level short and the run has something to fill.
+ */
+const thin = keptAt('Iliya Island', {
+	'[Level 1] Naval Ration': 6, '[Level 1] Raft Toy': 4,
+	'[Level 2] Pirate Ship Mast': 5, '[Level 2] Balanced Stone Pagoda': 3,
+	'[Level 3] Rare Herb Pile': 4, '[Level 3] Round Knife': 2,
+	'[Level 4] Seashell Deco': 3
+});
+export const barterThin = {
+	...fittedShip,
+	stock: { ...fittedShip.stock, ...thin.stock },
+	profile: { ...SAILOR, stash: thin.stash }
+};
+
+/**
+ * Short of Crow Coins: a purse of 2,000 against builds that want ten
+ * times that, and a few Level 4s at Iliya to cash.
+ */
+const fours = keptAt('Iliya Island', {
+	'[Level 4] Seashell Deco': 8, '[Level 4] Panacea': 4, '[Level 4] Solidified Lava': 6, '[Level 4] Boatman\'s Manual': 3,
+	'[Level 3] Rare Herb Pile': 6, '[Level 3] Round Knife': 5
+});
+export const barterCoins = {
+	...fittedShip,
+	stock: { ...fittedShip.stock, ...fours.stock, 'Crow Coin': 2000 },
+	profile: { ...SAILOR, stash: fours.stash }
+};
+
+/**
+ * A Caravel sailor, two parts short of the materials the ship material
+ * list pays: Pure Pearl Crystal for the plating, Bright Reef Piece for
+ * the cannon, the seals that make the Cox Pirates' Artifacts for both
+ * -- with Level 3 and 4 goods at Port Epheria to hand over for them.
+ */
+const epheria = keptAt('Port Epheria', {
+	'[Level 3] Torn Pirate Treasure Map': 6, '[Level 3] Skull Decorated Teacup': 5, '[Level 3] Weasel Leather Coat': 4,
+	'[Level 3] Ancient Orders': 5, '[Level 3] Old Hourglass': 4, '[Level 3] Round Knife': 3,
+	'[Level 4] Panacea': 4, '[Level 4] Marine Knights\' Spear': 2
+});
+export const barterCaravel = {
+	v: 2,
+	stock: {
+		...epheria.stock,
+		'+10 Epheria Caravel: Enhanced Plating': 1,
+		'+10 Epheria Caravel: Verisha Cannon': 1,
+		'Moon Scale Plywood': 120,
+		'Pure Pearl Crystal': 8,
+		'Bright Reef Piece': 30,
+		'Crow Coin': 9000,
+		Silver: 300000000
+	},
+	targets: [T('a', 'Epheria Caravel: Upgraded Plating'), T('b', 'Epheria Caravel: Mayna Cannon')],
+	strategy: {},
+	history: [],
+	settings: {},
+	profile: { ...SAILOR, barterCount: 4334, crewShip: 'Epheria Caravel', stash: epheria.stash }
+};

@@ -36,10 +36,31 @@ const ASSET_CACHE = 'sail-assets';
 // Filled and emptied by the page, never by this worker: the sweep
 // leaves it alone and the tile cap above does not count it.
 const PINNED_CACHE = 'tiles-pinned';
+// The vendored OCR engine, six megabytes under names that carry their
+// versions. Kept apart from the tiles so the tiles' shedding can never
+// take it: an engine evicted to make room for a square of sea is an
+// engine the reader cannot run offline, and six megabytes to fetch
+// again on the next signal.
+const READER_CACHE = 'reader-engine';
+
+// How long a code request waits on a network that has not answered
+// before the copy already held is used -- a phone at sea with one bar
+// otherwise waits out the browser's own timeout on every module.
+const NETWORK_WAIT_MS = 3000;
+// How many shell files the install fetches at once.
+const PRECACHE_LANES = 6;
 
 // The whole app shell: the page, the styles, every module the page can
 // reach, and the data files they fetch. Taken with one addAll so the
 // offline copy is atomic -- all of a deploy or none of it.
+//
+// The language packs are deliberately not here. There are twelve of
+// them in two halves, and precaching twenty-four files to serve the one
+// a player reads would pay for eleven languages nobody on this browser
+// will ever open. They are js/ paths like any other, so the first time
+// a language is chosen online its pack is filed away with the rest of
+// the code -- and a new deploy fetches again the packs the old one had
+// (see install), so it keeps working offline from then on.
 const SHELL = [
 	'/',
 	'/index.html',
@@ -56,23 +77,48 @@ const SHELL = [
 	'/css/tracker-recent.css',
 	'/css/driver.css',
 	'/js/all_barter.json',
-	'/js/barter_combos.json',
 	'/js/material_boards.json',
 	'/js/driver.iife.js',
 	'/js/about.js',
+	'/js/bag-shot.js',
 	'/js/barter-board.js',
 	'/js/barter-chains.js',
 	'/js/barter-import.js',
+	'/js/barter-layouts.js',
 	'/js/barter-material.js',
 	'/js/barter-odds.js',
 	'/js/barter-optimizer.js',
 	'/js/barter-orders.js',
 	'/js/barter-plan.js',
+	'/js/barter-route.js',
+	'/js/barter-short.js',
 	'/js/barter-shot.js',
 	'/js/barter-worker.js',
 	'/js/barter.js',
-	'/js/barter_gates.js',
+	'/js/barter/actions.js',
+	'/js/barter/board.js',
+	'/js/barter/cockpit.js',
+	'/js/barter/fleet.js',
+	'/js/barter/hold.js',
+	'/js/barter/material.js',
+	'/js/barter/packing.js',
+	'/js/barter/parts.js',
+	'/js/barter/plan.js',
+	'/js/barter/results.js',
+	'/js/barter/rolls.js',
+	'/js/barter/route.js',
+	'/js/barter/sail.js',
+	'/js/barter/search.js',
+	'/js/barter/setsail.js',
+	'/js/barter/morph.js',
+	'/js/barter/short.js',
+	'/js/barter/state.js',
+	'/js/barter/today.js',
+	'/js/barter/get-today.js',
+	'/js/barter/view.js',
+	'/js/barter_game.js',
 	'/js/barter_npcs.js',
+	'/js/barter_seen.js',
 	'/js/boot.js',
 	'/js/cheer.js',
 	'/js/clock.js',
@@ -93,15 +139,22 @@ const SHELL = [
 	'/js/get-way.js',
 	'/js/guide.js',
 	'/js/guided-tour.js',
+	'/js/tour-leftovers.js',
 	'/js/habitats.js',
+	'/js/hold-room.js',
+	'/js/i18n.js',
 	'/js/icon-loader.js',
 	'/js/item-card.js',
 	'/js/jump.js',
 	'/js/kinds.js',
 	'/js/land-cost.js',
 	'/js/land_goods.js',
+	'/js/land_weights.js',
 	'/js/layout-book.js',
 	'/js/layouts-view.js',
+	'/js/links.js',
+	'/js/loading.js',
+	'/js/lv-chips.js',
 	'/js/map.js',
 	'/js/map/actions.js',
 	'/js/map/errands.js',
@@ -118,6 +171,8 @@ const SHELL = [
 	'/js/map/view.js',
 	'/js/market.js',
 	'/js/markup.js',
+	'/js/material-book-view.js',
+	'/js/material-book.js',
 	'/js/monster_art.js',
 	'/js/pace.js',
 	'/js/parley-ledger.js',
@@ -139,7 +194,9 @@ const SHELL = [
 	'/js/rations.js',
 	'/js/realistic-water-ripples.js',
 	'/js/recipes.js',
+	'/js/release.js',
 	'/js/route-ledger.js',
+	'/js/sail-scene.js',
 	'/js/sail-timer.js',
 	'/js/sailing.js',
 	'/js/sailor-import.js',
@@ -164,12 +221,14 @@ const SHELL = [
 	'/js/sea-boards.js',
 	'/js/sea_coins.js',
 	'/js/sea_crystals.js',
+	'/js/sea_dist.js',
 	'/js/sea_monsters.js',
 	'/js/seamask.js',
 	'/js/searoute.js',
 	'/js/setups.js',
 	'/js/share.js',
 	'/js/sheet.js',
+	'/js/ship-pace.js',
 	'/js/ship.js',
 	'/js/ship_roles.js',
 	'/js/ship_skins.js',
@@ -201,17 +260,69 @@ const SHELL = [
 // new deploy: exactly the mixing the caching exists to prevent. So it
 // installs, and waits, and the browser lets it in on the next visit
 // once every tab of the old deploy is closed.
+// Each file is asked for under this deploy's stamp and past every cache
+// on the way: the proxy and the CDN in front of the live site have been
+// seen holding a module for a day whatever the server said, and a plain
+// request here would bake yesterday's copy into today's offline shell --
+// under today's name, where nothing would replace it until the next
+// deploy. The stamp makes the address one no cache has seen; `reload`
+// tells the browser's own cache the same. Each copy is filed under its
+// plain address, which is what the page asks for.
+//
+// Filed as a copy with no address of its own. A response remembers the
+// address it was fetched from, and one fetched as `?v=` would carry that
+// into the page: a worker or a module served from it would believe it
+// lives at the stamped address -- a different module, as far as the
+// browser's module map is concerned, from the same file asked for plain.
+const fresh = async path => {
+	const res = await fetch(new Request(`${path}${path.includes('?') ? '&' : '?'}v=${encodeURIComponent(VERSION)}`, { cache: 'reload' }));
+	if (!keepable(res)) return res;
+	return new Response(await res.blob(), { status: res.status, statusText: res.statusText, headers: res.headers });
+};
+
 self.addEventListener('install', evt => {
 	evt.waitUntil((async () => {
 		const cache = await caches.open(APP_CACHE);
-		await cache.addAll(SHELL);
+		// All fetched before any is filed, so the shell is still all of a
+		// deploy or none of it: one file that fails fails the install,
+		// as addAll did, and leaves nothing half-written behind.
+		// A few at a time, not the whole shell at once: a first visit
+		// installs this while the page is still loading, and a hundred and
+		// eighty requests in the air together left the page's own -- the
+		// barter search's worker among them -- queued behind them.
+		const got = [];
+		let next = 0;
+		const lane = async () => {
+			while (next < SHELL.length) {
+				const path = SHELL[next++];
+				const res = await fresh(path);
+				if (!keepable(res)) throw new Error(`${path} answered ${res.status}`);
+				got.push([path, res]);
+			}
+		};
+		await Promise.all(Array.from({ length: PRECACHE_LANES }, lane));
+		await Promise.all(got.map(([path, res]) => cache.put(path, res)));
+		// The language packs this browser had, fetched again for this
+		// deploy: the old cache goes at activate, and a player who then
+		// opened the app with no signal was shown it in English.
+		const packs = new Set();
+		for (const key of await caches.keys()) {
+			if (key === APP_CACHE || !key.startsWith('sail-')) continue;
+			for (const req of await (await caches.open(key)).keys()) {
+				const path = new URL(req.url).pathname;
+				if (path.startsWith('/js/lang/')) packs.add(path);
+			}
+		}
+		await Promise.all([...packs].map(async path => {
+			try { const res = await fresh(path); if (keepable(res)) await cache.put(path, res); } catch { /* fetched again when next asked for */ }
+		}));
 	})());
 });
 
 self.addEventListener('activate', evt => {
 	evt.waitUntil((async () => {
 		for (const key of await caches.keys()) {
-			if (key !== APP_CACHE && key !== ASSET_CACHE && key !== PINNED_CACHE) await caches.delete(key);
+			if (key !== APP_CACHE && key !== ASSET_CACHE && key !== PINNED_CACHE && key !== READER_CACHE) await caches.delete(key);
 		}
 		await self.clients.claim();
 	})());
@@ -223,7 +334,7 @@ self.addEventListener('activate', evt => {
 // The vendored OCR engine belongs here too: its filenames carry their
 // versions, so a given URL is a given six megabytes forever, and it
 // must not be fetched again every time the app is deployed.
-const contentAddressed = path => path.startsWith('/icons/') || path.startsWith('/map/') || (path.startsWith('/map3d/') && path !== '/map3d/index.json') || path.startsWith('/reader/') || path === '/js/all_barter.json' || path === '/js/barter_combos.json';
+const contentAddressed = path => path.startsWith('/icons/') || path.startsWith('/map/') || (path.startsWith('/map3d/') && path !== '/map3d/index.json') || path.startsWith('/reader/') || path === '/js/all_barter.json';
 const neverCached = path =>
 	path.startsWith('/api/') || path.startsWith('/auth/') || path.startsWith('/docs/media/');
 
@@ -234,16 +345,111 @@ self.addEventListener('fetch', evt => {
 	if (url.origin !== location.origin) return;   // fonts fall back to the stack
 	if (neverCached(url.pathname)) return;
 
-	evt.respondWith(
-		contentAddressed(url.pathname) ? cacheFirst(req) : networkFirst(req)
-	);
+	if (contentAddressed(url.pathname)) return evt.respondWith(cacheFirst(req, url.pathname.startsWith('/reader/') ? READER_CACHE : ASSET_CACHE));
+	if (req.mode === 'navigate') return evt.respondWith(navigate(evt));
+	const mode = modes.get(evt.clientId);
+	// A worker is a client of its own, and what it imports is asked for
+	// under its own id. A worker started by a page running from the
+	// cache keeps to the cache with it; anything else a worker asks for
+	// goes to the network and waits, as it always did -- no clock is
+	// raced on the search's own modules.
+	if (req.destination === 'worker' || req.destination === 'sharedworker') {
+		if (mode === 'cache') remember(evt.resultingClientId, 'cache');
+		return evt.respondWith(mode === 'cache' ? code(req, 'cache') : networkFirst(req));
+	}
+	evt.respondWith(code(req, mode));
 });
+
+/*
+ * Waiting on a slow network, without mixing deploys.
+ *
+ * Falling back to the held copy after a few seconds is only safe when
+ * the held copy and the network are the same deploy: otherwise a page
+ * whose fast modules came from the network and whose slow ones came
+ * from the cache is two deploys stitched together, which is the one
+ * thing this worker exists to prevent. So the page decides it for all
+ * of its modules, once, as it is opened:
+ *
+ *   - the page itself came from the cache, because the network did not
+ *     answer in time: every module it asks for comes from the cache too
+ *     ('cache'), and the network only fills what is missing;
+ *   - it came from the network and names this worker's deploy (the
+ *     server says which in X-Build): the network is given a few seconds
+ *     a module and the same deploy's held copy answers after that
+ *     ('same');
+ *   - it came from the network and names another deploy -- one is out
+ *     and this worker is the old one: the network is waited for, as it
+ *     always was, because the cache holds the wrong deploy.
+ *
+ * Remembered by the page's client id, for as long as this worker is
+ * awake. A worker woken afresh knows nothing of the page and waits on
+ * the network, which is the old behaviour and never wrong.
+ */
+const modes = new Map();   // clientId -> 'cache' | 'same'
+const remember = (id, mode) => {
+	if (!id) return;
+	modes.set(id, mode);
+	if (modes.size > 64) modes.delete(modes.keys().next().value);
+};
+
+async function navigate(evt) {
+	const req = evt.request;
+	const network = fetchAndFile(req);
+	const res = await within(network, NETWORK_WAIT_MS);
+	if (res) {
+		if (res.headers.get('X-Build') === VERSION) remember(evt.resultingClientId, 'same');
+		return res;
+	}
+	// Slow, or no network at all: the page this worker holds, and every
+	// module of it from the same place.
+	const held = (await caches.match(req, { ignoreSearch: true, cacheName: APP_CACHE })) || (await caches.match('/', { cacheName: APP_CACHE }));
+	if (held) {
+		network.catch(() => {});
+		remember(evt.resultingClientId, 'cache');
+		return held;
+	}
+	try {
+		return await network;
+	} catch {
+		return Response.error();
+	}
+}
+
+async function code(req, mode) {
+	if (mode === 'cache') {
+		const held = await caches.match(req, { cacheName: APP_CACHE });
+		if (held) return held;
+		return networkFirst(req);
+	}
+	if (mode !== 'same') return networkFirst(req);
+	const network = fetchAndFile(req);
+	const res = await within(network, NETWORK_WAIT_MS);
+	if (res) return res;
+	const held = await caches.match(req, { cacheName: APP_CACHE });
+	if (held) {
+		network.catch(() => {});
+		return held;
+	}
+	return networkFirst(req, network);
+}
+
+/** The answer if it comes inside `ms`, else null. A network that fails
+ *  outright inside the wait is null too: the caller looks to the cache
+ *  either way. */
+function within(promise, ms) {
+	let timer;
+	return Promise.race([
+		promise.catch(() => null),
+		new Promise(resolve => { timer = setTimeout(resolve, ms, null); })
+	]).finally(() => clearTimeout(timer));
+}
 
 // Only a plain 200 is worth keeping: a 206 is a fragment cache.put
 // rejects, and an opaque or errored response is not a copy of anything.
 const keepable = res => res.status === 200;
 
-async function cacheFirst(req) {
+let assetPuts = 0;
+async function cacheFirst(req, into = ASSET_CACHE) {
 	// An area kept offline answers first: those tiles were asked for by
 	// name, and they are the ones that must still draw with no signal.
 	const pinned = await caches.match(req, { cacheName: PINNED_CACHE });
@@ -252,15 +458,22 @@ async function cacheFirst(req) {
 	if (held) return held;
 	try {
 		const res = await fetch(req);
-		if (keepable(res)) {
+		if (keepable(res) && into !== ASSET_CACHE) {
+			// The engine's own cache is never shed: it is a handful of
+			// files, each kept until its version changes its name.
+			await (await caches.open(into)).put(req, res.clone());
+		} else if (keepable(res)) {
 			const cache = await caches.open(ASSET_CACHE);
 			// The sea is large and the tiles add up: a full-screen view
 			// at the closest zoom is fifty of them, at 9 KB each. Room
 			// for forty such views (~20 MB), shedding the oldest tenth
 			// rather than growing forever.
-			const keys = await cache.keys();
-			if (keys.length > 2000) {
-				await Promise.all(keys.slice(0, 200).map(key => cache.delete(key)));
+			// Counted every fiftieth put, not every miss: listing two
+			// thousand entries each time a tile came in cost a phone dearly
+			// while panning.
+			if (assetPuts++ % 50 === 0) {
+				const keys = await cache.keys();
+				if (keys.length > 2000) await Promise.all(keys.slice(0, 200).map(key => cache.delete(key)));
 			}
 			await cache.put(req, res.clone());
 		}
@@ -271,8 +484,8 @@ async function cacheFirst(req) {
 	}
 }
 
-// A push is a reminder the page asked for -- Vell, a quarter of an hour
-// out -- shown as a notification, and a tap on it opens the tracker.
+// A push is a chime the page asked for -- a stop or the end of a run
+// coming due -- shown as a notification, and a tap on it opens the tracker.
 self.addEventListener('push', evt => {
 	let data;
 	try {
@@ -295,22 +508,43 @@ self.addEventListener('notificationclick', evt => {
 	evt.waitUntil((async () => {
 		const open = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
 		for (const c of open) {
-			if ('focus' in c) return c.focus();
+			if (!('focus' in c)) continue;
+			const win = await c.focus();
+			// The chime says where it is about -- the Barter tab for a
+			// run's next island -- so an open window is taken there, not
+			// only brought forward on whatever tab it was showing. Only
+			// the part after the # differs, so the page changes tab
+			// rather than reloading.
+			const want = new URL(url, location.origin);
+			const at = new URL(win.url);
+			if ('navigate' in win && want.pathname === at.pathname && want.hash && want.hash !== at.hash) {
+				try { return await win.navigate(want.href); } catch { /* not ours to steer; focused is enough */ }
+			}
+			return win;
 		}
 		return self.clients.openWindow(url);
 	})());
 });
 
-async function networkFirst(req) {
-	try {
-		const res = await fetch(req);
+/** The network's answer, filed in this deploy's cache on the way past. */
+function fetchAndFile(req) {
+	return fetch(req).then(res => {
 		// Not filed away once a newer worker is installed and waiting.
 		// The network is already serving the new deploy's files by then,
 		// and this cache is the old deploy's: writing one into the other
 		// would build exactly the mixed shell an offline start must never
 		// find. The waiting worker precached the whole new shell itself.
-		if (keepable(res) && !self.registration.waiting) (await caches.open(APP_CACHE)).put(req, res.clone());
+		if (keepable(res) && !self.registration.waiting) {
+			const copy = res.clone();
+			caches.open(APP_CACHE).then(cache => cache.put(req, copy)).catch(() => {});
+		}
 		return res;
+	});
+}
+
+async function networkFirst(req, already = null) {
+	try {
+		return await (already || fetchAndFile(req));
 	} catch {
 		const held = await caches.match(req, { ignoreSearch: req.mode === 'navigate' });
 		if (held) return held;

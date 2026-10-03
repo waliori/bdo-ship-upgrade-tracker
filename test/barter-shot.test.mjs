@@ -16,7 +16,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-import { offersFrom, rowsOf, cover, plain, tierIn, isleAt, linesOf } from '../js/barter-shot.js';
+import { offersFrom, rowsOf, cover, plain, tierIn, isleAt, linesOf, figuresFrom, wholeIn, windowWords } from '../js/barter-shot.js';
 import { npcs } from '../js/barter_npcs.js';
 import { exchanges } from '../js/barter-plan.js';
 
@@ -131,4 +131,209 @@ test('a line of furniture is not an island', () => {
 		{ text: '10', x0: 122, y0: 0, x1: 140, y1: 20 }
 	])[0];
 	assert.equal(isleAt(line, npcs, { left: 400 }), null);
+});
+
+// The head of the window, off a shot of the whole screen: the game's
+// own Barter Information panel with the ship window beside it, the
+// chat log under it, and the list filtered to the Crow Coin exchanges.
+// The app had been planning this player's day against a full bar of a
+// million Parley while the window said 269,692, and counting 1,957
+// barters against the window's 2,048.
+test('the window’s head gives up the sailor’s Parley and barter count', () => {
+	assert.deepEqual(figuresFrom(shot('coinWindowFull')), { parley: 269692, barters: 2048 });
+});
+
+test('the "(?)" after Total Barters is not the figure, however it is read', () => {
+	// A real shot of 24 September: the engine read the help mark as
+	// "(7):", and the first box with a digit in it was taken for the
+	// count -- 7 barters where the window says 4,334.
+	assert.deepEqual(figuresFrom(shot('helpMarkSeven')), { parley: 1000000, barters: 4334 });
+	const row = (...texts) => texts.map((text, i) => ({ text, x0: i * 120, y0: 0, x1: i * 120 + 100, y1: 30 }));
+	for (const mark of ['(?)', '(?):', '(7):', '(2)', '[?]']) {
+		assert.equal(figuresFrom(row('Total', 'Barters', mark, '4,334')).barters, 4334, mark);
+	}
+});
+
+test('a shot of the rows alone offers no figures rather than the wrong ones', () => {
+	// Every row says what its exchange costs in Parley. None of those is
+	// the sailor's bar, and a reader that took the first of them would
+	// write 13,829 into the profile and lay every run against it.
+	for (const key of ['level1List', 'fiveToSix', 'sixToSeven']) {
+		assert.deepEqual(figuresFrom(shot(key)), { parley: null, barters: null }, key);
+	}
+});
+
+// The head as each client prints it, off players' screenshots found
+// for the purpose: the label in the engine's boxes, then a "(?)" and a
+// colon or not, then the figure, which in Japanese and Thai carries its
+// unit.
+test('the lifetime barter count is read by its label in every client’s words', () => {
+	const row = (...texts) => {
+		let x = 10;
+		return texts.map(text => {
+			const w = { text, x0: x, y0: 100, x1: x + text.length * 9, y1: 118 };
+			x = w.x1 + 6;
+			return w;
+		});
+	};
+	const heads = [
+		[['Total', 'Barters', '(?)', ':', '2048'], 2048],
+		[['Nbr.', "d'échanges", 'accumulés', '(?)', ':', '0'], 0],
+		[['Cantidad', 'acumulada', 'de', 'trueques', '(?):', '17'], 17],
+		[['Mis', 'intercambios', 'acumulados', '(?)', ':', '0'], 0],
+		[['Nº', 'de', 'Trocas', 'Acumuladas(?):', '39909', 'vezes'], 39909],
+		[['N°', 'de', 'Trocas', 'Acumuladas', ':', '1,204'], 1204],
+		[['Biriken', 'Takas', 'Sayımı', ':', '812'], 812],
+		[['私の累積交換回数', '：', '2640回'], 2640],
+		[['私の累積', '交換回数：2640回'], 2640],
+		[['จำนวนการแลกเปลี่ยน', 'สะสม', ':', '50361ครั้ง'], 50361],
+		[['누적', '교환', '횟수', ':', '3,120'], 3120],
+		[['Суммарное', 'число', 'обменов', ':', '75'], 75]
+	];
+	for (const [texts, n] of heads) {
+		assert.equal(figuresFrom(row(...texts)).barters, n, texts.join(' '));
+	}
+	// Words that are not the label leave the field alone.
+	assert.equal(figuresFrom(row('Trocas', 'Restantes', ':', '4')).barters, null);
+	assert.equal(figuresFrom(row('Tractations', ':', '1,000,000')).barters, null);
+});
+
+test('a figure is a figure, and a speed or a refresh count is not', () => {
+	assert.equal(wholeIn('269,692'), 269692);
+	assert.equal(wholeIn('1.234.567'), 1234567);
+	assert.equal(wholeIn('2048'), 2048, 'the barter count is printed ungrouped');
+	assert.equal(wholeIn('10/150'), null, 'the refreshes left');
+	assert.equal(wholeIn('150.0'), null, 'a ship’s speed');
+	assert.equal(wholeIn('1,23'), null, 'a group that is not three digits long');
+	assert.equal(wholeIn('abc'), null);
+});
+
+// The same shot of the whole screen. Read as one page it gave up no row
+// at all: the ship's window stands to the left of the list, so every
+// line of the list began with the ship's words and an island is only
+// looked for where a line begins. The window is found first now, by the
+// two stacks every row repeats, and read on its own.
+test('a shot of the whole screen reads, the window found inside it', () => {
+	assert.deepEqual(said(read('coinWindowFull')), [
+		["Crow's Nest", '[Level 4] Solidified Lava', 'Crow Coin'],
+		['Kashuma Island', "[Level 4] Pirate's Key", 'Crow Coin'],
+		['Derko Island', '[Level 4] Seashell Deco', 'Crow Coin'],
+		["Pakio's Combat Raft", '[Level 4] Amethyst Fragment', 'Crow Coin'],
+		["Shipwrecked Haran's Cargo Ship", "[Level 4] Boatman's Manual", 'Crow Coin'],
+		["Lantinia's Combat Raft", '[Level 4] Opulent Thread Spool', 'Crow Coin']
+	]);
+	// The seventh row is cut in half by the foot of the screen, and is a
+	// question rather than a guess.
+	const cut = read('coinWindowFull').find(r => r.isle.at === 'Unfinished Adrift Vessel');
+	assert.ok(cut && !cut.offer, 'a row the screen cut off is not answered for');
+});
+
+test('a bracket the engine never closed does not swallow the name after it', () => {
+	assert.equal(plain("[Level 41 Boatman's Manual & 1 > [@] Crow Coin"), 'level41boatmansmanual1crowcoin');
+	assert.equal(plain('[Level 4] Seashell Deco'), 'seashelldeco');
+});
+
+test('a shot that is already only the window loses no row to the cropping', () => {
+	// What goes is the litter round the edge -- half a line of glyphs the
+	// foot of the shot cut through -- and never a word of a row.
+	for (const [key, rows] of [['level1List', 7], ['fiveToSix', 6], ['sixToSeven', 6]]) {
+		assert.equal(rowsOf(shot(key), npcs).length, rows, key);
+		assert.ok(windowWords(shot(key)).length >= shot(key).length * 0.85, `${key} keeps its words`);
+	}
+});
+
+/* ------------------------------------------------------------------ *
+ * a window in another language
+ * ------------------------------------------------------------------ */
+
+import { localized, inEnglish, dense } from '../js/barter-shot.js';
+
+const pack = code => JSON.parse(readFileSync(new URL(`../js/lang/names.${code}.json`, import.meta.url), 'utf8'));
+/** A window of rows as a client prints them: island at the left, the
+ *  give and the pay to the right, one row a line. */
+const windowOf = rows => rows.flatMap(([isle, give, pay], i) => {
+	const y = 20 + i * 60;
+	return [
+		{ text: isle, x0: 10, y0: y, x1: 150, y1: y + 20 },
+		{ text: give, x0: 300, y0: y, x1: 520, y1: y + 20 },
+		{ text: pay, x0: 640, y0: y, x1: 860, y1: y + 20 }
+	];
+});
+const byAt = at => npcs.find(n => n.at === at);
+
+test('any script is compared without its accents, its tier or its spaces', () => {
+	assert.equal(plain('[5단계] 고급 문양의 옷감'), '고급문양의옷감');
+	assert.equal(plain("Île d'Orisha"), 'iledorisha');
+	assert.equal(plain('[Stufe 5] Luxuriöser gemusterter Stoff'), 'luxuriosergemusterterstoff');
+	assert.equal(tierIn('[5단계] 고급 문양의 옷감'), 5);
+	assert.equal(tierIn('[Stufe 3] Rundmesser'), 3);
+	assert.equal(tierIn('[+4] Panacea'), 4);
+	assert.equal(dense('오리샤 섬'), true);
+	assert.equal(dense('Insel Orisha'), false);
+});
+
+test('a Korean window reads against the game’s Korean names, and comes back in English', () => {
+	const kr = pack('kr');
+	const E = [['Orisha Island', '[Level 5] Luxury Patterned Fabric', 'Brilliant Pearl Shard'], ['Boa Island', 'Island Tree Coated Plywood', 'Rock Salt Ingot']];
+	for (const r of E) for (const n of r) assert.ok(kr[n], `the pack names ${n}`);
+	const words = windowOf(E.map(r => r.map(n => kr[n])));
+	const rows = offersFrom(words, localized({ isles: npcs, deals }, kr)).map(inEnglish);
+	assert.deepEqual(rows.filter(r => r.offer).map(r => [r.isle.at, r.offer.give, r.offer.item]), E);
+	assert.equal(rows[0].isle, byAt('Orisha Island'), 'the island is the app’s own again');
+});
+
+test('a German window reads too, with the island’s name after its word for island', () => {
+	const de = pack('de');
+	const E = [['Orisha Island', '[Level 5] Luxury Patterned Fabric', 'Brilliant Pearl Shard']];
+	const words = windowOf(E.map(r => r.map(n => de[n])));
+	const rows = offersFrom(words, localized({ isles: npcs, deals }, de)).map(inEnglish);
+	assert.deepEqual(rows.filter(r => r.offer).map(r => [r.isle.at, r.offer.give, r.offer.item]), E);
+});
+
+test('an English client with no pack is read exactly as before', () => {
+	const t = localized({ isles: npcs, deals }, {});
+	assert.equal(t.isles, npcs);
+	assert.equal(t.deals, deals);
+});
+
+// Two shots of 2026-09 that read nothing at all. In the first the
+// window's edge was taken from "Island" -- the second word of every
+// name, whose column moves with the word before it -- and every name
+// was cut in half. In the second, a single row, the icon's tall boxes
+// between the two lines of writing walked the island's line down into
+// "Exchanges Left" and the island was never found.
+test('the window starts where the names start, not at their second word', () => {
+	assert.deepEqual(said(read('nameShift')), [
+		['Racid Island', '[Level 3] Skull Decorated Teacup', 'Deep Sea Memory Filled Glue'],
+		['Arakil Island', '[Level 4] Old Chest with Gold Coins', 'Cox Pirates\' Artifact (Parley Expert)'],
+		['Al-Naha Island', '[Level 4] Amethyst Fragment', 'Tide-Dyed Standardized Timber Square'],
+		['Beiruwa Island', '[Level 4] Headless Dragon Figurine', 'Cox Pirates\' Artifact (Parley Expert)'],
+		['Weita Island', '[Level 2] Urchin Spine', 'Island Tree Coated Plywood'],
+		['Paratama Island', '[Level 4] Panacea', 'Great Ocean Dark Iron']
+	]);
+});
+
+test('a shot of one row reads, the icon’s boxes between its lines notwithstanding', () => {
+	assert.deepEqual(said(read('oneRow')), [['Padix Island', '[Level 4] Bronze Candlestick', '[Level 5] Mysterious Rock']]);
+});
+
+test('the game\u2019s own window, 2026-09-27: the islands that roll a good or coins read as what they showed, and settle layout 31\u2019s rolls', async () => {
+	// Two shots of layout 31: the coin page (Ajir and Orffs paying coins)
+	// and the [Level 4] -> [Level 5] page (Narvo paying its Elixir).
+	const { useGame, fitsAt } = await import('../js/barter-layouts.js');
+	const { candidates } = await import('../js/barter-board.js');
+	const { combos } = useGame(await import('../js/barter_game.js'));
+	const answers = [...read('coinRolls'), ...read('fourToFiveRolls')].filter(r => r.offer).map(r => ({ npcId: r.isle.id, give: r.offer.give, recv: r.offer.item }));
+	const at = name => answers.find(a => npcs.find(n => n.id === a.npcId).at === name);
+	assert.equal(at('Ajir Island').recv, 'Crow Coin');
+	assert.equal(at('Orffs Island').recv, 'Crow Coin');
+	assert.equal(at('Narvo Island').recv, '[Level 5] Elixir of Youth');
+	const standing = candidates(combos, answers);
+	assert.ok(standing.some(c => c.id === '31'), 'the readings leave layout 31 standing');
+	const l31 = combos.find(c => c.id === '31');
+	for (const name of ['Ajir Island', 'Orffs Island', 'Narvo Island']) {
+		const a = at(name);
+		assert.ok(l31.rolls[a.npcId], `${name} rolls on layout 31`);
+		assert.ok(fitsAt(l31, a.npcId, a.give, a.recv), `${name}: what was read is one of its options`);
+	}
 });

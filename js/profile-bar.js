@@ -1,10 +1,11 @@
 // The sailor's own numbers, on every tab.
 //
-// Nine things about the player decide what half the app says: how many
-// barters they have made, what barter level they hold, the Parley in
-// the bar, the vouchers in the bag, whether a Value Pack is up, how
-// many draws that buys a day, their Sailing Mastery, the Bos'n Jacks
-// they have out, and the region they play. The barter count alone decides which islands exist for
+// The things about the player that decide what half the app says: how
+// many barters they have made, what barter level they hold, whether a
+// Value Pack is up, how many draws that buys a day, whether a Corsair
+// is at the wheel, their Sailing Mastery and sailing log, the Bos'n
+// Jacks they have out, and the region they play. (The Parley and the
+// vouchers are the Barter tab's, under Before you sail.) The barter count alone decides which islands exist for
 // them, which chains are sailable, and which materials can be got at
 // all; the region is what every Market price in the app is quoted in.
 //
@@ -23,14 +24,15 @@
 // the day's draws, the region the prices are in, the next island it
 // opens -- and one press puts the fields under them.
 
-import { esc, F } from './fmt.js';
+import { esc, F, FD } from './fmt.js';
+import { T, TT, said, gameName } from './i18n.js';
 import * as store from './state.js';
 import { img } from './ui-bits.js';
 import { barterProfile } from './ui-state.js';
 import { dailyCapacity, barterLevels, levelDiscount, npcGates, ROUTE_UNLOCKS } from './barter.js';
 import { npcById } from './barter_npcs.js';
-import { mateAtTheHelm, shipName, masteryBonus, bosnJacks, bosnAlpha, petLT, setPets, PET_SLOTS } from './ship.js';
-import { anyType, hasSeats } from './sailors.js';
+import { mateAtTheHelm, masteryBonus, CORSAIR_BONUS, SAILING_LOGS, LOG_LEVELS, sailingLog, bosnJacks, bosnAlpha, petLT, setPets, PET_SLOTS } from './ship.js';
+import { anyType } from './sailors.js';
 import { openDialog, closeDialog } from './dialogs.js';
 import { REGIONS as MARKET_REGIONS, region as marketRegion, priceAge } from './market.js';
 
@@ -52,7 +54,7 @@ export function nextUnlock(count) {
 	if (!next) return null;
 	const id = [...npcGates()].find(([, barters]) => barters === next.barters);
 	const npc = id ? npcById.get(id[0]) : null;
-	return `${F(next.barters - count)} more open ${npc ? npc.at : next.opens}`;
+	return T('{n} more open {place}', { n: F(next.barters - count), place: npc ? gameName(npc.at) : next.opens });
 }
 
 /**
@@ -62,15 +64,9 @@ export function nextUnlock(count) {
  */
 function mateCut() {
 	const mate = mateAtTheHelm();
-	if (mate && Number(mate.type.parley) > 0) return `−10% crew · ${esc(mate.sailor.name)} at the helm`;
+	if (mate && Number(mate.type.parley) > 0) return T('−10% crew · {name} at the helm', { name: esc(mate.sailor.name) });
 	const ashore = (store.getProfile('roster', []) || []).find(s => Number((anyType[s.type] || {}).parley) > 0);
-	if (!ashore) return '';
-	// The seat is a Carrack's and the Panokseon's; a smaller hull draws
-	// no First Mate box at all, so on one of those the line says where
-	// the cut lives rather than sending the player to look for it.
-	return hasSeats(shipName())
-		? `seat ${esc(ashore.name)} as First Mate for −10%`
-		: `${esc(ashore.name)} cuts Parley 10% at a Carrack’s First Mate seat`;
+	return ashore ? T('seat {name} as First Mate for −10%', { name: esc(ashore.name) }) : '';
 }
 
 /** The region as the chip says it: "NA", not "na". */
@@ -83,25 +79,26 @@ function summaryHTML(p) {
 	const day = dailyCapacity(p);
 	const next = nextUnlock(p.barterCount);
 	const said = [
-		`${F(p.barterCount)} barters`,
-		p.level || 'no level',
-		`${F(day.lists.trade)}+${F(day.lists.material)} draws`,
+		T('{n} barters', { n: F(p.barterCount) }),
+		p.level || T('no level'),
+		T('{trade}+{material} draws', { trade: F(day.lists.trade), material: F(day.lists.material) }),
+		store.getProfile('corsair', false) === true ? T('Corsair') : '',
 		regionLabel()
-	].join(' · ');
+	].filter(Boolean).join(' · ');
 	// Nought barters is what the game gives a sailor who has never
 	// bartered -- three routes and no more -- and the app plans on it.
 	// It is also what a save that has never been told says, so the one
 	// number the sea is planned from asks for itself until it is given.
 	const blank = !p.barterCount;
 	return `<button class="pouch-item sail summary${blank ? ' asking' : ''}" data-act="sail-bar" aria-expanded="false"
-		title="Your barter count, level, Parley, vouchers, Value Pack, Sailing Mastery and region — everything the sea is planned and priced from. Press to set them.">
+		title="${T('Your barter count, level, Value Pack, Sailing Mastery and region — everything the sea is planned and priced from. Press to set them.')}">
 		<span class="pouch-glyph" aria-hidden="true">⇄</span>
 		<span class="pouch-body">
-			<span class="pouch-k">The sailor</span>
+			<span class="pouch-k">${T('The sailor')}</span>
 			<span class="pouch-input plain">${esc(said)}</span>
 			<span class="pouch-need">${blank
-				? 'set your Total Barters — it decides which islands you can sail to'
-				: `${esc(next || 'every route open')} · refill in <b data-until="barter"></b>`}</span>
+				? T('set your Total Barters — it decides which islands you can sail to')
+				: `${esc(next || T('every route open'))} · ${T('refill in <b data-until="barter"></b>')}`}</span>
 		</span>
 		<span class="pouch-fold" aria-hidden="true">✎</span>
 	</button>`;
@@ -119,24 +116,24 @@ function summaryHTML(p) {
  */
 export function profilePeekHTML() {
 	const p = barterProfile();
-	if (!p.barterCount) return '<span class="peek-bit sail asking" title="Your Total Barters decide which islands you can sail to — nothing is planned through one you have not opened"><span class="peek-glyph" aria-hidden="true">⇄</span><b>set your barters</b></span>';
-	return `<span class="peek-bit sail" title="${esc(`${F(p.barterCount)} barters${p.level ? ` · ${p.level}` : ' · no level'}`)}"><span class="peek-glyph" aria-hidden="true">⇄</span><b>${F(p.barterCount)}</b></span>`;
+	if (!p.barterCount) return `<span class="peek-bit sail asking" title="${T('Your Total Barters decide which islands you can sail to — nothing is planned through one you have not opened')}"><span class="peek-glyph" aria-hidden="true">⇄</span><b>${T('set your barters')}</b></span>`;
+	return `<span class="peek-bit sail" title="${esc(p.level ? T('{n} barters · {level}', { n: F(p.barterCount), level: p.level }) : T('{n} barters · no level', { n: F(p.barterCount) }))}"><span class="peek-glyph" aria-hidden="true">⇄</span><b>${F(p.barterCount)}</b></span>`;
 }
 
 /** The tier names, as the pet window says them. */
-const TIER_NAME = ['no pet', 'Tier 1', 'Tier 2', 'Tier 3', 'Tier 4', 'Tier 5'];
+const TIER_NAME = [TT('no pet'), TT('Tier 1'), TT('Tier 2'), TT('Tier 3'), TT('Tier 4'), TT('Tier 5')];
 
 /** The birds themselves, filled or not, at whatever size they are being
  *  read at. Shown, never pressed: the row is a picture of the nest, and
  *  the editor behind it is where it is changed. */
 const petBirds = (tiers, cls = '') => `<span class="pet-pips${cls ? ` ${cls}` : ''}">${tiers
-	.map(t => `<span class="pet-pip t${t}" title="${esc(TIER_NAME[t])}">${img("Bos'n Jack", 'pet-pic')}<i aria-hidden="true">${t || ''}</i></span>`)
+	.map(t => `<span class="pet-pip t${t}" title="${esc(said(TIER_NAME[t]))}">${img("Bos'n Jack", 'pet-pic')}<i aria-hidden="true">${t || ''}</i></span>`)
 	.join('')}</span>`;
 
 /** What the birds are worth, said the way the hold will say it. */
 function petSub(tiers, alpha) {
 	const lt = petLT(tiers, alpha);
-	return lt ? `+${F(lt)} LT on big ships` : 'adds to a big ship\'s hold';
+	return lt ? T('+{n} LT on big ships', { n: F(lt) }) : T('adds to a big ship\'s hold');
 }
 
 /**
@@ -153,12 +150,12 @@ function petsHTML() {
 	const alpha = bosnAlpha();
 	const on = tiers.filter(Boolean).length;
 	return `<button class="pouch-item sail pets" data-act="pets"
-		title="The Bos'n Jacks you have summoned. Each one's talent is Big Ship Inventory Weight — +50 LT a tier, stacking across the five pets the game lets out at once. It counts on the Epheria line, the Carracks and the Panokseon only. Press to set them.">
+		title="${T("The Bos'n Jacks you have summoned. Each one's talent is Big Ship Inventory Weight — +50 LT a tier, stacking across the five pets the game lets out at once. It counts on the Epheria line, the Carracks and the Panokseon only. Press to set them.")}">
 		${img("Bos'n Jack", 'pouch-icon')}
 		<span class="pouch-body">
-			<span class="pouch-k">Bos'n Jacks</span>
+			<span class="pouch-k">${T('{name}s', { name: gameName("Bos'n Jack") })}</span>
 			${petBirds(tiers)}
-			<span class="pouch-need">${esc(petSub(tiers, alpha))}${on && alpha ? ' · one Alpha' : ''}</span>
+			<span class="pouch-need">${esc(petSub(tiers, alpha))}${on && alpha ? ` · ${T('one Alpha')}` : ''}</span>
 		</span>
 		<span class="pouch-fold" aria-hidden="true">✎</span>
 	</button>`;
@@ -182,17 +179,17 @@ export function profileHTML({ sheet = false } = {}) {
 	const next = nextUnlock(p.barterCount);
 	const mastery = Number(store.getProfile('sailingMastery', 0)) || 0;
 	const cut = [
-		`−${(levelDiscount(p.level) * 100).toFixed(1)}% level`,
-		p.valuePack ? '−10% pack' : '',
+		T('−{pct}% level', { pct: FD(levelDiscount(p.level) * 100, 1) }),
+		p.valuePack ? T('−10% pack') : '',
 		mateCut()
 	].filter(Boolean).join(' · ');
 
 	// The group's name is also the way back: one control, at the head of
 	// what it folds, instead of a caret adrift at the end of the row.
 	const title = sheet
-		? '<span class="pouch-group">The sailor</span>'
+		? `<span class="pouch-group">${T('The sailor')}</span>`
 		: `<button class="pouch-group fold" data-act="sail-bar" aria-expanded="true"
-		title="Fold these back into one line">The sailor <i aria-hidden="true">▴</i></button>`;
+		title="${T('Fold these back into one line')}">${T('The sailor')} <i aria-hidden="true">▴</i></button>`;
 
 	const chip = (cls, face, label, field, sub, title2, after = '') => `<label class="pouch-item sail ${cls}" title="${esc(title2)}">
 		<span class="pouch-glyph" aria-hidden="true">${face}</span>
@@ -214,49 +211,69 @@ export function profileHTML({ sheet = false } = {}) {
 
 	return [
 		title,
-		chip('barters', '⇄', 'Total barters', num('barter-count', p.barterCount, 'Your Total Barters'),
-			next ? esc(next) : 'every route open',
-			'Your Total Barters, as the Barter Information window shows it. It decides which islands you can barter at — a run is never planned through one you have not opened. A trip recorded on the Barter tab adds its trades; type over it whenever the two drift.',
-			' <button class="info-dot" data-act="routes" aria-label="Every trade route and the count that opens it">?</button>'),
+		chip('barters', '⇄', T('Total barters'), num('barter-count', p.barterCount, T('Your Total Barters')),
+			next ? esc(next) : T('every route open'),
+			T('Your Total Barters, as the Barter Information window shows it. It decides which islands you can barter at — a run is never planned through one you have not opened. A trip recorded on the Barter tab adds its trades; type over it whenever the two drift.'),
+			` <button class="info-dot" data-act="routes" aria-label="${T('Every trade route and the count that opens it')}">?</button>`),
 
-		chip('level', '✲', 'Barter level',
-			`<select class="pouch-input select" data-act="barter-level" aria-label="Your barter level"><option value=""${p.level ? '' : ' selected'}>—</option>${levels}</select>`,
-			`${F(day.perTrade)} a trade${cut ? ` · ${cut}` : ''}`,
-			'Your barter level, as the Barter window shows it: every level takes a share off what an exchange costs in Parley'),
+		chip('level', '✲', T('Barter level'),
+			`<select class="pouch-input select" data-act="barter-level" aria-label="${T('Your barter level')}"><option value=""${p.level ? '' : ' selected'}>—</option>${levels}</select>`,
+			`${T('{n} a trade', { n: F(day.perTrade) })}${cut ? ` · ${cut}` : ''}`,
+			T('Your barter level, as the Barter window shows it: every level takes a share off what an exchange costs in Parley')),
 
-		chip('parley', '◈', 'Parley', num('parley-held', p.parleyHeld, 'Parley in the bar right now'),
-			`${F(day.tradesPerBar)} trades a refill`,
-			'The Parley in your bar right now, so a run can say whether you can afford it. The bar refills to a million at the barter reset.'),
-
-		chip('vouchers', img("Crow's Trade Voucher", 'pouch-icon'), 'Vouchers',
-			num('vouchers', p.vouchers, "Crow's Trade Vouchers you carry"),
-			`+${F(250_000 * p.vouchers)} Parley in hand`,
-			"Crow's Trade Vouchers in the bag: each one recovers 250,000 Parley, a quarter of the bar"),
-
+		// The Parley bar and the vouchers moved to the Barter tab's plan,
+		// as the first thing it asks: they are what today has left, not
+		// facts about the sailor.
 		// The two that were crammed into one chip. A Value Pack is a
 		// thing you have or have not -- a switch, said in words -- and
 		// the draws are what it buys, counted with the clock that
 		// refills them.
-		chip('pack', img('Value Pack', 'pouch-icon'), 'Value Pack',
-			`<span class="pouch-switch"><input type="checkbox" data-act="value-pack"${p.valuePack ? ' checked' : ''} aria-label="A Value Pack is up"><b>${p.valuePack ? 'up' : 'off'}</b></span>`,
-			p.valuePack ? '+1 trade draw · −10% Parley' : 'would add a draw and −10%',
-			'A Value Pack adds a fourth draw of the trade-goods list each day and takes ten per cent off every Parley cost'),
+		chip('pack', img('Value Pack', 'pouch-icon'), gameName('Value Pack'),
+			`<span class="pouch-switch"><input type="checkbox" data-act="value-pack"${p.valuePack ? ' checked' : ''} aria-label="${T('A Value Pack is up')}"><b>${p.valuePack ? T('up') : T('off')}</b></span>`,
+			p.valuePack ? T('+1 trade draw · −10% Parley') : T('would add a draw and −10%'),
+			T('A Value Pack adds a fourth draw of the trade-goods list each day and takes ten per cent off every Parley cost')),
 
-		chip('draws', '<img class="pouch-icon" src="icons/ui_barter_refresh.webp" alt="" decoding="sync">', 'Draws a day',
-			`<span class="pouch-input plain">${F(day.lists.trade)} <small>trade</small> + ${F(day.lists.material)} <small>mat</small></span>`,
-			`both refill in <b data-until="barter"></b>`,
-			`${F(day.lists.trade)} draws of the trade-goods list and ${F(day.lists.material)} of the ship-materials list a day — each list has its own free draw and its own refreshes, and neither can lend the other a press`),
+		// The class at the wheel. A Corsair gives the ship a point of
+		// speed, acceleration, turn and brake, and the Ship tab's speed
+		// line came up one short for every Corsair who typed the rest in.
+		chip('corsair', '<img class="pouch-icon class-icon" src="icons/class_corsair.svg" alt="" decoding="sync">', T('Corsair'),
+			`<span class="pouch-switch"><input type="checkbox" data-act="corsair"${store.getProfile('corsair', false) === true ? ' checked' : ''} aria-label="${T('A Corsair is at the wheel')}"><b>${store.getProfile('corsair', false) === true ? T('at the wheel') : T('no')}</b></span>`,
+			store.getProfile('corsair', false) === true ? T('+{n}% speed, acceleration, turn and brake', { n: CORSAIR_BONUS }) : T('would add {n}% to speed, acceleration, turn and brake', { n: CORSAIR_BONUS }),
+			T('Whether the character sailing is a Corsair: the class gives the ship one per cent of speed, acceleration, turn and brake, which the game’s own figures include and the Ship tab was leaving out')),
 
-		chip('mastery', '⚓', 'Sailing mastery',
-			num('crew-mastery', mastery, 'Sailing mastery', ' data-from="bar"'),
-			mastery ? `+${masteryBonus(mastery)}% speed, turn, brake` : 'adds to speed, turn and brake',
-			'Sailing Mastery as the game shows it: half a point of speed, acceleration, turn and brake per fifty up to 2,000, a quarter-point per fifty to 3,000'),
+		chip('draws', '<img class="pouch-icon" src="icons/ui_barter_refresh.webp" alt="" decoding="sync">', T('Draws a day'),
+			`<span class="pouch-input plain">${T('{trade} <small>trade</small> + {material} <small>mat</small>', { trade: F(day.lists.trade), material: F(day.lists.material) })}</span>`,
+			T('both refill in <b data-until="barter"></b>'),
+			T('{trade} draws of the trade-goods list and {material} of the ship-materials list a day — each list has its own free draw and its own refreshes, and neither can lend the other a press', { trade: F(day.lists.trade), material: F(day.lists.material) })),
+
+		chip('mastery', '⚓', T('Sailing mastery'),
+			num('crew-mastery', mastery, T('Sailing mastery'), ' data-from="bar"'),
+			mastery ? T('+{n}% speed, acceleration, turn, brake', { n: masteryBonus(mastery) }) : T('adds to speed, acceleration, turn and brake'),
+			T('Sailing Mastery as the game shows it: half a point of speed, acceleration, turn and brake per fifty up to 2,000, a quarter-point per fifty to 3,000')),
+
+		// The sailing log the character wears. Its mastery is already in
+		// the total above, as the Life Skill tab counts it; what it adds
+		// on its own is the ship's top speed at sea.
+		(() => {
+			const log = sailingLog();
+			const kinds = `<select class="pouch-select" data-act="sailing-log" aria-label="${T('Sailing log')}"><option value="">${T('none')}</option>${Object.entries(SAILING_LOGS).map(([k, l]) => `<option value="${k}"${log && log.kind === k ? ' selected' : ''}>${esc(gameName(l.name).replace(/ Sailing Log$/, ''))}</option>`).join('')}</select>`;
+			const lvs = log ? `<select class="pouch-select" data-act="sailing-log-lv" aria-label="${T('Its enhancement')}">${LOG_LEVELS.map((l, i) => `<option value="${i}"${log.lv === i ? ' selected' : ''}>${l}</option>`).join('')}</select>` : '';
+			// Drawn as the game draws it: the grade's frame, and the
+			// enhancement on the icon's corner.
+			const icon = log
+				? `<span class="log-icon grade-${log.grade}" title="${esc(`${log.level} ${gameName(log.name)}`)}">${img(log.name, 'pouch-icon')}${log.lv ? `<i>${esc(log.level)}</i>` : ''}</span>`
+				: img('Manos Sailing Log', 'pouch-icon');
+			return chip('log', icon, T('Sailing log'),
+				`<span class="pouch-log">${kinds}${lvs}</span>`,
+				log ? T('+{m} mastery (in your total) · +{s}% top speed at sea', { m: F(log.mastery), s: log.speed }) : T('adds mastery and top speed at sea'),
+				T('The sailing log you wear. Its Sailing Mastery is already part of the total the Life Skill tab shows, so it is not added twice; its Max Big Ship Speed is not in the ship window’s Speed %, and makes every leg at sea shorter'));
+		})(),
 
 		// The server you play on, which is a fact about the sailor and
 		// not about any one screen: every Market price in the app -- the
 		// buy list, the item cards, what a barter's cargo would have
-		// sold for -- is quoted in this region's silver, and Vell's
-		// timetable is read from it too. It lived in a tile on To Get,
+		// sold for -- is quoted in this region's silver, and the reset
+		// clock is read from it too. It lived in a tile on To Get,
 		// which priced the whole app from a select most people never
 		// scrolled to.
 		// The pets out at the moment. Bos'n Jack is the only pet in the
@@ -266,10 +283,10 @@ export function profileHTML({ sheet = false } = {}) {
 		// the Ship tab.
 		petsHTML(),
 
-		chip('region', '⊕', 'Region',
-			`<select class="pouch-input select" data-act="market-region" aria-label="Which region's Central Market prices the plan">${regions}</select>`,
-			`${esc(priceAge())} · <button class="linky" data-act="market-refresh">refresh</button>`,
-			"The region your Central Market prices come from, and the one Vell's times are read for. Every silver figure in the app is this region's.")
+		chip('region', '⊕', T('Region'),
+			`<select class="pouch-input select" data-act="market-region" aria-label="${T("Which region's Central Market prices the plan")}">${regions}</select>`,
+			`${esc(priceAge())} · <button class="linky" data-act="market-refresh">${T('refresh')}</button>`,
+			T("The region your Central Market prices come from. Every silver figure in the app is this region's."))
 	].join('');
 }
 
@@ -293,28 +310,28 @@ export function openPets() {
 
 	const cell = (tier, slot) => `<button type="button" class="pet-cell t${tier}"
 		data-slot="${slot === null ? '' : slot}" data-tier="${tier}"
-		aria-label="${slot === null ? `All five at ${TIER_NAME[tier]}` : `Pet ${slot + 1}: ${TIER_NAME[tier]}`}"
-		title="${slot === null ? `Set all five to ${TIER_NAME[tier]}` : TIER_NAME[tier]}">${tier || '—'}</button>`;
+		aria-label="${slot === null ? T('All five at {tier}', { tier: said(TIER_NAME[tier]) }) : T('Pet {n}: {tier}', { n: slot + 1, tier: said(TIER_NAME[tier]) })}"
+		title="${slot === null ? T('Set all five to {tier}', { tier: said(TIER_NAME[tier]) }) : said(TIER_NAME[tier])}">${tier || '—'}</button>`;
 
 	const head = `<div class="pet-row head">
-		<span class="pet-row-k">all five</span>
+		<span class="pet-row-k">${T('all five')}</span>
 		${[0, 1, 2, 3, 4, 5].map(t => cell(t, null)).join('')}
 	</div>`;
 
 	const rows = Array.from({ length: PET_SLOTS }, (_, i) => `<div class="pet-row" data-row="${i}">
-		<span class="pet-row-k">${img("Bos'n Jack", 'pet-row-pic')}<b>Pet ${i + 1}</b></span>
+		<span class="pet-row-k">${img("Bos'n Jack", 'pet-row-pic')}<b>${T('Pet {n}', { n: i + 1 })}</b></span>
 		${[0, 1, 2, 3, 4, 5].map(t => cell(t, i)).join('')}
 	</div>`).join('');
 
 	const host = openDialog(`
-		<h2>The pets aboard</h2>
-		<p class="dialog-copy"><b>Bos'n Jack</b> is the one pet in the game whose talent is ship weight: <i>Big Ship Inventory Weight</i>, fifty LT a tier, and it stacks across the five pets you can have out at once. It counts on the Epheria line, the Carracks and the Panokseon — not on a Cog, a rowboat or the Bartali.</p>
+		<h2>${T('The pets aboard')}</h2>
+		<p class="dialog-copy">${T("<b>Bos'n Jack</b> is the one pet in the game whose talent is ship weight: <i>Big Ship Inventory Weight</i>, fifty LT a tier, and it stacks across the five pets you can have out at once. It counts on the Epheria line, the Carracks and the Panokseon — not on a Cog, a rowboat or the Bartali.")}</p>
 		<div class="pet-grid">${head}${rows}</div>
-		<label class="pet-alpha-row"><input type="checkbox" data-pet-alpha> <span>One of them is my <b>Alpha Pet</b><i>The Alpha's talent goes up a level, which on a Tier 5 is +250 LT instead of +200. Only one pet can be the Alpha.</i></span></label>
+		<label class="pet-alpha-row"><input type="checkbox" data-pet-alpha> <span>${T('One of them is my <b>Alpha Pet</b>')}<i>${T("The Alpha's talent goes up a level, which on a Tier 5 is +250 LT instead of +200. Only one pet can be the Alpha.")}</i></span></label>
 		<div class="pet-sum"><span class="pet-sum-birds"></span><b class="pet-sum-lt"></b></div>
 		<div class="dialog-actions">
-			<button class="ghost-btn" data-close>Cancel</button>
-			<button class="act" data-pet-save>Save</button>
+			<button class="ghost-btn" data-close>${T('Cancel')}</button>
+			<button class="act" data-pet-save>${T('Save')}</button>
 		</div>`);
 
 	// The draft, drawn. Only classes, a checkbox and two spans move, so
@@ -375,14 +392,14 @@ export function openRoutes() {
 		const open = count >= r.barters;
 		return `<tr class="${open ? 'open' : 'shut'}">
 			<td class="routes-n">${F(r.barters)}</td>
-			<td>${npc ? `<b>${esc(npc.at)}</b><span>${esc(npc.name)}</span>` : `<b>${esc(r.opens)}</b><span>not an island — a pair of goods</span>`}</td>
-			<td class="routes-state">${open ? '<i>✓</i> open' : `${F(r.barters - count)} more`}</td>
+			<td>${npc ? `<b>${esc(gameName(npc.at))}</b><span>${esc(gameName(npc.name))}</span>` : `<b>${esc(r.opens)}</b><span>${T('not an island — a pair of goods')}</span>`}</td>
+			<td class="routes-state">${open ? T('<i>✓</i> open') : T('{n} more', { n: F(r.barters - count) })}</td>
 		</tr>`;
 	}).join('');
 	const open = ROUTE_UNLOCKS.filter(r => r.opens && count >= r.barters).length;
-	openDialog(`<h2>The trade routes</h2>
-		<p class="dialog-copy">The game opens the sea island by island as your <b>Total Barters</b> climb. At <b>${F(count)}</b> you have <b>${open}</b> of the ${ROUTE_UNLOCKS.filter(r => r.opens).length} the patch notes name — and nothing in this app is ever planned through one you have not opened.</p>
+	openDialog(`<h2>${T('The trade routes')}</h2>
+		<p class="dialog-copy">${T('The game opens the sea island by island as your <b>Total Barters</b> climb. At <b>{count}</b> you have <b>{open}</b> of the {total} the patch notes name — and nothing in this app is ever planned through one you have not opened.', { count: F(count), open, total: ROUTE_UNLOCKS.filter(r => r.opens).length })}</p>
 		<div class="routes-table"><table><tbody>${rows}</tbody></table></div>
-		<p class="dialog-copy faint">Three routes are open from the first day, before any of these. The coastal barterers that deal the [Level 6] and [Level 7] goods are not on this table: no patch note states a count for them, so the app treats them as open to everyone.</p>
-		<div class="dialog-actions"><button class="ghost-btn" data-close>Close</button></div>`);
+		<p class="dialog-copy faint">${T('Three routes are open from the first day, before any of these. The coastal barterers that deal the [Level 6] and [Level 7] goods are not on this table: no patch note states a count for them, so the app treats them as open to everyone.')}</p>
+		<div class="dialog-actions"><button class="ghost-btn" data-close>${T('Close')}</button></div>`);
 }
