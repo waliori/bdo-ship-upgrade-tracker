@@ -1,0 +1,32 @@
+The Map's Route and Draw tabs: a loop through what you are short of, timed at your own ship, and routes of your own, drawn straight onto the sea.
+Route turns the list of islands into a sailing route.
+Plot the loop, and it joins every island you are short of, bent round the land rather than through it.
+The tiles total it up: the stops, the distance and the time at your ship's speed, the hold, the rations it eats, and the Parley it costs.
+Parley is counted at one trade a stop, or at every attempt the offer allows.
+Every stop is a row: what that island has for you, and how the hold stands after it.
+Say where you sail from, and whether you come back, and the times follow.
+Click a stop, and the chart flies to it.
+The cross takes a stop off, and a pin's card puts one back on.
+The route is timed at the ship you sail. Switch setup times it at another one you have kept.
+Reverse sails it the other way round.
+Save keeps it by name. Eight are kept, and none is dropped without asking.
+Copy link puts the route in an address. Signed in, it is a short one.
+Export and Import carry it as a small file instead.
+And Put it on the game's map writes the stops into Black Desert's own world map.
+As favourites, named and numbered, or as one of the map's three navigation loops.
+Copy the block, or download it, and paste it into gameVariable.xml at the character screen. Or let the app write it into the game's folder itself, keeping a copy of the old file.
+Draw is for routes the list cannot describe.
+Four tools: add stops, draw, write, and shade an area.
+Add stops drops a numbered stop wherever you click, in the order you mean to sail. Legs bend round the land.
+Pick another ink, and the next stops start a second line, numbered on its own.
+Draw is a freehand line.
+Write puts a note straight onto the water.
+And shade an area marks a stretch of sea: click its corners, then the first one again.
+Undo takes back the last mark, whatever kind it was.
+Give it a name and a note.
+Keep puts it on the shelf below.
+Copy link carries the whole drawing, stops, lines, words and all, to anyone, with nothing of theirs touched.
+To the game writes its lines into the game's map too, a loop each.
+The shelf keeps the newest; the eye lays one over the chart beside what you are drawing.
+And Browse opens the whole library, with a search and every drawing as a card.
+That is routing and drawing. A loop timed at your own ship, and a way to show anyone else the sea you mean.

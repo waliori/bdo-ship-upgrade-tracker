@@ -1,101 +1,121 @@
 WEBVTT
 
 1
-00:00:00.362 --> 00:00:05.550
-Everything so far runs in your browser alone. This last part is the one that needs sign-in.
+00:00:00.341 --> 00:00:05.858
+Everything so far runs in your browser alone. This part has other sailors in it, and it needs sign-in.
 
 2
-00:00:05.618 --> 00:00:14.491
+00:00:05.985 --> 00:00:15.183
 One note first: the sailors on these boards are invented. A machine recording this has no server with real players on it. The tab, the digest and the ranking are the app's own.
 
 3
-00:00:14.491 --> 00:00:17.578
-Sixteen boards, built from the players who chose to join them.
+00:00:15.183 --> 00:00:23.042
+Signing in with Discord puts you on the boards by name. The first time, the tab says so, and what is shared: the numbers, never your stock, your notes or your traces.
 
 4
-00:00:17.578 --> 00:00:22.502
-They come in five sections: the sea, the runs, quests and hunts, the yard, and charts and hold.
+00:00:23.042 --> 00:00:29.097
+Change how you are shown picks your Discord name, or an unnamed sailor: still counted and ranked, but shown only as a sailor.
 
 5
-00:00:22.502 --> 00:00:26.248
-The question mark on a board tells you exactly how that one is counted.
+00:00:29.097 --> 00:00:34.023
+Under it is the exact digest that would be shared right now. Nothing else of your save goes up.
 
 6
-00:00:26.248 --> 00:00:30.780
+00:00:34.104 --> 00:00:38.685
 Your own places sit at the top, so you can see where you stand without hunting for yourself.
 
 7
-00:00:30.780 --> 00:00:33.931
-And there is a search, if you are after one sailor by name.
+00:00:38.894 --> 00:00:44.078
+Sixteen boards, in five sections: the sea, the runs, quests and hunts, the yard, and charts and hold.
 
 8
-00:00:33.931 --> 00:00:36.517
-Click any place on a board to open that player's card.
+00:00:44.078 --> 00:00:46.493
+Press a section to see just its boards.
 
 9
-00:00:36.517 --> 00:00:39.317
-Their fleet, their crew, their places, and what they have done at sea.
+00:00:46.759 --> 00:00:49.952
+The question mark on a board says exactly how it is counted.
 
 10
-00:00:39.317 --> 00:00:42.390
-Click Look, and their ship loads onto your own Ship tab, fully fitted.
+00:00:49.952 --> 00:00:56.634
+And Find a sailor searches the boards by name. An unnamed sailor cannot be found that way; that is what unnamed means.
 
 11
-00:00:42.390 --> 00:00:45.127
-To look at, not to keep. One click puts yours back.
+00:00:56.805 --> 00:00:59.425
+Click any place on a board to open that sailor's card.
 
 12
-00:00:45.127 --> 00:00:48.002
-The other half of the tab adds the whole fleet up.
+00:00:59.425 --> 00:01:02.246
+Their fleet, their crew, their places, and what they have done at sea.
 
 13
-00:00:48.987 --> 00:00:53.247
-Which hulls people sail, which parts they fit, which crystals, which quests they run.
+00:01:02.246 --> 00:01:05.442
+Look stands their ship up on your own Ship tab, fully fitted and crewed.
 
 14
-00:00:53.247 --> 00:00:56.215
-Search it for anything, and sort by most-first or A to Z.
+00:01:05.442 --> 00:01:08.179
+To look at, not to keep. One press puts yours back.
 
 15
-00:00:56.215 --> 00:01:00.321
-It is the closest thing to an answer when you are wondering what everyone else fits.
+00:01:08.179 --> 00:01:11.054
+The other half of the tab adds the whole fleet up.
 
 16
-00:01:00.649 --> 00:01:03.144
-Nothing goes onto a board that you did not offer.
+00:01:12.639 --> 00:01:18.545
+Which hulls people sail, which parts they fit, which crystals, which islands they plot routes through, and which quests they run.
 
 17
-00:01:03.144 --> 00:01:07.401
-You see the exact digest before you agree to it — the numbers, and nothing else.
+00:01:18.545 --> 00:01:22.552
+Click a line, and its card opens: what it costs, and what it is made from.
 
 18
-00:01:07.401 --> 00:01:09.684
-And leaving takes it back off again.
+00:01:23.372 --> 00:01:26.689
+Search it for anything, and sort by most first or A to Z.
 
 19
-00:01:09.684 --> 00:01:12.280
-One more door, under Menu. Feedback.
+00:01:27.295 --> 00:01:31.113
+Leave the boards takes your places off, and deletes the digest the server holds.
 
 20
-00:01:13.742 --> 00:01:18.685
-Something wrong, an idea, or something else — and it reaches whoever runs this copy of the app.
+00:01:31.113 --> 00:01:35.919
+Your save is untouched, and signing in again will not quietly put you back. Stay keeps you on.
 
 21
-00:01:18.685 --> 00:01:23.770
-A report is a post, not a form. Bold, lists, quotes, a link — and a screenshot pasted straight in.
+00:01:35.919 --> 00:01:38.449
+One more door, in the Menu: Feedback.
 
 22
-00:01:23.770 --> 00:01:25.974
-Preview shows it the way it will be read.
+00:01:40.022 --> 00:01:44.885
+Something wrong, an idea, or something else. It reaches whoever runs this copy of the app.
 
 23
-00:01:25.974 --> 00:01:30.845
-Your name, the screen you were on and the build you are running go with it, so nobody has to ask which version.
+00:01:44.885 --> 00:01:49.922
+A report is a post, not a form: bold, lists, quotes, a link, and a screenshot pasted straight in.
 
 24
-00:01:30.845 --> 00:01:35.696
-It is worth doing. Five players wrote in before this release, and one of them wrote most of it.
+00:01:49.922 --> 00:01:52.435
+Preview shows it the way it will be read.
 
 25
-00:01:35.696 --> 00:01:42.772
+00:01:52.740 --> 00:01:57.995
+Your name, the screen you were on and the build you are running go with it, so nobody has to ask which version.
+
+26
+00:01:58.398 --> 00:02:03.112
+The Menu holds the rest of the app: Find, the trip log, Undo and Redo, at the top.
+
+27
+00:02:03.787 --> 00:02:09.468
+Profiles keep separate saves on one browser. Export and Import move a save as a file or a link.
+
+28
+00:02:10.559 --> 00:02:15.371
+Help plays this film, the Tour walks through your own screen, and What's new lists each release.
+
+29
+00:02:18.833 --> 00:02:24.563
+And the theme, the water behind the page, and the language, which changes the app and every item name together.
+
+30
+00:02:24.664 --> 00:02:31.740
 Your data stays in your browser. Sign in to sync it between machines, or to join in. Neither is required for anything else in the app.

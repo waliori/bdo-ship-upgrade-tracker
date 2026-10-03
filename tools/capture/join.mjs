@@ -21,6 +21,7 @@ import { readFile, writeFile, mkdtemp, rm } from 'node:fs/promises';
 import { promisify } from 'node:util';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { ORDER } from './guide-kit.mjs';
 
 const exec = promisify(execFile);
 
@@ -35,7 +36,7 @@ const RAW = process.env.RAW || 'tools/capture/out/guide';
  * of each chapter's own timeline, so a chapter renamed in guides.mjs
  * cannot end up captioned one thing and marked another.
  */
-const ORDER = ['the-yard', 'to-get', 'quests', 'your-ship', 'the-map', 'a-run', 'the-harbour'];
+// Kept with the chapters, in guide-kit.mjs.
 
 const seconds = async file => {
 	const { stdout } = await exec('ffprobe', [

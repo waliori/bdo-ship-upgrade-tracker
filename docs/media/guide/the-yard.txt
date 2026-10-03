@@ -1,34 +1,44 @@
-This is the Yard. It works out what your builds need, and what you still have to find.
-But start with the bar under the tabs. These are the numbers the whole app plans from.
-Your total barter count matters most. It decides which islands will even deal with you.
-Your barter level, which sets what every exchange costs in Parley.
-Your Sailing Mastery, which counts toward how fast your ship sails.
-Your region, because every silver price in the app is quoted in it.
-And the Bos'n Jacks you have out. It is the one pet talent in the game that is ship weight — fifty LT a tier, across the five the game lets out at once — so a nest of them is hundreds of LT the hold was being told it did not have.
-Type them once here and every screen reads them. Then fold it away.
-Now queue something to build.
-Some ships can be built two ways, so it asks which.
-It shows what each route costs. Either is fine.
-Queue a second one. Order matters: if stock runs short, the build at the top gets it first.
-The Plan is everything your queue needs, in one list.
-Red is missing. Blue you can make. Green you already have.
-As you gather, type in what you have.
-Every build re-plans around it straight away.
-Or log a whole trip at once, instead of a box at a time.
-Or skip the typing altogether. Screenshot your storage in game, and drop the pictures here.
-It finds the slots by their own borders, names each icon, and reads the number written over it. Scroll, shoot again, and the row two pictures share is counted once.
-Every count keeps the corner of its slot beside it, so it is checked at a glance. One the reader is not sure of is marked.
-Nothing is written until you press the button — and then it is one change, with one undo.
-The Workshop makes anything you have the materials for.
-Crafting moves real stock. Ingredients out, the product in.
-Made a mistake? Undo steps it back, and Redo puts it forward.
-Enhancing is kept separate, because attempts can fail.
-It shows your real odds at your failstack, and the most the part can end up costing.
-The Inventory is one tile per thing you own, or still need.
-Open one, and every way of getting it is priced.
-What the shop charges, against what making it costs — including its own ingredients, all the way down.
-Already levelled a part in game? Record it here.
-Tell it the level you reached. It spends no stones to agree with you.
-The Tree shows why a build needs what it needs.
-And To Get turns all of that into a plan — which is the whole of the next part.
-That is the Yard. What you want, what it takes, and what is left to find.
+This is the Yard: the tabs where a build is planned. Plan, Builds, Inventory, Tree and Workshop.
+Start with the bar under the tabs. These are the numbers about you that every screen plans from. Click it open.
+Total Barters first. Type the count your Barter window shows in game. It decides which islands will trade with you at all.
+Your barter level. It sets what every exchange costs in Parley.
+Tick Value Pack if one is running. It adds a draw a day and takes ten per cent off the Parley.
+Corsair is for a Corsair at the wheel: one per cent more speed, acceleration, turn and brake.
+Your Sailing Mastery, as the character window shows it. It counts toward speed, acceleration, turn and brake.
+The sailing log you carry. Its mastery is already in your total, so only its top speed is added on top.
+And your Bos'n Jacks. Their talent adds fifty LT of ship weight a tier, across the five pets you can have out. Open the nest, set all five at once, and save.
+Region is where the Central Market prices are read from.
+Type them once, and every tab reads them. Fold the bar away.
+Now the Builds tab. This is the queue: what you mean to build, in the order you want it done.
+Add a build. The picker takes ships, parts, or a stack of materials, and the chips narrow it down.
+Start with a ship: the Epheria Caravel.
+A Caravel can be built two ways, so it asks which. Each way shows how much material it takes in all.
+Take the Improved Sailboat. It costs a little more, and adds a solo cannon volley. Either choice can be changed later.
+Then a part: Chiro's Sail, for the Carrack Advance.
+Each build is a card: how far along it is, and what is still to get, in coins, silver and goods.
+Order matters. When stock runs short, the build at the top gets it first. Move the sail up.
+The Caravel can wait. Pause it, and it stops claiming stock until you start it again.
+Under the queue are the biggest blockers: the missing things holding the most up. A count can be typed right on the row.
+The Plan tab is everything the active builds need, in one list.
+The Next line says the one most useful thing to do right now.
+Today shows your ship, the quests that pay into your list, and how long until the dailies, the weeklies and the barter refresh reset.
+Then the totals: how much is covered, what is still missing, and how many recipes you can craft now.
+The list is grouped. What you are building, then red for missing, blue for what is crafted from other things, and green for covered.
+Filter it to the missing only, when that is all you want to see.
+As you gather, type what you hold into the box. Here, a hundred Starlight Hardener.
+It leaves the missing list, and every build re-plans around it at once.
+Big numbers can be typed short. Two k is two thousand, and twelve thousand can be written with the separators your language uses.
+Or record a whole trip in one go. Log a trip takes everything you brought back.
+Pick the item and type how many. Add a line for each thing.
+Record, and the whole trip goes in as one change.
+So one Undo takes the whole trip back, and Redo puts it in again.
+Or skip the typing. Screenshot your storage window in game, and give the shots to Read a storage on the Inventory.
+Here are two shots of one storage, scrolled between. It finds the slots, names each icon it knows, and reads the count written over it. It all runs in your browser; nothing is uploaded.
+It says how many things it read, how many slots it passed over, and that the row both shots share was counted once.
+Every line keeps the corner of its slot beside it, so a count is checked at a glance. One the reader was not sure of is marked: check this one.
+Say which storage this is. Update writes what the shots show; Replace treats the shots as the whole storage.
+Nothing is written until you press Write.
+And there it is in the Inventory, all of it at Velia, as one change.
+Trade goods are grouped by level, each with its Lv chip. Level 5 and up take a slot each; everything else takes one slot a kind.
+One Undo takes the whole storage back out again.
+That is the Yard: what you want built, and what you hold toward it. Next, the Workshop, where it gets made.

@@ -25,87 +25,26 @@ import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import {
 	open, seed, tab, click, clickIn, typeInto, drag, say, hush, wait,
-	onScreen, headerBtn, waitFor, film, cut, card, still, choose, doing, moveTo, clickText, spot, spotAll
+	onScreen, headerBtn, waitFor, film, cut, card, still, choose, doing, moveTo, clickText, spot, spotAll, track, park
 } from './drive.mjs';
 import { warm, engine } from './voice.mjs';
-import { fittedShip, onePartToGo } from './states.mjs';
 import { fakeCommunity } from './fleet.mjs';
+import { withPlating, QUEUED, TO_GET, point, ORDER } from './guide-kit.mjs';
+import { readdir } from 'node:fs/promises';
 
 const OUT = process.argv[2] || 'tools/capture/out';
-const only = process.argv.slice(3);
-
-/* ------------------------------------------------------------------ *
- * the inventories the chapters are shot against
- * ------------------------------------------------------------------ */
-
-/* Part-way through a Carrack part: something covered, something short, a
- * part mid-enhancement, and coins in the purse. The same starting point
- * the walkthrough uses, so the two films agree about what you own. */
-const START = {
-	v: 2,
-	stock: {
-		'Violent Wave Plywood': 87,
-		"Violent Sea Monster's Scale": 400,
-		"Saltwater Crocodile's Scale": 400,
-		"Violent Sea Monster's Ooze": 260,
-		'Starlight Emulsifier': 260,
-		"Blueprint: Chiro's Sail": 10,
-		'Epheria Carrack Parts Upgrade Permit: Advance': 1,
-		'+7 Epheria Carrack: Toro Sail': 1,
-		'Tidal Black Stone': 900,
-		'Crow Coin': 42000
-	},
-	targets: [],
-	strategy: {},
-	history: [],
-	settings: {},
-	profile: { crewShip: 'Carrack (Advance)' }
-};
-
-/** A part levelled in game and not yet recorded, for the Yard's last beat. */
-const withPlating = {
-	...START,
-	stock: { ...START.stock, 'Epheria Carrack: Toro Plating': 1 }
-};
 
 /**
- * The same yard, a few minutes later: two Carrack parts queued, and a
- * Carrack to sail.
- *
- * The Yard queues its builds on camera, so it can open on an empty
- * queue. Every chapter after it opens somewhere that only means
- * anything against a shopping list -- the Map draws a pin per barterer
- * holding something you are short of, and the route it plots is that
- * list joined up. Shot against an empty queue, the pins read "0 of 91"
- * and there is no loop to plot at all, which is how this was found.
+ * `point`, with a spotlight that follows its target -- for a line whose
+ * action redraws the very thing it lights. Says the line over whatever
+ * is there when the screen has nothing to light.
  */
-const QUEUED = {
-	...fittedShip,
-	// The sailor's own numbers, which the Yard sets on camera and every
-	// chapter after it needs already set: the barter count gates which
-	// islands deal at all, the level prices every Parley figure, and the
-	// mastery is in the ship's speed. Shot without them, half the
-	// figures in the later chapters read as dashes.
-	profile: { ...fittedShip.profile, barterCount: 4205, level: 'Master 5', sailingMastery: 750 }
-};
-
-/** One part to go, for the chapter about planning the way to it. */
-const TO_GET = { ...onePartToGo, profile: QUEUED.profile };
-
-/**
- * Light a thing up if the screen has one, and otherwise just say the
- * line over whatever is there.
- *
- * Several beats in these chapters name one bar, one tile or one state
- * among a hundred rows, and whether the seeded board happens to produce
- * it is not something a script can promise. Pointing where there is
- * something to point at and speaking plainly where there is not keeps a
- * chapter from dying on a board that dealt differently.
- */
-async function point(page, sel, line, opts = {}) {
-	if (await onScreen(page, sel)) await spot(page, sel, line, opts);
+async function pointAt(page, sel, line, opts = {}) {
+	if (await onScreen(page, sel)) await track(page, sel, line, opts);
+	else if (opts.act) await doing(page, line, opts.act);
 	else await say(page, line);
 }
+const only = process.argv.slice(3);
 
 /* ------------------------------------------------------------------ *
  * the chapters
@@ -118,67 +57,91 @@ const CHAPTERS = {
 	 * ============================================================== */
 	'the-yard': {
 		n: 'One', title: 'The Yard', at: 'plan',
-		blurb: 'Queue a build, record what you gather, make what you can, and price the rest.',
+		blurb: 'The sailor bar, the build queue, the Plan, and three ways to record what you hold: typed, a whole trip, or screenshots of a storage.',
 		say: {
-			open: 'This is the Yard. It works out what your builds need, and what you still have to find.',
-			sailor: 'But start with the bar under the tabs. These are the numbers the whole app plans from.',
-			count: 'Your total barter count matters most. It decides which islands will even deal with you.',
-			blevel: 'Your barter level, which sets what every exchange costs in Parley.',
-			bmastery: 'Your Sailing Mastery, which counts toward how fast your ship sails.',
-			bregion: 'Your region, because every silver price in the app is quoted in it.',
-			pets: 'And the Bos\'n Jacks you have out. It is the one pet talent in the game that is ship weight — fifty LT a tier, across the five the game lets out at once — so a nest of them is hundreds of LT the hold was being told it did not have.',
-			once: 'Type them once here and every screen reads them. Then fold it away.',
-			queue: 'Now queue something to build.',
-			asks: 'Some ships can be built two ways, so it asks which.',
-			costs: 'It shows what each route costs. Either is fine.',
-			order: 'Queue a second one. Order matters: if stock runs short, the build at the top gets it first.',
-			plan: 'The Plan is everything your queue needs, in one list.',
-			colours: 'Red is missing. Blue you can make. Green you already have.',
-			own: 'As you gather, type in what you have.',
-			replan: 'Every build re-plans around it straight away.',
-			trip: 'Or log a whole trip at once, instead of a box at a time.',
-			shots: 'Or skip the typing altogether. Screenshot your storage in game, and drop the pictures here.',
-			reads: 'It finds the slots by their own borders, names each icon, and reads the number written over it. Scroll, shoot again, and the row two pictures share is counted once.',
-			check: 'Every count keeps the corner of its slot beside it, so it is checked at a glance. One the reader is not sure of is marked.',
-			unwritten: 'Nothing is written until you press the button — and then it is one change, with one undo.',
-			shop: 'The Workshop makes anything you have the materials for.',
-			craft: 'Crafting moves real stock. Ingredients out, the product in.',
-			undo: 'Made a mistake? Undo steps it back, and Redo puts it forward.',
-			enh: 'Enhancing is kept separate, because attempts can fail.',
-			odds: 'It shows your real odds at your failstack, and the most the part can end up costing.',
-			inv: 'The Inventory is one tile per thing you own, or still need.',
-			ways: 'Open one, and every way of getting it is priced.',
-			deep: 'What the shop charges, against what making it costs — including its own ingredients, all the way down.',
-			level: 'Already levelled a part in game? Record it here.',
-			nostones: 'Tell it the level you reached. It spends no stones to agree with you.',
-			tree: 'The Tree shows why a build needs what it needs.',
-			get: 'And To Get turns all of that into a plan — which is the whole of the next part.',
-			close: 'That is the Yard. What you want, what it takes, and what is left to find.'
+			open: 'This is the Yard: the tabs where a build is planned. Plan, Builds, Inventory, Tree and Workshop.',
+
+			/* --- the sailor --- */
+			sailor: 'Start with the bar under the tabs. These are the numbers about you that every screen plans from. Click it open.',
+			count: 'Total Barters first. Type the count your Barter window shows in game. It decides which islands will trade with you at all.',
+			blevel: 'Your barter level. It sets what every exchange costs in Parley.',
+			pack: 'Tick Value Pack if one is running. It adds a draw a day and takes ten per cent off the Parley.',
+			corsair: 'Corsair is for a Corsair at the wheel: one per cent more speed, acceleration, turn and brake.',
+			bmastery: 'Your Sailing Mastery, as the character window shows it. It counts toward speed, acceleration, turn and brake.',
+			blog: 'The sailing log you carry. Its mastery is already in your total, so only its top speed is added on top.',
+			pets: 'And your Bos\'n Jacks. Their talent adds fifty LT of ship weight a tier, across the five pets you can have out. Open the nest, set all five at once, and save.',
+			bregion: 'Region is where the Central Market prices are read from.',
+			once: 'Type them once, and every tab reads them. Fold the bar away.',
+
+			/* --- the queue --- */
+			builds: 'Now the Builds tab. This is the queue: what you mean to build, in the order you want it done.',
+			add: 'Add a build. The picker takes ships, parts, or a stack of materials, and the chips narrow it down.',
+			ship: 'Start with a ship: the Epheria Caravel.',
+			asks: 'A Caravel can be built two ways, so it asks which. Each way shows how much material it takes in all.',
+			improved: 'Take the Improved Sailboat. It costs a little more, and adds a solo cannon volley. Either choice can be changed later.',
+			part: 'Then a part: Chiro\'s Sail, for the Carrack Advance.',
+			cards: 'Each build is a card: how far along it is, and what is still to get, in coins, silver and goods.',
+			order: 'Order matters. When stock runs short, the build at the top gets it first. Move the sail up.',
+			pause: 'The Caravel can wait. Pause it, and it stops claiming stock until you start it again.',
+			blockers: 'Under the queue are the biggest blockers: the missing things holding the most up. A count can be typed right on the row.',
+
+			/* --- the plan --- */
+			plan: 'The Plan tab is everything the active builds need, in one list.',
+			next: 'The Next line says the one most useful thing to do right now.',
+			today: 'Today shows your ship, the quests that pay into your list, and how long until the dailies, the weeklies and the barter refresh reset.',
+			stats: 'Then the totals: how much is covered, what is still missing, and how many recipes you can craft now.',
+			groups: 'The list is grouped. What you are building, then red for missing, blue for what is crafted from other things, and green for covered.',
+			filter: 'Filter it to the missing only, when that is all you want to see.',
+			own: 'As you gather, type what you hold into the box. Here, a hundred Starlight Hardener.',
+			replan: 'It leaves the missing list, and every build re-plans around it at once.',
+			short: 'Big numbers can be typed short. Two k is two thousand, and twelve thousand can be written with the separators your language uses.',
+
+			/* --- a trip --- */
+			trip: 'Or record a whole trip in one go. Log a trip takes everything you brought back.',
+			tripline: 'Pick the item and type how many. Add a line for each thing.',
+			tripsave: 'Record, and the whole trip goes in as one change.',
+			undo: 'So one Undo takes the whole trip back, and Redo puts it in again.',
+
+			/* --- a storage, off screenshots --- */
+			shots: 'Or skip the typing. Screenshot your storage window in game, and give the shots to Read a storage on the Inventory.',
+			reads: 'Here are two shots of one storage, scrolled between. It finds the slots, names each icon it knows, and reads the count written over it. It all runs in your browser; nothing is uploaded.',
+			summary: 'It says how many things it read, how many slots it passed over, and that the row both shots share was counted once.',
+			check: 'Every line keeps the corner of its slot beside it, so a count is checked at a glance. One the reader was not sure of is marked: check this one.',
+			where: 'Say which storage this is. Update writes what the shots show; Replace treats the shots as the whole storage.',
+			write: 'Nothing is written until you press Write.',
+			landed: 'And there it is in the Inventory, all of it at Velia, as one change.',
+			levels: 'Trade goods are grouped by level, each with its Lv chip. Level 5 and up take a slot each; everything else takes one slot a kind.',
+			undo2: 'One Undo takes the whole storage back out again.',
+			close: 'That is the Yard: what you want built, and what you hold toward it. Next, the Workshop, where it gets made.'
 		},
-		async shoot(ctx, s) {
+		async shoot(ctx, s, ch) {
 			const { page, url } = ctx;
 			await seed(page, url, withPlating);
 			await film(page, `${OUT}/the-yard.webm`);
-			await card(page, 'One', 'The Yard', { line: s.open });
+			await card(page, ch.n, ch.title, { line: s.open });
 
 			/* --- the sailor's own numbers, before anything is planned -- */
 			// Set first because the barter count gates the sea: a plan
 			// made before it is given is a plan for somebody else's
 			// account. The seed carries them for every later chapter;
 			// here they are typed in, which is how a player meets them.
-			await spot(page, '[data-act="sail-bar"]', s.sailor,
+			await track(page, '[data-act="sail-bar"]', s.sailor,
 				{ act: () => click(page, '[data-act="sail-bar"]', { after: 600 }) });
-			await spot(page, '.pouch-item.sail.barters', s.count,
+			await track(page, '.pouch-item.sail.barters', s.count,
 				{ act: () => typeInto(page, '[data-act="barter-count"]', '4205', { after: 400 }) });
-			await spot(page, '.pouch-item.sail.level', s.blevel,
+			await track(page, '.pouch-item.sail.level', s.blevel,
 				{ act: () => choose(page, '[data-act="barter-level"]', 'Master 5', { after: 400 }) });
-			await spot(page, '.pouch-item.sail.mastery', s.bmastery,
+			await track(page, '.pouch-item.sail.pack', s.pack,
+				{ act: () => click(page, '[data-act="value-pack"]', { after: 500 }) });
+			await track(page, '.pouch-item.sail.corsair', s.corsair);
+			await track(page, '.pouch-item.sail.mastery', s.bmastery,
 				{ act: () => typeInto(page, '[data-act="crew-mastery"]', '750', { after: 400 }) });
-			await spot(page, '.pouch-item.sail.region', s.bregion);
+			await track(page, '.pouch-item.sail.log', s.blog,
+				{ act: () => choose(page, '[data-act="sailing-log"]', 'srulk', { after: 400 }) });
 			// The nest is a chip that opens an editor of its own, so it is
 			// opened, a tier set, and shut again -- the row of birds in the
 			// bar is only ever read.
-			await point(page, '.pouch-item.sail.pets', s.pets, {
+			await pointAt(page, '.pouch-item.sail.pets', s.pets, {
 				act: async () => {
 					await click(page, '[data-act="pets"]', { after: 1000 });
 					// "All five" at tier 4 is one press, which is the point
@@ -187,43 +150,92 @@ const CHAPTERS = {
 					await click(page, '[data-pet-save]', { after: 900 });
 				}
 			});
+			await track(page, '.pouch-item.sail.region', s.bregion);
 			await doing(page, s.once, () => click(page, '[data-act="sail-bar"]', { after: 600 }));
 			await hush(page);
 
-			await doing(page, s.queue, async () => {
-				await tab(page, 'builds', { after: 400 });
-				await click(page, '[data-act="add-build"]', { after: 400 });
+			/* --- the queue --------------------------------------------- */
+			await doing(page, s.builds, () => tab(page, 'builds', { after: 600 }));
+			await doing(page, s.add, async () => {
+				await click(page, '[data-act="add-build"]', { after: 700 });
+				await click(page, '.build-kinds [data-kind="ship"]', { after: 600 });
+				await click(page, '.build-kinds [data-kind="part"]', { after: 600 });
+				await click(page, '.build-kinds [data-kind="all"]', { after: 400 });
+			});
+			await doing(page, s.ship, async () => {
 				await page.type('.picker-search', 'caravel', { delay: 70 });
 				await wait(500);
-				await click(page, '[data-pick="Epheria Caravel"]', { after: 600 });
+				await click(page, '[data-pick="Epheria Caravel"]', { after: 700 });
 			});
-			await say(page, s.asks);
-			await doing(page, s.costs, () => click(page, '.route:not(.on)', { after: 500 }));
-			await doing(page, s.order, async () => {
-				await click(page, '[data-act="add-build"]', { after: 400 });
+			await spotAll(page, '#dialog [data-act="route"]', s.asks, { pad: 6 });
+			await doing(page, s.improved,
+				() => click(page, '[data-act="route"][data-route="improved"]', { after: 900 }));
+			await doing(page, s.part, async () => {
+				await click(page, '[data-act="add-build"]', { after: 500 });
 				await page.type('.picker-search', "chiro's sail", { delay: 70 });
 				await wait(500);
-				await click(page, '[data-pick="Epheria Carrack: Advance (Chiro\'s Sail)"]', { after: 600 });
+				await click(page, '[data-pick="Epheria Carrack: Advance (Chiro\'s Sail)"]', { after: 900 });
+			});
+			await spotAll(page, '.build', s.cards, { pad: 6 });
+			// The sail is the second card; its up arrow is the second one.
+			await doing(page, s.order, () => click(page, '.build ~ .build [data-act="move"][data-dir="-1"]', { after: 900 }));
+			await doing(page, s.pause, () => click(page, '.build ~ .build [data-act="pause"]', { after: 1000 }));
+			await pointAt(page, '.panel:has(.panel-title.amber)', s.blockers, {
+				pad: 4,
+				act: () => typeInto(page, '.panel:has(.panel-title.amber) [data-act="own-set"]', '40', { after: 500 })
 			});
 			await hush(page);
 
-			await doing(page, s.plan, () => tab(page, 'plan', { after: 500 }));
-			await say(page, s.colours);
-			await doing(page, s.own, () =>
-				typeInto(page, '.own-input[data-item="Violent Wave Plywood"]', '300', { after: 400 }));
-			await say(page, s.replan);
-			await doing(page, s.trip, () => headerBtn(page, 'trip-log', { after: 600 }));
-			await page.keyboard.press('Escape');
-			await wait(400);
+			/* --- the plan ---------------------------------------------- */
+			await doing(page, s.plan, () => tab(page, 'plan', { after: 700 }));
+			await pointAt(page, '.next-step', s.next, { pad: 6 });
+			await pointAt(page, '.today', s.today, { pad: 6 });
+			await pointAt(page, '.stats', s.stats, { pad: 6 });
+			await spotAll(page, '.panel:has(.panel-title)', s.groups, { pad: 4 });
+			await doing(page, s.filter, async () => {
+				await click(page, '[data-act="plan-filter"][data-id="short"]', { after: 1000 });
+			});
+			// Lit before it is typed in: once the count is in, the row leaves
+			// the missing list, and that leaving is the next line.
+			await track(page, '.row:has([data-act="own-set"][data-item="Starlight Hardener"])', s.own, { pad: 4 });
+			await doing(page, s.replan, async () => {
+				await typeInto(page, '[data-act="own-set"][data-item="Starlight Hardener"]', '100', { after: 1600 });
+				await click(page, '[data-act="plan-filter"][data-id="all"]', { after: 800 });
+			});
+			await track(page, '.row:has([data-act="own-set"][data-item="Tidal Black Stone"])', s.short, {
+				pad: 4,
+				act: () => typeInto(page, '[data-act="own-set"][data-item="Tidal Black Stone"]', '2k', { after: 600 })
+			});
+			await hush(page);
+
+			/* --- a whole trip ------------------------------------------ */
+			await doing(page, s.trip, () => headerBtn(page, 'trip-log', { after: 800 }));
+			await doing(page, s.tripline, async () => {
+				await click(page, '[data-trip-pick="0"]', { after: 600 });
+				await page.keyboard.type("sea monster's bone", { delay: 60 });
+				await wait(500);
+				await clickText(page, '.picker-row', "Violent Sea Monster's Bone", { after: 600 });
+				await typeInto(page, '[data-trip-qty="0"]', '100', { after: 300 });
+				await click(page, '[data-trip-pick="1"]', { after: 600 });
+				await page.keyboard.type('plywood', { delay: 60 });
+				await wait(500);
+				await clickText(page, '.picker-row', 'Violent Wave Plywood', { after: 600 });
+				await typeInto(page, '[data-trip-qty="1"]', '20', { after: 300 });
+			});
+			await doing(page, s.tripsave, () => click(page, '[data-trip-save]', { after: 1000 }));
+			await doing(page, s.undo, async () => {
+				await headerBtn(page, 'undo', { after: 900 });
+				await headerBtn(page, 'redo', { after: 900 });
+			});
 			await hush(page);
 
 			/* --- a storage, read off the screenshots of it ------------- */
 			// Two screenfuls of one storage, scrolled between. The reading
 			// is ten seconds of arithmetic with nothing to look at, so it
-			// happens under the sentence that says what it is doing; and
-			// the table is looked at and put away unwritten, because what
-			// it would write is somebody else's storage and the rest of the
-			// chapter plans on this save's own.
+			// happens under the sentence that says what it is doing; then
+			// it is written and taken back again, because what it would
+			// write is somebody else's storage and the chapters after this
+			// plan on this save's own.
 			await doing(page, s.shots, async () => {
 				await tab(page, 'inventory', { after: 500 });
 				await click(page, '[data-act="inv-shot"]', { after: 900 });
@@ -236,55 +248,22 @@ const CHAPTERS = {
 				);
 				await waitFor(page, '.shot-table', { upTo: 180000, then: 600 });
 			});
-			await spot(page, '.shot-table tbody tr:nth-child(3)', s.check, { pad: 6 });
-			await point(page, '#dialog [data-write]', s.unwritten, { pad: 8 });
-			await page.keyboard.press('Escape');
-			await wait(500);
-			await hush(page);
-
-			await doing(page, s.shop, () => tab(page, 'workshop', { after: 500 }));
-			await doing(page, s.craft, () => click(page, '.craft-card [data-times="field"]', { after: 900 }));
-			await doing(page, s.undo, async () => {
-				await headerBtn(page, 'undo', { after: 700 });
-				await headerBtn(page, 'redo', { after: 700 });
+			await spotAll(page, '#dialog .dialog-note:has(~ .shot-table-wrap)', s.summary, { pad: 6, top: 90 });
+			await track(page, '.shot-table tbody tr:nth-child(1)', s.check, { pad: 6 });
+			await track(page, '#dialog .shot-lang', s.where, {
+				pad: 8,
+				act: () => choose(page, '#shot-store', 'Velia', { after: 600 })
 			});
-			await hush(page);
-			await say(page, s.enh);
-			await say(page, s.odds);
-			await hush(page);
-			await page.keyboard.press('Escape');
-			await wait(300);
-
-			await doing(page, s.inv, () => tab(page, 'inventory', { after: 500 }));
-			await waitFor(page, '[data-act="select"][data-item="Violent Wave Plywood"]');
-			await doing(page, s.ways, () =>
-				click(page, '[data-act="select"][data-item="Violent Wave Plywood"]', { after: 600 }));
-			await say(page, s.deep);
-			await hush(page);
-			await page.keyboard.press('Escape');
-			await wait(400);
-
-			await doing(page, s.level, async () => {
-				await click(page, '[data-act="query"]', { after: 200 });
-				await page.type('[data-act="query"]', 'toro plating', { delay: 70 });
-				await wait(600);
-				await click(page, '.tile', { after: 500 });
+			await pointAt(page, '#dialog [data-write]', s.write, { pad: 8 });
+			await doing(page, s.landed, async () => {
+				await click(page, '#dialog [data-write]', { after: 1200 });
+				if (await onScreen(page, '#dialog .dialog-box')) await page.keyboard.press('Escape');
+				await wait(500);
+				await page.evaluate(() => window.scrollTo({ top: 260, behavior: 'smooth' }));
 			});
-			await doing(page, s.nostones, async () => {
-				await click(page, '.lvl:nth-child(8)', { after: 500 });
-				await click(page, '[data-act="move-level"]', { after: 800 });
-			});
+			await spotAll(page, '.inv-band', s.levels, { pad: 6 });
+			await doing(page, s.undo2, () => headerBtn(page, 'undo', { after: 1200 }));
 			await hush(page);
-			await page.keyboard.press('Escape');
-			await wait(400);
-
-			await doing(page, s.tree, async () => {
-				await tab(page, 'tree', { after: 500 });
-				await click(page, '[data-act="tree-pick"]', { after: 500 });
-				await click(page, '[data-act="tree-target"][data-item="Epheria Carrack: Advance (Chiro\'s Sail)"]', { after: 800 });
-			});
-			await hush(page);
-			await doing(page, s.get, () => tab(page, 'get', { after: 600 }));
 			await say(page, s.close);
 			await hush(page);
 		}
@@ -299,79 +278,135 @@ const CHAPTERS = {
 	 * ============================================================== */
 	'to-get': {
 		n: 'Two', title: 'To Get', at: 'get',
-		blurb: 'One way to each thing you are short of, under a goal you set, in the days it takes.',
+		blurb: 'One way to each thing you are short of, under a goal you set, in the days it takes, and what it will never do.',
 		say: {
-			open: 'This is To Get. It answers the only question that matters once a build is queued: what do I actually do next.',
-			short: 'Up here is what you are still short of, and what the shop would want for the part of it that can be bought.',
-			modes: 'Two readings. "Every way" lists each thing and every source it has. "The way to get it" picks one.',
-			plan: 'And the plan is the one it opens on.',
-			done: 'This is the headline: how many days until you have the lot.',
-			figures: 'What it will cost in coins, and how many things are left across how many steps.',
-			matters: 'It asks what matters most to you, because there is no right answer.',
+			open: 'This is To Get. Once a build is queued, it answers what is left: what to do next, and when it will be done.',
+
+			/* --- still to get --- */
+			short: 'Still to get, at the top: everything you are short of, biggest first, tinted by what the shop would charge for it.',
+			only: 'Press one, and the whole screen narrows to that one thing.',
+			unonly: 'Press it again, and everything is back.',
+			copy: 'The list copies out as text, or as rows for a spreadsheet.',
+			modes: 'Two readings below it. The way to get it picks one way for each thing. Every way lists them all.',
+
+			/* --- the headline --- */
+			done: 'The plan opens on the headline: how many days until you have the lot.',
+			pace: 'Under it, the thing that sets that pace. Barter days are always called an estimate, since which board a refresh deals is chance.',
+			figures: 'Beside it, the coins it will spend against what you can spare, and how many things are left, across how many steps.',
+
+			/* --- the goal --- */
+			matters: 'Then it asks what matters most to you, because there is no right answer.',
 			soon: 'Soonest spends the purse wherever that buys a day.',
-			coins: 'Keep the coins spends them only where nothing else sells the thing.',
-			silver: 'Keep the silver leaves the Central Market alone.',
-			watch: 'Watch the day count as you choose. That is the trade, in the only unit that matters.',
-			days: 'Tell it how many days a week you actually sail, and the estimate follows.',
-			reserve: 'Hold coins back, and it plans around what is left.',
+			coins: 'Keep the coins spends Crow Coins only where nothing else sells the thing.',
+			silver: 'Keep the silver leaves the Central Market alone, and buys from Falasi only what only he sells.',
+			watch: 'The day count and the spend follow every choice. With this purse all three land on the same day, so the goal only moves the plan where there is a real choice to make.',
+
+			/* --- the knobs --- */
+			days: 'Tell it how many days a week you actually sail. Three days a week, and the same plan takes longer on the calendar.',
+			reserve: 'Type the Crow Coins you want to keep back. The plan never spends them, and works around what is left.',
 			doing: 'And say what you are willing to do at all.',
-			hunt: 'Turn hunting on and a sea monster drop becomes something to go and kill for, instead of something to buy.',
-			barter: 'Turn bartering off and the lists stop counting. The plan gets longer and says so.',
-			steps: 'Below that are the steps themselves, in order, each one saying where it comes from and how long it takes.',
-			odds: 'A barter step is paced by how often that offer was really on the list, not by how often it could be.',
-			never: 'And it tells you what it will never do, so you know what it is not counting.',
-			every: 'If you would rather see the whole spread, Every way groups it by source instead.',
-			copy: 'Either reading copies out, as a list or as a spreadsheet.',
+			quests: 'Switch the dailies and weeklies off, and the plan stops counting on what they pay.',
+			hunt: 'Turn hunting on, and a sea monster drop becomes something to go and kill for, instead of something to buy. A hunt is never counted in the days.',
+			barter: 'Turn bartering off, and the barter lists stop counting. What only a barter brings drops out of the days, into the steps no rate is counted for.',
+			never: 'What this plan will never do is written out underneath, drawn from the choices you just made, so you know what it is not counting.',
+
+			/* --- the steps --- */
+			todayb: 'Today\'s board waits for the layout you read on the Barter tab. Once one is read, it lists what that board deals toward this list, island by island, with a tick for each.',
+			steps: 'Then the steps, in the order they are done: the quests to run, the rewards to take, the Crow Coin Shop, bartering at sea, and so on down.',
+			step: 'Each step says where it happens, and carries its own total.',
+			quest: 'A quest step lists each quest, how many times to run it, where it is handed in, and which reward to take from a pick-one.',
+			pick: 'Make it my pick remembers that choice, so claiming the quest on the Quests tab takes one press.',
+			odds: 'A barter step is paced by how often that offer is really on the list, from the game\'s own tables, not by how often it could be.',
+			fold: 'Fold a step away once you are done with it.',
+
+			/* --- the other reading --- */
+			every: 'Every way is the other reading: everything grouped by how you get it, the Crow Coin Shop, Falasi, the Market, barter and the rest.',
+			totals: 'Each group carries a running total, measured against what is in your purse.',
 			close: 'That is To Get. Not what you could do, but what to do, and when it ends.'
 		},
-		async shoot(ctx, s) {
+		async shoot(ctx, s, ch) {
 			const { page, url } = ctx;
 			await seed(page, url, TO_GET);
 			await film(page, `${OUT}/to-get.webm`);
-			await card(page, 'Two', 'To Get', { line: s.open });
+			await card(page, ch.n, ch.title, { line: s.open });
 
 			await tab(page, 'get');
 			await wait(1400);
+
+			/* --- still to get ------------------------------------------ */
 			// `.summary` alone is the sailor chip as well, and that one is
 			// higher up the page: the line about what you are short of was
 			// lighting the barter count.
-			await spot(page, '.want-band', s.short, { pad: 6 });
+			await track(page, '.want-band', s.short, { pad: 6 });
+			await doing(page, s.only, async () => {
+				await click(page, '.want-band .want', { after: 300 });
+				await park(page, 0.97, 0.9);
+			});
+			await doing(page, s.unonly, async () => {
+				await click(page, '.want-band .want.on', { after: 300 });
+				await park(page, 0.97, 0.9);
+			});
+			await pointAt(page, '.get-copy', s.copy, { pad: 8 });
 			// Both readings, not whichever chip happens to be first: the
 			// line names them as a pair.
-			await spot(page, '.controls .chips', s.modes, { pad: 8 });
-			await say(page, s.plan);
+			await track(page, '.controls .chips', s.modes, { pad: 8 });
 			await hush(page);
 
 			/* --- the headline ------------------------------------------ */
-			await spot(page, '.way-headline', s.done, { pad: 8 });
-			await spot(page, '.way-tiles', s.figures, { pad: 8 });
+			// The card's head up under the tabs: left where it lands, the
+			// headline sits behind the caption.
+			await page.evaluate(() => {
+				const h = document.querySelector('.way-head');
+				if (h) window.scrollTo({ top: h.getBoundingClientRect().top + window.scrollY - 90, behavior: 'smooth' });
+			});
+			await wait(700);
+			await track(page, '.way-headline', s.done, { pad: 8 });
+			await pointAt(page, '.way-pace', s.pace, { pad: 8 });
+			await track(page, '.way-tiles', s.figures, { pad: 8 });
 			await hush(page);
 
 			/* --- the goal ----------------------------------------------- */
-			await spot(page, '.way-prefs', s.matters, { pad: 8 });
+			await track(page, '.way-prefs', s.matters, { pad: 8 });
 			await doing(page, s.soon, () => click(page, '[data-act="get-preset"][data-id="soon"]', { after: 700 }));
 			await doing(page, s.coins, () => click(page, '[data-act="get-preset"][data-id="coins"]', { after: 900 }));
 			await doing(page, s.silver, () => click(page, '[data-act="get-preset"][data-id="silver"]', { after: 900 }));
-			await say(page, s.watch);
-			await click(page, '[data-act="get-preset"][data-id="soon"]', { after: 700 });
+			// The headline and the prefs in one frame: the line is about the
+			// figure moving as the choice does.
+			await track(page, '.way-head-top', s.watch, {
+				pad: 6,
+				act: () => click(page, '[data-act="get-preset"][data-id="soon"]', { after: 900 })
+			});
 			await hush(page);
 
 			/* --- the knobs ---------------------------------------------- */
-			await spot(page, '[data-act="get-days"]', s.days,
-				{ act: () => choose(page, '[data-act="get-days"]', '3', { after: 600 }).catch(() => {}) });
-			if (await onScreen(page, '[data-act="get-reserve"]')) {
-				await spot(page, '[data-act="get-reserve"]', s.reserve, { pad: 10 });
-			} else {
-				await say(page, s.reserve);
-			}
-			await spot(page, '.way-opts', s.doing, { pad: 8 });
-			await doing(page, s.hunt, () => click(page, '[data-act="get-doing"][data-id="hunt"]', { after: 900 }));
+			await track(page, '[data-act="get-days"]', s.days,
+				{ pad: 10, act: () => choose(page, '[data-act="get-days"]', '3', { after: 900 }) });
+			await pointAt(page, '[data-act="get-reserve"]', s.reserve, {
+				pad: 10,
+				act: () => typeInto(page, '[data-act="get-reserve"]', '20000', { after: 900 })
+			});
+			await track(page, '.way-opts', s.doing, { pad: 8 });
+			await doing(page, s.quests, () => click(page, '[data-act="get-doing"][data-id="quests"]', { after: 1100 }));
+			// Back on: the steps below are about a plan that runs the quests.
+			await click(page, '[data-act="get-doing"][data-id="quests"]', { after: 800 });
+			await doing(page, s.hunt, () => click(page, '[data-act="get-doing"][data-id="hunt"]', { after: 1100 }));
+			// Hunting off again before bartering goes: with both, the drops
+			// leave the days for the hunt and the barter line says nothing.
+			await click(page, '[data-act="get-doing"][data-id="hunt"]', { after: 800 });
 			await doing(page, s.barter, () => click(page, '[data-act="get-doing"][data-id="barter"]', { after: 1100 }));
 			// Put it back: the steps beat below is about a plan that barters.
-			await click(page, '[data-act="get-doing"][data-id="barter"]', { after: 900 });
+			await click(page, '[data-act="get-doing"][data-id="barter"]', { after: 800 });
+			// The days back to every day, and the purse back in play.
+			await choose(page, '[data-act="get-days"]', '7', { after: 600 });
+			await typeInto(page, '[data-act="get-reserve"]', '0', { after: 600 });
+			if (!(await onScreen(page, '.way-rule-grid'))) {
+				await click(page, '.way-rules [data-act="get-fold"]', { after: 700 }).catch(() => {});
+			}
+			await pointAt(page, '.way-rules', s.never, { pad: 8 });
 			await hush(page);
 
 			/* --- the steps ---------------------------------------------- */
+			await pointAt(page, '.get-today', s.todayb, { pad: 6 });
 			// Folded first, and then all of them lit. A step open at its
 			// full height pushes the rest off the frame, so the line about
 			// the steps "in order" was said over one step and a gap; folded
@@ -389,14 +424,47 @@ const CHAPTERS = {
 			}
 			await wait(600);
 			await spotAll(page, '.way-step', s.steps, { pad: 6 });
-			await say(page, s.odds);
-			if (await onScreen(page, '.way-rules')) await spot(page, '.way-rules', s.never, { pad: 8 });
-			else await say(page, s.never);
+			await pointAt(page, '.way-step-count', s.step, { pad: 8 });
+			// The quests step opened again, for the two lines about it.
+			const qstep = '[data-act="get-fold"][data-id="quests"]';
+			if (await onScreen(page, qstep)) {
+				await doing(page, s.quest, () => click(page, qstep, { after: 1000 }));
+			} else {
+				await say(page, s.quest);
+			}
+			await pointAt(page, '[data-act="get-pick"]', s.pick, {
+				pad: 8,
+				act: () => click(page, '[data-act="get-pick"]', { after: 900 })
+			});
+			const barter = '[data-act="get-fold"][data-id="step-barter"]';
+			if (await onScreen(page, barter)) {
+				await doing(page, s.odds, async () => {
+					await click(page, barter, { after: 600 });
+					await page.evaluate(sel => {
+						const h = document.querySelector(sel);
+						if (h) window.scrollTo({ top: h.getBoundingClientRect().top + window.scrollY - 90, behavior: 'smooth' });
+					}, barter);
+					await wait(600);
+				});
+			} else {
+				await say(page, s.odds);
+			}
+			await doing(page, s.fold, async () => {
+				for (let go = 0; go < 6; go++) {
+					const open = await page.$('.way-step-head[aria-expanded="true"]');
+					if (!open) break;
+					await click(page, open, { after: 500 });
+				}
+			});
 			await hush(page);
 
 			/* --- the other reading -------------------------------------- */
-			await doing(page, s.every, () => click(page, '[data-act="get-mode"][data-id="source"]', { after: 1200 }));
-			await spot(page, '[data-act="copy"], [data-act="copy-csv"]', s.copy, { pad: 10 });
+			await doing(page, s.every, async () => {
+				await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'smooth' }));
+				await wait(500);
+				await click(page, '[data-act="get-mode"][data-id="source"]', { after: 1200 });
+			});
+			await pointAt(page, '.panel:has([data-act="coin-buy"])', s.totals, { pad: 4 });
 			await say(page, s.close);
 			await hush(page);
 		}
@@ -412,79 +480,166 @@ const CHAPTERS = {
 	 * ============================================================== */
 	'quests': {
 		n: 'Three', title: 'Quests', at: 'quests',
-		blurb: 'The free rewards the sea hands out, and how to record a batch of them at once.',
+		blurb: 'The sailing dailies and weeklies, what each pays against your list, claiming one or a batch, pick-one rewards, groups and favourites.',
 		say: {
-			open: 'This is the Quests tab. It tracks the quests that pay in things you are already short of.',
-			what: 'These are the sailing dailies and weeklies, all in one list.',
-			marked: 'The ones paying something on your build list are marked, so you can see which are worth the detour.',
-			filter: 'Filter them by what they pay, or by who gives them.',
-			pays: 'Each row shows what it pays, and how much of it you still need.',
-			some: 'Some quests let you pick your reward. Those ask you which when you finish.',
-			tick: 'Tick off the ones you did in game.',
-			finish: 'Then click Finish.',
-			land: 'The rewards go straight into your stock, as one change.',
-			undo: 'Got one wrong? Undo puts the whole batch back.',
-			reset: 'The ticks clear themselves at the daily reset, so you start each day fresh.',
-			clock: 'And these clocks tell you how long you have: dailies, weeklies, and the barter refresh.',
-			fav: 'Star the ones you always do, and they sort to the top.',
-			groups: 'Or save a set you run together, and tick the whole group at once.',
-			map: 'Every quest knows where its giver stands, so a run can hand them in as it passes.',
+			open: 'This is the Quests tab: the sailing dailies and weeklies, and what each one pays, set against what you are short of.',
+			clocks: 'The clocks first. Dailies reset at midnight UTC, weeklies on Thursday, and the barter refresh at six in the morning.',
+			groups: 'The quests are grouped by how often they come round: daily, weekly, and once.',
+			row: 'Each row is one quest: who gives it, where, the monster it asks for, and every reward it pays.',
+			marked: 'A quest paying something your builds need is marked, so the ones worth the detour stand out.',
+			mapit: 'On the map opens the Map on where that monster is found.',
+			total: 'Under each group, what all of them together pay in a day, or in a week.',
+
+			/* --- finding them --- */
+			filter: 'Filter the list. Pays what I need shows only the quests paying into your builds.',
+			left: 'Still to do hides what you have already done today.',
+			pay: 'Or pick the rewards themselves. Tick an item, and only the quests paying in it are left.',
+			unpay: 'The cross on the chip takes that filter off again.',
+			search: 'And the search finds a quest by its name, its place, or its reward.',
+
+			/* --- one at a time --- */
+			claim: 'Done one in game? Press Claimed.',
+			claimed: 'Its rewards go into your stock, and the quest is ticked off until the reset.',
+			notdone: 'Not done takes the tick back off. Undo takes the rewards back too.',
+			pickone: 'Some quests let you pick one reward. Claimed asks which one you took.',
+			kept: 'The choice is kept, so next time Claimed records the same reward in one press.',
+			ahead: 'Choose ahead answers that question now, before you have even run the quest.',
+
+			/* --- a batch --- */
+			tick: 'Ran several? Tick each one you did.',
+			bar: 'A bar comes up with how many are ticked.',
+			finish: 'Press Finish, and every ticked quest is recorded at once. A pick-one with no choice yet asks for it on the way.',
+			land: 'The rewards land in your stock as one change.',
+			undo: 'Got one wrong? Undo puts the whole batch back, and Redo puts it in again.',
+			tickall: 'Tick all ticks every quest still open in a group. Untick all clears the ticks.',
+
+			/* --- groups and stars --- */
+			group: 'Run the same set every day? Tick them, and save them as a group under a name.',
+			chip: 'The group is a chip now. One press ticks every quest in it that is still to do.',
+			fav: 'Star the quests that matter to you, and the Favourites chip shows just those.',
+			chain: 'The one-off quests are here too, with Ravinia\'s log counting the letters you have recorded.',
+			reset: 'The ticks wear off at the reset by themselves, so each day starts fresh.',
 			close: 'That is Quests. Free materials, tracked against what you are building.'
 		},
-		async shoot(ctx, s) {
+		async shoot(ctx, s, ch) {
 			const { page, url } = ctx;
 			await seed(page, url, QUEUED);
 			await film(page, `${OUT}/quests.webm`);
-			await card(page, 'Three', 'Quests', { line: s.open });
+			await card(page, ch.n, ch.title, { line: s.open });
 
 			await tab(page, 'quests');
 			await wait(800);
-			await say(page, s.what);
+			const row = id => `.quest:has([data-quest="${id}"])`;
+			await track(page, '.quest-clocks', s.clocks, { pad: 8 });
+			await track(page, '.panel-head:has([data-cadence="daily"])', s.groups, { pad: 6 });
+			await track(page, row('omg-blackrust'), s.row, { pad: 4 });
 			// The ones that pay something on the list, and as many of them
 			// as the frame holds: the line is about which rows are marked,
 			// and a box round one row shows no marking at all.
 			await spotAll(page, '.quest.wanted', s.marked, { pad: 6 });
-			if (await onScreen(page, '[data-act="quest-filter"]')) {
-				await spot(page, '[data-act="quest-filter"]', s.filter);
-			} else {
-				await say(page, s.filter);
-			}
-			await say(page, s.pays);
-			await say(page, s.some);
+			await pointAt(page, `${row('omg-blackrust')} [data-act="quest-map"]`, s.mapit, { pad: 8 });
+			await pointAt(page, '.quest-total', s.total, { pad: 6 });
 			await hush(page);
 
-			// Only the quests paying one fixed reward: a pick-one quest stops
-			// Finish to ask which, which is true but not this beat.
-			const plain = '.quest:not(.done):not(.selected):has([data-act="quest-claim"]) .quest-check';
-			await doing(page, s.tick, async () => {
-				await click(page, plain, { after: 400 });
-				await click(page, plain, { after: 400 });
-				await click(page, plain, { after: 500 });
+			/* --- finding them ------------------------------------------- */
+			await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'smooth' }));
+			await wait(500);
+			await track(page, '[data-act="quest-filter"][data-id="wanted"]', s.filter, {
+				pad: 8,
+				act: () => click(page, '[data-act="quest-filter"][data-id="wanted"]', { after: 1200 })
 			});
-			await doing(page, s.finish, () => click(page, '[data-act="quest-finish"]', { after: 900 }));
+			await track(page, '[data-act="quest-filter"][data-id="left"]', s.left, {
+				pad: 8,
+				act: () => click(page, '[data-act="quest-filter"][data-id="left"]', { after: 1000 })
+			});
+			await click(page, '[data-act="quest-filter"][data-id="all"]', { after: 600 });
+			await doing(page, s.pay, async () => {
+				await click(page, '[data-act="quest-pay-pick"]', { after: 800 });
+				await clickText(page, '#dialog .picker-row', 'Delicately Polished Support', { after: 500 });
+				await click(page, '#dialog [data-picker-apply]', { after: 1200 });
+			});
+			// No spotlight: the chip goes with the press.
+			if (await onScreen(page, '[data-act="quest-pay-del"]')) {
+				await doing(page, s.unpay, () => click(page, '[data-act="quest-pay-del"]', { after: 900 }));
+			} else {
+				await say(page, s.unpay);
+			}
+			await doing(page, s.search, async () => {
+				await typeInto(page, '.controls [data-act="query"], [data-act="query"]', 'crocodile', { after: 1600 });
+				await typeInto(page, '.controls [data-act="query"], [data-act="query"]', '', { after: 600 });
+			});
+			await hush(page);
+
+			/* --- one at a time ------------------------------------------ */
+			// A quest claimed sorts to the foot of its group, so the row is
+			// lit where it lands rather than where it was pressed.
+			await doing(page, s.claim, () => click(page, `${row('lively')} [data-act="quest-claim"]`, { after: 1000 }));
+			await track(page, row('lively'), s.claimed, { pad: 4 });
+			await doing(page, s.notdone, async () => {
+				await click(page, `${row('lively')} [data-act="quest-undone"]`, { after: 900 });
+				await headerBtn(page, 'undo', { after: 900 });
+			});
+			await doing(page, s.pickone, async () => {
+				await click(page, `${row('omg-blackrust')} [data-act="quest-claim-pick"]`, { after: 2600 });
+				await clickText(page, '#dialog .picker-row', 'Wave Residue Adhesive', { after: 1000 });
+			});
+			await pointAt(page, `${row('omg-blackrust')} .quest-recall`, s.kept, { pad: 8 });
+			await doing(page, s.ahead, async () => {
+				await click(page, `${row('omg-candidum')} [data-act="quest-pick-set"]`, { after: 1400 });
+				await click(page, '#dialog .picker-row:last-of-type', { after: 1000 });
+			});
+			await hush(page);
+
+			/* --- a batch ------------------------------------------------ */
+			await doing(page, s.tick, async () => {
+				for (const id of ['wider', 'worldsend-1', 'goods-baremi', 'hekaru']) {
+					await click(page, `${row(id)} [data-act="quest-check"]`, { after: 350 });
+				}
+			});
+			await pointAt(page, '[data-act="quest-finish"]', s.bar, { pad: 10 });
+			await doing(page, s.finish, async () => {
+				await click(page, '[data-act="quest-finish"]', { after: 1400 });
+				if (await onScreen(page, '#dialog .picker-row')) await click(page, '#dialog .picker-row:last-of-type', { after: 1000 });
+			});
 			await say(page, s.land);
 			await doing(page, s.undo, async () => {
-				await headerBtn(page, 'undo', { after: 700 });
-				await headerBtn(page, 'redo', { after: 700 });
+				await headerBtn(page, 'undo', { after: 900 });
+				await headerBtn(page, 'redo', { after: 900 });
 			});
-			await say(page, s.reset);
+			await pointAt(page, '[data-act="quest-select-shown"][data-cadence="daily"]', s.tickall, {
+				pad: 8,
+				act: async () => {
+					await click(page, '[data-act="quest-select-shown"][data-cadence="daily"]', { after: 1300 });
+					await click(page, '[data-act="quest-select-none"]', { after: 900 });
+				}
+			});
 			await hush(page);
 
-			if (await onScreen(page, '.map-clocks')) await spot(page, '.map-clocks', s.clock);
-			else await say(page, s.clock);
-
-			if (await onScreen(page, '[data-act="quest-fav"]')) {
-				await spot(page, '[data-act="quest-fav"]', s.fav,
-					{ act: () => click(page, '[data-act="quest-fav"]', { after: 500 }) });
-			} else {
-				await say(page, s.fav);
-			}
-			if (await onScreen(page, '[data-act="quest-group-save"]')) {
-				await spot(page, '[data-act="quest-group-save"]', s.groups);
-			} else {
-				await say(page, s.groups);
-			}
-			await say(page, s.map);
+			/* --- groups and stars --------------------------------------- */
+			await doing(page, s.group, async () => {
+				await click(page, `${row('worldsend-2')} [data-act="quest-check"]`, { after: 350 });
+				await click(page, `${row('goods-narvo')} [data-act="quest-check"]`, { after: 350 });
+				await click(page, '[data-act="quest-group-save"]', { after: 800 });
+				await page.type('[data-quest-group-name]', 'Morning dailies', { delay: 60 });
+				await wait(300);
+				await click(page, '[data-quest-group-save]', { after: 900 });
+				if (await onScreen(page, '[data-act="quest-select-none"]')) await click(page, '[data-act="quest-select-none"]', { after: 700 });
+			});
+			await pointAt(page, '[data-act="quest-group-pick"]', s.chip, {
+				pad: 8,
+				act: () => click(page, '[data-act="quest-group-pick"]', { after: 1200 })
+			});
+			if (await onScreen(page, '[data-act="quest-select-none"]')) await click(page, '[data-act="quest-select-none"]', { after: 600 });
+			await doing(page, s.fav, async () => {
+				await click(page, `${row('omg-nineshark')} [data-act="quest-fav"]`, { after: 500 });
+				await click(page, `${row('charity')} [data-act="quest-fav"]`, { after: 500 });
+				await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'smooth' }));
+				await wait(400);
+				await click(page, '[data-act="quest-filter"][data-id="fav"]', { after: 1400 });
+			});
+			await click(page, '[data-act="quest-filter"][data-id="once"]', { after: 900 });
+			await pointAt(page, '.quest-chain', s.chain, { pad: 8 });
+			await doing(page, s.reset, () => click(page, '[data-act="quest-filter"][data-id="all"]', { after: 900 }));
 			await say(page, s.close);
 			await hush(page);
 		}
@@ -501,167 +656,195 @@ const CHAPTERS = {
 	 * ============================================================== */
 	'your-ship': {
 		n: 'Four', title: 'Your Ship', at: 'crew',
-		blurb: 'Parts, crystal, appearance, crew and presets — and where every number on the ship comes from.',
+		blurb: 'Hull, parts, crystal and appearance; the crew read off screenshots and seated by hand or by goal; presets, saved setups, the fleet, and a ship in a link.',
 		say: {
-			open: 'This is the Ship tab. Everything the app knows about how fast you sail comes from this one screen.',
-			hull: 'Start with the hull. Pick the ship you actually sail.',
-			slots: 'A ship has four part slots: figurehead, plating, cannon and sail.',
-			best: 'Each one fills itself with the best part you own.',
-			change: 'Click Change to pick a different one.',
-			picker: 'It lists every part that fits the slot, with what each does, and marks the ones you actually hold.',
-			back: 'And "Best I own" puts it back to whatever you have.',
-			crystal: 'The fifth slot is your sea crystal.',
+			open: 'This is the Ship tab. Everything the app knows about how fast you sail, and how much you carry, comes from this one screen.',
+
+			/* --- the ship --- */
+			card: 'At the top is the ship itself: the hull, what it is for, and its speed, its hold and how many of its five slots are fitted.',
+			hold: 'The hold is the limit in LT, and the slots it has. Past the limit the ship still sails, only slower.',
+			facts: 'Under every figure is where it comes from: the hull, the parts, the crystal, the crew and your mastery, added up.',
+			mastery: 'Your Sailing Mastery is read from the bar under the tabs, where you typed it in.',
+			hull: 'Change ship lists every hull in the game, with its crew, cabin space, weight, slots and speed.',
+			back: 'Pick the one you sail. Here, the Carrack Advance stays.',
+
+			/* --- parts, crystal, set --- */
+			slots: 'Fitted out shows the four part slots: cannon, sail, figurehead and plating.',
+			best: 'Each slot takes the best part you hold, by itself. This Carrack has a plus ten Toro Cannon and a plus four Toro Sail.',
+			change: 'Change opens every part that fits the slot, with what it does at plus ten, and marks the one you hold.',
+			weigh: 'Pick one you do not own yet, and its level, and every figure is worked out as if it were fitted, marked as a plan.',
+			bestown: 'Best I own puts back whatever you actually hold.',
+			crystal: 'The fifth slot is the sea crystal. Every grade from Eltro to Rusalka is listed, with its effect.',
 			crystalpick: 'Pick the one you have socketed, and its bonus goes into the numbers.',
-			skin: 'Below that is the appearance set.',
-			skinwhy: 'Skins are cosmetic in most games. Here they are not: a full set adds real durability and rations, so tick the pieces you are wearing.',
-			stats: 'And this panel at the top is the ship itself: its speed, its hold limit, and how many of the five slots are filled.',
-			breakdown: 'The small print under each figure says where it came from — hull, parts, crystal, crew and mastery, added up.',
-			mastery: 'Your Sailing Mastery goes in here, and those figures move with it.',
-			crew: 'Now the crew. This roster starts empty.',
-			shots: 'Typing eighteen sailors in, four growths each, is an evening you will not enjoy. So it reads them off your screenshots instead.',
-			drop: 'Screenshot the Manage Sailors window in game, one sailor a shot, and drop them in. It reads them in your browser — nothing is uploaded.',
-			take: 'Check the table against the game, then take the ones that are right.',
-			hired: 'And there they are, hired, with their real levels and growths.',
-			crewstats: 'And the row under the ship fills in. That is what the crew is adding, on top of the hull.',
-			sort: 'Sort the list by whatever you are fitting for. Best all round, best for speed, and so on.',
-			manual: 'To seat one by hand, click the sailor, then click the seat you want them in.',
-			seats: 'Where they sit matters. A sail seat doubles their speed growth, and the wheel doubles turn and brake.',
-			auto: 'Or let it arrange the whole crew for you. Click Auto assign.',
-			goal: 'It asks what the boat is for, and shows what each answer would actually give you.',
-			pick: 'Pick one, and it seats everybody.',
-			presets: 'Two hot presets, for swapping crews quickly. Save the current one to a slot.',
-			apply: 'And click it to put that crew straight back on.',
-			setup: 'A setup is bigger: the whole fit-out, hull, parts, crystal and seating, under a name.',
-			fleet: 'The fleet lists every setup you have kept, and every hull you own without one.',
-			sailed: 'The one you are sailing is what the Map times its routes at.',
-			link: 'And you can copy the whole thing as a link, if someone asks what you sail.',
+			skin: 'Then the appearance set. Here it is not only a look: a full set adds durability and rations, so tick the pieces you wear.',
+
+			/* --- the crew, read in --- */
+			crew: 'Now the crew. The ship is drawn with every seat it has, and the roster starts empty.',
+			shots: 'Typing a crew in, four growths each, is an evening. So Read screenshots takes the game\'s own Manage Sailors window instead.',
+			drop: 'Screenshot one sailor a shot, and drop them all in.',
+			reads: 'It reads them in your browser; nothing is uploaded. The window never prints a sailor\'s type, so it is worked out from the appetite, the cabin cost and the weight.',
+			table: 'Check the table against the game. A type can be corrected here, and a sailor already on the roster is brought up to date instead of hired twice.',
+			take: 'Then take them.',
+			hired: 'And there they are on the sailor list, with their real levels and growths.',
+			sort: 'Sort the list by whatever you are fitting for: best all round, or one growth at a time.',
+			select: 'Click a sailor, and the panel on the right shows everything about them.',
+			growths: 'The growths are typed straight from the sailor window, and every figure downstream follows them.',
+
+			/* --- seating it --- */
+			seat: 'To seat one by hand, click the sailor, then click the seat.',
+			seats: 'Where they sit matters. A sail seat doubles their speed and acceleration, and the wheel doubles turn and brake.',
+			auto: 'Or let it arrange the whole crew. Auto assign asks what the boat is for.',
+			goals: 'Each goal shows what the crew would come to under it: speed, acceleration, turn, brake, cannons, or all round.',
+			pick: 'Pick one, and it chooses who comes aboard as well as who sits where.',
+			row: 'The row under the ship fills in. That is what the crew adds, on top of the hull and the parts.',
+
+			/* --- presets, setups and the fleet --- */
+			presets: 'Two presets are kept per hull, for swapping crews quickly. Save this speed crew to the first.',
+			cannons: 'Arrange it for cannons, and save that to the second.',
+			apply: 'Now one click on a preset puts that crew straight back on.',
+			setup: 'A setup is bigger: the hull, its parts, the crystal and the seating, kept under a name.',
+			other: 'Change to another hull, and its own seats and parts come up. Keep that one as a setup too.',
+			fleet: 'Your fleet lists every setup you have kept, and every hull in your inventory without one.',
+			sail: 'Sail one, and it becomes the ship the Map and the Barter tab time their routes at.',
+			link: 'And Copy link carries the whole ship, hull, parts, crystal and crew, in one address, for when someone asks what you sail.',
 			close: 'That is your ship. Get this screen right, and every distance and every minute in the app is yours.'
 		},
-		async shoot(ctx, s) {
+		async shoot(ctx, s, ch) {
 			const { page, url } = ctx;
 			await seed(page, url, QUEUED);
 			await film(page, `${OUT}/your-ship.webm`);
-			await card(page, 'Four', 'Your Ship', { line: s.open });
+			await card(page, ch.n, ch.title, { line: s.open });
 
 			await tab(page, 'crew');
 			await wait(900);
 
-			/* --- hull and the four parts ------------------------------- */
-			await spot(page, '[data-act="crew-ship-pick"], [data-act="crew-ship"]', s.hull);
-			// `.crew-grid` is the whole two-column page, so "four part
-			// slots" was lighting the roster and the guide panels with
-			// them. The four cards themselves, and not the crystal or the
-			// appearance set -- both have beats of their own below.
-			await spotAll(page, '.slot-card:not(.crystal):not(.skin)', s.slots, { pad: 6 });
-			await spot(page, '.slot-card:not(.crystal):not(.skin)', s.best);
-			await spot(page, '[data-act="crew-fit-pick"]', s.change,
-				{ act: () => click(page, '[data-act="crew-fit-pick"]', { after: 900 }) });
-			await say(page, s.picker);
-			await page.keyboard.press('Escape');
-			await wait(500);
-			if (await onScreen(page, '[data-act="crew-fit-auto"]')) await say(page, s.back);
-			await hush(page);
-
-			/* --- crystal ----------------------------------------------- */
-			await spot(page, '.slot-card.crystal', s.crystal);
-			await spot(page, '[data-act="crew-crystal-pick"]', s.crystalpick,
-				{ act: () => click(page, '[data-act="crew-crystal-pick"]', { after: 900 }) });
-			await page.keyboard.press('Escape');
-			await wait(500);
-			await hush(page);
-
-			/* --- appearance set ---------------------------------------- */
-			await spot(page, '.slot-card.skin', s.skin);
-			await spot(page, '.slot-card.skin', s.skinwhy, {
-				act: async () => {
-					if (await onScreen(page, '[data-act="crew-skin-slot"]')) {
-						await click(page, '[data-act="crew-skin-slot"]', { after: 500 });
-					}
-				}
+			/* --- the ship ----------------------------------------------- */
+			await track(page, '.ship-card-main', s.card, { pad: 6 });
+			await pointAt(page, '.ship-card-facts > div:nth-child(2)', s.hold, { pad: 8 });
+			await spotAll(page, '.ship-card-facts, .ship-card-specs', s.facts, { pad: 6 });
+			await track(page, '.crew-mastery.read', s.mastery, { pad: 8 });
+			await doing(page, s.hull, () => click(page, '[data-act="crew-ship-pick"]', { after: 1200 }));
+			await doing(page, s.back, async () => {
+				await clickText(page, '#dialog .picker-row', 'Epheria Carrack: Advance', { after: 900 });
+				if (await onScreen(page, '#dialog .dialog-box')) await page.keyboard.press('Escape');
 			});
 			await hush(page);
 
-			/* --- where the numbers are --------------------------------- */
-			// The ship's own totals, which are the panel at the top -- not
-			// the row beneath it. That row is the crew's contribution, and
-			// pointing at it while saying "speed, hold, fitted" was
-			// pointing at the wrong thing; it gets its own beat below,
-			// once there is a crew to make it non-zero.
-			await spot(page, '.ship-card', s.stats, { pad: 6 });
-			await spot(page, '.ship-card-facts', s.breakdown, { pad: 6 });
-			// Mastery moved into the shell: the Ship tab reads it now, and
-			// the field that sets it is in the sailor bar, which the Yard
-			// fills in on camera and the seed carries here.
-			await spot(page, '.crew-mastery.read', s.mastery, { pad: 8 });
+			/* --- parts, crystal, set ------------------------------------ */
+			const sail = '.slot-card:has([data-act="crew-fit-pick"][data-slot="sail"])';
+			await spotAll(page, '.slot-card:not(.crystal):not(.skin)', s.slots, { pad: 6 });
+			await spotAll(page, '.slot-card:not(.crystal):not(.skin):not(.empty)', s.best, { pad: 6 });
+			await doing(page, s.change, () => click(page, `${sail} [data-act="crew-fit-pick"]`, { after: 1200 }));
+			await doing(page, s.weigh, async () => {
+				await clickText(page, '#dialog .picker-row', "Chiro's Sail", { after: 900 });
+				// It asks the level next; the top one.
+				if (await onScreen(page, '#dialog .picker-row')) await click(page, '#dialog .picker-row:last-of-type', { after: 900 });
+				await page.evaluate(sel => document.querySelector(sel)?.scrollIntoView({ block: 'center', behavior: 'smooth' }), sail);
+				await wait(600);
+			});
+			// No spotlight on a button that goes when it is pressed.
+			await doing(page, s.bestown, () => click(page, '[data-act="crew-fit-auto"][data-slot="sail"]', { after: 900 }));
+			await track(page, '.slot-card.crystal', s.crystal, { pad: 6 });
+			await doing(page, s.crystalpick, async () => {
+				await click(page, '[data-act="crew-crystal-pick"]', { after: 1100 });
+				await page.keyboard.type('rusalka', { delay: 70 });
+				await wait(500);
+				await click(page, '#dialog .picker-row', { after: 900 });
+				if (await onScreen(page, '#dialog .dialog-box')) await page.keyboard.press('Escape');
+			});
+			await track(page, '.slot-card.skin', s.skin, {
+				pad: 6,
+				act: () => click(page, '[data-act="crew-skin-all"]', { after: 900 })
+			});
 			await hush(page);
 
-			/* --- the crew: read it in, then arrange it ------------------ */
+			/* --- the crew, read in -------------------------------------- */
 			// The reader comes first because the roster really is empty
 			// until it runs: an earlier cut of this seated sailors that
 			// did not exist yet, and died on the first click.
-			// `.sailor-list` is not a class this app has, so the line about
-			// the roster was lighting the Hire button beside it.
-			await spot(page, '.crew-panel:has([data-act="crew-hire"])', s.crew, { pad: 8 });
-			await spot(page, '[data-act="crew-import"]', s.shots,
-				{ act: () => click(page, '[data-act="crew-import"]', { after: 900 }) });
+			await track(page, '.crew-panel:has([data-act="crew-auto"])', s.crew, { pad: 4 });
+			// Nor on one that opens a dialog: the box would dim the dialog.
+			await doing(page, s.shots, () => click(page, '[data-act="crew-import"]', { after: 1200 }));
 			await doing(page, s.drop, async () => {
-				const input = await page.$('input[data-files]');
-				await input.uploadFile(
-					path.resolve('tools/capture/shots/sailor-1.webp'),
-					path.resolve('tools/capture/shots/sailor-2.webp'),
-					path.resolve('tools/capture/shots/sailor-3.webp'),
-					path.resolve('tools/capture/shots/sailor-4.webp')
-				);
+				const input = await page.$('#dialog input[type=file]');
+				await input.uploadFile(...[1, 2, 3, 4, 5].map(i => path.resolve(`tools/capture/shots/sailor-${i}.webp`)));
 			});
 			// The first read fetches the engine -- about six megabytes --
 			// and then does a pass of OCR per shot, so this is the one
 			// beat in the series that genuinely takes its time.
-			await waitFor(page, '.shot-table', { upTo: 180000, then: 700 });
+			await doing(page, s.reads, () => waitFor(page, '.shot-table', { upTo: 180000, then: 700 }));
+			await pointAt(page, '.shot-table', s.table, { pad: 6 });
 			await doing(page, s.take, () => click(page, '[data-add]', { after: 1400 }));
-			await say(page, s.hired);
+			await track(page, '.crew-panel:has([data-act="crew-import"])', s.hired, { pad: 4 });
+			await track(page, '[data-act="crew-sort"]', s.sort, {
+				pad: 8,
+				act: () => choose(page, '[data-act="crew-sort"]', 'speed', { after: 900 }).catch(() => {})
+			});
+			await doing(page, s.select, async () => {
+				await click(page, '[data-act="crew-select"]', { after: 600 });
+				await page.evaluate(() => {
+					const p = document.querySelector('.crew-sel');
+					if (p) window.scrollTo({ top: p.getBoundingClientRect().top + window.scrollY - 90, behavior: 'smooth' });
+				});
+				await wait(700);
+			});
+			await pointAt(page, '.crew-sel', s.growths, { pad: 4 });
+			// Off again: the seating line wants a click on the sailor first.
+			if (await onScreen(page, '[data-act="crew-clear-sel"]')) await click(page, '[data-act="crew-clear-sel"]', { after: 500 });
 			await hush(page);
 
-			await spot(page, '[data-act="crew-sort"]', s.sort,
-				{ act: () => choose(page, '[data-act="crew-sort"]', 'speed', { after: 500 }).catch(() => {}) });
-			await doing(page, s.manual, async () => {
+			/* --- seating it -------------------------------------------- */
+			await doing(page, s.seat, async () => {
 				await click(page, '[data-act="crew-select"]', { after: 600 });
-				await click(page, '[data-act="crew-seat"]', { after: 700 });
+				await click(page, '[data-act="crew-seat"][data-seat="sail:0"]', { after: 900 });
 			});
 			await say(page, s.seats);
-			await spot(page, '[data-act="crew-auto"]', s.auto,
-				{ act: () => click(page, '[data-act="crew-auto"]', { after: 900 }) });
-			await say(page, s.goal);
-			await doing(page, s.pick, () => click(page, '[data-act="crew-auto-go"]', { after: 1200 }));
-			await spot(page, '.crew-stats, .stats', s.crewstats, { pad: 6 });
+			await doing(page, s.auto, () => click(page, '[data-act="crew-auto"]', { after: 1100 }));
+			await pointAt(page, '#dialog [data-act="crew-auto-go"]', s.goals, { pad: 6 });
+			await doing(page, s.pick, () => click(page, '[data-act="crew-auto-go"][data-goal="speed"]', { after: 1300 }));
+			await pointAt(page, '.crew-stats', s.row, { pad: 4 });
 			await hush(page);
 
-			/* --- presets, setups, the fleet ---------------------------- */
-			// "Two hot presets" -- both of them, rather than whichever
-			// button of the pair comes first.
-			await spotAll(page, '[data-act="crew-preset-apply"], [data-act="crew-preset-save"]', s.presets, {
-				pad: 8,
-				act: () => click(page, '[data-act="crew-preset-save"][data-p="p1"]', { after: 700 })
+			/* --- presets, setups, the fleet ----------------------------- */
+			await track(page, '.crew-panel:has([data-act="crew-preset-save"])', s.presets, {
+				pad: 4,
+				act: () => click(page, '[data-act="crew-preset-save"][data-p="p1"]', { after: 900 })
 			});
-			await spot(page, '[data-act="crew-preset-apply"][data-p="p1"]', s.apply,
-				{ act: () => click(page, '[data-act="crew-preset-apply"][data-p="p1"]', { after: 700 }) });
-			await spot(page, '[data-act="crew-setup-save"]', s.setup,
-				{ act: () => click(page, '[data-act="crew-setup-save"]', { after: 800 }) });
-			await page.keyboard.press('Escape');
+			await doing(page, s.cannons, async () => {
+				await click(page, '[data-act="crew-auto"]', { after: 1000 });
+				await click(page, '[data-act="crew-auto-go"][data-goal="cannon"]', { after: 1000 });
+				await click(page, '[data-act="crew-preset-save"][data-p="p2"]', { after: 900 });
+			});
+			await track(page, '[data-act="crew-preset-apply"][data-p="p1"]', s.apply, {
+				pad: 8,
+				act: () => click(page, '[data-act="crew-preset-apply"][data-p="p1"]', { after: 900 })
+			});
+			await doing(page, s.setup, async () => {
+				await click(page, '[data-act="crew-setup-save"]', { after: 900 });
+				await typeInto(page, '[data-setup-name]', 'Barter Carrack', { after: 300 }).catch(() => {});
+				if (await onScreen(page, '[data-setup-save]')) await click(page, '[data-setup-save]', { after: 900 });
+			});
+			await doing(page, s.other, async () => {
+				await click(page, '[data-act="crew-ship-pick"]', { after: 1000 });
+				await clickText(page, '#dialog .picker-row', 'Epheria Carrack: Valor', { after: 1200 });
+				if (await onScreen(page, '#dialog .dialog-box')) await page.keyboard.press('Escape');
+				await click(page, '[data-act="crew-setup-save"]', { after: 900 });
+				await typeInto(page, '[data-setup-name]', 'Hunting Valor', { after: 300 }).catch(() => {});
+				if (await onScreen(page, '[data-setup-save]')) await click(page, '[data-setup-save]', { after: 900 });
+			});
+			await doing(page, s.fleet, () => click(page, '[data-act="crew-fleet"]', { after: 1300 }));
+			await doing(page, s.sail, async () => {
+				await clickText(page, '#dialog .fleet-row.can', 'Barter Carrack', { after: 1200 });
+			});
+			if (await onScreen(page, '#dialog .dialog-box')) await page.keyboard.press('Escape');
 			await wait(500);
-			if (await onScreen(page, '[data-act="crew-fleet"]')) {
-				await spot(page, '[data-act="crew-fleet"]', s.fleet,
-					{ act: () => click(page, '[data-act="crew-fleet"]', { after: 1100 }) });
-				await say(page, s.sailed);
-				await page.keyboard.press('Escape');
-				await wait(500);
-			} else {
-				await say(page, s.fleet);
-				await say(page, s.sailed);
-			}
 			await hush(page);
 
-			await spot(page, '[data-act="crew-link"]', s.link,
-				{ act: () => click(page, '[data-act="crew-link"]', { after: 900 }) });
+			await track(page, '[data-act="crew-link"]', s.link, {
+				pad: 8,
+				act: () => click(page, '[data-act="crew-link"]', { after: 1000 })
+			});
+			if (await onScreen(page, '#dialog .dialog-box')) await page.keyboard.press('Escape');
 			await say(page, s.close);
 			await hush(page);
 		}
@@ -677,82 +860,122 @@ const CHAPTERS = {
 	 * ============================================================== */
 	'the-map': {
 		n: 'Five', title: 'The Map', at: 'map',
-		blurb: 'The chart, full screen: the toolbar, the layers, the terrain it stands up on, and all five of its tabs.',
+		blurb: 'The chart and its tools, the ruler, the terrain it stands up on, what it draws, who has what you need, the hunting grounds and today\'s checklist.',
 		say: {
-			open: 'This is the Map. It is the whole sea, with everything you need marked on it.',
-			pins: 'Every pin is a barterer holding something you are short of.',
-			showing: 'This says what it is marking. Everything you are short of, or one item you choose.',
-			tools: 'These buttons across the top are the chart controls.',
-			zoom: 'Zoom out, and zoom in. You can also just scroll on the sea.',
+			open: 'This is the Map: the whole sea, with everything you are short of marked on it.',
+			pins: 'Every pin is a barterer who can deal something on your list.',
+			count: 'The head says how many of the ninety-one barterers that is.',
+			showing: 'Showing is what the chart marks. Everything you are short of, or one item you choose.',
+			one: 'Pick one, and only the islands dealing that one thing are left.',
+			all: 'Everything I am short of brings the rest back.',
+			clocks: 'The pill on the chart counts down to the barter refresh, the dailies and the weeklies.',
+
+			/* --- the tools --- */
+			tools: 'The buttons along the top are the chart\'s tools.',
+			zoom: 'Zoom out and in. Scrolling on the sea does the same, and dragging pans.',
 			fit: 'This one fits everything marked back into view, if you get lost.',
-			mini: 'This toggles the minimap in the corner.',
-			stand: 'And this one stands the chart up.',
-			terrain: 'That is the game\'s own terrain, read out of your client. Not a picture of it — the real heightmap.',
-			lean: 'Shift-drag to lean, and the islands come up out of the water.',
-			curve: 'And the world curves away towards the horizon, the way the game\'s own map does. The pins, the route and your drawings all bend with it.',
+			ruler: 'The ruler measures any two points on the sea. Click one, then the other.',
+			coords: 'It gives the distance in metres, and the time your ship takes to sail it.',
+			mini: 'This hides or shows the minimap in the corner. Click on the minimap to jump anywhere.',
+
+			/* --- 3D --- */
+			stand: 'And 3D stands the chart up.',
+			terrain: 'That is the game\'s own terrain, read out of the client. Not a picture of it: the real heightmap.',
+			lean: 'Shift-drag to lean it, and the islands come up out of the water.',
+			curve: 'The world curves away toward the horizon, the way the game\'s own map does, and the pins and the routes bend with it.',
 			ground: 'Ground paints it in the colours the client ships.',
-			neon: 'Neon draws it as contours, the way the game\'s own world map does.',
+			neon: 'Neon draws it as contours, the way the game\'s own 3D map does.',
 			flat: 'And Level looks straight down again, facing north.',
-			full: 'And this is full screen. That is where the chart is worth using, so let us go there.',
-			now: 'Now the sea has the whole window.',
-			refit: 'Hit fit again, now that the chart has the room. That pulls back until every mark is in view at once.',
-			backin: 'Which is most of the sea, so zoom back in a couple of steps to where you actually work.',
-			panel: 'The panel on the left is what drives it.',
-			layers: 'Start with "On the chart". This controls what gets drawn.',
-			chips: 'Barterers, habitats, wharves, guild wharves, island names, and your own drawings. Turn off what you do not need.',
-			search: 'There is a search, for finding an island or a good by name.',
-			tabs: 'And these five tabs are the tools. We will take them in order.',
-			barter: 'Barter is the default. Every island that has something on your list, with what it trades.',
-			row: 'Click a row and the chart flies to that island.',
-			route: 'Route turns that list into a sailing route.',
-			plot: 'Plot the loop, and it draws one, bent around the land rather than through it.',
-			legs: 'Every leg gets a distance and a time, at the speed your ship actually sails.',
-			save: 'Save the route, share it as a link, or send it to the game map as bookmarks.',
-			draw: 'Draw is for routes the list cannot describe. It gives you three tools.',
-			point: 'The pin drops a numbered stop, in the order you mean to sail.',
-			pen: 'The pen draws a freehand line.',
-			text: 'And the text tool types a note straight onto the water.',
-			keep: 'Name it and keep it, and it joins your library. Traces share as links too.',
-			grounds: 'Grounds is for hunting.',
-			where: 'It lists every species: sea monsters, young ones, ships, bosses, the Cox Pirates — and the Hollow Maretta, the song the Great Ocean is told to sail away from, with the thirty-eight spots it is rung at.',
+
+			/* --- full screen --- */
+			full: 'The last button is full screen. That is where the chart is worth using.',
+			now: 'Now the sea has the whole window. The few buttons that matter come with it.',
+			refit: 'Fit again, now that the chart has the room.',
+			panel: 'The panel drives the chart, and the arrows swap it to the other side.',
+
+			/* --- what it draws --- */
+			layers: 'On the chart is what gets drawn, whichever tab is open.',
+			chips: 'Barterers, the habitats where each species lives, the wharf managers, guild wharves, island names, and your own drawings.',
+			habitats: 'The habitats are the pictures of where each species lives. Turn them off when the chart gets busy.',
+			wharves: 'The wharves mark every wharf manager, for repairs, rations and sailors.',
+			names: 'And the island names come up once you are close enough to read them.',
+
+			/* --- who has it --- */
+			tabs: 'Five tabs: Who has it, Route, Draw, Hunt and Today. Route and Draw have a part of their own, after this one.',
+			who: 'Who has it lists every island dealing something on your list, the most first, with what it trades for.',
+			kinds: 'Narrow it to materials or to trade goods.',
+			pool: 'One of N is that island\'s pool: each refresh it deals one offer out of N, so this is where the thing can turn up, not where it will.',
+			row: 'Click a row, and the chart flies to that island.',
+			card: 'Its card lists what it trades, and adds it to a route.',
+
+			/* --- hunt --- */
+			hunt: 'Hunt is for what you kill rather than trade.',
+			errands: 'At the top, the hunting quests you have taken. Work out today\'s loop picks a ground for each, and puts the calls in order.',
+			grounds: 'Every species is listed: sea monsters, young ones, ships, bosses, the Cox Pirates, and the Hollow Maretta, with the thirty-eight spots it rings at.',
 			monster: 'Click one, and every spawn point it has goes on the chart.',
-			more: 'Tick as many as you like, and send the lot to the game map.',
-			courses: 'Above them are the known sailing courses, each with a note.',
-			today: 'Today is your checklist for this refresh.',
-			tick: 'Every island you need, ticked off as you visit it, with the total at the top.',
-			pan: 'Drag to pan, scroll to zoom. The drawings and pins move with the chart.',
+			more: 'Tick as many as you like. The lot can be sent to the game\'s own world map as favourites.',
+			courses: 'Above them are the known sailing courses, each with a note on what it is for.',
+
+			/* --- today --- */
+			today: 'Today is a checklist for this refresh: every island you need, to tick off as you visit.',
+			tick: 'The ring counts how many you have been to, and it all clears with the barter refresh.',
 			esc: 'Escape, or the cross, brings the page back.',
 			close: 'That is the Map. Everything you are short of, where it is, and how long it takes to get there.'
 		},
-		async shoot(ctx, s) {
+		async shoot(ctx, s, ch) {
 			const { page, url } = ctx;
 			await seed(page, url, QUEUED);
 			await film(page, `${OUT}/the-map.webm`);
-			await card(page, 'Five', 'The Map', { line: s.open });
+			await card(page, ch.n, ch.title, { line: s.open });
 
-			await doing(page, s.pins, () => tab(page, 'map', { after: 1600 }));
-			await wait(900);
+			await doing(page, s.pins, () => tab(page, 'map', { after: 1800 }));
 			if (!(await onScreen(page, '.map-side'))) await click(page, '[data-act="map-panel"]', { after: 700 });
-			await spot(page, '[data-act="map-pick-open"]', s.showing);
+			await pointAt(page, '.summary-stats > div:first-child', s.count, { pad: 8 });
+			await track(page, '[data-act="map-pick-open"]', s.showing, { pad: 8 });
+			await doing(page, s.one, async () => {
+				await click(page, '[data-act="map-pick-open"]', { after: 900 });
+				await page.keyboard.type('sea monster\'s scale', { delay: 55 });
+				await wait(500);
+				await clickText(page, '#dialog .picker-row', "Violent Sea Monster's Scale", { after: 1600 });
+			});
+			await doing(page, s.all, async () => {
+				await click(page, '[data-act="map-pick-open"]', { after: 900 });
+				await clickText(page, '#dialog .picker-row', 'Everything I am short of', { after: 1400 });
+			});
+			await pointAt(page, '.map-clocks', s.clocks, { pad: 8 });
+			await hush(page);
 
-			/* --- the toolbar, before we go full screen ------------------ */
-			await spot(page, '.map-zoom', s.tools, { pad: 8 });
-			await spot(page, '[data-act="map-zoom"][data-step="1"]', s.zoom, {
+			/* --- the tools ---------------------------------------------- */
+			await track(page, '.map-zoom', s.tools, { pad: 8 });
+			await track(page, '[data-act="map-zoom"][data-step="1"]', s.zoom, {
 				act: async () => {
-					await click(page, '[data-act="map-zoom"][data-step="1"]', { after: 500 });
-					await click(page, '[data-act="map-zoom"][data-step="-1"]', { after: 500 });
+					await click(page, '[data-act="map-zoom"][data-step="1"]', { after: 600 });
+					await click(page, '[data-act="map-zoom"][data-step="-1"]', { after: 600 });
+					await drag(page, '#map', -120, 40, { from: [0.62, 0.5], after: 500 });
 				}
 			});
-			await spot(page, '[data-act="map-fit"]', s.fit,
-				{ act: () => click(page, '[data-act="map-fit"]', { after: 900 }) });
-			await spot(page, '[data-act="map-mini"]', s.mini,
-				{ act: () => click(page, '[data-act="map-mini"]', { after: 700 }) });
+			await track(page, '[data-act="map-fit"]', s.fit,
+				{ act: () => click(page, '[data-act="map-fit"]', { after: 1100 }) });
+			await doing(page, s.ruler, async () => {
+				await click(page, '[data-act="map-measure"]', { after: 600 });
+				await clickIn(page, '#map', 0.52, 0.42, { after: 500 });
+				await clickIn(page, '#map', 0.74, 0.62, { after: 900 });
+			});
+			await say(page, s.coords);
+			await click(page, '[data-act="map-measure"]', { after: 600 });
+			await track(page, '[data-act="map-mini"]', s.mini, {
+				act: async () => {
+					await click(page, '[data-act="map-mini"]', { after: 1200 });
+					await click(page, '[data-act="map-mini"]', { after: 900 });
+				}
+			});
+			await hush(page);
 
 			/* --- the chart stood up ------------------------------------ */
 			// The terrain is meshes off the client, fetched per tile, so
 			// this is the one control in the series that needs real time
 			// to answer before there is anything to talk about.
-			await spot(page, '[data-act="map-3d"]', s.stand,
+			await track(page, '[data-act="map-3d"]', s.stand,
 				{ act: () => click(page, '[data-act="map-3d"]', { after: 4200 }) });
 			await say(page, s.terrain);
 			await doing(page, s.lean, () => drag(page, '#map', 0, -150, { hold: 'Shift', after: 900 }));
@@ -769,118 +992,88 @@ const CHAPTERS = {
 			});
 			// Back to looking down for the rest of it: the tabs below are
 			// about what the chart draws, not how it is drawn.
-			await click(page, '[data-act="map-3d"]', { after: 1600 });
-			await hush(page);
-			await spot(page, '[data-act="map-full"]', s.full,
-				{ act: () => click(page, '[data-act="map-full"]', { after: 1500 }) });
+			await click(page, '.map-zoom [data-act="map-3d"]', { after: 1600 });
 			await hush(page);
 
-			/* --- everything past here is full screen -------------------- */
-			await say(page, s.now);
+			/* --- full screen ------------------------------------------- */
+			await doing(page, s.full, () => click(page, '.map-zoom [data-act="map-full"]', { after: 1500 }));
+			await pointAt(page, '[data-map-fullbar]', s.now, { pad: 8 });
 			// Full screen changes the chart's size, not its zoom, so the
 			// marks sit in a corner of a much wider frame until it is
-			// fitted again. Re-fitting is what a person does here, and it
-			// is the first good look at the sea the film gets.
-			await spot(page, '[data-act="map-fit"]', s.refit,
-				{ act: () => click(page, '[data-act="map-fit"]', { after: 2200 }) });
-			// Fit pulls back far enough to hold every mark, which on a
-			// full board is the whole sea -- and further out than the
-			// chart draws land at, so it is a dull frame to talk over.
-			// Two steps back in is where a person actually works anyway.
-			await doing(page, s.backin, async () => {
-				await click(page, '[data-act="map-zoom"][data-step="1"]', { after: 700 });
-				await click(page, '[data-act="map-zoom"][data-step="1"]', { after: 1600 });
+			// fitted again.
+			await doing(page, s.refit, async () => {
+				await click(page, '[data-act="map-fit"]', { after: 1800 });
+				await click(page, '[data-act="map-zoom"][data-step="1"]', { after: 1200 });
 			});
 			if (!(await onScreen(page, '.map-side'))) await click(page, '[data-act="map-panel"]', { after: 700 });
-			await say(page, s.panel);
+			await track(page, '[data-act="map-side-flip"]', s.panel, {
+				pad: 8,
+				act: async () => {
+					await click(page, '[data-act="map-side-flip"]', { after: 1200 });
+					await click(page, '[data-act="map-side-flip"]', { after: 1000 });
+				}
+			});
+			await hush(page);
+
+			/* --- what it draws ----------------------------------------- */
 			if (!(await onScreen(page, '[data-act="map-pins"]'))) {
 				await click(page, '[data-act="map-layers"]', { after: 700 });
 			}
-			await spot(page, '.map-layers', s.layers, { pad: 6 });
-			await spot(page, '.map-chips', s.chips, {
-				pad: 6,
-				act: async () => {
-					await click(page, '[data-act="map-habitats"]', { after: 500 });
-					await click(page, '[data-act="map-habitats"]', { after: 400 });
-				}
+			await track(page, '.map-layers', s.layers, { pad: 6 });
+			await track(page, '.map-chips', s.chips, { pad: 6 });
+			// No spotlight on these three: what they change is the chart, and
+			// a box round the chip dims the very thing being talked about.
+			await doing(page, s.habitats, async () => {
+				await click(page, '[data-act="map-habitats"]', { after: 1300 });
+				await click(page, '[data-act="map-habitats"]', { after: 900 });
 			});
-			if (await onScreen(page, '[data-act="map-search"]')) {
-				await spot(page, '[data-act="map-search"]', s.search);
-			} else {
-				await say(page, s.search);
-			}
-			// Five tabs named, so five tabs lit: `.map-tab` on its own is
-			// the Barter one.
-			await spotAll(page, '.map-tab', s.tabs, { pad: 6 });
+			await doing(page, s.wharves, () => click(page, '[data-act="map-wharves"][data-id="wharf"]', { after: 1300 }));
+			await doing(page, s.names, async () => {
+				await click(page, '[data-act="map-wharves"][data-id="wharf"]', { after: 400 });
+				if (!(await onScreen(page, '[data-act="map-labels"].on'))) await click(page, '[data-act="map-labels"]', { after: 400 });
+				await click(page, '[data-act="map-zoom"][data-step="1"]', { after: 900 });
+				await click(page, '[data-act="map-zoom"][data-step="1"]', { after: 1400 });
+			});
+			await click(page, '[data-act="map-zoom"][data-step="-1"]', { after: 600 });
+			await click(page, '[data-act="map-zoom"][data-step="-1"]', { after: 600 });
+			await click(page, '[data-act="map-layers"]', { after: 600 });
 			await hush(page);
 
-			/* --- tab 1: Barter ----------------------------------------- */
-			await doing(page, s.barter, () => click(page, '[data-act="map-mode"][data-id="sail"]', { after: 900 }));
-			if (await onScreen(page, '.map-row, .map-npc')) {
-				await doing(page, s.row, () => click(page, '.map-row, .map-npc', { after: 1400 }));
-			} else {
-				await say(page, s.row);
-			}
-			// The card a pin opens stays up until it is dismissed, and an
-			// undismissed one sat over the chart for three tabs after
-			// this.
+			/* --- who has it -------------------------------------------- */
+			// Five tabs named, so five tabs lit.
+			await spotAll(page, '.map-tab', s.tabs, { pad: 6 });
+			await doing(page, s.who, () => click(page, '[data-act="map-mode"][data-id="sail"]', { after: 900 }));
+			await track(page, '.map-kinds', s.kinds, {
+				pad: 6,
+				act: async () => {
+					await click(page, '[data-act="map-kind"][data-id="material"]', { after: 1300 });
+					await click(page, '[data-act="map-kind"][data-id="all"]', { after: 700 });
+				}
+			});
+			await pointAt(page, '.map-side .map-hint', s.pool, { pad: 6 });
+			await doing(page, s.row, () => click(page, '.map-list .map-row', { after: 1800 }));
+			await pointAt(page, '.map-tip', s.card, { pad: 6 });
+			// The card a pin opens stays up until it is dismissed.
 			if (await onScreen(page, '[data-act="map-tip-close"]')) {
 				await click(page, '[data-act="map-tip-close"]', { after: 500 });
 			}
 			await hush(page);
 
-			/* --- tab 2: Route ------------------------------------------ */
-			await doing(page, s.route, () => click(page, '[data-act="map-mode"][data-id="route"]', { after: 900 }));
-			await doing(page, s.plot, () => click(page, '[data-act="map-route-use"]', { after: 2200 }));
-			await say(page, s.legs);
-			if (await onScreen(page, '[data-act="map-route-save"]')) {
-				await spot(page, '[data-act="map-route-save"]', s.save, { pad: 12 });
-			} else {
-				await say(page, s.save);
+			/* --- hunt -------------------------------------------------- */
+			await doing(page, s.hunt, () => click(page, '[data-act="map-mode"][data-id="hunt"]', { after: 1100 }));
+			if (await onScreen(page, '[data-act="map-errands"]')) {
+				await doing(page, s.errands, () => click(page, '[data-act="map-errands"]', { after: 2200 }));
+				// Put away again, or its loop sits over the grounds below.
+				if (await onScreen(page, '[data-act="map-errands"]')) await click(page, '[data-act="map-errands"]', { after: 800 });
 			}
-			await hush(page);
-
-			/* --- tab 3: Draw ------------------------------------------- */
-			// The barterers go off first: three traced stops are invisible
-			// under fifty-eight pins.
-			await click(page, '[data-act="map-pins"]', { after: 700 });
-			await doing(page, s.draw, () => click(page, '[data-act="map-mode"][data-id="trace"]', { after: 900 }));
-			await doing(page, s.point, async () => {
-				await click(page, '[data-act="trace-tool"][data-id="point"]', { after: 500 });
-				for (const [fx, fy] of [[0.40, 0.24], [0.53, 0.36], [0.46, 0.56]]) {
-					await clickIn(page, '#map', fx, fy, { after: 420 });
-				}
-			});
-			await doing(page, s.pen, async () => {
-				await click(page, '[data-act="trace-tool"][data-id="pen"]', { after: 500 });
-				await drag(page, '#map', 150, -80, { from: [0.58, 0.64], after: 600 });
-			});
-			await doing(page, s.text, async () => {
-				await click(page, '[data-act="trace-tool"][data-id="text"]', { after: 500 });
-				await clickIn(page, '#map', 0.44, 0.44, { after: 500 });
-				await page.keyboard.type('the long way home', { delay: 70 });
-				await wait(500);
-			});
-			await say(page, s.keep);
-			await hush(page);
-
-			/* --- tab 4: Grounds ---------------------------------------- */
-			await doing(page, s.grounds, () => click(page, '[data-act="map-mode"][data-id="hunt"]', { after: 1100 }));
-			await say(page, s.where);
-			// A ground with its spawn points charted: the disabled ones
-			// are species BDOCodex has no points for, and pressing one
-			// draws nothing at all.
-			// The siren by name, because the line before this one names
-			// her: pressing whatever happened to sort first would have the
-			// film point at one ground while talking about another.
+			await say(page, s.grounds);
+			// The siren by name, because the line before this one names her.
 			const ground = '[data-act="map-hunt"]:not([disabled])';
 			const siren = '[data-act="map-hunt"][data-id="hollow-maretta"]:not([disabled])';
 			const first = await onScreen(page, siren) ? siren : ground;
 			if (await onScreen(page, first)) {
 				await doing(page, s.monster, () => click(page, first, { after: 1600 }));
-				// A second species, not the same one again: `ground` still
-				// matches the one just ticked, and pressing it would take
-				// it back off.
+				// A second species, not the same one again.
 				await doing(page, s.more, () => click(page, `${ground}:not(.on)`, { after: 1300 }));
 			} else {
 				await say(page, s.monster);
@@ -893,17 +1086,19 @@ const CHAPTERS = {
 			}
 			await hush(page);
 
-			/* --- tab 5: Today ------------------------------------------ */
-			await doing(page, s.today, () => click(page, '[data-act="map-mode"][data-id="today"]', { after: 1100 }));
-			await say(page, s.tick);
+			/* --- today ------------------------------------------------- */
+			await doing(page, s.today, async () => {
+				await click(page, '[data-act="map-mode"][data-id="today"]', { after: 900 });
+				await click(page, '[data-act="map-done"]', { after: 600 });
+				await click(page, '[data-act="map-done"]:not(.done)', { after: 600 });
+			});
+			await pointAt(page, '.map-ring-row', s.tick, { pad: 6 });
 			await hush(page);
 
-			/* --- the chart itself -------------------------------------- */
-			await doing(page, s.pan, async () => {
-				await drag(page, '#map', -170, -70, { after: 400 });
-				await drag(page, '#map', 140, 40, { after: 400 });
+			await doing(page, s.esc, async () => {
+				await page.keyboard.press('Escape');
+				await wait(900);
 			});
-			await say(page, s.esc);
 			await say(page, s.close);
 			await hush(page);
 		}
@@ -1025,11 +1220,11 @@ const CHAPTERS = {
 			setup: 'Hull, the four parts, the crystal and the crew aboard. Change the ship, and the whole run re-times.',
 			close: 'That is it. Show it one island, and it plans the rest.'
 		},
-		async shoot(ctx, s) {
+		async shoot(ctx, s, ch) {
 			const { page, url } = ctx;
 			await seed(page, url, QUEUED);
 			await film(page, `${OUT}/a-run.webm`);
-			await card(page, 'Six', 'A Run', { line: s.open });
+			await card(page, ch.n, ch.title, { line: s.open });
 
 			await tab(page, 'barter');
 			await wait(1200);
@@ -1265,54 +1460,96 @@ const CHAPTERS = {
 	 * ============================================================== */
 	'the-harbour': {
 		n: 'Seven', title: 'The Harbour', at: 'community',
-		blurb: 'Sixteen boards, what a place on one opens, what is and is not shared — and the box the last release was written out of.',
+		blurb: 'Signing in puts you on the boards; how you are shown, what a place opens, the fleet in numbers, leaving, the feedback box and the Menu.',
 		staged: true,
 		say: {
-			open: 'Everything so far runs in your browser alone. This last part is the one that needs sign-in.',
+			open: 'Everything so far runs in your browser alone. This part has other sailors in it, and it needs sign-in.',
 			fleet: 'One note first: the sailors on these boards are invented. A machine recording this has no server with real players on it. The tab, the digest and the ranking are the app\'s own.',
-			boards: 'Sixteen boards, built from the players who chose to join them.',
-			sections: 'They come in five sections: the sea, the runs, quests and hunts, the yard, and charts and hold.',
-			how: 'The question mark on a board tells you exactly how that one is counted.',
-			yours: 'Your own places sit at the top, so you can see where you stand without hunting for yourself.',
-			find: 'And there is a search, if you are after one sailor by name.',
-			door: 'Click any place on a board to open that player\'s card.',
+
+			/* --- on the boards --- */
+			signin: 'Signing in with Discord puts you on the boards by name. The first time, the tab says so, and what is shared: the numbers, never your stock, your notes or your traces.',
+			shown: 'Change how you are shown picks your Discord name, or an unnamed sailor: still counted and ranked, but shown only as a sailor.',
+			digest: 'Under it is the exact digest that would be shared right now. Nothing else of your save goes up.',
+			places: 'Your own places sit at the top, so you can see where you stand without hunting for yourself.',
+
+			/* --- the boards --- */
+			boards: 'Sixteen boards, in five sections: the sea, the runs, quests and hunts, the yard, and charts and hold.',
+			section: 'Press a section to see just its boards.',
+			how: 'The question mark on a board says exactly how it is counted.',
+			find: 'And Find a sailor searches the boards by name. An unnamed sailor cannot be found that way; that is what unnamed means.',
+
+			/* --- a place is a door --- */
+			door: 'Click any place on a board to open that sailor\'s card.',
 			card: 'Their fleet, their crew, their places, and what they have done at sea.',
-			look: 'Click Look, and their ship loads onto your own Ship tab, fully fitted.',
-			back: 'To look at, not to keep. One click puts yours back.',
+			look: 'Look stands their ship up on your own Ship tab, fully fitted and crewed.',
+			back: 'To look at, not to keep. One press puts yours back.',
+
+			/* --- the fleet in numbers --- */
 			numbers: 'The other half of the tab adds the whole fleet up.',
-			cats: 'Which hulls people sail, which parts they fit, which crystals, which quests they run.',
-			sort: 'Search it for anything, and sort by most-first or A to Z.',
-			useful: 'It is the closest thing to an answer when you are wondering what everyone else fits.',
-			offered: 'Nothing goes onto a board that you did not offer.',
-			digest: 'You see the exact digest before you agree to it — the numbers, and nothing else.',
-			leave: 'And leaving takes it back off again.',
+			cats: 'Which hulls people sail, which parts they fit, which crystals, which islands they plot routes through, and which quests they run.',
+			item: 'Click a line, and its card opens: what it costs, and what it is made from.',
+			sort: 'Search it for anything, and sort by most first or A to Z.',
+
+			/* --- leaving --- */
+			leave: 'Leave the boards takes your places off, and deletes the digest the server holds.',
+			stays: 'Your save is untouched, and signing in again will not quietly put you back. Stay keeps you on.',
 
 			/* --- writing in --- */
-			box: 'One more door, under Menu. Feedback.',
-			kinds: 'Something wrong, an idea, or something else — and it reaches whoever runs this copy of the app.',
-			post: 'A report is a post, not a form. Bold, lists, quotes, a link — and a screenshot pasted straight in.',
+			box: 'One more door, in the Menu: Feedback.',
+			kinds: 'Something wrong, an idea, or something else. It reaches whoever runs this copy of the app.',
+			post: 'A report is a post, not a form: bold, lists, quotes, a link, and a screenshot pasted straight in.',
 			preview: 'Preview shows it the way it will be read.',
 			attached: 'Your name, the screen you were on and the build you are running go with it, so nobody has to ask which version.',
-			asked: 'It is worth doing. Five players wrote in before this release, and one of them wrote most of it.',
+
+			/* --- the menu --- */
+			menu: 'The Menu holds the rest of the app: Find, the trip log, Undo and Redo, at the top.',
+			saves: 'Profiles keep separate saves on one browser. Export and Import move a save as a file or a link.',
+			help: 'Help plays this film, the Tour walks through your own screen, and What\'s new lists each release.',
+			look2: 'And the theme, the water behind the page, and the language, which changes the app and every item name together.',
 			close: 'Your data stays in your browser. Sign in to sync it between machines, or to join in. Neither is required for anything else in the app.'
 		},
-		async shoot(ctx, s) {
+		async shoot(ctx, s, ch) {
 			const { page, url } = ctx;
 			// Before the seed, so /api/config is already saying `community`
 			// when the tab strip is first drawn.
 			await fakeCommunity(page);
 			await seed(page, url, QUEUED);
 			await film(page, `${OUT}/the-harbour.webm`);
-			await card(page, 'Seven', 'The Harbour', { line: s.open });
+			await card(page, ch.n, ch.title, { line: s.open });
 
 			await doing(page, s.fleet, () => tab(page, 'community', { after: 900 }));
-			await say(page, s.boards);
 
-			/* --- finding your way round the boards --------------------- */
-			await point(page, '.comm-cats', s.sections, { pad: 6 });
-			await point(page, '[data-act="community-how"]', s.how, { pad: 12 });
-			await point(page, '.comm-you', s.yours, { pad: 6 });
-			await point(page, '[data-act="community-find"]', s.find, { pad: 10 });
+			/* --- on the boards ----------------------------------------- */
+			await pointAt(page, '.comm-notice', s.signin, { pad: 6 });
+			await doing(page, s.shown, () => click(page, '.comm-notice [data-act="community-join"], [data-act="community-join"]', { after: 1300 }));
+			await doing(page, s.digest, async () => {
+				await page.evaluate(() => {
+					const b = document.querySelector('#dialog .dialog-box');
+					if (b) b.scrollBy({ top: 260, behavior: 'smooth' });
+				});
+				await wait(900);
+			});
+			await page.keyboard.press('Escape');
+			await wait(500);
+			await pointAt(page, '.comm-you', s.places, { pad: 6 });
+			await hush(page);
+
+			/* --- the boards -------------------------------------------- */
+			await pointAt(page, '[data-act="community-sec"]', s.boards, { pad: 6 });
+			await doing(page, s.section, async () => {
+				await click(page, '[data-act="community-sec"][data-id="runs"]', { after: 1500 });
+				await click(page, '[data-act="community-sec"][data-id="all"]', { after: 700 });
+			});
+			await doing(page, s.how, () => click(page, '[data-act="community-how"]', { after: 1300 }));
+			await page.keyboard.press('Escape');
+			await wait(500);
+			await doing(page, s.find, async () => {
+				await click(page, '[data-act="community-find"]', { after: 1100 });
+				await page.keyboard.type('sea', { delay: 90 });
+				await wait(900);
+			});
+			await page.keyboard.press('Escape');
+			await wait(500);
 			await hush(page);
 
 			/* --- a place on a board is a door -------------------------- */
@@ -1328,42 +1565,71 @@ const CHAPTERS = {
 				await tab(page, 'community', { after: 800 });
 				await click(page, '[data-act="community-half"][data-id="numbers"]', { after: 1000 });
 			});
-			await point(page, '.comm-cats', s.cats, { pad: 6 });
-			await point(page, '.comm-numq', s.sort, { pad: 10 });
-			await say(page, s.useful);
+			await spotAll(page, '[data-act="community-cat"]', s.cats, { pad: 6 });
+			await doing(page, s.item, () => click(page, '[data-act="community-item"]', { after: 1400 }));
+			await page.keyboard.press('Escape');
+			await wait(500);
+			await pointAt(page, '[data-act="community-numq"]', s.sort, {
+				pad: 10,
+				act: async () => {
+					await click(page, '[data-act="community-sort"][data-id="name"]', { after: 1000 });
+					await click(page, '[data-act="community-sort"][data-id="count"]', { after: 600 });
+				}
+			});
 			await hush(page);
 
-			/* --- what is and is not shared ----------------------------- */
-			await point(page, '[data-act="community-join"]', s.offered, { pad: 10 });
-			await say(page, s.digest);
-			await point(page, '[data-act="community-leave"]', s.leave, { pad: 10 });
+			/* --- leaving ----------------------------------------------- */
+			await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'smooth' }));
+			await wait(500);
+			await doing(page, s.leave, () => click(page, '.comm-you [data-act="community-leave"], [data-act="community-leave"]', { after: 1300 }));
+			await doing(page, s.stays, () => click(page, '#dialog [data-close]', { after: 900 }));
 			await hush(page);
 
 			/* --- writing in -------------------------------------------- */
 			// The box is under Menu rather than on this tab, but it belongs
 			// to the same half of the app -- the half with other people in
 			// it -- and this is the only chapter signed in, which the box
-			// now needs.
+			// needs.
 			await doing(page, s.box, async () => {
 				await click(page, '[data-act="more"]', { after: 700 });
 				await click(page, '[data-act="feedback"]', { after: 1400 });
 			});
-			await point(page, '.fb-kinds', s.kinds, {
+			await pointAt(page, '.fb-kinds', s.kinds, {
 				pad: 8,
 				act: () => click(page, '.fb-kind:not(.on)', { after: 600 })
 			});
-			await spot(page, '.fb-bar', s.post, {
-				pad: 8,
+			await pointAt(page, '.fb-compose', s.post, {
+				pad: 6,
 				act: async () => {
 					await click(page, '.fb-text', { after: 300 });
 					await page.keyboard.type('The stock run fills a level before it climbs from it, which is exactly what I asked for.', { delay: 32 });
-					await wait(500);
+					await wait(400);
 					await click(page, '.fb-mark[data-mark="quote"]', { after: 600 });
 				}
 			});
-			await doing(page, s.preview, () => click(page, '[data-act="preview"]', { after: 1200 }));
-			await point(page, '.fb-meta', s.attached, { pad: 8 });
-			await say(page, s.asked);
+			await doing(page, s.preview, () => click(page, '#dialog [data-act="preview"]', { after: 1200 }));
+			await pointAt(page, '.fb-meta', s.attached, { pad: 8 });
+			await page.keyboard.press('Escape');
+			await wait(600);
+			await hush(page);
+
+			/* --- the menu ---------------------------------------------- */
+			await doing(page, s.menu, () => click(page, '[data-act="more"]', { after: 1000 }));
+			// The drawer scrolls on its own, which spotAll's window scroll
+			// does not reach: bring the group into the drawer's view first.
+			await page.evaluate(() => document.querySelector('.sheet-item[data-act="profiles"]')?.scrollIntoView({ block: 'center', behavior: 'smooth' }));
+			await wait(500);
+			await spotAll(page, '.sheet-item[data-act="profiles"], .sheet-item[data-act="export"], .sheet-item[data-act="import"]', s.saves, { pad: 6, top: 60 });
+			// The drawer scrolls on its own, which spotAll's window scroll
+			// does not reach: bring the group into the drawer's view first.
+			await page.evaluate(() => document.querySelector('.sheet-item[data-act="whats-new"]')?.scrollIntoView({ block: 'center', behavior: 'smooth' }));
+			await wait(500);
+			await spotAll(page, '.sheet-item[data-act="whats-new"], .sheet-item[data-act="help"], .sheet-item[data-act="tour"]', s.help, { pad: 6, top: 60 });
+			// The drawer scrolls on its own, which spotAll's window scroll
+			// does not reach: bring the group into the drawer's view first.
+			await page.evaluate(() => document.querySelector('.sheet-item[data-act="theme"]')?.scrollIntoView({ block: 'center', behavior: 'smooth' }));
+			await wait(500);
+			await spotAll(page, '.sheet-item[data-act="theme"], .sheet-item[data-act="water"], .sheet-item[data-act="language"]', s.look2, { pad: 6, top: 60 });
 			await page.keyboard.press('Escape');
 			await wait(600);
 			await say(page, s.close);
@@ -1377,7 +1643,21 @@ const CHAPTERS = {
  * shooting them
  * ------------------------------------------------------------------ */
 
-const run = only.length ? only : Object.keys(CHAPTERS);
+// The chapters written one to a file, under chapters/. Each exports a
+// chapter of the shape above, with an `id`; its `shoot` is handed the
+// output folder as `ctx.out`.
+for (const f of (await readdir(new URL('./chapters/', import.meta.url)).catch(() => [])).filter(f => f.endsWith('.mjs')).sort()) {
+	const ch = (await import(`./chapters/${f}`)).default;
+	if (CHAPTERS[ch.id]) throw new Error(`chapter ${ch.id} is defined twice`);
+	CHAPTERS[ch.id] = ch;
+}
+// Numbered by where they stand in the film, so a chapter added or moved
+// is never captioned with a number it no longer has.
+const WORDS = ['One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve',
+	'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen', 'Twenty'];
+ORDER.forEach((id, i) => { if (CHAPTERS[id]) CHAPTERS[id].n = WORDS[i] || String(i + 1); });
+
+const run = only.length ? only : ORDER.filter(id => CHAPTERS[id]);
 for (const name of run) {
 	if (!CHAPTERS[name]) {
 		console.log(`? unknown chapter ${name}`);
@@ -1400,8 +1680,9 @@ for (const name of run) {
 	// leak into a chapter shot after it, and a chapter that dies takes
 	// only its own context down with it.
 	const ctx = await open({ width: 1280, height: 820 });
+	ctx.out = OUT;
 	try {
-		await ch.shoot(ctx, ch.say);
+		await ch.shoot(ctx, ch.say, ch);
 		const reel = await cut();
 		await writeFile(`${OUT}/${name}.json`, JSON.stringify({
 			...reel, id: name, n: ch.n, title: ch.title, blurb: ch.blurb, staged: Boolean(ch.staged)

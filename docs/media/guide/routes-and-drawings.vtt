@@ -1,0 +1,129 @@
+WEBVTT
+
+1
+00:00:00.372 --> 00:00:07.317
+The Map's Route and Draw tabs: a loop through what you are short of, timed at your own ship, and routes of your own, drawn straight onto the sea.
+
+2
+00:00:13.026 --> 00:00:15.622
+Route turns the list of islands into a sailing route.
+
+3
+00:00:15.622 --> 00:00:20.630
+Plot the loop, and it joins every island you are short of, bent round the land rather than through it.
+
+4
+00:00:20.946 --> 00:00:27.616
+The tiles total it up: the stops, the distance and the time at your ship's speed, the hold, the rations it eats, and the Parley it costs.
+
+5
+00:00:27.616 --> 00:00:31.886
+Parley is counted at one trade a stop, or at every attempt the offer allows.
+
+6
+00:00:32.425 --> 00:00:37.009
+Every stop is a row: what that island has for you, and how the hold stands after it.
+
+7
+00:00:37.009 --> 00:00:40.429
+Say where you sail from, and whether you come back, and the times follow.
+
+8
+00:00:40.429 --> 00:00:42.878
+Click a stop, and the chart flies to it.
+
+9
+00:00:44.874 --> 00:00:48.471
+The cross takes a stop off, and a pin's card puts one back on.
+
+10
+00:00:48.801 --> 00:00:53.366
+The route is timed at the ship you sail. Switch setup times it at another one you have kept.
+
+11
+00:00:53.960 --> 00:00:55.846
+Reverse sails it the other way round.
+
+12
+00:00:55.846 --> 00:00:59.935
+Save keeps it by name. Eight are kept, and none is dropped without asking.
+
+13
+00:01:00.264 --> 00:01:04.255
+Copy link puts the route in an address. Signed in, it is a short one.
+
+14
+00:01:05.218 --> 00:01:08.368
+Export and Import carry it as a small file instead.
+
+15
+00:01:08.368 --> 00:01:12.278
+And Put it on the game's map writes the stops into Black Desert's own world map.
+
+16
+00:01:12.278 --> 00:01:16.395
+As favourites, named and numbered, or as one of the map's three navigation loops.
+
+17
+00:01:16.395 --> 00:01:25.998
+Copy the block, or download it, and paste it into gameVariable.xml at the character screen. Or let the app write it into the game's folder itself, keeping a copy of the old file.
+
+18
+00:01:33.342 --> 00:01:35.905
+Draw is for routes the list cannot describe.
+
+19
+00:01:36.268 --> 00:01:39.189
+Four tools: add stops, draw, write, and shade an area.
+
+20
+00:01:39.189 --> 00:01:44.489
+Add stops drops a numbered stop wherever you click, in the order you mean to sail. Legs bend round the land.
+
+21
+00:01:44.489 --> 00:01:48.062
+Pick another ink, and the next stops start a second line, numbered on its own.
+
+22
+00:01:48.062 --> 00:01:49.886
+Draw is a freehand line.
+
+23
+00:01:50.934 --> 00:01:53.316
+Write puts a note straight onto the water.
+
+24
+00:01:54.068 --> 00:01:58.535
+And shade an area marks a stretch of sea: click its corners, then the first one again.
+
+25
+00:01:59.372 --> 00:02:02.424
+Undo takes back the last mark, whatever kind it was.
+
+26
+00:02:02.424 --> 00:02:04.396
+Give it a name and a note.
+
+27
+00:02:07.066 --> 00:02:09.135
+Keep puts it on the shelf below.
+
+28
+00:02:09.135 --> 00:02:14.891
+Copy link carries the whole drawing, stops, lines, words and all, to anyone, with nothing of theirs touched.
+
+29
+00:02:14.891 --> 00:02:18.405
+To the game writes its lines into the game's map too, a loop each.
+
+30
+00:02:18.915 --> 00:02:23.008
+The shelf keeps the newest; the eye lays one over the chart beside what you are drawing.
+
+31
+00:02:23.008 --> 00:02:27.392
+And Browse opens the whole library, with a search and every drawing as a card.
+
+32
+00:02:27.482 --> 00:02:32.949
+That is routing and drawing. A loop timed at your own ship, and a way to show anyone else the sea you mean.

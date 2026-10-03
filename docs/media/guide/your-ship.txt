@@ -1,32 +1,40 @@
-This is the Ship tab. Everything the app knows about how fast you sail comes from this one screen.
-Start with the hull. Pick the ship you actually sail.
-A ship has four part slots: figurehead, plating, cannon and sail.
-Each one fills itself with the best part you own.
-Click Change to pick a different one.
-It lists every part that fits the slot, with what each does, and marks the ones you actually hold.
-The fifth slot is your sea crystal.
+This is the Ship tab. Everything the app knows about how fast you sail, and how much you carry, comes from this one screen.
+At the top is the ship itself: the hull, what it is for, and its speed, its hold and how many of its five slots are fitted.
+The hold is the limit in LT, and the slots it has. Past the limit the ship still sails, only slower.
+Under every figure is where it comes from: the hull, the parts, the crystal, the crew and your mastery, added up.
+Your Sailing Mastery is read from the bar under the tabs, where you typed it in.
+Change ship lists every hull in the game, with its crew, cabin space, weight, slots and speed.
+Pick the one you sail. Here, the Carrack Advance stays.
+Fitted out shows the four part slots: cannon, sail, figurehead and plating.
+Each slot takes the best part you hold, by itself. This Carrack has a plus ten Toro Cannon and a plus four Toro Sail.
+Change opens every part that fits the slot, with what it does at plus ten, and marks the one you hold.
+Pick one you do not own yet, and its level, and every figure is worked out as if it were fitted, marked as a plan.
+Best I own puts back whatever you actually hold.
+The fifth slot is the sea crystal. Every grade from Eltro to Rusalka is listed, with its effect.
 Pick the one you have socketed, and its bonus goes into the numbers.
-Below that is the appearance set.
-Skins are cosmetic in most games. Here they are not: a full set adds real durability and rations, so tick the pieces you are wearing.
-And this panel at the top is the ship itself: its speed, its hold limit, and how many of the five slots are filled.
-The small print under each figure says where it came from — hull, parts, crystal, crew and mastery, added up.
-Your Sailing Mastery goes in here, and those figures move with it.
-Now the crew. This roster starts empty.
-Typing eighteen sailors in, four growths each, is an evening you will not enjoy. So it reads them off your screenshots instead.
-Screenshot the Manage Sailors window in game, one sailor a shot, and drop them in. It reads them in your browser — nothing is uploaded.
-Check the table against the game, then take the ones that are right.
-And there they are, hired, with their real levels and growths.
-Sort the list by whatever you are fitting for. Best all round, best for speed, and so on.
-To seat one by hand, click the sailor, then click the seat you want them in.
-Where they sit matters. A sail seat doubles their speed growth, and the wheel doubles turn and brake.
-Or let it arrange the whole crew for you. Click Auto assign.
-It asks what the boat is for, and shows what each answer would actually give you.
-Pick one, and it seats everybody.
-And the row under the ship fills in. That is what the crew is adding, on top of the hull.
-Two hot presets, for swapping crews quickly. Save the current one to a slot.
-And click it to put that crew straight back on.
-A setup is bigger: the whole fit-out, hull, parts, crystal and seating, under a name.
-The fleet lists every setup you have kept, and every hull you own without one.
-The one you are sailing is what the Map times its routes at.
-And you can copy the whole thing as a link, if someone asks what you sail.
+Then the appearance set. Here it is not only a look: a full set adds durability and rations, so tick the pieces you wear.
+Now the crew. The ship is drawn with every seat it has, and the roster starts empty.
+Typing a crew in, four growths each, is an evening. So Read screenshots takes the game's own Manage Sailors window instead.
+Screenshot one sailor a shot, and drop them all in.
+It reads them in your browser; nothing is uploaded. The window never prints a sailor's type, so it is worked out from the appetite, the cabin cost and the weight.
+Check the table against the game. A type can be corrected here, and a sailor already on the roster is brought up to date instead of hired twice.
+Then take them.
+And there they are on the sailor list, with their real levels and growths.
+Sort the list by whatever you are fitting for: best all round, or one growth at a time.
+Click a sailor, and the panel on the right shows everything about them.
+The growths are typed straight from the sailor window, and every figure downstream follows them.
+To seat one by hand, click the sailor, then click the seat.
+Where they sit matters. A sail seat doubles their speed and acceleration, and the wheel doubles turn and brake.
+Or let it arrange the whole crew. Auto assign asks what the boat is for.
+Each goal shows what the crew would come to under it: speed, acceleration, turn, brake, cannons, or all round.
+Pick one, and it chooses who comes aboard as well as who sits where.
+The row under the ship fills in. That is what the crew adds, on top of the hull and the parts.
+Two presets are kept per hull, for swapping crews quickly. Save this speed crew to the first.
+Arrange it for cannons, and save that to the second.
+Now one click on a preset puts that crew straight back on.
+A setup is bigger: the hull, its parts, the crystal and the seating, kept under a name.
+Change to another hull, and its own seats and parts come up. Keep that one as a setup too.
+Your fleet lists every setup you have kept, and every hull in your inventory without one.
+Sail one, and it becomes the ship the Map and the Barter tab time their routes at.
+And Copy link carries the whole ship, hull, parts, crystal and crew, in one address, for when someone asks what you sail.
 That is your ship. Get this screen right, and every distance and every minute in the app is yours.

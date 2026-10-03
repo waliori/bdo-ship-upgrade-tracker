@@ -1,16 +1,30 @@
-This is the Quests tab. It tracks the quests that pay in things you are already short of.
-These are the sailing dailies and weeklies, all in one list.
-The ones paying something on your build list are marked, so you can see which are worth the detour.
-Filter them by what they pay, or by who gives them.
-Each row shows what it pays, and how much of it you still need.
-Some quests let you pick your reward. Those ask you which when you finish.
-Tick off the ones you did in game.
-Then click Finish.
-The rewards go straight into your stock, as one change.
-Got one wrong? Undo puts the whole batch back.
-The ticks clear themselves at the daily reset, so you start each day fresh.
-And these clocks tell you how long you have: dailies, weeklies, and the barter refresh.
-Star the ones you always do, and they sort to the top.
-Or save a set you run together, and tick the whole group at once.
-Every quest knows where its giver stands, so a run can hand them in as it passes.
+This is the Quests tab: the sailing dailies and weeklies, and what each one pays, set against what you are short of.
+The clocks first. Dailies reset at midnight UTC, weeklies on Thursday, and the barter refresh at six in the morning.
+The quests are grouped by how often they come round: daily, weekly, and once.
+Each row is one quest: who gives it, where, the monster it asks for, and every reward it pays.
+A quest paying something your builds need is marked, so the ones worth the detour stand out.
+On the map opens the Map on where that monster is found.
+Under each group, what all of them together pay in a day, or in a week.
+Filter the list. Pays what I need shows only the quests paying into your builds.
+Still to do hides what you have already done today.
+Or pick the rewards themselves. Tick an item, and only the quests paying in it are left.
+The cross on the chip takes that filter off again.
+And the search finds a quest by its name, its place, or its reward.
+Done one in game? Press Claimed.
+Its rewards go into your stock, and the quest is ticked off until the reset.
+Not done takes the tick back off. Undo takes the rewards back too.
+Some quests let you pick one reward. Claimed asks which one you took.
+The choice is kept, so next time Claimed records the same reward in one press.
+Choose ahead answers that question now, before you have even run the quest.
+Ran several? Tick each one you did.
+A bar comes up with how many are ticked.
+Press Finish, and every ticked quest is recorded at once. A pick-one with no choice yet asks for it on the way.
+The rewards land in your stock as one change.
+Got one wrong? Undo puts the whole batch back, and Redo puts it in again.
+Tick all ticks every quest still open in a group. Untick all clears the ticks.
+Run the same set every day? Tick them, and save them as a group under a name.
+The group is a chip now. One press ticks every quest in it that is still to do.
+Star the quests that matter to you, and the Favourites chip shows just those.
+The one-off quests are here too, with Ravinia's log counting the letters you have recorded.
+The ticks wear off at the reset by themselves, so each day starts fresh.
 That is Quests. Free materials, tracked against what you are building.
