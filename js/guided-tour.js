@@ -26,9 +26,9 @@ import { barterKey } from './clock.js';
 import { hushTimer } from './sail-timer.js';
 import { holdSlotsUsed, hullSlots } from './hold-room.js';
 import { F } from './fmt.js';
-import { V as barterView, STEP_KEY } from './barter/state.js';
+import { V as barterView } from './barter/state.js';
 import { flushView, keepLayoutSeen } from './barter/view.js';
-import { STORE_KEY as MAP_KEY } from './map/state.js';
+import { noteTourStart, putBackTourKeys } from './tour-leftovers.js';
 import { sailKey, sailRecord, runMarks, runLabel } from './barter/sail.js';
 import { sailCal, fromPort } from './barter/board.js';
 import { toldOf } from './barter/packing.js';
@@ -174,14 +174,10 @@ function keepBarter() {
 		if (LIVE.has(k)) continue;
 		try { kept[k] = window.structuredClone(v); } catch { kept[k] = v; }
 	}
-	// Two things the tour's screens keep in this browser beside the save:
-	// the Barter tab's step, and the chart's panel (the tour opens it on a
-	// phone and folds it again, and the fold is written down). Each goes
-	// back to what it said, or to not being there at all.
-	const local = {};
-	for (const k of [STEP_KEY, MAP_KEY]) {
-		try { local[k] = localStorage.getItem(k); } catch { /* none kept */ }
-	}
+	// What the tour's screens keep in this browser beside the save -- the
+	// Barter tab's step, the chart's panel -- noted in the session too, so
+	// a reload mid-tour puts it back as well (tour-leftovers.js).
+	const local = noteTourStart();
 	const seen = keepLayoutSeen();
 	return () => {
 		// A write of the example's view still owed is dropped: made now, it
@@ -193,13 +189,7 @@ function keepBarter() {
 		for (const k of Object.keys(barterView)) if (!LIVE.has(k) && !(k in kept)) delete barterView[k];
 		Object.assign(barterView, kept);
 		seen();
-		for (const [k, was] of Object.entries(local)) {
-			try {
-				if (localStorage.getItem(k) === was) continue;
-				if (was === null) localStorage.removeItem(k);
-				else localStorage.setItem(k, was);
-			} catch { /* the session keeps it */ }
-		}
+		putBackTourKeys(local);
 	};
 }
 
@@ -493,6 +483,12 @@ class GuidedTour {
 		}
 		this.driver.refresh();
 		this.place();
+		// A repaint under the step (the example's run laid again, a screen
+		// drawn late) can drop the focus to the page; it goes back to Next,
+		// so Enter still goes on.
+		const next = document.querySelector('.driver-popover.sail-tour .driver-popover-next-btn');
+		const at = document.activeElement;
+		if (next && (!at || at === document.body || !at.isConnected)) next.focus({ preventScroll: true });
 	}
 
 	/**
@@ -626,6 +622,8 @@ class GuidedTour {
 			barterView.step = id;
 			const again = document.querySelector('[data-act="barter-redraw"]');
 			if (again) again.click();
+			// The redraw is not the store's, so nothing else looks again.
+			setTimeout(() => this.check(), 0);
 		};
 		add('hold', {
 			find: () => shown('#screen .hold-col-ship', '#screen .hold-bar'),

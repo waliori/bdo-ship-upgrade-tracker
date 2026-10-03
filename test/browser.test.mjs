@@ -773,40 +773,60 @@ for (const [where, size] of VIEWPORTS) {
 	});
 }
 
-test('a reload in the middle of the tour comes back to the real save, run and clock', async () => {
-	// Planted by hand rather than through open(), which plants its
-	// storage again on every load: the reload must read what the tour
-	// left on the disk.
-	// Planted once, before the page's first look, and never again.
-	const mine = await open({ hash: '#barter' });
-	await mine.page.evaluateOnNewDocument(planted => {
-		if (window.sessionStorage.getItem('planted')) return;
-		window.sessionStorage.setItem('planted', '1');
-		localStorage.clear();
-		for (const [k, v] of Object.entries(planted)) localStorage.setItem(k, v);
-	}, REAL_RUN());
-	await mine.page.reload({ waitUntil: 'domcontentloaded' });
-	await mine.page.waitForSelector(POUCH_READY, { timeout: 15000 });
-	await new Promise(r => setTimeout(r, 2500));
-	const before = await realState(mine.page);
-	await mine.page.evaluate(async () => {
-		const { guidedTour } = await import('/js/guided-tour.js');
-		await guidedTour.startTour();
+// Reloaded at the clock on a desk, and at the chart on a phone, where the
+// tour has unfolded the chart's panel and that preference is written down.
+for (const [where, size, at] of [['a wide screen', { width: 1440, height: 900 }, 'clock'], ['a phone', { width: 390, height: 844, isMobile: true, hasTouch: true }, 'map']]) {
+	test(`a reload at the tour's ${at} step on ${where} comes back to the real save, run, clock and preferences`, async () => {
+		// Planted by hand rather than through open(), which plants its
+		// storage again on every load: the reload must read what the tour
+		// left on the disk. Planted once, before the page's first look.
+		const mine = await open({ hash: '#barter' });
+		await mine.page.setViewport(size);
+		await mine.page.evaluateOnNewDocument(planted => {
+			if (window.sessionStorage.getItem('planted')) return;
+			window.sessionStorage.setItem('planted', '1');
+			localStorage.clear();
+			for (const [k, v] of Object.entries(planted)) localStorage.setItem(k, v);
+		}, REAL_RUN());
+		await mine.page.reload({ waitUntil: 'domcontentloaded' });
+		await mine.page.waitForSelector(POUCH_READY, { timeout: 15000 });
+		await new Promise(r => setTimeout(r, 2500));
+		// The keys put back after a reload are the ones the screens use.
+		const keys = await mine.page.evaluate(async () => {
+			const { TOUR_KEYS } = await import('/js/tour-leftovers.js');
+			const { STEP_KEY } = await import('/js/barter/state.js');
+			const { STORE_KEY } = await import('/js/map/state.js');
+			return [STEP_KEY, STORE_KEY].every(k => TOUR_KEYS.includes(k));
+		});
+		assert.ok(keys, 'the step and the chart keys are among those put back');
+		const before = await realState(mine.page);
+		await mine.page.evaluate(async () => {
+			const { guidedTour } = await import('/js/guided-tour.js');
+			await guidedTour.startTour();
+		});
+		const got = await holdAndClock(mine.page);
+		assert.ok(got.clock.running, 'the tour got as far as the running clock');
+		if (at === 'map') {
+			await mine.page.evaluate(() => document.querySelector('.driver-popover-next-btn').click());
+			const map = await stepAt(mine.page, await mine.page.evaluate(async () => (await import('/js/guided-tour.js')).guidedTour.list.findIndex(s => s.id === 'map') + 1));
+			assert.ok(map && !map.centred, 'the tour got as far as the chart');
+			const wrote = await mine.page.evaluate(() => localStorage.getItem('bdo-tracker/map-view'));
+			assert.ok(wrote, 'the chart wrote its panel down mid-tour, as it does');
+		}
+		await mine.page.reload({ waitUntil: 'domcontentloaded' });
+		await mine.page.waitForSelector(POUCH_READY, { timeout: 15000 });
+		await new Promise(r => setTimeout(r, 2500));
+		// The tab's memory is read afresh by a reload, which fills in fields
+		// the first read had left at their defaults; what was kept is what
+		// is compared.
+		const after = await realState(mine.page);
+		delete after.memory;
+		delete before.memory;
+		assert.deepEqual(after, before, 'the reload is back on the real save, Barter view, clock and preferences');
+		assert.equal(await mine.page.evaluate(() => window.sessionStorage.getItem('bdo-tracker/tour-running')), null, 'and the note is gone');
+		await mine.context.close();
 	});
-	const got = await holdAndClock(mine.page);
-	assert.ok(got.clock.running, 'the tour got as far as the running clock');
-	await mine.page.reload({ waitUntil: 'domcontentloaded' });
-	await mine.page.waitForSelector(POUCH_READY, { timeout: 15000 });
-	await new Promise(r => setTimeout(r, 2500));
-	// The tab's memory is read afresh by a reload, which fills in fields
-	// the first read had left at their defaults; what was kept is what
-	// is compared.
-	const after = await realState(mine.page);
-	delete after.memory;
-	delete before.memory;
-	assert.deepEqual(after, before, 'the reload is back on the real save, Barter view and clock');
-	await mine.context.close();
-});
+}
 
 /**
  * What greets someone on the way in, and in what order.

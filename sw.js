@@ -139,6 +139,7 @@ const SHELL = [
 	'/js/get-way.js',
 	'/js/guide.js',
 	'/js/guided-tour.js',
+	'/js/tour-leftovers.js',
 	'/js/habitats.js',
 	'/js/hold-room.js',
 	'/js/i18n.js',

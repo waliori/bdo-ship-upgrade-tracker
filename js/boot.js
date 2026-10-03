@@ -1,6 +1,9 @@
 // Starts the app. A file rather than an inline <script> so the page can
 // carry a Content-Security-Policy that does not have to allow inline
 // script -- which is most of what a CSP is for.
+// First: what a tour cut short by a reload left behind, put back before
+// any screen reads it (see tour-leftovers.js).
+import './tour-leftovers.js';
 import { init } from './ui.js';
 import './cheer.js';   // the burst of light for a thing done, listening from the start
 
