@@ -103,6 +103,31 @@ test('a slot is fitted through the picker, and an unheld part can be recorded', 
 	await context.close();
 });
 
+test('a failure recorded on any part that can fail adds a stack, and a success spends it', async () => {
+	const { page, context, errors } = await open('#workshop');
+	const BASE = 'Epheria Carrack: Toro Sail';
+	await page.evaluate(async () => {
+		const store = await import('/js/state.js');
+		store.setStock('+3 Epheria Carrack: Toro Sail', 1);
+		store.setStock('Tidal Black Stone', 200);
+	});
+	const row = `.row[data-base="${BASE}"]`;
+	await page.waitForSelector(`${row} [data-result="fail"]`, { timeout: 10000 });
+	const stack = () => page.evaluate(async b => ((await import('/js/state.js')).getProfile('failstacks', {}) || {})[b] ?? null, BASE);
+	// A green Toro part: no stack quoted, so the first failure makes it one.
+	await tap(page, `${row} [data-result="fail"]`); await wait(300);
+	await tap(page, `${row} [data-result="fail"]`); await wait(300);
+	assert.equal(await stack(), 2, 'two failures, two stacks');
+	assert.equal(await page.evaluate(r => document.querySelector(`${r} [data-act="failstacks"]`).value, row), '2', 'and the FS box says so');
+	await tap(page, `${row} [data-result="success"]`); await wait(300);
+	assert.equal(await stack(), null, 'a success spends the stack');
+	// The Undo takes the attempt back whole, stack included.
+	assert.equal(await page.evaluate(async () => { const store = await import('/js/state.js'); store.undo(); return null; }), null);
+	assert.equal(await stack(), 2);
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
 test('a Crow Coin purchase moves the goods and the coins together, and undoes as one', async () => {
 	const { page, context, errors } = await open('#get');
 	await page.evaluate(async () => {

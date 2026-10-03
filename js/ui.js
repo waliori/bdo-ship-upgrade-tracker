@@ -1541,18 +1541,21 @@ function wire() {
 					toast(T('Not enough {items} for that attempt — to record a level you already have, open the part and pick the level', { items: short.map(name => gameName(name)).join(', ') }));
 					return;
 				}
-				// The failstack moves with the attempt: a failure adds one
-				// (Crons or not), a success spends the stack, and the next
-				// level starts from its own recommended one. It moves in
-				// the same change as the stones, so the Undo the toast
-				// offers takes back the attempt, not half of it.
+				// The failstack moves with the attempt, on every part that
+				// can fail: a failure adds one -- the game's rule for any
+				// level up to +15, and ship parts stop at +10 -- Crons or
+				// not, a success spends the stack, and the next level starts
+				// from its own recommended one (the quoted stack on a yellow
+				// part, none below it). It moves in the same change as the
+				// stones, so the Undo the toast offers takes back the
+				// attempt, not half of it.
 				const tier = (tableFor(base) || { levels: [] }).levels[level - 1];
 				// The attempt is counted for the career in the same change.
 				let stackPatch = { tally: store.tallied({ tries: 1, wins: ok ? 1 : 0, drops: dropped ? 1 : 0 }) };
-				if (tier && tier.base) {
+				if (tier && tier.chance < 1) {
 					const stacks = { ...(store.getProfile('failstacks', {}) || {}) };
 					if (ok) delete stacks[base];
-					else stacks[base] = (stacks[base] ?? tier.stack) + 1;
+					else stacks[base] = (stacks[base] ?? (tier.base ? tier.stack : 0)) + 1;
 					stackPatch.failstacks = Object.keys(stacks).length ? stacks : null;
 				}
 				store.applyDelta(

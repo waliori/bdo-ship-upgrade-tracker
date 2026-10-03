@@ -49,11 +49,10 @@ export function readProfile(raw) {
 	// Barter Refresh, never at the 06:00 reset, so it carries no day:
 	// the `parleyDay` older saves wrote beside it is dropped here.
 	if (held > 0) out.parleyHeld = held;
-	// The failstack the player takes into a yellow attempt. Bounded the
-	// way the game bounds one; zero means "the quoted stack", so only a
-	// real number is kept.
-	// The failstack each yellow part currently carries, by part. Absent
-	// means "the stack the quoted rate assumes for its next level".
+	// The failstack each part currently carries into its next attempt,
+	// by part, bounded the way the game bounds one. Absent means "the
+	// stack the quoted rate assumes for its next level" -- the quoted
+	// stack on a yellow part, none on any other.
 	if (isProfile(raw.failstacks)) {
 		const stacks = {};
 		for (const [base, n] of Object.entries(raw.failstacks)) {
