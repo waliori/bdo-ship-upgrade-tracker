@@ -2572,7 +2572,7 @@ function markReleaseSeen() {
  * One cut for every screen now. The narrow cut existed because the
  * captions are drawn into the picture at a size a phone cannot read;
  * the film carries a caption track of its own instead, which a phone
- * renders at its own size. And a fourteen-minute film neither autoplays
+ * renders at its own size. And a long film neither autoplays
  * nor loops -- `preload="metadata"` keeps it off the wire until it is
  * asked for, which matters rather more at thirty megabytes than it did
  * at seven.
@@ -2588,12 +2588,22 @@ async function openHelp(by = null) {
 	// carry -- and the entry holds both the name to draw and the line
 	// under it, so a chapter list is not half in one language.
 	const WHAT = {
-		'The Yard': { name: T('The Yard'), what: T('set your numbers, queue a build, record what you gather, make it') },
+		'The Yard': { name: T('The Yard'), what: T('set your numbers, queue a build, record what you gather') },
+		'The Workshop': { name: T('The Workshop'), what: T('craft, enhance, price anything, record a level') },
 		'To Get': { name: T('To Get'), what: T('one way to each thing you are short of, in the days it takes') },
 		Quests: { name: T('Quests'), what: T('the free rewards, and recording a batch of them at once') },
 		'Your Ship': { name: T('Your Ship'), what: T('parts, crystal, appearance, and a crew read off your screenshots') },
-		'A Run': { name: T('A Run'), what: T('answer one island, and sail what the board lays out') },
 		'The Map': { name: T('The Map'), what: T('the chart full screen and stood up, and all five of its tabs') },
+		'Routes and Drawings': { name: T('Routes and Drawings'), what: T('a loop plotted, shared and sent to the game; drawing on the sea') },
+		'Today’s Board': { name: T('Today’s Board'), what: T('name the layout from an island, a screenshot or the fleet') },
+		'A Silver Day': { name: T('A Silver Day'), what: T('the plan for silver, part by part, and the chains') },
+		'At the Wharf': { name: T('At the Wharf'), what: T('what to load, the hold’s weight and slots, the route stop by stop') },
+		'Under Sail': { name: T('Under Sail'), what: T('the clock, the cockpit, and the trip recorded') },
+		'A Stock Day': { name: T('A Stock Day'), what: T('the board sailed to fill the storage') },
+		'A Crow Coin Day': { name: T('A Crow Coin Day'), what: T('climbed to [Level 4] and cashed in for Crow Coins') },
+		'A Material Day': { name: T('A Material Day'), what: T('the material list read and sailed toward what you need') },
+		'A Short Trip': { name: T('A Short Trip'), what: T('one trade, and what fits round it') },
+		'The Character Bag': { name: T('The Character Bag'), what: T('your inventory as a second hold') },
 		'The Harbour': { name: T('The Harbour'), what: T('the boards, and what is and is not shared') }
 	};
 	const host = openDialog(`
