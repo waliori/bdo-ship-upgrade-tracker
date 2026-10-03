@@ -887,7 +887,11 @@ one run. A run is four steps, one on the page at a time:
   enough to read across a room. **Traded** writes the stop into the
   hold on every tab at once; the clock waits at each island until you
   press it, then counts the next leg from the press. *Arrived* times a
-  leg, and after five of them the app uses your own hull's pace.
+  leg, and after five of them the app uses your own hull's pace. On the
+  **Map** the little ship sails the same clock: it stays on the leg under
+  way, as far along it as the clock has run, and waits at the island
+  until you press Traded — so a glance at the chart says roughly where
+  your ship in game is.
 - **Results.** What the run came to, and *Record the trip*, which adds
   the Parley, Total Barters, the quests and the log — one change, one
   Undo. A run stopped part-way can be **continued**: the board keeps
