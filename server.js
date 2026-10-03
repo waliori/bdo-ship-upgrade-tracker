@@ -18,7 +18,7 @@ import { config, syncEnabled, pushEnabled, dmEnabled, botCommandsEnabled, feedba
 import { presenceRoutes, startPresenceSweep } from './server/presence.js';
 import { marketRoutes } from './server/market.js';
 import { accessLog, counters } from './server/log.js';
-import { previewPage, picturesIn } from './server/preview.js';
+import { previewPage, picturesIn, picturesStamp } from './server/preview.js';
 
 // NOTE: run exactly one of these.
 //
@@ -395,7 +395,7 @@ for (const dir of PUBLIC.filter(d => d !== 'icons' && d !== 'map' && d !== 'map3
 // kind is looked up only where links are kept at all.
 const previews = previewPage({
 	file: path.join(__dirname, 'index.html'),
-	stamp: VERSION,
+	stamp: `${VERSION}.${picturesStamp(path.join(__dirname, 'og'))}`,
 	lookup: syncEnabled ? async id => (await import('./server/db.js')).getLink(id) : null,
 	have: picturesIn(path.join(__dirname, 'og'))
 });

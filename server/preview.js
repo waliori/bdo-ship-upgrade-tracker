@@ -12,6 +12,7 @@
 // The pictures are the app's own, shot by the capture harness into
 // og/ (tools/capture/scenes.mjs, the `og` scene). Nothing is drawn here.
 
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -200,6 +201,18 @@ export function picturesIn(dir) {
 	} catch {
 		return () => false;
 	}
+}
+
+/** A word for what the og/ pictures are, for the address a chat app
+ *  fetches one at. The build's own stamp only follows the code, and a
+ *  picture re-shot under the same name would otherwise be the old one in
+ *  every chat app's cache. */
+export function picturesStamp(dir) {
+	const hash = crypto.createHash('sha1');
+	try {
+		for (const f of fs.readdirSync(dir).filter(f => f.endsWith('.png')).sort()) hash.update(f).update(fs.readFileSync(path.join(dir, f)));
+	} catch { /* no pictures: the stamp is only the build's */ }
+	return hash.digest('hex').slice(0, 8);
 }
 
 export const PREVIEW_CARDS = Object.keys(CARDS);
