@@ -158,3 +158,23 @@ test('deleting the account takes its links with it', async () => {
 	await deleteAccount('4002');
 	assert.equal((await call('GET', `/api/links/${id}`)).status, 404);
 });
+
+test('a link shows what it carries when a chat app reads it', async () => {
+	const setup = { ship: 'Epheria Carrack (Valor)', fitted: { prow: '+7 Epheria Carrack: Toro Prow' }, roster: [{ id: '0' }, { id: '1' }] };
+	const { id } = await (await call('POST', '/api/links', { cookie: admiral, body: { kind: 'ship', data: setup } })).json();
+	const page = await (await call('GET', `/?s=${id}`)).text();
+	assert.match(page, /<meta property="og:title" content="Epheria Carrack \(Valor\) — Sailor’s Log">/);
+	assert.match(page, /og:description" content="Epheria Carrack: Toro Prow · 2 sailors"/);
+	assert.match(page, new RegExp(`og:url" content="http://127\\.0\\.0\\.1:\\d+/\\?s=${id}"`));
+	// The page under the tags is the page; only the head changed.
+	assert.match(page, /<script type="module" src="js\/boot\.js/);
+
+	// A long link says its kind in the query; a stranger's query is
+	// the front page, and so is an id nobody kept.
+	assert.match(await (await call('GET', '/?l=trace')).text(), /og:title" content="A drawing on the sea chart/);
+	for (const q of ['?l=nonsense', '?s=AAAAAAAAAA', '?s=<script>']) {
+		const html = await (await call('GET', `/${q}`)).text();
+		assert.doesNotMatch(html, /A shared ship|A drawing on/, q);
+		assert.doesNotMatch(html, /<script>/, q);
+	}
+});

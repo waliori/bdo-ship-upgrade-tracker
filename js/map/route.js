@@ -2,7 +2,7 @@
 // Parley, the hold, the rations -- its ledger, the routes kept by name,
 // a route in a link and a route as a file.
 
-import { encodeAny, decodeAny } from '../share.js';
+import { encodeAny, decodeAny, linkAt } from '../share.js';
 import { esc, F, FC } from '../fmt.js';
 import { T, gameName, said } from '../i18n.js';
 import { currentShip, aboardWhat, rationDrain, setRationCal } from '../ship.js';
@@ -772,7 +772,7 @@ export function routeObject() {
 /** The route in its address: packed as a trace is, since a run with
  *  its trades written out plain ran to two thousand characters. */
 export async function routeLink() {
-	return `${location.origin}${location.pathname}#map/${await encodeAny(routeObject())}`;
+	return `${linkAt('route')}#map/${await encodeAny(routeObject())}`;
 }
 
 /** The fragment as links carried it before they were packed:

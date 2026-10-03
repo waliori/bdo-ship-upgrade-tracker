@@ -104,7 +104,7 @@ async function linkTo(a, userId, setup) {
 		if (linked.size > 500) linked.delete(linked.keys().next().value);
 		trimLinks(userId, config.maxLinksPerAccount, config.maxLinkBytesPerAccount).catch(() => {});
 	}
-	return `${config.publicUrl}/#s/${id}`;
+	return `${config.publicUrl}/?s=${id}`;
 }
 
 const avatarOf = u => (u && u.avatar ? `https://cdn.discordapp.com/avatars/${u.id}/${u.avatar}.png?size=64` : undefined);

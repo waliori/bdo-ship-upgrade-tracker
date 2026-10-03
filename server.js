@@ -18,6 +18,7 @@ import { config, syncEnabled, pushEnabled, dmEnabled, botCommandsEnabled, feedba
 import { presenceRoutes, startPresenceSweep } from './server/presence.js';
 import { marketRoutes } from './server/market.js';
 import { accessLog, counters } from './server/log.js';
+import { previewPage, picturesIn } from './server/preview.js';
 
 // NOTE: run exactly one of these.
 //
@@ -320,7 +321,7 @@ app.get('/healthz', async (req, res) => {
 
 // Only what the page actually asks for. Serving the repository root would
 // hand out package.json, the Dockerfile and the capture harness too.
-const PUBLIC = ['css', 'js', 'icons', 'map', 'map3d', 'guide', 'reader'];
+const PUBLIC = ['css', 'js', 'icons', 'map', 'map3d', 'guide', 'reader', 'og'];
 const FILES = [
 	'index.html', 'icon.png', 'og.png', 'icon_mapping.json',
 	'icon-192.png', 'icon-512.png', 'manifest.webmanifest'
@@ -389,11 +390,32 @@ app.use('/docs/media', express.static(path.join(__dirname, 'docs', 'media'), REV
 for (const dir of PUBLIC.filter(d => d !== 'icons' && d !== 'map' && d !== 'map3d' && d !== 'reader')) {
 	app.use(`/${dir}`, express.static(path.join(__dirname, dir), dir === 'js' || dir === 'css' ? CODE : REVALIDATE));
 }
+// The page, with the tags a chat app reads written for the link it was
+// opened by -- `?s=<id>` or `?l=<kind>` (server/preview.js). A link's
+// kind is looked up only where links are kept at all.
+const previews = previewPage({
+	file: path.join(__dirname, 'index.html'),
+	stamp: VERSION,
+	lookup: syncEnabled ? async id => (await import('./server/db.js')).getLink(id) : null,
+	have: picturesIn(path.join(__dirname, 'og'))
+});
+// Whatever goes wrong writing the tags, the page itself still goes out.
+const sendPage = (req, res) => {
+	const origin = config.publicOrigin || `${req.protocol}://${req.get('host')}`;
+	previews(req.query, origin).then(
+		html => res.type('html').send(html),
+		() => res.sendFile(path.join(__dirname, 'index.html'))
+	);
+};
+
 for (const file of FILES) {
 	app.get(`/${file}`, (req, res) => {
 		res.set('Cache-Control', MUST_REVALIDATE.test(file) ? 'no-cache' : 'public, max-age=604800');
 		if (MUST_REVALIDATE.test(file)) notAtTheEdge(res);
-		if (file === 'index.html') res.set('X-Build', VERSION);
+		if (file === 'index.html') {
+			res.set('X-Build', VERSION);
+			return sendPage(req, res);
+		}
 		// Express does not know this one by extension.
 		if (file.endsWith('.webmanifest')) res.type('application/manifest+json');
 		res.sendFile(path.join(__dirname, file));
@@ -430,7 +452,7 @@ app.get('/', (req, res) => {
 	res.set('Cache-Control', 'no-cache');
 	res.set('X-Build', VERSION);
 	notAtTheEdge(res);
-	res.sendFile(path.join(__dirname, 'index.html'));
+	sendPage(req, res);
 });
 
 // A thrown error inside a route would otherwise take the process with it

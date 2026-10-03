@@ -8,7 +8,7 @@ import { MAX_ZOOM } from '../barter_npcs.js';
 import { nearestWater } from '../searoute.js';
 import { openDialog, closeDialog, toast } from '../dialogs.js';
 import { pathLength, sailRange, fmtRange, fmtDistance } from '../sailing.js';
-import { encodeAny, decodeAny } from '../share.js';
+import { encodeAny, decodeAny, linkAt } from '../share.js';
 import { buildLink, copyLink } from '../links.js';
 import { mv, TRACES_MAX, persist, traceClipNote, restore } from './state.js';
 import { seaBent } from './marks.js';
@@ -960,7 +960,7 @@ function traceExportObject() {
 }
 
 export function traceLink(payload) {
-	return `${location.origin}${location.pathname}#trace/${payload}`;
+	return `${linkAt('trace')}#trace/${payload}`;
 }
 
 /**

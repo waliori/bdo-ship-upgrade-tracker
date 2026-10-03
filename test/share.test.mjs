@@ -86,6 +86,19 @@ test('a short link is ten characters, and the address knows one', async () => {
 	assert.equal(shortLinkId('#s/short'), null);
 	assert.equal(shortLinkId('#share/AbCd-12_34'), null);
 	assert.equal(shortLinkId(''), null);
+	// As they are written now: the id in the query, where a chat app
+	// reading the link for its preview can see it.
+	assert.equal(shortLinkId('', '?s=AbCd-12_34'), 'AbCd-12_34');
+	assert.equal(shortLinkId('#plan', '?l=ship&s=AbCd-12_34'), 'AbCd-12_34');
+	assert.equal(shortLinkId('', '?s=short'), null);
+});
+
+test('an opened link leaves nothing in the address that would open it again', async () => {
+	const { plainSearch } = await import('../js/share.js');
+	assert.equal(plainSearch('?s=AbCd-12_34'), '');
+	assert.equal(plainSearch('?l=ship'), '');
+	assert.equal(plainSearch('?theirs&l=trace'), '?theirs=');
+	assert.equal(plainSearch(''), '');
 });
 
 test('a trace packed as steps unpacks to the same strokes, and packs to half the address', async () => {

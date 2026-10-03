@@ -36,6 +36,8 @@ COPY reader ./reader
 # Only the walkthrough films: .dockerignore filters the README's stills
 # and GIFs out of this copy, since nothing serves them.
 COPY docs/media ./docs/media
+# The pictures a shared link shows in a chat (server/preview.js).
+COPY og ./og
 
 # Then the code, which is what actually changes between builds.
 COPY icon.png icon-192.png icon-512.png og.png icon_mapping.json manifest.webmanifest sw.js index.html server.js ./

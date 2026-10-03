@@ -37,7 +37,7 @@ import { kindOf } from './kinds.js';
 import { toast, hideToast, openDialog, closeDialog, dismissDialog, holdScreen, whenScreenFree } from './dialogs.js';
 import { allItems, img } from './ui-bits.js';
 import { T, TT, said, gameName, LANGS, langById, langFlag, setLang, startingLang, lang as currentLang } from './i18n.js';
-import { encodeShare, decodeShare, decodeAny, shareLink, shareSize, shortLinkId, isPlan, slimShape, SLIM_DROP } from './share.js';
+import { encodeShare, decodeShare, decodeAny, shareLink, shareSize, shortLinkId, plainSearch, isPlan, slimShape, SLIM_DROP } from './share.js';
 import { buildLink, copyLink } from './links.js';
 import { massProcess } from './vendor_items.js';
 import { loadMarket, onMarket, setRegion as setMarketRegion } from './market.js';
@@ -555,7 +555,7 @@ function applyHash() {
 	const m = location.hash.match(/^#([a-z]+)(?:\/(.*))?$/);
 	// A short link: the server says what it carries, and the address is
 	// cleaned once that is known.
-	const short = shortLinkId(location.hash);
+	const short = shortLinkId(location.hash, location.search);
 	if (short) {
 		openShortLink(short);
 		return true;
@@ -564,21 +564,21 @@ function applyHash() {
 	// not offer it twice.
 	if (m && m[1] === 'share' && m[2]) {
 		const payload = m[2];
-		history.replaceState(null, '', `${location.pathname}${location.search}#plan`);
+		history.replaceState(null, '', `${location.pathname}${plainSearch(location.search)}#plan`);
 		openShared(payload);
 		return true;
 	}
 	// A traced route in a link: onto the chart, and the address cleaned.
 	if (m && m[1] === 'trace' && m[2]) {
 		const payload = m[2];
-		history.replaceState(null, '', `${location.pathname}${location.search}#map`);
+		history.replaceState(null, '', `${location.pathname}${plainSearch(location.search)}#map`);
 		setView('map');
 		applyTraceLink(payload).then(t => { toast(t ? T('Trace from the link: {name}', { name: t.name || T('untitled') }) : T('That link does not hold a trace')); render(); });
 		return true;
 	}
 	if (m && m[1] === 'ship' && m[2]) {
 		const payload = m[2];
-		history.replaceState(null, '', `${location.pathname}${location.search}#crew`);
+		history.replaceState(null, '', `${location.pathname}${plainSearch(location.search)}#crew`);
 		setView('crew');
 		openSharedShip(payload);
 		return true;
@@ -617,7 +617,7 @@ function applyHash() {
 			} else {
 				applyPackedMapLink(m[2]).then(n => { if (n) { toast(routeLanded(n)); render(); } });
 			}
-			history.replaceState(null, '', `${location.pathname}${location.search}#map`);
+			history.replaceState(null, '', `${location.pathname}${plainSearch(location.search)}#map`);
 		}
 		store.setSetting('view', m[1]);
 	} finally {
@@ -2169,7 +2169,7 @@ async function openShortLink(id) {
 	}
 	if (!link) return toast(T('That link has gone, or never was'));
 	const { kind, data } = link;
-	const land = tab => history.replaceState(null, '', `${location.pathname}${location.search}#${tab}`);
+	const land = tab => history.replaceState(null, '', `${location.pathname}${plainSearch(location.search)}#${tab}`);
 	if (kind === 'plan') {
 		land('plan');
 		if (!isPlan(data)) return toast(T('That link does not carry a plan the tracker can read'));
@@ -2799,7 +2799,7 @@ export async function init() {
 	// and neither the tour nor the notes interrupt that; they wait for
 	// the next plain visit, unmarked. Read before applyHash(), which
 	// rewrites a share link to a plain #plan on the way through.
-	const arrivedOnALink = /^#(share|trace|ship|map|s)\/.+/.test(location.hash);
+	const arrivedOnALink = /^#(share|trace|ship|map|s)\/.+/.test(location.hash) || Boolean(shortLinkId('', location.search));
 	// A link or a reload with a hash names a place, and the address bar
 	// outranks the remembered tab.
 	applyHash();

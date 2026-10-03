@@ -78,26 +78,56 @@ export function isPlan(save) {
 	return Boolean(save && typeof save === 'object' && save.stock && typeof save.stock === 'object' && !Array.isArray(save.stock));
 }
 
+/**
+ * Where a shared thing's link points, with what it carries said in the
+ * query as well as the fragment. A chat app reading the link for its
+ * preview never sees past the `#`, so `?l=ship` is how it knows to show
+ * a ship rather than the front page (server/preview.js). The page
+ * itself reads only the fragment.
+ */
+export function linkAt(kind) {
+	return `${location.origin}${location.pathname}?l=${kind}`;
+}
+
 export function shareLink(payload) {
-	return `${location.origin}${location.pathname}#share/${payload}`;
+	return `${linkAt('plan')}#share/${payload}`;
 }
 
 /** A ship setup as link text, in its address. */
 export function shipLink(payload) {
-	return `${location.origin}${location.pathname}#ship/${payload}`;
+	return `${linkAt('ship')}#ship/${payload}`;
 }
 
 /** A link by its id: what is kept on the server, rather than carried
  *  whole in the address. The same address opens a plan, a ship, a
- *  trace or a route; the server says which. */
+ *  trace or a route; the server says which -- to the page, and to a
+ *  chat app asking what to show for it, which is why the id is in the
+ *  query and not the fragment. */
 export function shortLink(id) {
-	return `${location.origin}${location.pathname}#s/${id}`;
+	return `${location.origin}${location.pathname}?s=${id}`;
 }
 
-/** Is this address a short link, and if so which? */
-export function shortLinkId(hash) {
+const SHORT_ID = /^[A-Za-z0-9_-]{10}$/;
+
+/** Is this address a short link, and if so which? Read from the query
+ *  as links are written now, or the fragment as they were. */
+export function shortLinkId(hash, search = '') {
 	const m = /^#s\/([A-Za-z0-9_-]{10})$/.exec(hash || '');
-	return m ? m[1] : null;
+	if (m) return m[1];
+	let id = null;
+	try { id = new URLSearchParams(search || '').get('s'); } catch { /* not a query */ }
+	return id && SHORT_ID.test(id) ? id : null;
+}
+
+/** The query with a link's own words taken out of it, for the address
+ *  a link is cleaned to once it has been opened: a reload should not
+ *  open it again. */
+export function plainSearch(search) {
+	const q = new URLSearchParams(search || '');
+	q.delete('s');
+	q.delete('l');
+	const rest = q.toString();
+	return rest ? `?${rest}` : '';
 }
 
 /** Anything small as link text -- a traced route, say -- packed the same way. */
