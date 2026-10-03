@@ -1031,6 +1031,44 @@ test('traces are kept on a shelf: named, drawn small, renamed, and laid over the
 	await context.close();
 });
 
+test('on a phone a small control is pressed anywhere in the 44 pixels round it, and only it', async () => {
+	const { page, context, errors } = await open('#quests', { touch: true });
+	await page.waitForSelector('.quest-check-hit'); await wait(300);
+	// Probed where a fingertip lands: the 44px square round the control's
+	// centre, its corners left out. Every probe must reach that control
+	// (or something inside it), never a neighbour or the page.
+	const short = await page.evaluate(() => {
+		const out = [];
+		for (const sel of ['[data-act="more"]', '[data-act="undo"]', '.quest-star', '.quest-check-hit', '.controls .chip', '[data-act="quest-map"]', '.quest-codex']) {
+			const el = [...document.querySelectorAll(sel)].find(e => e.getClientRects().length);
+			if (!el) { out.push(sel + ': not drawn'); continue; }
+			el.scrollIntoView({ block: 'center' });
+			const r = el.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+			for (const dy of [-21, -10, 0, 10, 21]) for (const dx of [-21, -10, 0, 10, 21]) {
+				if (Math.abs(dx) === 21 && Math.abs(dy) === 21) continue;
+				const x = cx + dx, y = cy + dy;
+				if (x < 0 || x >= window.innerWidth) continue;
+				const hit = document.elementFromPoint(x, y);
+				if (!hit || !(hit === el || el.contains(hit))) out.push(`${sel} at ${dx},${dy}: ${hit ? hit.className || hit.tagName : 'nothing'}`);
+			}
+		}
+		return out;
+	});
+	assert.deepEqual(short, []);
+	// The tick is 22 pixels; a tap beside it, on its label, still ticks it.
+	const at = await page.evaluate(() => { const b = document.querySelector('.quest-check').getBoundingClientRect(); return { x: b.left + b.width / 2, y: b.bottom + 9 }; });
+	await page.touchscreen.tap(at.x, at.y); await wait(300);
+	assert.equal(await page.evaluate(() => document.querySelector('.quest-check').checked), true, 'ticked from its halo');
+	assert.deepEqual(errors, []);
+	await context.close();
+	// A mouse gets none of it: the label is not there and nothing grows.
+	const desk = await open('#quests');
+	await desk.page.waitForSelector('.quest-check-hit');
+	assert.equal(await desk.page.evaluate(() => getComputedStyle(document.querySelector('.quest-check-hit')).display), 'contents');
+	assert.equal(await desk.page.evaluate(() => getComputedStyle(document.querySelector('.quest-star'), '::after').content), 'none');
+	await desk.context.close();
+});
+
 test('a phone is given a bar at the thumb, not a tab row that scrolls out of sight', async () => {
 	const { page, context, errors } = await open('#crew', { touch: true });
 	await wait(400);

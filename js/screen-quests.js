@@ -128,7 +128,7 @@ function questRow(q, short, wanted, isDone) {
 	// kind of thing it is, faster than reading forty names.
 	const pic = questIcon(q);
 	return `<div class="quest ${wanted ? 'wanted' : ''}${isDone ? ' done' : ''}${selected.has(q.id) ? ' selected' : ''}${focus === q.id ? ' focus' : ''}" data-quest-id="${esc(q.id)}">
-		<input type="checkbox" class="quest-check" data-act="quest-check" data-quest="${esc(q.id)}" ${selected.has(q.id) ? 'checked' : ''} ${isDone ? 'disabled' : ''} aria-label="${T('Tick {name} to finish it with others', { name: esc(gameName(q.name)) })}" title="${T('Tick to finish several in one go')}">
+		<label class="quest-check-hit"><input type="checkbox" class="quest-check" data-act="quest-check" data-quest="${esc(q.id)}" ${selected.has(q.id) ? 'checked' : ''} ${isDone ? 'disabled' : ''} aria-label="${T('Tick {name} to finish it with others', { name: esc(gameName(q.name)) })}" title="${T('Tick to finish several in one go')}"></label>
 		<button class="quest-star${fav ? ' on' : ''}" data-act="quest-fav" data-quest="${esc(q.id)}" aria-pressed="${fav}" title="${fav ? T('A favourite — click to unstar') : T('Star it: favourites have a chip of their own')}">★</button>
 		${pic ? `<img class="quest-pic" src="${esc(pic)}" alt="" loading="lazy">` : '<span class="quest-pic none" aria-hidden="true"></span>'}
 		<div class="quest-main">

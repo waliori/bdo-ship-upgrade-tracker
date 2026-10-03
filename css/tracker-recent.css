@@ -1093,6 +1093,127 @@ img.comm-silver { width: 1.25em; height: 1.25em; vertical-align: -0.25em; object
 /* The section bar's labels on a small phone: no spacing between the
    letters, so "Warentausch" fits under its icon. */
 @media (max-width: 400px) {
+  /* The hold's count (44 + field + 44) and a German "Entladen" do not
+     fit beside each other under the name: the count starts under the
+     icon instead, so the two never overlap. */
+  .barter-good { grid-template-areas: "icon main main" "count count act"; }
   .tabbar-btn { letter-spacing: 0; padding-left: 1px; padding-right: 1px; }
   .trip-row .field.trip-qty { flex-basis: 80px; width: 80px; }
+}
+
+/* ---- forty-four under a finger: the cases the halo needs help with ---- */
+/* tracker-sea.css gives every control an invisible 44 by 44 halo. These
+   are the controls where that halo would be cut off by a box that clips
+   (a name cut at two lines, a strip that scrolls sideways), or would
+   reach into a neighbour's. A clipped one hangs its halo on the box it
+   sits in instead, which does not clip; where neighbours sit closer
+   than their halos reach, the rows open up just enough. Nothing here
+   applies to a mouse. */
+@media (pointer: coarse) {
+  /* An item's name, cut at two lines on a phone: the cut moves onto
+     the link itself, and the link's halo hangs on the name's box,
+     the whole name's width and at least 44 tall. */
+  :is(.row-name, .picker-name, .tpick-name, .peek-name, .map-row-name, .tile-name, .want-name):has(> a.codex:only-child) {
+    position: relative;
+    overflow: visible;
+  }
+  :is(.row-name, .picker-name, .tpick-name, .peek-name, .map-row-name, .tile-name, .want-name) > a.codex:only-child {
+    position: static;
+    display: inherit;
+    -webkit-box-orient: inherit;
+    -webkit-line-clamp: inherit;
+    line-clamp: inherit;
+    overflow: hidden;
+    text-overflow: inherit;
+  }
+  :is(.row-name, .picker-name, .tpick-name, .peek-name, .map-row-name, .tile-name, .want-name) > a.codex:only-child::after { inset: min(0px, calc(50% - 22px)) 0; }
+  /* A quest's name runs over two lines with its tag after it; the
+     halo covers the name's whole box. */
+  .quest-name { position: relative; }
+  .quest-name > .quest-codex { position: static; }
+  .quest-name > .quest-codex::after { inset: min(-4px, calc(50% - 22px)) 0; }
+  /* A reward's name is pressed anywhere on its pill, and wrapped rows
+     of pills stand far enough apart for their halos. */
+  .reward:has(> a.codex) { position: relative; }
+  .reward > a.codex { position: static; }
+  .reward > a.codex::after { inset: min(0px, calc(50% - 22px)) min(0px, calc(50% - 22px)); }
+  .quest-rewards { row-gap: 18px; }
+  /* A quest's tick sits in a label that takes the press. */
+  .quest-check-hit { display: inline-flex; flex: none; align-self: flex-start; }
+  /* A quest's "on the map" sits just above its reward pills. */
+  .quest-where:has(> .link-btn) { margin-bottom: 23px; }
+  /* Rows of small buttons that wrap: far enough apart that no two
+     halos meet. A 33px chip reaches 5.5px past its edge each way, a
+     chip drawn in the fallback font a little more. */
+  .chips, .controls, .way-opts { row-gap: 14px; }
+  .inv-kinds, .inv-ladder { margin-top: 0; }
+  .map-zoom { row-gap: 14px; }
+  #screen .summary { row-gap: 16px; }
+  .sail-bar.sailing.cockpit-foot { row-gap: 10px; }
+  .order-v .chips, .board-ask-acts, .board-strip-acts, .board-strip-seen, .doors, .slot-btns,
+  .trip-shot, .qty-row, .sail-timer, .hold-filters, .chain-filters, .run-quests, .lb-bar { row-gap: 12px; }
+  .film-chapters { gap: 10px; }
+  .map-tabs { row-gap: 14px; }
+  /* A text link reaches 13px past its line, so a row of buttons under
+     one stands that much further off. */
+  .map-plan-bar { row-gap: 18px; }
+  .jump-kinds { row-gap: 22px; }
+  .board-ask-acts { margin-top: 20px; }
+  .mat-help { margin-top: 14px; }
+  .craft-card .inline-check { margin-top: 14px; }
+  .jump > .jump-kinds { margin-top: 2px; }
+  .panel-head:has(> .panel-sub .linky) { row-gap: 20px; }
+  .film-chapters { margin-bottom: 18px; }
+  .help-more { margin-top: 14px; }
+  .dialog-copy:has(> select) { margin-top: 14px; margin-bottom: 24px; }
+  /* A link at the end of a panel's line, or of a dialog's note, with
+     buttons or a list under it. */
+  .panel-sub:has(> .linky) { margin-bottom: 8px; }
+  .dialog-note:has(> .linky) { margin-bottom: 18px; }
+  .panel-head > .link-btn { margin-bottom: 4px; }
+  /* A quest's rows: the rewards, what Claimed will ask, and the claim
+     button that drops under them on a phone. */
+  .quest { row-gap: 18px; }
+  .quest-rewards + .quest-recall { margin-top: 23px; }
+  .run-quest { row-gap: 24px; }
+  .board-strip-row { row-gap: 14px; }
+  /* A ship's appearance set: one ticked line per slot, each a finger
+     tall rather than twenty pixels. */
+  .skin-slot { min-height: 44px; }
+  /* Square level chips and a stop's arrows sit side by side: spaced so
+     each keeps its own 44 pixels. */
+  .chain-filters .chips:has(> .lvl) { column-gap: 10px; }
+  .hold-filters .chips:has(> .lvl) { gap: 14px 22px; }
+  .route-edit { gap: 16px; margin-top: 12px; margin-bottom: 19px; }
+  /* A stepper does not give up width to a long name beside it. */
+  .stepper button, .stepper .val, .own .sq-btn, .own-input, .build-actions .sq-btn { flex-shrink: 0; }
+  /* Fields a rule of their own drew shorter. */
+  .barter-screen .field, .hold-filters .field.hold-q, .chain-filters .field.hold-q { min-height: 44px; }
+  /* A sheet's grab bar draws its pill with ::after and stays stuck to
+     the top over the sheet's own controls, so a halo there would sit on
+     the close button: the bar itself is 44 tall instead, and takes
+     back most of that from the gap under it. */
+  .sheet-grab { padding: 20px 0; margin-bottom: 12px; }
+  /* Other names that hold only their link: the halo hangs on the name. */
+  :is(.build-name, .crew-ship-name, .detail-name, .trow-name, .craft-name, .buy-name, .get-today-name):has(> a.codex:only-child) { position: relative; }
+  :is(.build-name, .crew-ship-name, .detail-name, .trow-name, .craft-name, .buy-name, .get-today-name) > a.codex:only-child { position: static; }
+  :is(.build-name, .crew-ship-name, .detail-name, .trow-name, .craft-name, .buy-name, .get-today-name) > a.codex:only-child::after { inset: min(0px, calc(50% - 22px)) 0; }
+  /* Lists of linked names, one under the next: a line each that is a
+     finger tall. */
+  .ing-line { min-height: 44px; padding: 0; }
+  .quest-total { row-gap: 18px; }
+  .rung { row-gap: 12px; }
+  .qty-row, .qty-row.wide { column-gap: 8px; }
+  /* The chart's side panel: the tabs stand clear of the buttons above
+     them and the layers bar below, and the scrolling body gives its
+     first chips room for their halo. */
+  .map-tabs { padding-top: 2px; padding-bottom: 15px; }
+  .map-side-body { padding-top: 16px; }
+  /* The stop timer: its strip clips (for the bar along its foot), so
+     the chips get room inside it, and its two rows stand apart. */
+  .sail-timer.running { padding-bottom: 8px; row-gap: 12px; }
+  .sail-timer-ctl { row-gap: 12px; }
+  /* The craftable strip scrolls sideways, which clips; it is given
+     the room above and below its chips, at no cost to the layout. */
+  .readybar-list { padding-top: 4px; padding-bottom: 4px; margin-top: -4px; margin-bottom: -4px; }
 }

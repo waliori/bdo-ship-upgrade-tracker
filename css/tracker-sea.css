@@ -160,6 +160,9 @@
 .quest-or { font-size: 12px; color: var(--ink-faint); font-style: italic; }
 .quest-actions { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; flex: none; }
 .quest-check { flex: none; width: 16px; height: 16px; margin-top: 3px; accent-color: var(--teal); cursor: pointer; }
+/* The tick's label is there for a finger (tracker-recent.css); to a
+   mouse it is not there at all. */
+.quest-check-hit { display: contents; }
 /* Says what the row's box is for until something is ticked; then the
    batch bar stands in its place. */
 .quest-tick-hint { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; font-size: 12.5px; color: var(--ink-mute); }
@@ -528,8 +531,8 @@
    guess to hit with a thumb; the glyph stays small, the target does not. */
 @media (pointer: coarse) {
   .map-x, .map-side-close {
-    min-width: 40px;
-    min-height: 40px;
+    min-width: 44px;
+    min-height: 44px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -545,39 +548,38 @@
   .purse-inline.narrow, .enh-fs .purse-inline.narrow { width: 64px; }
   .stat-in { width: 64px; }
 
-  /* Forty pixels under a finger, whatever the glyph measures. The small
-     buttons keep their drawn size -- a 40px fold caret would push every
-     tree row apart -- and grow an invisible halo that takes the tap
-     instead; the ones with room to grow simply grow. */
-  .tcaret:not(.empty):not(.open), .info-dot, .detail-close, .chip, .seg, .map-x, .map-side-close { position: relative; }
-  .tcaret:not(.empty):not(.open)::after, .info-dot::before, .detail-close::before,
-  .chip::before, .seg::before {
+  /* Forty-four pixels under a finger, whatever the glyph measures. A
+     control keeps the size it is drawn at and grows an invisible halo
+     that takes the tap: the ::after below is centred on it and sized to
+     reach 44 by 44, and adds nothing to a control already that big. It
+     is written in :where() so it weighs nothing -- any rule that places
+     a control (absolute, fixed, sticky) still wins over the relative
+     here, and the absolute ones are their halo's anchor anyway. The few
+     controls whose ::after already draws something keep theirs. Where
+     two controls sit closer than their halos reach, the rows they sit in
+     open up below so no two halos share a spot. */
+  :where(button, a[href], summary, label, [role="button"], span[data-act]):where(:not(.sheet-grab, .tab, .tcaret, .map-io)) { position: relative; }
+  :where(button, a[href], summary, label, [role="button"], span[data-act]):where(:not(.sheet-grab, .tab, .tcaret, .map-io, .news-old > summary))::after {
     content: '';
     position: absolute;
-    inset: -5px;
+    inset: min(0px, calc(50% - 22px)) min(0px, calc(50% - 22px));
   }
-  .tcaret:not(.empty):not(.open)::after { inset: -10px; }
-  .info-dot::before { inset: -13px; }
-  .detail-close::before { inset: -7px; }
-  .seg::before { inset: -7px 0; }
+  .tcaret:not(.empty):not(.open) { position: relative; }
+  .tcaret:not(.empty):not(.open)::after { content: ''; position: absolute; inset: -12px; }
+  /* A field cannot carry a halo, so it is drawn the full height. */
+  :where(input:not([type="checkbox"], [type="radio"], [type="range"], [type="hidden"]), select) { min-height: 44px; }
   .sq-btn { width: 40px; height: 40px; }
-  .stepper button { width: 40px; height: 40px; }
-  .stepper .val { height: 40px; }
-  .tabbar-btn { min-height: 40px; }
-  /* The rest of the small ones the audit measured on a phone: the plan
-     row's own stepper (26 by 28), a quest's tick and star (16 pixels,
-     thirty apart), the inline links (15 tall), a wharf's square (9),
-     a rung's fate. The steppers grow; the rest keep their size on the
-     page and take a halo, so a desktop is not touched at all. */
-  .own .sq-btn { width: 40px; height: 40px; }
-  .own-input { height: 40px; }
+  .stepper button { width: 44px; height: 44px; }
+  .stepper .val { height: 44px; }
+  .tabbar-btn { min-height: 44px; }
+  /* The plan row's own stepper grows with the field between its buttons;
+     a quest's tick and star are drawn small and pressed by a halo. */
+  .own .sq-btn { width: 44px; height: 44px; }
+  .own-input { height: 44px; }
   .quest-check { width: 22px; height: 22px; margin-top: 0; }
-  .quest-star { min-width: 40px; min-height: 40px; margin: -10px -4px 0 2px; font-size: 19px; }
-  .linky, .link-btn, .rung-fate { position: relative; }
-  .linky::before, .link-btn::before { content: ''; position: absolute; inset: -12px -4px; }
-  .rung-fate::before { content: ''; position: absolute; inset: -10px -2px; }
-  .map-port::before { width: 40px; height: 40px; }
-  .chip::before { inset: -7px -3px; }
+  .quest-star { min-width: 44px; min-height: 44px; margin: -11px -4px 0 2px; font-size: 19px; }
+  .map-port::before { width: 44px; height: 44px; }
+  .map-pin::before { width: 44px; height: 44px; }
 }
 
 /* ---- a phone on its side ------------------------------------------- */
