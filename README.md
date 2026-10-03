@@ -185,7 +185,12 @@ the standard line — a tenth of the base rate a stack until the chance
 reaches 70%, a fiftieth of it a stack after that, and never past 90% —
 and says so; blank means the quoted rate. It was checked against a
 community table for the green Caravel parts; the other tiers are taken
-to follow it.
+to follow it. **Failed** adds a stack to the FS box on any part that can
+fail, as the game does at every level a ship part reaches, and
+**Succeeded** spends it; Undo takes back the attempt and its stack
+together.
+
+![Failed pressed three times on a Toro part: the FS box climbs 1, 2, 3, and the chance with it](docs/media/a-failstack.gif)
 
 ![Crafting a batch of 40](docs/media/craft.gif)
 
@@ -898,6 +903,8 @@ one run. A run is four steps, one on the page at a time:
   the attempts each island dealt until it is refreshed in game.
 
 ![The four steps of a run: the plan with today's board read and the run along its foot, the wharf's packing list ticked aboard, the cockpit at sea, and the results](docs/media/four-steps.gif)
+
+![During a run, the ship on the chart sailing the leg under way, as far along it as the run's clock has run](docs/media/ship-on-the-chart.gif)
 
 **The clock rings, wherever you are.** Beside the clock the chimes are
 chosen: at **each stop** (and three at the end) or once for **the whole

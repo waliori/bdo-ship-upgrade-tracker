@@ -8,5 +8,5 @@
 export const RELEASE = "1.5";
 
 /** The newest diary entry, as the "seen" key and as its title. */
-export const LATEST = "2026-10-01:A sweep of fixes before 1.5";
-export const LATEST_TITLE = "A sweep of fixes before 1.5";
+export const LATEST = "2026-10-03:The chart’s ship, links that say what they are, and the guide re-shot";
+export const LATEST_TITLE = "The chart’s ship, links that say what they are, and the guide re-shot";

@@ -2468,6 +2468,12 @@ async function openWhatsNew({ onClose = null, by = null } = {}) {
 	const rest = r.sections.filter(s => !s.media);
 	const points = list => (list && list.length
 		? `<ul class="news-points">${list.map(p => `<li>${said(p)}</li>`).join('')}</ul>` : '');
+	// A section that says what it was like before shows the two side by
+	// side, the way a before-and-after reads: what it was, struck down,
+	// then what it is now.
+	const words = s => (s.before
+		? `<div class="news-ba"><p class="news-before"><span class="news-ba-k">${T('Before')}</span>${said(s.before)}</p>${s.text ? `<p class="news-after"><span class="news-ba-k">${T('Now')}</span>${said(s.text)}</p>` : ''}</div>`
+		: s.text ? `<p>${said(s.text)}</p>` : '');
 
 	// Who asked for it, in their own words, above the fold. A player who
 	// wrote in and then had to open "everything else" to find themselves
@@ -2490,7 +2496,7 @@ async function openWhatsNew({ onClose = null, by = null } = {}) {
 			${headline.map(s => `<section class="news-item">
 				<h3>${said(s.title)}</h3>
 				<img class="news-shot" src="${esc(s.media)}" alt="${esc(said(s.alt || ''))}" loading="lazy">
-				<p>${said(s.text)}</p>
+				${words(s)}
 				${points(s.points)}
 			</section>`).join('')}
 		</div>
@@ -2498,11 +2504,11 @@ async function openWhatsNew({ onClose = null, by = null } = {}) {
 			<summary>${T('Everything else in this release')}</summary>
 			${rest.map(s => `<section class="news-item plain">
 				<h3>${said(s.title)}</h3>
-				${s.text ? `<p>${said(s.text)}</p>` : ''}
+				${words(s)}
 				${points(s.points)}
 			</section>`).join('')}
 		</details>
-		${olderHTML(RELEASES, points)}
+		${olderHTML(RELEASES, points, words)}
 		<p class="dialog-copy">${T('The same notes are in {link}.', { link: '<a href="https://github.com/waliori/bdo-ship-upgrade-tracker/blob/main/CHANGELOG.md" target="_blank" rel="noopener">CHANGELOG.md</a>' })}</p>
 		<div class="dialog-actions">
 			<button class="act quiet" data-close>${T('Close')}</button>
@@ -2526,7 +2532,7 @@ async function openWhatsNew({ onClose = null, by = null } = {}) {
  * The pictures are inside the fold, so a browser does not fetch them
  * until someone actually opens the release they belong to.
  */
-function olderHTML(RELEASES, points) {
+function olderHTML(RELEASES, points, words) {
 	const older = RELEASES.slice(1);
 	if (!older.length) return '';
 	return `<div class="news-older">
@@ -2541,7 +2547,7 @@ function olderHTML(RELEASES, points) {
 				${r.sections.map(s => `<section class="news-item plain">
 					<h3>${said(s.title)}</h3>
 					${s.media ? `<img class="news-shot" src="${esc(s.media)}" alt="${esc(said(s.alt || ''))}" loading="lazy">` : ''}
-					${s.text ? `<p>${said(s.text)}</p>` : ''}
+					${words(s)}
 					${points(s.points)}
 				</section>`).join('')}
 			</div>

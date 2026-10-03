@@ -41,7 +41,7 @@ echo "== webm -> gif"
 # run respectively.
 gif_size() {
 	case "$1" in
-		claim-a-quest|fit-a-ship|the-boards|share-a-ship|the-way|a-call-in-hand) echo "780 10" ;;
+		claim-a-quest|fit-a-ship|the-boards|share-a-ship|the-way|a-call-in-hand|ship-on-the-chart|a-failstack) echo "780 10" ;;
 		# The run now packs, casts off and flies to the chart: half a
 		# minute of whole-frame changes, so it goes slower again.
 		plan-a-run) echo "640 6" ;;
@@ -118,6 +118,14 @@ for name in hero map quests community the-plan; do
 	ffmpeg -v error -y -i "$OUT/$name.png" -vf scale=560:-2 "$OUT/small/$name.png"
 	ls -la "$OUT/small/$name.png"
 done
+# The 1.5 headlines.
+for name in four-steps the-slots a-short-trip ship-on-the-chart a-failstack; do
+	./tools/capture/togif.sh "$RAW/$name.webm" "$OUT/small/$name.gif" 480 7
+done
+# Help's chapter list, cut to the dialog; and the picture a shared ship
+# shows in a chat, which is the og card itself.
+ffmpeg -v error -y -i "$RAW/the-chapters.png" -vf "crop=560:820:170:90,scale=480:-2" "$OUT/small/the-chapters.png"
+ffmpeg -v error -y -i og/ship.png -vf scale=560:-2 "$OUT/small/link-preview.png"
 
 # The link-preview cards: the og still above wrote them, each already
 # held under 600 KB, and og.png beside them.

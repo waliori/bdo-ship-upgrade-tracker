@@ -83,6 +83,9 @@ export const RELEASES = [
 		sections: [
 			{
 				title: TT('Four steps, one at a time'),
+				media: 'docs/media/small/four-steps.gif',
+				alt: TT('A run in four steps: the plan with today’s board read, the packing list ticked aboard, the cockpit at sea, and the results'),
+				before: TT('The Barter tab was one long page, the run sheet opened over it, and the run itself was sailed from the Map.'),
 				text: TT('<b>Plan</b> starts with <i>Before you sail</i> — the Parley as the window reads it, the vouchers you carry, your home port — then a <b>ladder</b> that says where the day ends and what each level becomes, five <b>ways of sailing</b> each with the best run the search finds that way, and the chains on offer.'),
 				points: [
 					TT('<b>Load</b> is the packing list: buy at the Market, take from storage, put in your bag. A tick buys the goods or moves them out of the storage, and the route below is laid from what is ticked.'),
@@ -104,6 +107,9 @@ export const RELEASES = [
 			},
 			{
 				title: TT('A short trip'),
+				media: 'docs/media/small/a-short-trip.gif',
+				alt: TT('Short trip: every trade on the board with its minutes there and back, one picked, taken one island further, and a trade that fits round it added'),
+				before: TT('A run was always the best set of chains on the board, so fetching the one good you were low on meant planning a whole day.'),
 				text: TT('Pick one trade on today’s board and the plan lists what fits round it, each with what it adds and the minutes it costs — for the day you only need one good.')
 			},
 			{
@@ -145,6 +151,9 @@ export const RELEASES = [
 			},
 			{
 				title: TT('Sailing it'),
+				media: 'docs/media/small/the-clock.gif',
+				alt: TT('Cast off: the ship drops in close up, the clock takes over, and Traded sends it on to the next stop'),
+				before: TT('The clock was a bar that counted down to the end of the run.'),
 				text: TT('The sailing clock draws <b>your own ship</b> crossing the leg on a moving sea, making fast at the pier when the leg’s time comes. Casting off drops it in close up and pulls back into the clock, and the glance view and the full view grow one into the other.'),
 				points: [
 					TT('A stop that pays a range waits for <b>Traded</b> until its count is said — typed, or picked off the least, the middle, the most or what sailors were paid most.'),
@@ -154,7 +163,49 @@ export const RELEASES = [
 				]
 			},
 			{
+				title: TT('The hold counts its slots'),
+				media: 'docs/media/small/the-slots.gif',
+				alt: TT('A Carrack: Volante’s twenty slots on the Load gauge: each [Level 5] good a slot of its own, a [Level 3] stack one slot however many'),
+				before: TT('The hold counted only its weight, so a run could plan more [Level 5] goods than the hull has slots for.'),
+				text: TT('A [Level 5], [Level 6], [Level 7] or [Great Ocean] good takes a slot of its own — in the hold, in your bag and in a storage — and only the levels under them stack. Every run keeps to the hull’s slots as well as its LT, and the hold shows them beside its weight everywhere it is drawn.'),
+				points: [
+					TT('A press loads what fits and says what did not; a stack is never split across slots; a storage’s slots are shown and never capped.'),
+					TT('[Great Ocean] goods rank between a [Level 5] and a [Level 6] wherever goods are sorted, sold or kept.')
+				]
+			},
+			{
+				title: TT('The chart’s ship sails with you'),
+				media: 'docs/media/small/ship-on-the-chart.gif',
+				alt: TT('During a run, the ship on the chart moving along the leg under way, as far along it as the run’s clock has run'),
+				before: TT('The little ship on the chart looped round the whole route on its own, whatever the run was doing.'),
+				text: TT('Once you cast off, it sails <b>the leg under way</b>, as far along it as the run’s clock has run at your ship’s own pace — the clock the chimes and the cockpit keep — and waits at the island until you press <b>Traded</b>. A glance at the Map says roughly where your ship in game is.')
+			},
+			{
+				title: TT('A failstack on every part'),
+				media: 'docs/media/small/a-failstack.gif',
+				alt: TT('Failed pressed three times on a Toro part: the FS box climbs 1, 2, 3 and the chance with it'),
+				before: TT('Only a yellow-tier part counted its failures; a Caravel, Toro or Chiro part kept the failstack you typed until you typed another.'),
+				text: TT('<b>Failed</b> adds a stack on any part that can fail, as the game does at every level a ship part reaches; <b>Succeeded</b> spends it, and Undo takes the attempt and its stack back together. The chance and the stone forecast follow it.')
+			},
+			{
+				title: TT('A shared link says what it is'),
+				media: 'docs/media/small/link-preview.png',
+				alt: TT('The picture a shared ship shows in a chat: the Ship tab with its figures and crew'),
+				before: TT('Every link dropped in a chat showed the same old picture of the Plan, whatever it carried.'),
+				text: TT('A ship reads as that hull with its parts and crew, a drawing by its name and what is on it, a route by its stops and trades, a plan by its builds — each with a picture of that part of the app. The bare address changes its picture from day to day.')
+			},
+			{
+				title: TT('The guide, in seventeen chapters'),
+				media: 'docs/media/small/the-chapters.png',
+				alt: TT('Help: the film in seventeen chapters, each with its line and where it starts'),
+				before: TT('Seven chapters and eighteen minutes, with all of bartering in one of them.'),
+				text: TT('Forty-seven minutes under <b>Help</b>, re-shot step by step on today’s app, and <b>nine chapters of bartering</b>, one kind of day each: naming the board, a silver day, the wharf, under sail, a stock, Crow Coins, a material, a short trip and your bag. Start at any of them.')
+			},
+			{
 				title: TT('A stock run, good by good'),
+				media: 'docs/media/small/a-stock.gif',
+				alt: TT('A stock day: a target typed on the ladder, a level pressed, and the run that fills it'),
+				before: TT('A stock run started every chain from the bottom and could climb past a good you already had plenty of.'),
 				text: TT('A stock run starts each chain from the goods held over their target and stops below a good already full, says when a good is held elsewhere, and between two runs worth the same takes the cheaper.')
 			},
 			{
@@ -169,10 +220,6 @@ export const RELEASES = [
 					TT('A held count can be typed in place on the Builds blockers and every To Get row; crafting a build’s own item asks whether the build is done.'),
 					TT('The two Barter Goods Support dailies ask which [Level 1] good went.'),
 					TT('On a phone the sailing bar is half as tall.'),
-					TT('A [Level 5], [Level 6], [Level 7] or [Great Ocean] good takes a slot each — only the lower levels stack — so a run keeps to the hull’s slots as well as its weight, and the hold shows its slots beside its LT.'),
-					TT('[Great Ocean] goods rank between a [Level 5] and a [Level 6] wherever goods are sorted, sold or kept.'),
-					TT('The hold takes no more goods than the hull has slots for: a press loads what fits and says what did not.'),
-					TT('A stack is never split across slots, and the trip card counts slots as the hold does.'),
 					TT('A level named in barter text is drawn in its level’s colour.'),
 					TT('A fast run may put in at a wharf on its way when selling there pays for the minute it costs.'),
 					TT('Numbers follow the app’s language, shown and typed: any common way of writing a million reads as one.'),
@@ -195,6 +242,7 @@ export const RELEASES = [
 					TT('<b>The ship.</b> The Fleet list reads the ship as it sails — the Corsair point and the parts you own included; a crafting route no longer switches a thing from bought to crafted; auto-arrange leaves sick sailors ashore; a pool you watched is used by the barter routes too, ship by ship.'),
 					TT('<b>The Map.</b> Its tools fit a phone and have names, its tabs are <i>Who has it</i>, <i>Route</i>, <i>Draw</i>, <i>Hunt</i> and <i>Today</i>, the chart starts higher, and its labels keep their colours in the light theme.'),
 					TT('<b>The harbour.</b> On a weak signal the app opens from its offline copy after a few seconds instead of waiting on the network.'),
+					TT('<b>Parley after a run ticked off at once.</b> A run that spent past its bar and was ticked off with <i>All done</i> records the vouchers it must have drawn, rather than leaving the bar at nothing.'),
 					TT('<b>Around the app.</b> A first visit follows the system’s light or dark; a phone’s bar holds Plan, Inventory, Map and Barter for good; taps on a phone have room; the quests’ box says what it is for.')
 				]
 			}
@@ -875,6 +923,16 @@ export const RELEASES = [
 export const RELEASE = RELEASES[0].id;
 
 export const CHANGES = [
+	{
+		date: '2026-10-03',
+		title: TT('The chart’s ship, links that say what they are, and the guide re-shot'),
+		notes: [
+			TT('<b>On the Map</b>, during a run, the ship sails the leg under way at the run’s own clock and waits at each island for Traded.'),
+			TT('<b>A shared link</b> shows what it carries in a chat — the hull, the drawing, the route or the plan — with a picture of its own.'),
+			TT('<b>The guide</b> is seventeen chapters now, nine of them bartering; every picture in the README and these notes is shot again on today’s app.'),
+			TT('<b>Smaller things.</b> A failure recorded on any part adds a failstack; a run ticked off at once that spent past its bar records the vouchers it drew.')
+		]
+	},
 	{
 		date: '2026-10-01',
 		title: TT('A sweep of fixes before 1.5'),

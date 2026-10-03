@@ -870,6 +870,22 @@
   border: 1px solid var(--line);
   background: rgba(var(--deep-rgb), 0.5);
 }
+/* Before and now, as a pair: what it was dimmed and ruled off on the
+   left, what it is in full beneath. */
+.news-ba { display: flex; flex-direction: column; gap: 6px; }
+.news-ba p { padding: 6px 10px; border-radius: 8px; border-left: 3px solid var(--line); }
+.news-ba-k {
+  display: block;
+  margin-bottom: 2px;
+  font-family: var(--font-display);
+  font-size: 10.5px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.news-item .news-before { color: var(--ink-dim); background: rgba(var(--deep-rgb), 0.35); border-left-color: var(--amber, #e0a33a); }
+.news-before > .news-ba-k { color: var(--amber, #e0a33a); }
+.news-after { background: rgba(var(--deep-rgb), 0.2); border-left-color: var(--teal); }
+.news-after > .news-ba-k { color: var(--teal); }
 .news-points { margin: 8px 0 0 18px; padding: 0; font-size: 12.5px; line-height: 1.5; color: var(--ink-dim); }
 
 /* Every release before this one, shut, each worth one line until it is

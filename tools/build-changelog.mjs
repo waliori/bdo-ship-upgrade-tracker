@@ -56,7 +56,8 @@ const body = RELEASES.flatMap(r => {
 	for (const s of r.sections) {
 		blocks.push(`### ${md(s.title)}`);
 		if (s.media) blocks.push(`![${s.alt || ''}](${s.media})`);
-		if (s.text) blocks.push(md(s.text));
+		if (s.before) blocks.push(`**Before:** ${md(s.before)}`);
+		if (s.text) blocks.push(s.before ? `**Now:** ${md(s.text)}` : md(s.text));
 		if (s.points) blocks.push(s.points.map(p => `- ${md(p)}`).join('\n'));
 	}
 	return blocks;

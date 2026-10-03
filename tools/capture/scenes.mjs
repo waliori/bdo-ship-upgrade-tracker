@@ -600,6 +600,68 @@ const scenes = {
 		await page.setViewport({ width: 1280, height: 820, deviceScaleFactor: 1 });
 	},
 
+	/* 1.5 — the chart's ship during a run: on the leg under way, as far
+	 * along it as the run's clock has run. A leg takes minutes; the clip
+	 * has seconds, so the clock is moved on a few seconds a beat, which
+	 * moves the ship exactly as the minutes would. */
+	async 'ship-on-the-chart'({ page, url }) {
+		await page.setViewport({ width: 1180, height: 760, deviceScaleFactor: 1 });
+		await barterDay(page, url, fittedShip);
+		await packed(page);
+		await castOff(page, { watch: 1200 });
+		await tab(page, 'map');
+		await waitFor(page, '.map-ship.live', { upTo: 20000, then: 1500 });
+		await frameMap(page, 140);
+		// The leg the clock is timing, framed whole: at the island a run
+		// starts from that is already the leg to the second stop.
+		await page.evaluate(() => document.querySelector('[data-act="map-step"][data-i="1"]')?.click());
+		await wait(2200);
+		const ahead = secs => page.evaluate(async n => {
+			const store = await import('/js/state.js');
+			const t = store.getView('timer');
+			store.setView('timer', { ...t, startedAt: t.startedAt - n * 1000 });
+		}, secs);
+		const leg = await page.evaluate(async () => {
+			const { timerState } = await import('/js/sail-timer.js');
+			const t = timerState();
+			const i = Math.min(t.done, t.marks.length - 1);
+			return t.marks[i].at - (t.legAt || 0);
+		});
+		// The pointer is kept off the ship: the island it sails from sits
+		// under it, and a pin's card opened over the very thing to watch.
+		await page.mouse.move(1170, 300);
+		await page.evaluate(() => { const c = document.getElementById('__cur'); if (c) c.style.transform = 'translate(1170px, 300px)'; });
+		await rec(page, 'ship-on-the-chart', async () => {
+			await wait(900);
+			for (let k = 0; k < 14; k++) { await ahead(leg / 16); await wait(500); }
+			await wait(1200);
+		});
+		await page.setViewport({ width: 1280, height: 820, deviceScaleFactor: 1 });
+	},
+
+	/* 1.5 — a failure recorded on any part that can fail adds a stack:
+	 * a Toro part's FS box climbing with each Failed. */
+	async 'a-failstack'({ page, url }) {
+		await page.setViewport({ width: 1180, height: 640, deviceScaleFactor: 1 });
+		await seed(page, url, { ...fittedShip, stock: { ...fittedShip.stock, '+3 Epheria Carrack: Toro Sail': 1, 'Tidal Black Stone': 400 } });
+		await tab(page, 'workshop');
+		const row = '.row[data-base="Epheria Carrack: Toro Sail"]';
+		await waitFor(page, `${row} [data-result="fail"]`, { then: 600 });
+		await frame(page, row, { top: 160 });
+		// The row's recipe card opens on a hover, over the frame; the clip
+		// is about the FS box, so the card is kept shut.
+		await page.addStyleTag({ content: '#peek { display: none !important; }' });
+		await rec(page, 'a-failstack', async () => {
+			await moveTo(page, `${row} [data-act="failstacks"]`, { settle: 900 });
+			await click(page, `${row} [data-result="fail"]`, { after: 1300 });
+			await moveTo(page, `${row} [data-act="failstacks"]`, { settle: 700 });
+			await click(page, `${row} [data-result="fail"]`, { after: 1300 });
+			await click(page, `${row} [data-result="fail"]`, { after: 1300 });
+			await moveTo(page, `${row} [data-act="failstacks"]`, { settle: 1200 });
+		});
+		await page.setViewport({ width: 1280, height: 820, deviceScaleFactor: 1 });
+	},
+
 	/* Queue a build and watch the plan grow around it. */
 	async 'queue-a-build'({ page, url }) {
 		await seed(page, url, emptyStart);
@@ -978,6 +1040,19 @@ const scenes = {
 };
 
 const stills = {
+	/* 1.5 — Help: the film in seventeen chapters, each a place to start. */
+	async 'the-chapters'({ page, url }) {
+		await page.setViewport({ width: 900, height: 1000, deviceScaleFactor: 1 });
+		await seed(page, url, midBuild);
+		await page.evaluate(() => document.querySelector('[data-act="help"]')?.click());
+		await waitFor(page, '.film-chapters', { upTo: 15000, then: 900 });
+		await page.evaluate(() => { document.getElementById('__cur')?.remove(); document.querySelector('.film-chapters')?.scrollIntoView({ block: 'center' }); });
+		await wait(500);
+		const box = await page.evaluate(() => { const r = document.querySelector('#dialog').getBoundingClientRect(); return { x: r.left, y: Math.max(0, r.top), width: r.width, height: Math.min(r.height, window.innerHeight - Math.max(0, r.top)) }; });
+		await page.screenshot({ path: `${OUT}/the-chapters.png`, clip: box });
+		await page.keyboard.press('Escape');
+		await page.setViewport({ width: 1280, height: 820, deviceScaleFactor: 1 });
+	},
 	async hero({ page, url }) {
 		await page.setViewport({ width: 1280, height: 1140, deviceScaleFactor: 1 });
 		await seed(page, url, midBuild);
