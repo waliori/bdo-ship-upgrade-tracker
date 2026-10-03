@@ -10,7 +10,18 @@ import { fittedShip, onePartToGo } from './states.mjs';
  * join.mjs and guide.sh read it from here; a chapter's number is its
  * place in it.
  */
-export const ORDER = ['the-yard', 'the-workshop', 'to-get', 'quests', 'your-ship', 'the-map', 'routes-and-drawings', 'a-run', 'the-harbour'];
+export const ORDER = ['the-yard', 'the-workshop', 'to-get', 'quests', 'your-ship', 'the-map', 'routes-and-drawings',
+	'barter-board', 'barter-silver', 'barter-wharf', 'barter-sail', 'barter-stock', 'barter-coins', 'barter-material', 'barter-short', 'barter-bag',
+	'the-harbour'];
+
+const WORDS = ['One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve',
+	'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen', 'Twenty'];
+
+/** A chapter's number, in words, from where it stands in ORDER. */
+export const numberOf = id => {
+	const i = ORDER.indexOf(id);
+	return i < 0 ? '' : WORDS[i] || String(i + 1);
+};
 
 /* ------------------------------------------------------------------ *
  * the inventories the chapters are shot against
