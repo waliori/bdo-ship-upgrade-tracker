@@ -530,6 +530,9 @@
    fleet setups and storage rows. Drawn at 10 by 15 pixels they are a
    guess to hit with a thumb; the glyph stays small, the target does not. */
 @media (pointer: coarse) {
+  /* The masthead's buttons are the size of their halo: a halo poking
+     past the end of the row reads as a row wider than the screen. */
+  #masthead-actions .ghost-btn { min-width: 44px; min-height: 44px; }
   .map-x, .map-side-close {
     min-width: 44px;
     min-height: 44px;
