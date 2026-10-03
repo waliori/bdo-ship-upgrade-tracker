@@ -17,7 +17,7 @@ import { monsterArt } from '../monster_art.js';
 import { parleyPerTrade, npcGate, npcOpen } from '../barter.js';
 import { barterData, barterProfile } from '../ui-state.js';
 import { mv, doneSet } from './state.js';
-import { mapZoomStep } from './actions.js';
+import { mapZoomStep, stopIndex } from './actions.js';
 import { marksNow, stopsLive, seaBent, routeWorld, straightLegs, goodsOf, barterKind } from './marks.js';
 import { npcBox } from './render.js';
 import { routeSeq, n1, stashLive } from './route.js';
@@ -538,6 +538,40 @@ function namedMid(named) {
 	return { x: x / named.length, y: y / named.length };
 }
 
+/**
+ * Where a run under way has the ship: `{ cur, p }`, the stop the cockpit
+ * is making for (as sailCurrent describes it) and how far along the leg
+ * into it the run's clock has run, nought to one. Answered by the Barter
+ * tab, which keeps the run and its clock; null when no run on the chart
+ * is under way.
+ */
+let liveShip = null;
+export function setLiveShip(fn) {
+	liveShip = typeof fn === 'function' ? fn : null;
+}
+
+// Between paints the ship is moved along its leg in place, twice a
+// second, rather than the whole chart redrawn: the leg's path only
+// changes with the view or the stop, and those paint anyway. A change of
+// stop -- Traded pressed on another tab, the clock reaching it -- does
+// call for the paint, which draws the next leg.
+let liveBeat = null;
+function startLiveShip(layer) {
+	if (liveBeat) return;
+	liveBeat = setInterval(() => {
+		const ship = layer._ship;
+		const live = liveShip ? liveShip() : null;
+		if (!ship || !ship.isConnected || !live) { stopLiveShip(); schedulePaint(); return; }
+		const seq = routeSeq(marksNow());
+		const i = stopIndex(seq, live.cur);
+		if (`${i}|${seq.length}` !== layer._liveKey) { schedulePaint(); return; }
+		ship.style.offsetDistance = `${(Math.max(0, Math.min(1, live.p)) * 100).toFixed(2)}%`;
+	}, 500);
+}
+function stopLiveShip() {
+	if (liveBeat) { clearInterval(liveBeat); liveBeat = null; }
+}
+
 function paintRoute(layer, size, marks) {
 	// The hand-plotted route wins; the suggested loop through everything
 	// marked is what you get before you have plotted one. Either way the
@@ -605,8 +639,47 @@ function paintRoute(layer, size, marks) {
 	}
 	if (!d) {
 		ship.style.display = 'none';
+		stopLiveShip();
 		return;
 	}
+	// A run under way on this very route: the ship is where the run's
+	// clock has it -- on the leg into the stop the cockpit is making for,
+	// as far along it as the clock has run of that leg at the ship's own
+	// pace, and at the stop once the clock has reached it. Not a loop:
+	// a sailor glancing at the chart sees roughly where the ship in game
+	// is.
+	const live = liveShip ? liveShip() : null;
+	const i = live ? stopIndex(seq, live.cur) : -1;
+	if (i >= 0) {
+		const into = i + (world.length > seq.length ? 1 : 0);
+		const ends = into > 0 ? [world[into - 1], world[into]] : [world[into], world[into]];
+		const leg = seaBent(ends).map(p => project(mv.mapState, size, p.x, p.y));
+		if (leg.length < 2) leg.push(leg[0]);
+		// The leg is not clipped to the box: a ship off screen is off
+		// screen, not moved onto its edge.
+		const legD = routePath(leg, null, 0) || `M ${leg[0].left.toFixed(1)} ${leg[0].top.toFixed(1)} L ${leg[0].left.toFixed(1)} ${leg[0].top.toFixed(1)}`;
+		ship.style.display = '';
+		ship.classList.add('live');
+		ship.style.animation = 'none';
+		ship.style.offsetPath = `path("${legD}")`;
+		// A leg of no length -- a second exchange at the island the ship
+		// is at -- has no heading to turn to.
+		ship.style.offsetDistance = `${(Math.max(0, Math.min(1, live.p)) * 100).toFixed(2)}%`;
+		ship._for = null;
+		// A new leg starts from its own beginning, not glided back to it
+		// along the new line from where the last one ended.
+		const key = `${i}|${seq.length}`;
+		if (layer._liveKey !== key) {
+			ship.style.transition = 'none';
+			requestAnimationFrame(() => { ship.style.transition = ''; });
+		}
+		layer._liveKey = key;
+		startLiveShip(layer);
+		return;
+	}
+	ship.classList.remove('live');
+	ship.style.offsetDistance = '';
+	stopLiveShip();
 	let len = 0;
 	for (let i = 1; i < pts.length; i++) {
 		len += Math.hypot(pts[i].left - pts[i - 1].left, pts[i].top - pts[i - 1].top);

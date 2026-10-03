@@ -30,7 +30,7 @@ export {
 	pinArea, forgetPinned
 } from './map/offline.js';
 export {
-	paintMap
+	paintMap, setLiveShip
 } from './map/paint.js';
 export {
 	terrainDiag

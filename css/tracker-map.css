@@ -209,6 +209,15 @@
   filter: drop-shadow(0 0 6px var(--teal-edge));
 }
 
+/* A run under way: the ship is where the run's clock has it, moved
+   twice a second and glided between, and a size up so it reads as the
+   one that matters. */
+.map-ship.live {
+  width: 19px;
+  height: 19px;
+  transition: offset-distance 0.5s linear;
+}
+
 @keyframes map-sail {
   from { offset-distance: 0%; }
   to { offset-distance: 100%; }

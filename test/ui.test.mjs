@@ -2527,6 +2527,49 @@ test('a run ticked off with All done that spent past the bar is recorded as havi
 	await context.close();
 });
 
+test('on the chart, a run under way sails its ship on the leg under way, at the run’s clock', async () => {
+	const { page, context, errors } = await open('#barter');
+	await page.waitForSelector('.barter-screen', { timeout: 15000 }); await wait(600);
+	await page.evaluate(async () => {
+		const { barterKey } = await import('/js/clock.js');
+		const store = await import('/js/state.js');
+		store.setView('barter', { goal: 'silver', port: 1002, planSec: 'all', advOpen: true, board: { day: barterKey(), answers: [{ npcId: 58948, give: '[Level 6] Top-Quality Coconut Syrup', recv: "[Level 7] Artisan's Seashell Necklace" }, { npcId: 58901, give: 'Vinegar', recv: '[Level 1] Cherry Tree Seed Pouch' }] } });
+		store.setProfile('barterCount', 1);
+		store.flush();
+	});
+	await page.reload({ waitUntil: 'domcontentloaded' });
+	await page.waitForSelector('.chain', { timeout: 15000 });
+	await page.evaluate(async () => { const store = await import('/js/state.js'); store.addTarget('Carrack (Advance)', 1); store.setProfile('crewShip', 'Carrack (Advance)'); });
+	await page.waitForFunction(() => document.querySelector('[data-act="barter-cast-off"]:not([disabled]), .run-dock'), { timeout: 20000 });
+	await laidOut(page);
+	await page.evaluate(() => document.querySelector('[data-act="barter-cast-off"]').click()); await wait(600);
+	await page.evaluate(() => { const fx = document.querySelector('.castoff-fx'); if (fx) fx.click(); }); await wait(900);
+	if (!(await page.evaluate(async () => Boolean((await import('/js/sail-timer.js')).timerState())))) { await tap(page, '[data-act="barter-timer-start"]'); await wait(800); }
+	// The Map tab pressed, as a sailor does: it takes the run being sailed.
+	await tap(page, '#tab-map');
+	await page.waitForSelector('.map-ship.live', { timeout: 15000 });
+	const at = () => page.evaluate(() => parseFloat(document.querySelector('.map-ship.live').style.offsetDistance) || 0);
+	const first = await at();
+	assert.ok(first >= 0 && first < 50, `just cast off, near the start of the leg: ${first}%`);
+	// Not the old loop round the whole route: the path is the one leg.
+	assert.equal(await page.evaluate(() => document.querySelector('.map-ship.live').style.animationName || 'none'), 'none');
+	// Half the leg later by the clock, the ship is half way along it.
+	await page.evaluate(async () => {
+		const store = await import('/js/state.js');
+		const { timerState } = await import('/js/sail-timer.js');
+		const t = timerState();
+		const i = Math.min(t.done, t.marks.length - 1);
+		const start = t.legAt || 0;
+		const half = (t.marks[i].at - start) / 2;
+		store.setView('timer', { ...store.getView('timer'), startedAt: t.startedAt - half * 1000 });
+	});
+	await wait(1200);
+	const later = await at();
+	assert.ok(later > first + 30 && later < 80, `moved on with the clock: ${first}% → ${later}%`);
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
 test('the running clock draws the sailor’s own ship crossing the leg', async () => {
 	const { page, context, errors } = await open('#barter');
 	await page.waitForSelector('.barter-screen', { timeout: 15000 }); await wait(600);

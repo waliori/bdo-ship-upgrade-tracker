@@ -207,15 +207,22 @@ export function setStepHook(fn) {
 	stepHook = typeof fn === 'function' ? fn : null;
 }
 
+/** Where in the chart's stops `seq` the cockpit's stop `cur` is, as
+ *  sailCurrent on the Barter tab describes it; -1 when it is not. */
+export function stopIndex(seq, cur) {
+	if (!cur) return -1;
+	return cur.npcId
+		? seq.findIndex(s => s.kind === 'npc' && s.id === cur.npcId)
+		: seq.findIndex(s => s.kind === 'stash' && s.place.i === cur.before && (!cur.wharfAt || s.place.at === cur.wharfAt));
+}
+
 /** Step the chart to the stop the cockpit stands at, as sailCurrent
  *  on the Barter tab describes it. Nothing when the chart has no such
  *  stop, or is there already. */
 export function mapStepToStop(cur, fly = undefined) {
 	if (!cur) return;
 	const seq = routeSeq(marksNow());
-	const i = cur.npcId
-		? seq.findIndex(s => s.kind === 'npc' && s.id === cur.npcId)
-		: seq.findIndex(s => s.kind === 'stash' && s.place.i === cur.before && (!cur.wharfAt || s.place.at === cur.wharfAt));
+	const i = stopIndex(seq, cur);
 	if (i < 0 || (i === mv.stepIdx && fly !== true)) return;
 	moveStep(i, fly === undefined ? mv.follow : fly);
 }

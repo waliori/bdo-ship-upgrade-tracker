@@ -50,6 +50,7 @@ import { renderBuilds, openBuildPicker, askRoute, toggleBlockers, askMade, flyTo
 import { renderInventory } from './screen-inventory.js';
 import { renderBarter, barterAction, barterChange, barterType, chartFragment, runSheetHTML, sailChart, sailCurrent, sailJump, plannedChart, sailIds, barterWritingView } from './screen-barter.js';
 import { tickTimer, watchTimer } from './sail-timer.js';
+import { legNow } from './sail-scene.js';
 import { renderTree, pickTreeTarget, folded, setTreeTarget, collapseAll } from './screen-tree.js';
 import { renderWorkshop, pendingEnhancements, toggleBlocked } from './screen-workshop.js';
 import { renderCrew, crewAction, crewChange, applyShipSetup, shipSetupPatch, openSetupPicker, selectSailor, setLooking } from './screen-crew.js';
@@ -82,7 +83,7 @@ import {
 	saveRouteDialog, loadSavedRoute, deleteSavedRoute, mapWritingView, loadPreviousRoute, deletePreviousRoute, openRationCal, putRationsCall, setRationsAboard, pinArea, forgetPinned, setTradesMode, trimRouteToParley, routeLink, routeObject, applyMapLink, applyPackedMapLink, plainMapLink, applyMapObject, applyTraceObject, unpackTrace, toggleMeasure, openSailCal, setMapWharves, toggleMini, setMapHabitats, setMapLabels, setMapPins, setMapTraces, toggleMapLayers, flipMapSide, traceAction, traceChange, applyTraceLink,
 	openMapPicker, mapStep, mapStepTo, mapFollowToggle, mapNextOnlyToggle, setMapStart, setMapReturn, mapPortClick,
 	reviveMapRoute, setMapKind, exportRoute, importRoute, openGameExport, gameBookmarks, setGameWrite, setGameLine,
-	toggleFull, exitFull, mapIsFull, gameImportAction, setRunSheet, setStepHook, mapStepToStop, routeIds, marksNow,
+	toggleFull, exitFull, mapIsFull, gameImportAction, setRunSheet, setStepHook, setLiveShip, mapStepToStop, routeIds, marksNow,
 	toggle3D, levelMap, setMapStyle
 } from './screen-map.js';
 
@@ -2818,6 +2819,18 @@ export async function init() {
 	applyHash();
 
 	wire();
+	// The chart's little ship, during a run: on the leg into the stop the
+	// cockpit is making for, as far along it as the run's clock has run --
+	// the clock the chimes and the cockpit's own ship keep, at this hull's
+	// pace -- so a glance at the chart says roughly where the ship in game
+	// is. Only for the run's own route; any other route keeps the loop.
+	setLiveShip(() => {
+		const ids = sailIds();
+		if (!ids || ids.join(',') !== routeIds(marksNow()).join(',')) return null;
+		const leg = legNow();
+		const cur = leg ? sailCurrent() : null;
+		return cur ? { cur, p: leg.p } : null;
+	});
 	window.addEventListener('hashchange', applyHash);
 	wireSaveHealth();
 	// A quiet write that is the Map's own -- its view, a moment after a
