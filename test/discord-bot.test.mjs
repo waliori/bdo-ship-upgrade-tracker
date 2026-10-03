@@ -70,7 +70,8 @@ test('/ship answers with the hull, its figures and a link', async () => {
 	const e = res.data.embeds[0];
 	assert.match(e.title, /Valor/);
 	assert.match(e.author.name, /Bosun/);
-	assert.match(e.url, /#s\/[A-Za-z0-9_-]{10}$/);
+	// The id in the query, where a chat app reading the link can see it.
+	assert.match(e.url, /\/\?s=[A-Za-z0-9_-]{10}$/);
 	const speed = e.fields.find(f => f.name === 'Speed').value;
 	assert.match(speed, /^\*\*\d/);
 	assert.equal(res.data.flags, 0);
