@@ -18,29 +18,41 @@ last prices it was given.
 
 ![The Plan screen, part-way through two Carrack parts](docs/media/hero.png)
 
-**In a hurry?** [Watch the guide](docs/media/walkthrough.mp4) — eighteen
-minutes, in seven parts, and you can start at whichever one you came
-for. It is the real app being driven and narrated, not a mock-up; the
-only invented thing anywhere in it is the handful of sailors on the
-community boards, since a machine shooting a film has no deployment
-with players on it. It plays inside the app too, under **Help**, where
-the seven parts are listed as jump-to points. There is a
-[transcript](docs/media/walkthrough.txt) and a
-[caption track](docs/media/walkthrough.vtt) beside it.
+**In a hurry?** [Watch the guide](docs/media/walkthrough.mp4) — LENGTH
+minutes, in seventeen parts, and you can start at whichever one you came
+for; nine of them are bartering, one kind of day each. It is the real app
+being driven and narrated, not a mock-up; the only invented things in it
+are the handful of sailors on the community boards and the fleet's
+reading of a board, since a machine shooting a film has no deployment
+with players on it, and the barter chapters price the Central Market
+from one recorded day, so a run plans the same on every shoot. It plays
+inside the app too, under **Help**, where the seventeen parts are listed
+as jump-to points. There is a [transcript](docs/media/walkthrough.txt)
+and a [caption track](docs/media/walkthrough.vtt) beside it.
 
-The seven parts are also files of their own, if you would rather link at
-one than at a timestamp — each with subtitles and a transcript, and
+The seventeen parts are also files of their own, if you would rather link
+at one than at a timestamp — each with subtitles and a transcript, and
 whatever is being talked about lit up on screen as it is named:
 
 | Chapter | What it covers |
 |---|---|
-| [One — The Yard](docs/media/guide/the-yard.mp4) | The sailor's own numbers in the bar — the barter count that decides which islands deal with you at all, and the nest of Bos'n Jacks the hold is short without — then queue a build, record what you gather — typed, or read off screenshots of a storage — craft it, step a mistake back, price a part, read the tree |
-| [Two — To Get](docs/media/guide/to-get.mp4) | The plan: one way to each thing you are short of, under a goal you choose, with the day count that follows every choice — and what it will never do |
-| [Three — Quests](docs/media/guide/quests.mp4) | The sailing dailies and weeklies, which of them pay something you need, and recording a batch of them in one change |
-| [Four — Your Ship](docs/media/guide/your-ship.mp4) | Hull, the four part slots, the sea crystal, the appearance set, where every figure comes from — and the crew: read off the game's own screenshots, then seated by hand or automatically, with presets and saved setups |
-| [Five — The Map](docs/media/guide/the-map.mp4) | The chart, mostly full screen: the toolbar, the minimap, the layers, all five of its tabs — stood up on the game's own terrain in Ground or Neon, with the world curving away, and the Hollow Maretta's thirty-eight ringing spots among the grounds |
-| [Six — A Run](docs/media/guide/a-run.mp4) | The whole of bartering: naming this refresh's layout off the game's own barter window — by a click or by a screenshot of it — the layout book, saying what an island really shows, then the four kinds of day — silver, a stock, Crow Coins, a material — the orders, the chains and what the Central Market has for them, the two shelves of the sheet, the clock that rings at every stop, sailing it, recording it, and the day's boards after |
-| [Seven — The Harbour](docs/media/guide/the-harbour.mp4) | The boards, what a place on one opens, what is and is not shared — and the feedback box, where a report is a post with marks, screenshots and a name on it |
+| [One — The Yard](docs/media/guide/the-yard.mp4) | The sailor bar and every number in it, two kinds of build queued, the build cards and the queue, the Plan line by line, a trip logged, and a storage read off two screenshots — then undone |
+| [Two — The Workshop](docs/media/guide/the-workshop.mp4) | Crafting a batch, enhancing with real odds and a failstack, recording a fail and a success, the Inventory and what anything costs, a level recorded without spending stones, and the Tree |
+| [Three — To Get](docs/media/guide/to-get.mp4) | Still to get, the plan under each goal, the days a week, the coins kept back, every switch with the day count moving under it — and what it will never do |
+| [Four — Quests](docs/media/guide/quests.mp4) | The clocks, the groups, what each quest pays against your list, claiming one or a batch, pick-one rewards, groups and favourites |
+| [Five — Your Ship](docs/media/guide/your-ship.mp4) | Hull, parts, crystal and appearance, where every figure comes from, the crew read off screenshots and seated by hand or by goal, presets, saved setups, the fleet, and a ship in a link |
+| [Six — The Map](docs/media/guide/the-map.mp4) | The chart and its tools, the minimap, the terrain in Ground or Neon, the layers, who has what you need, the hunting grounds and today's checklist |
+| [Seven — Routes and Drawings](docs/media/guide/routes-and-drawings.mp4) | A loop through what you are short of, timed at your own ship, saved, shared and put on the game's own map — and routes of your own drawn on the sea |
+| [Eight — Today's Board](docs/media/guide/barter-board.mp4) | The layout named three ways — an island, a screenshot of the barter window, another sailor's reading — the rolls, the islands your count has not opened, the layout book, an island that shows something else, and the refresh |
+| [Nine — A Silver Day](docs/media/guide/barter-silver.mp4) | The plan for silver part by part: the Parley and vouchers, the home port, where the climb ends and what the wharf sells, the five ways to sail, every order, and the chains — the runs proposed, the Market's counts, a chain from your own storage |
+| [Ten — At the Wharf](docs/media/guide/barter-wharf.mp4) | The Load step: the hold in weight and slots, a run cut into trips, what to buy and take from storage, the storage after, and the route stop by stop — wharf calls, rations, quests, vouchers — skipped, moved, and loaded heavy |
+| [Eleven — Under Sail](docs/media/guide/barter-sail.mp4) | Cast off, the clock and its bells, the cockpit one stop at a time, a range paid, a leg timed, the run on the chart, the trip recorded and undone, and the day's boards |
+| [Twelve — A Stock Day](docs/media/guide/barter-stock.mp4) | The board sailed to fill the storage: targets that are floors too, the ceiling, the fullest stock, the runs still to go |
+| [Thirteen — A Crow Coin Day](docs/media/guide/barter-coins.mp4) | Climbing to Level 4 and cashing in at the coin islands, counted in coins against what the builds still want |
+| [Fourteen — A Material Day](docs/media/guide/barter-material.mp4) | The material list read off two screenshots and named, the materials you are short of, the run toward them, the material book, and To Get's own reading of the board |
+| [Fifteen — A Short Trip](docs/media/guide/barter-short.mp4) | One picked trade and what fits round it, goods taken one island further, and the same list counted in stock |
+| [Sixteen — The Character Bag](docs/media/guide/barter-bag.mp4) | Your inventory as a second hold: what it can take, why a run leaves it unused, a later trip riding in it, and where it comes out |
+| [Seventeen — The Harbour](docs/media/guide/the-harbour.mp4) | Signing in puts you on the boards; how you are shown, what a place opens, the fleet in numbers, leaving the boards, the feedback box and the Menu |
 
 Same rule as the walkthrough: it is the real app being driven, and the
 only invented thing anywhere in it is the handful of sailors on those
@@ -1998,7 +2010,7 @@ og.png                the preview card a page with no tags of its own shows
 og/                   a preview picture per kind of link and tab
 docs/media/           the images and clips in this README
 docs/media/small/     the narrow copies the app itself serves
-docs/media/guide/     the seven narrated chapters, with their captions
+docs/media/guide/     the seventeen narrated chapters, with their captions
 CHANGELOG.md          generated from js/about.js by tools/build-changelog.mjs
 tools/capture/        the harness that generates the media, film included
 ```
