@@ -22,7 +22,17 @@ import * as store from './state.js';
 import { isPhone } from './viewport.js';
 import { feature } from './sync.js';
 import { T } from './i18n.js';
-import { V as barterView, STEP_KEY, STEPS } from './barter/state.js';
+import { barterKey } from './clock.js';
+import { hushTimer } from './sail-timer.js';
+import { holdSlotsUsed, hullSlots } from './hold-room.js';
+import { F } from './fmt.js';
+import { V as barterView, STEP_KEY } from './barter/state.js';
+import { flushView, keepLayoutSeen } from './barter/view.js';
+import { STORE_KEY as MAP_KEY } from './map/state.js';
+import { sailKey, sailRecord, runMarks, runLabel } from './barter/sail.js';
+import { sailCal, fromPort } from './barter/board.js';
+import { toldOf } from './barter/packing.js';
+import { legsOf } from './barter/route.js';
 
 const DONE_KEY = 'bdo_ship_upgrade-tour_completed';
 
@@ -30,14 +40,60 @@ const DONE_KEY = 'bdo_ship_upgrade-tour_completed';
 const stillness = () => typeof window !== 'undefined' && typeof window.matchMedia === 'function'
 	&& window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-/**
+/*
  * A worked-through example to talk over: a Carrack part part-way built,
- * with something craftable, something short, and a part mid-enhancement.
- * It is never saved -- the real data is captured first and put back when
- * the tour ends.
+ * with something craftable, something short, and a part mid-enhancement
+ * -- and a barter run on today's board, so the Barter steps point at a
+ * real one. It is never saved: the real data is captured first and put
+ * back when the tour ends, and the store writes nothing while it is in.
+ *
+ * The run is layout 4 of the game's forty, read off two islands, from
+ * Iliya Island: two [Level 5]s and a [Level 1] climbed to [Level 7] and
+ * sold at the wharf. The chain ids are the Barter tab's own for these
+ * goods on that layout; a patch that re-deals layout 4 is caught by the
+ * tour's tests (the hold and the clock steps then have no run to show).
+ * For the clock step the run is cast off the way the Sail press casts
+ * it off -- from the route the Load step laid -- so the clock's stops
+ * are the cockpit's, and in the page's language.
  */
-const DEMO = JSON.stringify({
-	stock: {
+const PORT = 1002;   // Iliya Island
+const LAYOUT = '4';
+const CHAINS = [
+	'hold:[Level 5] Elixir of Youth:58977.58973',
+	'hold:[Level 5] Mysterious Rock:58980.58954',
+	'hold:[Level 1] Raft Toy:58955.58942.58907.58949'
+];
+// The two islands whose offers settle the layout.
+const ANSWERS = [
+	{ npcId: 50814, give: "[Level 4] Boatman's Manual", recv: 'Crow Coin' },
+	{ npcId: 50815, give: '[Level 4] Headless Dragon Figurine', recv: 'Crow Coin' }
+];
+const HOLD = "Ship's hold";
+const ILIYA = 'Iliya Island';
+// Where the goods are: two [Level 5]s and two [Level 3]s aboard, the
+// rest in the storage at Iliya. The same at sea: the run is cast off as
+// the packing list stood, nothing ticked.
+const GOODS = {
+	'[Level 5] Elixir of Youth': { [HOLD]: 4 },
+	'[Level 3] Scout Binoculars': { [HOLD]: 2 },
+	'[Level 5] Mysterious Rock': { [ILIYA]: 4 },
+	'[Level 1] Raft Toy': { [ILIYA]: 4 },
+	'[Level 1] Golden Sand': { [ILIYA]: 18 },
+	'[Level 2] Big Stone Slab': { [ILIYA]: 5 }
+};
+// How long ago the example cast off: the clock is a few minutes short
+// of the first island.
+const UNDER_WAY = 150;
+
+/**
+ * The example as the store takes it, with the board of today, so it
+ * reads as read this morning. `sea` is the run cast off -- its record
+ * and its clock, from castOff() -- for the Sail step; without it the
+ * run is at the wharf, on the Load step and its packing list.
+ */
+function example(sea = null) {
+	const day = barterKey();
+	const stock = {
 		'Violent Wave Plywood': 120,
 		"Violent Sea Monster's Scale": 60,
 		"Saltwater Crocodile's Scale": 55,
@@ -49,27 +105,103 @@ const DEMO = JSON.stringify({
 		'Epheria Carrack: Toro Cannon': 1,
 		'Crow Coin': 3000,
 		Silver: 42000000
-	},
-	targets: [
-		{ id: 'demo-1', item: "Epheria Carrack: Valor (Chiro's Sail)", qty: 1, active: true },
-		{ id: 'demo-2', item: "Epheria Carrack: Valor (Chiro's Cannon)", qty: 1, active: true }
-	],
-	strategy: {},
-	// The sailor's own numbers belong to a worked example as much as the
-	// stock does. Left unset the bar reads "0 barters · no level" and asks
-	// to be filled in -- which is the right thing for a new save and the
-	// wrong thing to walk somebody past while saying that the count
-	// decides which islands will deal with you at all. The hull is the
-	// one the queued parts are for, so the Ship step is about the boat
-	// the example is building rather than the sloop a save starts on --
-	// and the hold step's twenty slots are that Valor's.
-	profile: {
-		barterCount: 4205,
-		level: 'Master 5',
-		sailingMastery: 750,
-		crewShip: 'Carrack (Valor)'
+	};
+	for (const [name, at] of Object.entries(GOODS)) stock[name] = Object.values(at).reduce((a, n) => a + n, 0);
+	const barter = { port: PORT, routes: { key: `${day}|${LAYOUT}|`, ids: CHAINS }, board: { day, answers: ANSWERS }, ...(sea ? { sail: sea.sail } : {}) };
+	return JSON.stringify({
+		stock,
+		targets: [
+			{ id: 'demo-1', item: "Epheria Carrack: Valor (Chiro's Sail)", qty: 1, active: true },
+			{ id: 'demo-2', item: "Epheria Carrack: Valor (Chiro's Cannon)", qty: 1, active: true }
+		],
+		strategy: {},
+		// The sailor's own numbers belong to a worked example as much as the
+		// stock does. Left unset the bar reads "0 barters · no level" and asks
+		// to be filled in -- which is the right thing for a new save and the
+		// wrong thing to walk somebody past while saying that the count
+		// decides which islands will deal with you at all. The hull is the
+		// one the queued parts are for, so the Ship step is about the boat
+		// the example is building rather than the sloop a save starts on --
+		// and the hold step's twenty slots are that Valor's.
+		profile: {
+			barterCount: 4205,
+			level: 'Master 5',
+			sailingMastery: 750,
+			crewShip: 'Carrack (Valor)',
+			stash: GOODS,
+			views: { barter, ...(sea ? { timer: sea.timer } : {}) }
+		}
+	});
+}
+
+/**
+ * The example run cast off, as the Sail press does it: the run's record
+ * from the route on screen, and a clock set on its stops -- started a
+ * few minutes ago, so it is counting towards the first island. Null
+ * while no route of the example's is laid yet: the tour clears the
+ * tab's route when it starts, so one there now was laid on the example.
+ */
+function castOff() {
+	const plan = barterView.shownPlan;
+	if (!plan || !Array.isArray(plan.stops) || !plan.stops.length) return null;
+	const marks = runMarks(plan, legsOf(plan.stops));
+	if (!marks.length) return null;
+	const sail = { key: sailKey(), done: [], seen: {}, got: {}, kept: [], laidFor: '{}', cal: sailCal(), ...sailRecord(plan), packLog: { delta: {}, moves: [] }, told: toldOf(plan, fromPort()) };
+	const seconds = Math.max(30, Math.min(6 * 3600, Math.round(marks[marks.length - 1].at)));
+	const timer = {
+		startedAt: Date.now() - UNDER_WAY * 1000, seconds, label: runLabel(plan).slice(0, 60),
+		chimed: false, marks, done: 0, reached: 0, legAt: 0, of: plan.stops.length,
+		base: { seconds, marks }
+	};
+	return { sail, timer };
+}
+
+/**
+ * The Barter tab's memory, and what the tour's screens keep in this
+ * browser beside the save, kept to be put back. The tab's state lives in
+ * one object of the module's own, beside the store: the board, the run,
+ * the step up, the searches out. The example's view is read into it when
+ * the tab draws, so the sailor's is copied here first -- any write of it
+ * still owed is made now, while the store still saves -- and put back
+ * whole when the tour ends. The live handles (the workers, the request
+ * out, the timers) are left as they are by then.
+ */
+const LIVE = new Set(['worker', 'presetWorker', 'expectWorker', 'pending', 'untilBeat', 'writeTimer', 'writing', 'reqSeq', 'expectSeq']);
+function keepBarter() {
+	flushView();
+	const kept = {};
+	for (const [k, v] of Object.entries(barterView)) {
+		if (LIVE.has(k)) continue;
+		try { kept[k] = window.structuredClone(v); } catch { kept[k] = v; }
 	}
-});
+	// Two things the tour's screens keep in this browser beside the save:
+	// the Barter tab's step, and the chart's panel (the tour opens it on a
+	// phone and folds it again, and the fold is written down). Each goes
+	// back to what it said, or to not being there at all.
+	const local = {};
+	for (const k of [STEP_KEY, MAP_KEY]) {
+		try { local[k] = localStorage.getItem(k); } catch { /* none kept */ }
+	}
+	const seen = keepLayoutSeen();
+	return () => {
+		// A write of the example's view still owed is dropped: made now, it
+		// would land on the sailor's save.
+		if (barterView.writeTimer) {
+			clearTimeout(barterView.writeTimer);
+			barterView.writeTimer = null;
+		}
+		for (const k of Object.keys(barterView)) if (!LIVE.has(k) && !(k in kept)) delete barterView[k];
+		Object.assign(barterView, kept);
+		seen();
+		for (const [k, was] of Object.entries(local)) {
+			try {
+				if (localStorage.getItem(k) === was) continue;
+				if (was === null) localStorage.removeItem(k);
+				else localStorage.setItem(k, was);
+			} catch { /* the session keeps it */ }
+		}
+	};
+}
 
 /** On the screen: drawn with a size, not hidden, not invisible. */
 function onScreen(el) {
@@ -142,8 +274,12 @@ class GuidedTour {
 		this.list = [];
 		this.phone = false;
 		// What the tour moved and must put back: the tab it started on,
-		// the scroll, the Barter tab's step, the chart's panel.
+		// the scroll, the Barter tab's memory, the chart's panel.
 		this.was = null;
+		// The example's run is cast off (the clock step) rather than at
+		// the wharf, and the run, once cast off.
+		this.sea = false;
+		this.run = null;
 		// A step is being moved to; the watchers keep their hands off.
 		this.moving = false;
 		// The step last shown.
@@ -207,6 +343,11 @@ class GuidedTour {
 			stagePadding: 8,
 			stageRadius: 12,
 			allowClose: true,
+			// What is highlighted is the example's, to be looked at: a
+			// press on it -- a packing tick, the clock's stop, the step
+			// buttons -- would act on example data, or write the step up as
+			// this device's own.
+			disableActiveInteraction: true,
 			// The keys are the tour's own; see startTour().
 			allowKeyboardControl: false,
 			// A browser that asked for less movement gets the stage cut,
@@ -475,32 +616,44 @@ class GuidedTour {
 			side: 'bottom',
 			before: () => goToTab('barter')
 		});
-		// The hold and the clock are drawn on the Load step, which is there
-		// to open with nothing ticked yet: the tour opens it, and puts the
-		// step the sailor had back when it ends.
-		const onLoad = () => {
-			const btn = shown('#screen .steps [data-act="barter-step"][data-id="load"]');
-			if (btn && !btn.classList.contains('on')) btn.click();
-		};
-		const toLoad = () => {
-			goToTab('barter');
-			onLoad();
+		// The hold is drawn on the Load step, over the example's packing
+		// list; the clock on the Sail step, the example run cast off a few
+		// minutes ago. The step up is switched in memory only -- a press on
+		// the step's button would write it down as this device's -- and the
+		// one the sailor had is put back when the tour ends.
+		const onStep = id => {
+			if (barterView.step === id && shown(`#screen .steps [data-act="barter-step"][data-id="${id}"].on`)) return;
+			barterView.step = id;
+			const again = document.querySelector('[data-act="barter-redraw"]');
+			if (again) again.click();
 		};
 		add('hold', {
 			find: () => shown('#screen .hold-col-ship', '#screen .hold-bar'),
 			title: () => T('The hold: LT and slots'),
-			text: () => T('A run keeps to the hull’s weight and to its slots: every [Level 5] good and above takes a slot of its own, so a Carrack: Valor holds twenty whatever they weigh. A tick on the packing list loads it for real, and never more than fits.'),
+			text: () => T('The gauge weighs the hold against the hull’s limit and counts its slots. Every [Level 5] good and up takes a slot of its own: {used} of {slots} here.', { used: F(holdSlotsUsed()), slots: F(hullSlots()) })
+				+ ' ' + T('A tick on the packing list loads it for real, and never more than fits.'),
 			side: 'bottom',
-			before: toLoad,
-			again: onLoad
+			before: () => {
+				this.atSea(false);
+				goToTab('barter');
+				onStep('load');
+			},
+			again: () => onStep('load')
 		});
 		add('clock', {
-			find: () => shown('#screen .hold-bar-timer'),
+			find: () => shown('#screen .cockpit-clock .sail-timer.running', '#screen .hold-bar-timer'),
 			title: () => T('The sailing clock'),
-			text: () => T('Once you cast off, a clock counts each leg, waits at every island until you press <b>Traded</b>, and chimes when the ship should be in. These choose the chime.'),
-			side: 'top',
-			before: toLoad,
-			again: onLoad
+			text: () => T('Here the example run has cast off. The clock counts down to the next island and waits there until you press <b>Traded</b>. It chimes when the ship should be in; the chips beside it choose how.'),
+			side: 'bottom',
+			// Cast off from the route the Load step laid; if it has not laid
+			// one yet, the Load step is drawn first and the run cast off on
+			// the next look.
+			before: () => {
+				goToTab('barter');
+				onStep(this.atSea(true) ? 'sail' : 'load');
+			},
+			again: () => onStep(this.atSea(true) ? 'sail' : 'load'),
+			leave: () => this.atSea(false)
 		});
 		add('map', {
 			find: () => shown('#screen .map-tabs'),
@@ -565,10 +718,12 @@ class GuidedTour {
 
 	/**
 	 * Everything the tour moved, put back: the chart's panel, the Barter
-	 * tab's step, the sailor's own data, the tab and the scroll it
-	 * started on. The panel goes first, while the example is still in:
-	 * a press on the chart writes its view, and that write must land on
-	 * the example and not on the real save.
+	 * tab's memory, the sailor's own data, the clock, the tab and the
+	 * scroll it started on. The panel goes first, while the example is
+	 * still in: a press on the chart writes its view, and that write must
+	 * land on the example and not on the real save. The Barter tab's
+	 * memory goes back before the save does, so the redraw the save's
+	 * return sets off reads the sailor's own run and not the example's.
 	 */
 	finish() {
 		const was = this.was;
@@ -583,14 +738,11 @@ class GuidedTour {
 		const left = this.list[this.at];
 		if (left && left.leave) left.leave();
 		this.foldMapPanel();
-		if (was && was.barterStep !== barterView.step) {
-			barterView.step = STEPS.includes(was.barterStep) ? was.barterStep : '';
-			try {
-				if (was.barterStep) localStorage.setItem(STEP_KEY, was.barterStep);
-				else localStorage.removeItem(STEP_KEY);
-			} catch { /* the session keeps it */ }
-		}
+		if (was && was.barter) was.barter();
 		this.restoreRealData();
+		this.sea = false;
+		this.run = null;
+		hushTimer(false);
 		if (was && was.view) goToTab(was.view);
 		if (was) window.scrollTo(0, was.scroll || 0);
 		this.was = null;
@@ -599,6 +751,24 @@ class GuidedTour {
 		} catch {
 			/* ignore */
 		}
+	}
+
+	/**
+	 * The example at the wharf, or cast off: swapped in when it changes.
+	 * False when it cannot be cast off yet, the Load step not having laid
+	 * its route; it is cast off once, and the same run sailed after that.
+	 */
+	atSea(on) {
+		if (!this.realData) return false;
+		if (this.sea === on) return true;
+		if (on && !this.run) this.run = castOff();
+		if (on && !this.run) return false;
+		this.sea = on;
+		// The tab reads a view again only when no write of its own is owed,
+		// so the one owed is made first (to the example; nothing is saved).
+		flushView();
+		store.applyTransient(example(on ? this.run : null));
+		return true;
 	}
 
 	/** Put the user's own data back after the walkthrough. */
@@ -630,13 +800,21 @@ class GuidedTour {
 		this.was = {
 			view: document.body.dataset.view || 'plan',
 			scroll: window.scrollY,
-			barterStep: barterView.step,
+			barter: keepBarter(),
 			panelOpened: false
 		};
+		// The route on the tab is the sailor's until the example's is laid;
+		// see castOff().
+		barterView.shownPlan = null;
+		this.run = null;
 
 		// Swap in the example, keeping the real data to hand back later.
+		// The clock is hushed first: from here it reads the example's run,
+		// which must not chime or reach the server as the sailor's.
+		hushTimer(true);
 		this.realData = store.capture();
-		store.applyTransient(DEMO);
+		this.sea = false;
+		store.applyTransient(example(false));
 
 		// A repaint can throw away the node the highlight is on; see check().
 		this.stopWatching = store.subscribe(() => {

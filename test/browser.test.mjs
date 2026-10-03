@@ -614,6 +614,201 @@ for (const [where, size] of VIEWPORTS) {
 }
 
 /**
+ * The Barter steps of the tour show a run, and the run leaves nothing.
+ *
+ * The hold and the clock used to be shown on an empty Load step -- "0 /
+ * 20 slots" and the clock's chips with no clock -- because the example
+ * held no run. It holds one now: a board read today, chains ticked, and
+ * for the clock step the run cast off. All of it is the tour's: the
+ * save, the Barter tab's memory, the step it was on and the clock the
+ * sailor had running must be what they were, however the tour ends --
+ * Finish, Escape, or a reload in the middle -- and the example's clock
+ * must never ring, notify, or hand a chime to the server, even when
+ * its stops fall due.
+ */
+const REAL_RUN = () => {
+	const save = JSON.parse(FURNISHED);
+	const now = Date.now();
+	save.profile = {
+		barterCount: 1200,
+		views: {
+			barter: { goal: 'stock', port: 1, board: { day: '2026-09-30', answers: [] }, routes: { key: 'x', ids: [] } },
+			// A clock of the sailor's own, an hour from its first stop.
+			timer: { startedAt: now - 60000, seconds: 7200, label: 'My own run', chimed: false, marks: [{ at: 3600, label: 'Far Isle', hold: 45, k: 0 }, { at: 7200, label: 'Home', hold: 120, k: 1 }], done: 0, reached: 0, legAt: 0, of: 2 }
+		}
+	};
+	return {
+		'bdo-tracker/v2': JSON.stringify(save),
+		'bdo_ship_upgrade-tour_completed': 'true',
+		'bdo-tracker/release': RELEASE,
+		'barter-step': 'plan'
+	};
+};
+
+/** What the tour must leave as it found it, read in the page. */
+const realState = page => page.evaluate(async () => {
+	const store = await import('/js/state.js');
+	const { viewNow } = await import('/js/barter/view.js');
+	const { V } = await import('/js/barter/state.js');
+	const { timerNow } = await import('/js/sail-timer.js');
+	// The market's cache and the tour's own "seen it" are not the save.
+	// Each stored text read as JSON where it is, so a difference shows
+	// where it is; and the stored text itself too, to the byte.
+	const read = text => { try { return JSON.parse(text); } catch { return text; } };
+	const keys = Object.keys(localStorage).filter(k => !/market|tour_completed/.test(k)).sort();
+	return {
+		storage: Object.fromEntries(keys.map(k => [k, read(localStorage.getItem(k))])),
+		bytes: keys.map(k => `${k}=${localStorage.getItem(k)}`).join('\n'),
+		view: store.getView('barter'),
+		timer: timerNow(),
+		memory: JSON.parse(JSON.stringify({ ...viewNow(), step: V.step, readSig: V.readSig }))
+	};
+});
+
+/** Count anything that would make a sound, show a notification or reach the push server. */
+const listenForChimes = page => page.evaluate(() => {
+	window.__rang = { push: 0, sound: 0, notes: 0 };
+	const fetched = window.fetch;
+	window.fetch = (url, opts) => {
+		if (/\/api\/(push|discord-dm)/.test(String(url))) window.__rang.push += 1;
+		return fetched(url, opts);
+	};
+	const Ctor = window.AudioContext || window.webkitAudioContext;
+	if (Ctor) {
+		const osc = Ctor.prototype.createOscillator;
+		Ctor.prototype.createOscillator = function () {
+			window.__rang.sound += 1;
+			return osc.call(this);
+		};
+	}
+	if (window.Notification) {
+		const Note = window.Notification;
+		window.Notification = function (...args) {
+			window.__rang.notes += 1;
+			return new Note(...args);
+		};
+		window.Notification.permission = Note.permission;
+	}
+});
+
+/** Walk the tour by Next to the step with this id, and say where it stands. */
+async function walkTo(page, id) {
+	const at = await page.evaluate(async want => {
+		const { guidedTour } = await import('/js/guided-tour.js');
+		return guidedTour.list.findIndex(s => s.id === want) + 1;
+	}, id);
+	assert.ok(at > 0, `the tour has a ${id} step`);
+	for (let n = 1; n < at; n++) {
+		await stepAt(page, n);
+		await page.evaluate(() => document.querySelector('.driver-popover-next-btn').click());
+	}
+	return stepAt(page, at);
+}
+
+/** The hold and the clock steps, read off what they highlight. */
+async function holdAndClock(page) {
+	const hold = await walkTo(page, 'hold');
+	const gauge = await page.evaluate(() => (document.querySelector('.driver-active-element .hold-gauge') || {}).textContent || '');
+	await page.evaluate(() => document.querySelector('.driver-popover-next-btn').click());
+	const clockStep = await stepAt(page, await page.evaluate(async () => {
+		const { guidedTour } = await import('/js/guided-tour.js');
+		return guidedTour.list.findIndex(s => s.id === 'clock') + 1;
+	}));
+	const clock = await page.evaluate(async () => {
+		// Looked up each time: a repaint may draw the clock afresh.
+		const el = () => document.querySelector('.driver-active-element');
+		const text = () => ((el() && el().querySelector('[data-timer-clock]')) || {}).textContent || '';
+		const first = text();
+		await new Promise(r => setTimeout(r, 2200));
+		return { running: !!(el() && el().matches('.sail-timer.running')), first, then: text() };
+	});
+	return { hold, gauge, clockStep, clock };
+}
+
+for (const [where, size] of VIEWPORTS) {
+	test(`the tour's hold and clock show a real run, and Finish and Escape leave the real one, on ${where}`, async () => {
+		for (const end of ['finish', 'escape']) {
+			const mine = await open({ storage: REAL_RUN(), hash: '#barter' });
+			await mine.page.setViewport(size);
+			await new Promise(r => setTimeout(r, 2500));
+			const before = await realState(mine.page);
+			await listenForChimes(mine.page);
+			await mine.page.evaluate(async () => {
+				const { guidedTour } = await import('/js/guided-tour.js');
+				await guidedTour.startTour();
+			});
+			const got = await holdAndClock(mine.page);
+			assert.ok(got.hold && !got.hold.centred, 'the hold step has its target');
+			assert.match(got.gauge, /[1-9][\d,.\s]* \/ [\d,.\s]+ LT/, `the hold weighs something: ${got.gauge}`);
+			assert.match(got.gauge, /[1-9]\d* \/ \d+ slots/, `the hold has slots taken: ${got.gauge}`);
+			assert.ok(got.clock.running, 'the clock step shows a clock that is running');
+			assert.match(got.clock.first, /stop 1 of \d+/, `the clock is making for the first stop: ${got.clock.first}`);
+			assert.notEqual(got.clock.first, got.clock.then, 'and it counts');
+			// The example's stops fall due: three hours on, as a tab coming
+			// back from sleep finds them. Nothing may ring.
+			await mine.page.evaluate(async () => {
+				const real = Date.now;
+				Date.now = () => real() + 3 * 3600 * 1000;
+				document.dispatchEvent(new Event('visibilitychange'));
+				await new Promise(r => setTimeout(r, 400));
+				Date.now = real;
+			});
+			if (end === 'escape') {
+				await mine.page.bringToFront();
+				await mine.page.keyboard.press('Escape');
+			} else {
+				const total = await mine.page.evaluate(async () => (await import('/js/guided-tour.js')).guidedTour.list.length);
+				const at = await mine.page.evaluate(async () => (await import('/js/guided-tour.js')).guidedTour.list.findIndex(s => s.id === 'clock') + 1);
+				for (let n = at; n <= total; n++) {
+					await stepAt(mine.page, n);
+					await mine.page.evaluate(() => document.querySelector('.driver-popover-next-btn').click());
+				}
+			}
+			await new Promise(r => setTimeout(r, 1500));
+			const rang = await mine.page.evaluate(() => ({ ...window.__rang, up: !!document.querySelector('.driver-popover') }));
+			assert.deepEqual(rang, { push: 0, sound: 0, notes: 0, up: false }, `${end}: the example's clock rang, notified or reached the server`);
+			assert.deepEqual(await realState(mine.page), before, `${end}: the save, the Barter tab and the clock are as they were`);
+			await mine.context.close();
+		}
+	});
+}
+
+test('a reload in the middle of the tour comes back to the real save, run and clock', async () => {
+	// Planted by hand rather than through open(), which plants its
+	// storage again on every load: the reload must read what the tour
+	// left on the disk.
+	// Planted once, before the page's first look, and never again.
+	const mine = await open({ hash: '#barter' });
+	await mine.page.evaluateOnNewDocument(planted => {
+		if (window.sessionStorage.getItem('planted')) return;
+		window.sessionStorage.setItem('planted', '1');
+		localStorage.clear();
+		for (const [k, v] of Object.entries(planted)) localStorage.setItem(k, v);
+	}, REAL_RUN());
+	await mine.page.reload({ waitUntil: 'domcontentloaded' });
+	await mine.page.waitForSelector(POUCH_READY, { timeout: 15000 });
+	await new Promise(r => setTimeout(r, 2500));
+	const before = await realState(mine.page);
+	await mine.page.evaluate(async () => {
+		const { guidedTour } = await import('/js/guided-tour.js');
+		await guidedTour.startTour();
+	});
+	const got = await holdAndClock(mine.page);
+	assert.ok(got.clock.running, 'the tour got as far as the running clock');
+	await mine.page.reload({ waitUntil: 'domcontentloaded' });
+	await mine.page.waitForSelector(POUCH_READY, { timeout: 15000 });
+	await new Promise(r => setTimeout(r, 2500));
+	// The tab's memory is read afresh by a reload, which fills in fields
+	// the first read had left at their defaults; what was kept is what
+	// is compared.
+	const after = await realState(mine.page);
+	delete after.memory;
+	delete before.memory;
+	assert.deepEqual(after, before, 'the reload is back on the real save, Barter view and clock');
+	await mine.context.close();
+});
+
+/**
  * What greets someone on the way in, and in what order.
  *
  * Three things want that first moment and only one may have it, so the

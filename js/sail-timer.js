@@ -233,6 +233,7 @@ export function arrivedAt(index, fresh = null, of = 0) {
  * changes, since the schedule is replaced rather than added to.
  */
 export function sendSchedule() {
+	if (hushed) return;
 	if (!pushOn() && !discordOn()) return;
 	const t = timerNow();
 	if (!t) return clearAlerts(TAG);
@@ -259,7 +260,7 @@ export function sendSchedule() {
 export function stopTimer() {
 	write(null);
 	arm();
-	if (pushOn() || discordOn()) clearAlerts(TAG);
+	if (!hushed && (pushOn() || discordOn())) clearAlerts(TAG);
 }
 
 /**
@@ -624,6 +625,19 @@ function notify(title, body) {
 
 let pending = null;
 let redraw = null;
+// Set while the guided tour has its example run on screen. The clock
+// drawn then is the example's, read from the example's own view: it is
+// shown counting, and nothing else -- no chime, no notification, no
+// moment handed to the server. The sailor's own clock is not lost by
+// it: it is armed again the moment the hush ends, and anything that
+// fell due meanwhile rings then, as it does for a tab that slept.
+let hushed = false;
+
+/** The clock shown and not kept, for as long as `on` -- see `hushed`. */
+export function hushTimer(on) {
+	hushed = !!on;
+	arm();
+}
 
 /**
  * The page's own hand on the timer: `onFire` is called when it goes
@@ -641,6 +655,7 @@ export function watchTimer(onFire = null) {
 
 function arm() {
 	if (pending) { clearTimeout(pending); pending = null; }
+	if (hushed) return;
 	const t = timerState();
 	if (!t) return;
 	// The next thing to sound: a stop the ship has reached, or the end

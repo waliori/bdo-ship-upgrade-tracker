@@ -283,3 +283,23 @@ test('Arrived at a stop past a skipped one waits there, under its own name', () 
 	assert.equal(s.wait.label, 'C');
 	stopTimer();
 });
+
+test('a hushed clock is shown and never rings; the hush lifted, what fell due rings', async () => {
+	// The guided tour shows an example run with its clock, read from the
+	// example's own view. The clock is hushed for as long as it is up:
+	// counting, and nothing more.
+	const { watchTimer, hushTimer } = await import('../js/sail-timer.js');
+	fakeAudio();
+	setMarksMode('each');
+	hushTimer(true);
+	startTimer(0, 'example', [{ at: 100, label: 'A', hold: 0, k: 0 }, { at: 200, label: 'B', hold: 0, k: 1 }], 2);
+	rewind(3600);
+	const before = notes;
+	watchTimer(null);
+	assert.equal(notes, before, 'an hour past both stops, and not a sound');
+	assert.equal(timerNow().reached, 0, 'nor is a stop marked as reached');
+	assert.ok(timerState().wait || timerState().next, 'the clock still says where it is');
+	hushTimer(false);
+	assert.ok(notes > before, 'lifted, the stop that fell due rings, as for a tab that slept');
+	stopTimer();
+});

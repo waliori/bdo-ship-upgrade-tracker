@@ -210,6 +210,17 @@ function oneLayout() {
 	seen = now;
 }
 
+/**
+ * What oneLayout() has last seen, to be put back by the call this
+ * returns. The guided tour shows an example board; without this the
+ * first write after it would read the sailor's own board as a new one
+ * against the example's, and put down the list it thought was older.
+ */
+export function keepLayoutSeen() {
+	const was = seen;
+	return () => { seen = was; };
+}
+
 /** Which list today's layout was read from last: 'trade', 'material', or
  *  '' when neither has one -- and 'both' only for a view kept from
  *  before the two were made to exclude each other. */
