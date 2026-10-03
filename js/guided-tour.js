@@ -488,7 +488,8 @@ class GuidedTour {
 		// so Enter still goes on.
 		const next = document.querySelector('.driver-popover.sail-tour .driver-popover-next-btn');
 		const at = document.activeElement;
-		if (next && (!at || at === document.body || !at.isConnected)) next.focus({ preventScroll: true });
+		const pop = next && next.closest('.driver-popover');
+		if (next && (!at || !at.isConnected || !pop.contains(at))) next.focus({ preventScroll: true });
 	}
 
 	/**
@@ -859,12 +860,25 @@ class GuidedTour {
 				this.driver.destroy();
 			}
 		};
+		// The popover is a dialog, and the focus stays in it: anything that
+		// takes it elsewhere while a step is up -- a repaint under the step,
+		// a screen drawn late -- hands it back to Next, so Enter goes on and
+		// a keyboard never wanders under the example.
+		const onFocus = evt => {
+			if (!this.running || this.moving) return;
+			const pop = document.querySelector('.driver-popover.sail-tour');
+			if (!pop || pop.contains(evt.target)) return;
+			const next = pop.querySelector('.driver-popover-next-btn');
+			if (next) next.focus({ preventScroll: true });
+		};
 		window.addEventListener('resize', onResize);
 		document.addEventListener('keydown', onKey, true);
+		document.addEventListener('focusin', onFocus, true);
 		this.unhook = () => {
 			clearTimeout(resized);
 			window.removeEventListener('resize', onResize);
 			document.removeEventListener('keydown', onKey, true);
+			document.removeEventListener('focusin', onFocus, true);
 		};
 
 		this.phone = isPhone();
