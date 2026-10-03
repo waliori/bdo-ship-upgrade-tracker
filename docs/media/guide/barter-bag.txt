@@ -1,0 +1,16 @@
+Bartering, part nine. Your character’s bag, used as a second hold.
+Same sailor, same board, sailing from Iliya. Your inventory weighs nothing on the ship, so goods for a later chain can ride in it.
+It is switched on under Before you sail. Find "your bag", and click "a second hold".
+It needs the two bars at the foot of the game’s Inventory window. Weight: 612.4 of a 2,150 LT limit.
+And Inventory Slot: 96 of 192 filled.
+Or click "Read the Inventory window" and give it a screenshot: it reads both.
+The app works out the room: a bag carries up to 170 percent of your weight limit, less what it already holds, in the slots still empty. Here, 3,042 LT and 96 slots.
+Goods in the bag go in and out at any wharf’s Load Cargo. Sales stay at the seven wharves with a storage keeper. And Level 5 and up, and Great Ocean goods, take a slot each in the bag too.
+Now sail it "An hour at most".
+A short run, and the hold has room: the hold tile says the bag is not used, and why. A run with the bag is only kept when it pays better an hour.
+Switch to the whole board at full speed, and take the most silver.
+A long run in trips, and this time the bag carries part of it: the hold tile says how much of the bag, at most.
+At the wharf, the bag has its own group on the packing list: what goes into your bag, from the Iliya storage, with the LT and slots it takes.
+And the trip it is for says where it comes out of the bag: at a wharf on the way, before the chain that needs it.
+In the route, that wharf stop says the same: out of your bag, aboard.
+Leave the bag on, and every run is planned both ways and the better one kept. That is the last of the barter parts.

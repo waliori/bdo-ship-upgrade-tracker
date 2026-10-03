@@ -1,177 +1,177 @@
 WEBVTT
 
 1
-00:00:00.342 --> 00:00:05.580
+00:00:00.342 --> 00:00:05.579
 This is the Yard: the tabs where a build is planned. Plan, Builds, Inventory, Tree and Workshop.
 
 2
-00:00:05.962 --> 00:00:11.545
+00:00:05.932 --> 00:00:11.398
 Start with the bar under the tabs. These are the numbers about you that every screen plans from. Click it open.
 
 3
-00:00:11.629 --> 00:00:18.229
+00:00:11.398 --> 00:00:17.880
 Total Barters first. Type the count your Barter window shows in game. It decides which islands will trade with you at all.
 
 4
-00:00:19.059 --> 00:00:22.755
+00:00:17.880 --> 00:00:21.462
 Your barter level. It sets what every exchange costs in Parley.
 
 5
-00:00:22.866 --> 00:00:27.807
+00:00:21.462 --> 00:00:26.289
 Tick Value Pack if one is running. It adds a draw a day and takes ten per cent off the Parley.
 
 6
-00:00:27.807 --> 00:00:33.111
+00:00:26.289 --> 00:00:31.482
 Corsair is for a Corsair at the wheel: one per cent more speed, acceleration, turn and brake.
 
 7
-00:00:33.212 --> 00:00:39.008
+00:00:31.482 --> 00:00:37.166
 Your Sailing Mastery, as the character window shows it. It counts toward speed, acceleration, turn and brake.
 
 8
-00:00:39.031 --> 00:00:44.820
+00:00:37.166 --> 00:00:42.952
 The sailing log you carry. Its mastery is already in your total, so only its top speed is added on top.
 
 9
-00:00:44.820 --> 00:00:53.176
+00:00:42.952 --> 00:00:51.269
 And your Bos'n Jacks. Their talent adds fifty LT of ship weight a tier, across the five pets you can have out. Open the nest, set all five at once, and save.
 
 10
-00:00:55.157 --> 00:00:58.151
+00:00:51.269 --> 00:00:54.188
 Region is where the Central Market prices are read from.
 
 11
-00:00:58.151 --> 00:01:01.347
+00:00:54.188 --> 00:00:57.425
 Type them once, and every tab reads them. Fold the bar away.
 
 12
-00:01:01.347 --> 00:01:05.548
+00:00:57.425 --> 00:01:01.540
 Now the Builds tab. This is the queue: what you mean to build, in the order you want it done.
 
 13
-00:01:05.548 --> 00:01:10.108
+00:01:01.540 --> 00:01:06.047
 Add a build. The picker takes ships, parts, or a stack of materials, and the chips narrow it down.
 
 14
-00:01:10.108 --> 00:01:12.606
+00:01:06.047 --> 00:01:08.545
 Start with a ship: the Epheria Caravel.
 
 15
-00:01:12.928 --> 00:01:18.204
+00:01:08.938 --> 00:01:14.144
 A Caravel can be built two ways, so it asks which. Each way shows how much material it takes in all.
 
 16
-00:01:18.204 --> 00:01:23.932
+00:01:14.144 --> 00:01:19.785
 Take the Improved Sailboat. It costs a little more, and adds a solo cannon volley. Either choice can be changed later.
 
 17
-00:01:23.932 --> 00:01:26.855
+00:01:19.785 --> 00:01:22.708
 Then a part: Chiro's Sail, for the Carrack Advance.
 
 18
-00:01:27.922 --> 00:01:32.932
+00:01:23.738 --> 00:01:28.556
 Each build is a card: how far along it is, and what is still to get, in coins, silver and goods.
 
 19
-00:01:32.932 --> 00:01:37.302
+00:01:28.556 --> 00:01:32.885
 Order matters. When stock runs short, the build at the top gets it first. Move the sail up.
 
 20
-00:01:37.302 --> 00:01:41.385
+00:01:32.885 --> 00:01:36.945
 The Caravel can wait. Pause it, and it stops claiming stock until you start it again.
 
 21
-00:01:41.385 --> 00:01:47.328
+00:01:36.945 --> 00:01:42.872
 Under the queue are the biggest blockers: the missing things holding the most up. A count can be typed right on the row.
 
 22
-00:01:47.328 --> 00:01:50.708
+00:01:42.872 --> 00:01:46.105
 The Plan tab is everything the active builds need, in one list.
 
 23
-00:01:50.708 --> 00:01:54.009
+00:01:46.105 --> 00:01:49.388
 The Next line says the one most useful thing to do right now.
 
 24
-00:01:54.009 --> 00:02:00.444
+00:01:49.388 --> 00:01:55.796
 Today shows your ship, the quests that pay into your list, and how long until the dailies, the weeklies and the barter refresh reset.
 
 25
-00:02:00.444 --> 00:02:05.600
+00:01:55.796 --> 00:02:00.952
 Then the totals: how much is covered, what is still missing, and how many recipes you can craft now.
 
 26
-00:02:06.108 --> 00:02:12.171
+00:02:01.425 --> 00:02:07.440
 The list is grouped. What you are building, then red for missing, blue for what is crafted from other things, and green for covered.
 
 27
-00:02:12.171 --> 00:02:15.293
+00:02:07.440 --> 00:02:10.524
 Filter it to the missing only, when that is all you want to see.
 
 28
-00:02:15.293 --> 00:02:19.538
+00:02:10.524 --> 00:02:14.725
 As you gather, type what you hold into the box. Here, a hundred Starlight Hardener.
 
 29
-00:02:19.538 --> 00:02:23.316
+00:02:14.725 --> 00:02:18.502
 It leaves the missing list, and every build re-plans around it at once.
 
 30
-00:02:24.337 --> 00:02:30.740
+00:02:19.372 --> 00:02:25.755
 Big numbers can be typed short. Two k is two thousand, and twelve thousand can be written with the separators your language uses.
 
 31
-00:02:30.857 --> 00:02:34.662
+00:02:25.755 --> 00:02:29.575
 Or record a whole trip in one go. Log a trip takes everything you brought back.
 
 32
-00:02:34.662 --> 00:02:38.209
+00:02:29.575 --> 00:02:33.123
 Pick the item and type how many. Add a line for each thing.
 
 33
-00:02:44.588 --> 00:02:46.865
+00:02:38.577 --> 00:02:40.842
 Record, and the whole trip goes in as one change.
 
 34
-00:02:46.865 --> 00:02:50.643
+00:02:40.842 --> 00:02:44.615
 So one Undo takes the whole trip back, and Redo puts it in again.
 
 35
-00:02:50.772 --> 00:02:56.369
+00:02:44.615 --> 00:02:50.190
 Or skip the typing. Screenshot your storage window in game, and give the shots to Read a storage on the Inventory.
 
 36
-00:02:56.369 --> 00:03:06.005
+00:02:50.190 --> 00:02:59.826
 Here are two shots of one storage, scrolled between. It finds the slots, names each icon it knows, and reads the count written over it. It all runs in your browser; nothing is uploaded.
 
 37
-00:03:06.341 --> 00:03:12.268
+00:03:00.159 --> 00:03:05.974
 It says how many things it read, how many slots it passed over, and that the row both shots share was counted once.
 
 38
-00:03:12.272 --> 00:03:19.577
+00:03:05.974 --> 00:03:13.279
 Every line keeps the corner of its slot beside it, so a count is checked at a glance. One the reader was not sure of is marked: check this one.
 
 39
-00:03:20.116 --> 00:03:25.781
+00:03:13.786 --> 00:03:19.451
 Say which storage this is. Update writes what the shots show; Replace treats the shots as the whole storage.
 
 40
-00:03:25.885 --> 00:03:28.117
+00:03:19.574 --> 00:03:21.654
 Nothing is written until you press Write.
 
 41
-00:03:28.117 --> 00:03:32.108
+00:03:21.654 --> 00:03:25.645
 And there it is in the Inventory, all of it at Velia, as one change.
 
 42
-00:03:32.396 --> 00:03:39.235
+00:03:25.928 --> 00:03:32.785
 Trade goods are grouped by level, each with its Lv chip. Level 5 and up take a slot each; everything else takes one slot a kind.
 
 43
-00:03:39.235 --> 00:03:41.882
+00:03:32.785 --> 00:03:35.422
 One Undo takes the whole storage back out again.
 
 44
-00:03:41.882 --> 00:03:47.350
+00:03:35.422 --> 00:03:40.889
 That is the Yard: what you want built, and what you hold toward it. Next, the Workshop, where it gets made.

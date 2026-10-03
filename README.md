@@ -18,7 +18,7 @@ last prices it was given.
 
 ![The Plan screen, part-way through two Carrack parts](docs/media/hero.png)
 
-**In a hurry?** [Watch the guide](docs/media/walkthrough.mp4) — LENGTH
+**In a hurry?** [Watch the guide](docs/media/walkthrough.mp4) — forty-seven
 minutes, in seventeen parts, and you can start at whichever one you came
 for; nine of them are bartering, one kind of day each. It is the real app
 being driven and narrated, not a mock-up; the only invented things in it

@@ -1,0 +1,50 @@
+Bartering, part two. A day for silver: climb the chains on today’s board and sell the tops at a wharf.
+The board is already named — layout 4, as in part one. This sailor has last week’s goods in the Iliya storage, at every level.
+One note: the Central Market in this film is a recorded day, so the run plans the same every time it is shot.
+The plan has four parts, and each one opens when the one before is settled.
+One: Before you sail.
+The Parley in your bar now, as the head of the barter window shows it. This sailor has already spent some today: 742,300 is left.
+Vouchers carried. Each Crow’s Trade Voucher puts 250,000 Parley back, on a two-hour cooldown.
+Your home port: where the run leaves from, comes back to, and whose storage it loads from. This sailor keeps goods at Iliya Island, so click Iliya.
+How long a stop takes apart from the sailing. Only the clock uses these.
+And your bag as a second hold, which has a part of its own.
+Two: where today ends.
+This ladder runs from the shore to Level 7. Under each level: how many you hold, what happens to them, and how many to keep back.
+Click a level, and the climb ends there. At Level 5, nothing is carried past it.
+Click Level 7 again. Today we climb to the top.
+The tag under a level says what the wharf does with it. Tap "sold" and Level 5 is kept as stock instead…
+…tap again, and it is sold.
+A keep number is a floor. Keep 4 at Level 4, and the run never hands over or sells the last four.
+The line under the ladder says it in words: climb to Level 7, sell Level 5 and up, and how many chains on today’s board fit that.
+Three: how to sail it. Five ways, and under each, the best run the search finds sailing that way today.
+Light and fast keeps the hold under its limit, and calls at a wharf only when one lies on the way and pays for the minute it costs.
+An hour at most is the best run that fits in about an hour. Click a card, and the run is sailed that way; the line under each card says what your own ticked chains come to sailed that way.
+The whole board at full speed takes every trade, and drops goods at a wharf whenever the hold fills.
+Loaded heavy takes every trade too: the wharf loads to the limit, the exchanges push the hold past it, and the ship sails slower with fewer wharf calls.
+Spend no silver uses only goods you already own.
+My own way opens every order behind those cards.
+Where land goods come from — bought ashore, from your storage, or only what is held. The pace. A time limit. Whether vouchers are drawn on. The way round. Which storage the wharf calls use. BreezySail, for the rations. And quests on the way.
+Also trade for: chains that end in ship materials, Great Ocean goods, and Lost Trade Boxes. Great Ocean goods are on by default and sold like a Level 7.
+A way of sailing you like can be kept under a name. Click "save these"…
+…name it, and it is one click next time: the ladder, the orders, the port, all set back at once.
+Back to Light and fast.
+Four: the chains on offer.
+It has already found the runs worth sailing on this board: the most silver, the most an hour, and the most for each unit of Parley. They are rarely the same run.
+Click one, and its chains are ticked for you.
+Each card is one chain. Where its first good comes from, the levels it climbs, its islands in order, and what it pays sailed on its own: silver, silver per Parley unit, silver an hour.
+Start from: a chain can start at the shore, or from a good you already hold part-way up the same climb. Here, the Round Knives in the Iliya storage.
+This chain starts from Level 4 Panaceas in the Iliya storage, loaded before casting off. Nothing is bought for it.
+A chain that starts ashore buys its first good on the Central Market, and is held to what is listed there. This one needs Fine Fancy Feathers, and the Market has none, so it cannot be ticked and says why.
+Search the chains for an island or a good, or narrow them to what is held, what is bought ashore, or the level a chain reaches.
+Or tick chains yourself. Every tick re-plans the whole run.
+"Fill the rest for me" adds the best chains around the ones you picked.
+Under the chains, the run adds up.
+Silver, net of the land goods bought.
+What one unit of Parley pays, and the Parley the run spends.
+The hold at its fullest, in LT and in slots. Level 5 and up, and Great Ocean goods, take a slot each; the levels under them stack, one slot a kind.
+The Parley left at the end, and how many of your vouchers the run draws on.
+And the time under way, at your ship’s own speed.
+Some islands pay a range. The run is laid at the least; the best case is beside it.
+If a ticked chain cannot get to the top — the hold shared out, or a chain that needs the same goods — it is said here, with the fix.
+The bar at the foot keeps the run’s totals in sight.
+That is the plan. Load at the wharf, and the run is laid stop by stop.

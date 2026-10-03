@@ -1,181 +1,181 @@
 WEBVTT
 
 1
-00:00:00.342 --> 00:00:04.218
+00:00:00.395 --> 00:00:04.272
 This is the Map: the whole sea, with everything you are short of marked on it.
 
 2
-00:00:04.325 --> 00:00:07.565
+00:00:04.336 --> 00:00:07.282
 Every pin is a barterer who can deal something on your list.
 
 3
-00:00:07.565 --> 00:00:10.731
+00:00:07.282 --> 00:00:10.420
 The head says how many of the ninety-one barterers that is.
 
 4
-00:00:10.731 --> 00:00:15.072
+00:00:10.420 --> 00:00:14.756
 Showing is what the chart marks. Everything you are short of, or one item you choose.
 
 5
-00:00:15.072 --> 00:00:18.423
+00:00:14.756 --> 00:00:18.107
 Pick one, and only the islands dealing that one thing are left.
 
 6
-00:00:19.426 --> 00:00:22.219
+00:00:18.995 --> 00:00:21.788
 Everything I am short of brings the rest back.
 
 7
-00:00:22.588 --> 00:00:26.775
+00:00:22.121 --> 00:00:26.308
 The pill on the chart counts down to the barter refresh, the dailies and the weeklies.
 
 8
-00:00:26.960 --> 00:00:29.402
+00:00:26.443 --> 00:00:28.877
 The buttons along the top are the chart's tools.
 
 9
-00:00:29.402 --> 00:00:33.442
+00:00:28.877 --> 00:00:32.917
 Zoom out and in. Scrolling on the sea does the same, and dragging pans.
 
 10
-00:00:34.252 --> 00:00:37.398
+00:00:33.118 --> 00:00:36.305
 This one fits everything marked back into view, if you get lost.
 
 11
-00:00:37.398 --> 00:00:40.707
+00:00:36.305 --> 00:00:39.435
 The ruler measures any two points on the sea. Click one, then the other.
 
 12
-00:00:40.707 --> 00:00:44.517
+00:00:39.435 --> 00:00:43.245
 It gives the distance in metres, and the time your ship takes to sail it.
 
 13
-00:00:45.269 --> 00:00:49.736
+00:00:43.856 --> 00:00:48.323
 This hides or shows the minimap in the corner. Click on the minimap to jump anywhere.
 
 14
-00:00:49.880 --> 00:00:52.148
+00:00:48.456 --> 00:00:50.724
 And 3D stands the chart up.
 
 15
-00:00:53.982 --> 00:00:58.390
+00:00:52.376 --> 00:00:56.787
 That is the game's own terrain, read out of the client. Not a picture of it: the real heightmap.
 
 16
-00:00:58.390 --> 00:01:01.741
+00:00:56.787 --> 00:01:00.138
 Shift-drag to lean it, and the islands come up out of the water.
 
 17
-00:01:06.494 --> 00:01:11.891
+00:01:02.988 --> 00:01:08.340
 The world curves away toward the horizon, the way the game's own map does, and the pins and the routes bend with it.
 
 18
-00:01:11.891 --> 00:01:13.920
+00:01:08.340 --> 00:01:10.381
 Ground paints it in the colours the client ships.
 
 19
-00:01:13.920 --> 00:01:17.312
+00:01:10.381 --> 00:01:13.772
 Neon draws it as contours, the way the game's own 3D map does.
 
 20
-00:01:17.312 --> 00:01:20.170
+00:01:13.772 --> 00:01:16.631
 And Level looks straight down again, facing north.
 
 21
-00:01:22.458 --> 00:01:26.236
+00:01:19.068 --> 00:01:22.845
 The last button is full screen. That is where the chart is worth using.
 
 22
-00:01:26.585 --> 00:01:30.158
+00:01:23.189 --> 00:01:26.755
 Now the sea has the whole window. The few buttons that matter come with it.
 
 23
-00:01:30.158 --> 00:01:32.787
+00:01:26.755 --> 00:01:29.383
 Fit again, now that the chart has the room.
 
 24
-00:01:35.615 --> 00:01:39.360
+00:01:32.148 --> 00:01:35.893
 The panel drives the chart, and the arrows swap it to the other side.
 
 25
-00:01:40.878 --> 00:01:44.312
+00:01:37.324 --> 00:01:40.757
 On the chart is what gets drawn, whichever tab is open.
 
 26
-00:01:44.862 --> 00:01:50.855
+00:01:41.278 --> 00:01:47.135
 Barterers, the habitats where each species lives, the wharf managers, guild wharves, island names, and your own drawings.
 
 27
-00:01:50.855 --> 00:01:55.728
+00:01:47.135 --> 00:01:51.544
 The habitats are the pictures of where each species lives. Turn them off when the chart gets busy.
 
 28
-00:01:55.728 --> 00:01:59.882
+00:01:51.544 --> 00:01:55.119
 The wharves mark every wharf manager, for repairs, rations and sailors.
 
 29
-00:02:00.351 --> 00:02:03.849
+00:01:55.119 --> 00:01:58.618
 And the island names come up once you are close enough to read them.
 
 30
-00:02:11.836 --> 00:02:17.503
+00:02:06.072 --> 00:02:11.709
 Five tabs: Who has it, Route, Draw, Hunt and Today. Route and Draw have a part of their own, after this one.
 
 31
-00:02:17.503 --> 00:02:22.692
+00:02:11.709 --> 00:02:16.898
 Who has it lists every island dealing something on your list, the most first, with what it trades for.
 
 32
-00:02:23.016 --> 00:02:25.612
+00:02:17.199 --> 00:02:19.795
 Narrow it to materials or to trade goods.
 
 33
-00:02:27.235 --> 00:02:33.888
+00:02:21.327 --> 00:02:27.907
 One of N is that island's pool: each refresh it deals one offer out of N, so this is where the thing can turn up, not where it will.
 
 34
-00:02:33.888 --> 00:02:36.682
+00:02:27.907 --> 00:02:30.700
 Click a row, and the chart flies to that island.
 
 35
-00:02:36.998 --> 00:02:39.988
+00:02:31.013 --> 00:02:34.003
 Its card lists what it trades, and adds it to a route.
 
 36
-00:02:40.698 --> 00:02:42.726
+00:02:34.683 --> 00:02:36.786
 Hunt is for what you kill rather than trade.
 
 37
-00:02:42.726 --> 00:02:48.834
+00:02:36.786 --> 00:02:42.894
 At the top, the hunting quests you have taken. Work out today's loop picks a ground for each, and puts the calls in order.
 
 38
-00:02:49.323 --> 00:02:56.687
+00:02:43.376 --> 00:02:50.720
 Every species is listed: sea monsters, young ones, ships, bosses, the Cox Pirates, and the Hollow Maretta, with the thirty-eight spots it rings at.
 
 39
-00:02:56.687 --> 00:02:59.244
+00:02:50.720 --> 00:02:53.296
 Click one, and every spawn point it has goes on the chart.
 
 40
-00:02:59.244 --> 00:03:03.422
+00:02:53.296 --> 00:02:57.538
 Tick as many as you like. The lot can be sent to the game's own world map as favourites.
 
 41
-00:03:03.422 --> 00:03:07.134
+00:02:57.538 --> 00:03:01.244
 Above them are the known sailing courses, each with a note on what it is for.
 
 42
-00:03:07.134 --> 00:03:11.814
+00:03:01.244 --> 00:03:05.924
 Today is a checklist for this refresh: every island you need, to tick off as you visit.
 
 43
-00:03:12.135 --> 00:03:16.248
+00:03:06.235 --> 00:03:10.253
 The ring counts how many you have been to, and it all clears with the barter refresh.
 
 44
-00:03:16.248 --> 00:03:18.317
+00:03:10.253 --> 00:03:12.312
 Escape, or the cross, brings the page back.
 
 45
-00:03:18.317 --> 00:03:22.964
+00:03:12.312 --> 00:03:16.958
 That is the Map. Everything you are short of, where it is, and how long it takes to get there.

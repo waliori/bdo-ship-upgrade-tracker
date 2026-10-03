@@ -1,0 +1,21 @@
+Bartering, part five. A stock day: the same board, sailed to fill your storage instead of your purse.
+This sailor is newer. Their storage at Iliya holds a few goods at each of the first four levels, and that is all.
+Click "A stock". Nothing is sold at a wharf on a stock day.
+The ladder now says where the stock ends: Level 4, by default. Level 5 and up are not sailed.
+Under each level, a target: how many to keep of every good at that level. Ten of each Level 1, thirty of each Level 2 and 3, forty of each Level 4.
+Beside it, how far short the storage is. Every level here is short.
+A target is a floor as well. The run fills a level before anything climbs from it, and never spends below it.
+And what the day is for: the stock itself, or the barter count — every trade toward the next unlock, whatever it trades.
+Down to the chains.
+This note says why every chain stops low: four levels are being filled, not climbed off. Nothing climbs from them until the stock is made up.
+The runs worth sailing are counted in goods now: the fullest stock, the most an hour, the most for each unit of Parley.
+Take the fullest stock.
+Each chain says where it stops, and why: the good it makes is still short of its target, so it stays as stock.
+The run: what the stock gains, level by level.
+The trades, with your barter count before and after.
+And under the figures, how far there is to go: the goods still short of the targets, how many more runs like this one, how many days at three boards a day, and how many storage slots the full stock will take. A storage is never capped, only counted.
+Say Level 1 does not matter to you. Set its target to nothing.
+Now the Level 1 goods climb straight on, and the run fills Level 2 instead.
+And the ceiling: click Level 3, and the stock stops there. Level 4 is not sailed today.
+Load at the wharf and tick the land goods aboard. The storage after shows what this run banks at Iliya, good by good.
+That is a stock day. Next, a day for Crow Coins.
