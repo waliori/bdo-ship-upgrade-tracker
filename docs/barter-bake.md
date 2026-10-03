@@ -116,8 +116,9 @@ The community numbers the trade layouts 1–35E. A row keeps its name from one
 bake to the next (`LAYOUTS` in the baked file, carried from the last bake, so
 `js/barter_game.js` must be there before baking). The names were matched once,
 2026-09-27, against the community's sheet of the layouts, which the app no
-longer reads. The material list's rows are named A–E where a board has been
-read off the game and are otherwise known by their row.
+longer reads. The material list's rows are named by their place in the
+table, M1 to M41 (`materialPages()` in `js/barter-layouts.js`), and that
+is how the material book shows them.
 
 ## How the app reads it
 

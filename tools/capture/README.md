@@ -90,7 +90,9 @@ npm run guide                       # all seven, and the joined film
 ```
 
 Each chapter leaves `docs/media/guide/<name>.mp4` and, beside it, a
-`.vtt` and `.srt` of the same lines and a `.txt` transcript. The mp4
+`.vtt` and `.srt` of the same lines and a `.txt` transcript. Only the
+`.vtt` and the `.txt` are kept in the repository; nothing reads the
+`.srt`, so a re-shoot's copy need not be committed. The mp4
 already carries its words on screen — the caption bar is drawn in the
 page, and most people meet these muted — so the sidecars are for a
 player's own caption track and for whatever a video host wants to index.
@@ -101,8 +103,8 @@ app plays under **Help** — with chapter marks and one merged caption
 track. That join is a stream copy, not a re-encode, so re-shooting one
 chapter replaces it in the joined cut for the cost of an `ffmpeg -c
 copy`. The app's Help dialog lists the seven as jump-to points; their
-offsets live in `FILM` in `js/ui.js`, because a browser will not surface
-an mp4's own chapter marks.
+offsets live in `js/film.js`, which `join.mjs` writes when it joins
+them, because a browser will not surface an mp4's own chapter marks.
 
 `tour.mjs` used to be the walkthrough. Nothing builds from it now — the
 chapters say the same things at greater length, and `shoot.sh` no longer
@@ -209,8 +211,9 @@ Past that it is the same five rules as a scene, plus five:
   bar and lets the picture stand on its own for a moment, and the
   caption sidecars use it to decide where one caption ends.
 - **The sailor's numbers live in the shell now**, beside the pouch:
-  the barter count, level, Parley, vouchers, Value Pack, Sailing Mastery
-  and region. `crew-mastery` and `barter-level` used to be fields on the
+  the barter count, level, Value Pack, Corsair, Sailing Mastery and log,
+  Bos'n Jacks and region. The Parley and the vouchers are the Barter
+  tab's, under *Before you sail*. `crew-mastery` and `barter-level` used to be fields on the
   Ship and Barter tabs and are not any more — the Ship tab *reads*
   mastery (`.crew-mastery.read`) and the bar sets it. The Yard types
   them in on camera; every later chapter gets them from the seed, or
