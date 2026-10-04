@@ -3,7 +3,9 @@
 //   DISCORD_RELEASES_WEBHOOK=<url> node tools/post-release-notes.mjs 1.5
 //   node tools/post-release-notes.mjs --all --skip=1.5 --dry
 //
-// One message per release, with its clips attached.
+// The notes in full, as the What's New dialog has them: a head with the
+// thanks, then every section with its before and now, its points and its
+// picture, packed into as few messages as Discord's limits allow.
 //
 // Releases go oldest first so the newest ends at the bottom.
 
@@ -29,48 +31,56 @@ if (!dry && !HOOK) {
 	process.exit(1);
 }
 
-const md = html => html
+const md = html => String(html)
 	.replace(/<\/?b>/g, '**')
 	.replace(/<\/?i>/g, '*')
-	.replace(/<kbd>(.*?)<\/kbd>/g, '`$1`');
+	.replace(/<\/?(kbd|code)>/g, '`')
+	.replace(/<[^>]+>/g, '');
 const cut = (s, n) => (s.length <= n ? s : s.slice(0, n - 1).trimEnd() + '…');
+const size = e => (e.title || '').length + (e.description || '').length + (e.footer ? e.footer.text.length : 0)
+	+ (e.fields || []).reduce((n, f) => n + f.name.length + f.value.length, 0);
 
-// One message per release: a text embed (title, date, blurb, who asked for
-// it, the changes), then one image-only embed per clip. Discord caps the
-// text of a message's embeds at 6000 characters, so each change is cut to
-// its opening words to fit; the full notes are in the app.
+// Discord takes ten embeds and 6000 characters of text a message, and
+// ten files; an embed's text is at most 4096.
 function messages(r) {
-	const LIMIT = 5800;
+	const t = r.thanks;
 	const head = {
 		title: cut(`Sailor's Log ${r.id} — ${r.name}`, 256),
 		url: SITE,
 		color: COLOR,
-		description: cut(`**${r.date}** · ${md(r.sum)}\n\n${md(r.blurb)}`, 900),
-		footer: { text: 'Full notes under Menu → What\'s new' },
+		description: cut(`**${r.date}**\n\n${md(r.blurb || r.sum)}`, 4096),
 	};
-	const t = r.thanks;
-	const fields = [];
 	if (t && t.who && t.who.length) {
-		fields.push({
+		head.fields = [{
 			name: 'Asked for by you',
-			value: cut(t.who.map(w => `**${w.name}** — ${md(w.did)}`).join('\n')
-				+ (t.also && t.also.length ? `\n\nAlso reported and tested: ${t.also.join(', ')}.` : ''), 900),
-		});
+			value: cut([md(t.text || ''), ...t.who.map(w => `**${w.name}** — ${md(w.did)}`),
+				t.also && t.also.length ? `Also reported and tested: ${t.also.join(', ')}.` : '', md(t.foot || '')].filter(Boolean).join('\n\n'), 1024),
+		}];
 	}
-	const used = head.title.length + head.description.length + head.footer.text.length
-		+ fields.reduce((n, f) => n + f.name.length + f.value.length, 0);
-	const n = r.sections.length;
-	const each = Math.min(1000, Math.floor((LIMIT - used) / n) - 40);
-	const files = [];
+	const items = [{ embed: head, file: null }];
 	for (const sec of r.sections) {
-		const title = md(sec.title).replace(/\*/g, '');
-		const first = md(sec.text || (sec.points || [])[0] || '');
-		fields.push({ name: cut(title, 256), value: cut(first, Math.max(each - title.length, 50)) || '—' });
-		if (sec.media) files.push({ name: path.basename(sec.media), data: fs.readFileSync(path.join(root, sec.media)) });
+		const parts = [];
+		if (sec.before) parts.push(`**Before:** ${md(sec.before)}`);
+		if (sec.text) parts.push(sec.before ? `**Now:** ${md(sec.text)}` : md(sec.text));
+		if (sec.points && sec.points.length) parts.push(sec.points.map(x => `• ${md(x)}`).join('\n'));
+		const embed = { title: cut(md(sec.title || '').replace(/\*/g, '') || 'More', 256), color: COLOR, description: cut(parts.join('\n\n'), 4096) };
+		let file = null;
+		if (sec.media) {
+			file = { name: path.basename(sec.media), data: fs.readFileSync(path.join(root, sec.media)) };
+			embed.image = { url: `attachment://${file.name}` };
+		}
+		items.push({ embed, file });
 	}
-	head.fields = fields.slice(0, 25);
-	const embeds = [head, ...files.slice(0, 9).map(f => ({ url: SITE, image: { url: `attachment://${f.name}` } }))];
-	return [{ payload: { embeds }, files: files.slice(0, 9) }];
+	items[items.length - 1].embed.footer = { text: `${SITE.replace('https://', '')} · Menu → What's new` };
+	const out = [];
+	let cur = null;
+	for (const it of items) {
+		const n = size(it.embed);
+		if (!cur || cur.embeds.length >= 10 || cur.chars + n > 5900 || (it.file && cur.files.length >= 10)) out.push(cur = { embeds: [], files: [], chars: 0 });
+		cur.embeds.push(it.embed); cur.chars += n;
+		if (it.file) cur.files.push(it.file);
+	}
+	return out.map(m => ({ payload: { embeds: m.embeds }, files: m.files, chars: m.chars }));
 }
 
 async function send({ payload, files }) {
@@ -103,7 +113,7 @@ if (!picked.length) {
 }
 for (const r of picked) {
 	const list = messages(r);
-	console.log(`${r.id}: ${list.length} messages`);
+	console.log(`${r.id}: ${list.length} messages — ${list.map(m => `${m.payload.embeds.length} embeds, ${m.chars} chars, ${m.files.length} files`).join(' | ')}`);
 	if (dry) continue;
 	for (const m of list) await send(m);
 }
