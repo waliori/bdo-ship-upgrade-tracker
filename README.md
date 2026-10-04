@@ -1194,9 +1194,13 @@ and the build stamp's file list is held to the same list.
 from the release notes in `js/about.js` — the same ones the app shows
 under **Menu → What's new** — and `js/release.js`, the release's name
 the page needs at boot; the suite fails if either is stale.
-`node tools/post-release-notes.mjs <id>` posts one release's notes to the
-app's Discord channel (`DISCORD_RELEASES_WEBHOOK`); run it once per
-release, since running it again posts them again.
+`node tools/post-release-notes.mjs <id>` posts one release's notes in
+full to the app's Discord channel (`DISCORD_RELEASES_WEBHOOK`), and with
+`--announce` a line in #announcements pointing at them
+(`DISCORD_ANNOUNCE_WEBHOOK`). It runs by itself: when a merge brings a
+new release id to `main`, `.github/workflows/release-notes.yml` posts and
+announces it and tags the commit `v<id>`, so the same release is never
+posted twice. Running the workflow by hand posts a release again.
 
 `npm run bake:barter` reads the barter tables out of a patched game
 client; see [docs/barter-bake.md](docs/barter-bake.md).
@@ -1579,7 +1583,7 @@ optional, and `.env.example` explains every one. Both `npm start` and
 | `CLIENT_IP_HEADER` / `BIND` | optional, and only as a pair: the header the proxy puts the player's own address in (`cf-connecting-ip` behind Cloudflare), and `127.0.0.1` so the port is reachable only through that proxy — otherwise anyone could write the header themselves |
 | `APP_VERSION` | optional: names the build by hand, over the stamp (see [Running it](#running-it)) |
 | `BACKUP_EVERY_HOURS` | optional: how often the compose `backup` service writes a backup, 24 by default |
-| `DISCORD_RELEASES_WEBHOOK` | read only by `tools/post-release-notes.mjs`: the channel a release's notes are posted to |
+| `DISCORD_RELEASES_WEBHOOK` / `DISCORD_ANNOUNCE_WEBHOOK` | read only by `tools/post-release-notes.mjs`, and set as repository secrets for the release-notes workflow: the channel a release's notes are posted to, and the one its announcement goes to |
 
 Then check it before opening a browser:
 

@@ -2,6 +2,9 @@
 //
 //   DISCORD_RELEASES_WEBHOOK=<url> node tools/post-release-notes.mjs 1.5
 //   node tools/post-release-notes.mjs --all --skip=1.5 --dry
+//   ... 1.5.1 --announce    # and a line in #announcements (DISCORD_ANNOUNCE_WEBHOOK)
+//
+// Run by .github/workflows/release-notes.yml when a new release reaches main.
 //
 // The notes in full, as the What's New dialog has them: a head with the
 // thanks, then every section with its before and now, its points and its
@@ -16,6 +19,8 @@ import { RELEASES } from '../js/about.js';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const HOOK = process.env.DISCORD_RELEASES_WEBHOOK;
+const ANNOUNCE = process.env.DISCORD_ANNOUNCE_WEBHOOK;
+const NOTES_CHANNEL = '1554894623724408832';   // #release-notes, linked from the announcement
 const COLOR = 0xe0a83a;
 const SITE = 'https://sail.walior.it';
 
@@ -26,8 +31,9 @@ if (!args.includes('--all') && !ids.length) {
 	console.error('Name a release (1.5) or pass --all.');
 	process.exit(1);
 }
-if (!dry && !HOOK) {
-	console.error('Set DISCORD_RELEASES_WEBHOOK.');
+const announce = args.includes('--announce');
+if (!dry && (!HOOK || (announce && !ANNOUNCE))) {
+	console.error(announce ? 'Set DISCORD_RELEASES_WEBHOOK and DISCORD_ANNOUNCE_WEBHOOK.' : 'Set DISCORD_RELEASES_WEBHOOK.');
 	process.exit(1);
 }
 
@@ -83,7 +89,7 @@ function messages(r) {
 	return out.map(m => ({ payload: { embeds: m.embeds }, files: m.files, chars: m.chars }));
 }
 
-async function send({ payload, files }) {
+async function send({ payload, files = [] }, hook = HOOK) {
 	for (;;) {
 		let init;
 		if (files.length) {
@@ -94,7 +100,7 @@ async function send({ payload, files }) {
 		} else {
 			init = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...payload, allowed_mentions: { parse: [] } }) };
 		}
-		const res = await fetch(`${HOOK}?wait=true`, init);
+		const res = await fetch(`${hook}?wait=true`, init);
 		if (res.status === 429) {
 			const j = await res.json();
 			await new Promise(s => setTimeout(s, (j.retry_after ?? 1) * 1000 + 100));
@@ -114,6 +120,10 @@ if (!picked.length) {
 for (const r of picked) {
 	const list = messages(r);
 	console.log(`${r.id}: ${list.length} messages — ${list.map(m => `${m.payload.embeds.length} embeds, ${m.chars} chars, ${m.files.length} files`).join(' | ')}`);
+	const line = `**Sailor's Log ${r.id} is out — ${r.name}.** ${md(r.sum)}\nThe full notes are in <#${NOTES_CHANNEL}>, and in the app under Menu → What's new: ${SITE}`;
+	if (announce) console.log(`announce: ${line.length} chars`);
 	if (dry) continue;
 	for (const m of list) await send(m);
+	// After the notes, so the link it carries has something to land on.
+	if (announce) await send({ payload: { content: cut(line, 2000) } }, ANNOUNCE);
 }
