@@ -9,7 +9,7 @@
 // The roster and the seating travel with the save (profile), so the
 // phone at the wharf and the desktop agree on who sits where.
 
-import { esc, F, FD, parseAmount } from './fmt.js';
+import { esc, F, FD, parseAmount, figure } from './fmt.js';
 import { T, TT, said, gameName } from './i18n.js';
 import * as store from './state.js';
 import { img, iconSrc, codexName } from './ui-bits.js';
@@ -1416,8 +1416,8 @@ export function crewChange(el) {
 		if (act === 'crew-name') return { ...s, name: el.value.trim().slice(0, 30) || s.name };
 		if (act === 'crew-stat') {
 			const stats = { ...(s.stats || {}) };
-			const v = Number(String(el.value).replace(',', '.'));
-			if (el.value.trim() === '' || !Number.isFinite(v) || v < 0) delete stats[el.dataset.key];
+			const v = figure(el.value);
+			if (el.value.trim() === '' || v === null) delete stats[el.dataset.key];
 			else stats[el.dataset.key] = Math.round(v * 10) / 10;
 			const out = { ...s, stats };
 			if (!Object.keys(stats).length) delete out.stats;

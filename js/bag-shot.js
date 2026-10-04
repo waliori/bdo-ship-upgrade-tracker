@@ -10,14 +10,7 @@
 // Pure: the words the engine read (shot-reader.js's readWords) come in,
 // the four figures go out, or null for any that was not found.
 
-/** A figure as the game prints it: "1,628.7", "1.628,7", "2,779",
- *  "134". Thousands in threes, and at most two decimals. */
-export function figure(raw) {
-	const s = String(raw).replace(/\s/g, '');
-	const m = /^(\d{1,3}(?:[.,]\d{3})+|\d+)(?:[.,](\d{1,2}))?$/.exec(s);
-	if (!m) return null;
-	return Number(m[1].replace(/[.,]/g, '') + (m[2] ? `.${m[2]}` : ''));
-}
+import { figure } from './fmt.js';
 
 /** The words in rows, top to bottom, each row's words left to right. */
 function rows(words) {

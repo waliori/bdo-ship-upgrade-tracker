@@ -9,7 +9,8 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { bagFigures, bagRoom, figure } from '../js/bag-shot.js';
+import { bagFigures, bagRoom } from '../js/bag-shot.js';
+import { figure } from '../js/fmt.js';
 
 const W = (text, y, x = 0) => ({ text, x0: x, x1: x + 10 * text.length, y0: y - 8, y1: y + 8 });
 
