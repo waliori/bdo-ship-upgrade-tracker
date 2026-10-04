@@ -189,9 +189,15 @@
 .tile-name { font-size: 10px; color: var(--ink-soft); line-height: 1.25; height: 25px; overflow: hidden; }
 /* A trade good's name wears its level's colour, the way the tier is read everywhere else in the app. */
 .tile-name.tiered { color: var(--tier); font-weight: 600; height: auto; max-height: 38px; }
-.tile-tier { display: inline-block; margin-right: 4px; padding: 0 4px; border-radius: 4px; font-family: var(--font-display); font-size: 9px; font-weight: 700; font-style: normal; line-height: 14px; color: var(--tier); border: 1px solid color-mix(in srgb, var(--tier) 55%, transparent); background: color-mix(in srgb, var(--tier) 12%, transparent); vertical-align: 1px; }
+/* The level sits in the corner, where a ship part keeps its "+3", and
+   not in front of the name: there it pushed a one-line name off centre
+   and started a two-line one a chip's width in, so no two cards in a
+   row lined up. */
+.tile-tier { position: absolute; top: 6px; right: 6px; padding: 3px 5px; border-radius: 6px; font-family: var(--font-display); font-size: 9.5px; font-weight: 700; font-style: normal; line-height: 1; color: var(--tier); border: 1px solid color-mix(in srgb, var(--tier) 55%, transparent); background: color-mix(in srgb, var(--tier) 12%, transparent); }
 .detail-name.tiered { color: var(--tier); }
-.tile .bar { width: 100%; height: 4px; border-radius: 2px; background: rgba(var(--line-rgb), 0.12); }
+/* The bar keeps the foot of the card: under a one-line name it rode a
+   line higher than under a two-line one beside it. */
+.tile .bar { width: 100%; height: 4px; margin-top: auto; border-radius: 2px; background: rgba(var(--line-rgb), 0.12); }
 
 .detail {
   background: var(--panel-strong);
