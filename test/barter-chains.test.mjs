@@ -217,7 +217,7 @@ test('a steady run is every attempt under the limit itself: never heavier than a
 import { tailOf } from '../js/barter-chains.js';
 import { useGame } from '../js/barter-layouts.js';
 
-test('a good held part-way up a chain from the shore is one climb with it: the islands deal once, the good is loaded all the same', () => {
+test('a good held part-way up a chain from the shore is one climb with it: the islands deal once, and the good is loaded only where the climb is short of it', () => {
 	// A land chain, and the chain from its own [Level 3] good sitting at
 	// the harbour: the second climbs the tail of the first.
 	const land = chains(data).find(c => c.from === 'land' && c.top === 7 && c.rungs.length >= 5);
@@ -232,16 +232,37 @@ test('a good held part-way up a chain from the shore is one climb with it: the i
 	const both = chainRun({ ...opts, chosen: [land, held] });
 	const alone = chainRun({ ...opts, chosen: [land] });
 	// Both ticked: the same islands as the land chain alone, each once,
-	// and no chain tag past the one climb; the good held is loaded.
+	// and no chain tag past the one climb. A full run makes more of the
+	// good than the island above takes, so the three ashore stay there.
 	const isles = run => run.stops.filter(s => s.npcId).map(s => s.npcId);
 	assert.deepEqual(isles(both), isles(alone));
 	assert.equal(new Set(isles(both)).size, isles(both).length);
 	assert.equal(both.order.length, 1);
-	assert.deepEqual(both.loaded, [{ item: third, n: 3 }]);
+	assert.deepEqual(both.loaded, []);
 	assert.deepEqual(alone.loaded, []);
-	// The load feeds the rungs above it: the run makes at least what the
-	// land chain alone does.
+	// And the run makes at least what the land chain alone does.
 	assert.ok(both.silver >= alone.silver);
+});
+
+test('a good the run makes on the way is not loaded from storage as well, to ride out and come back', () => {
+	// GriefLZ's run: six [Level 4] aboard become six [Level 5] at one
+	// island, the next takes five of them -- and three more [Level 5]
+	// were loaded from storage, sailed round and put back.
+	const land = chains(data).find(c => c.from === 'land' && c.top === 7 && c.rungs.length >= 5);
+	const makes = land.rungs.findIndex((r, i) => i > 0 && land.rungs[i + 1] && r.tries * r.recvMin >= land.rungs[i + 1].tries * land.rungs[i + 1].giveN);
+	assert.ok(makes > 0, 'no rung on this board makes all the next one takes');
+	const fuel = land.rungs[makes].give, made = land.rungs[makes].item;
+	const stock = { [fuel]: land.rungs[makes].tries * land.rungs[makes].giveN }, dock = { [made]: 3 };
+	const all = chains(data, stock, dock);
+	const climb = all.find(c => c.from === 'hold' && c.item === fuel && c.rungs[0].npcId === land.rungs[makes].npcId && c.rungs[1] && c.rungs[1].npcId === land.rungs[makes + 1].npcId);
+	const waiting = all.find(c => c.from === 'dock' && c.item === made && tailOf(climb, c));
+	assert.ok(climb && waiting, 'the fixture needs the climb and the chain from the good ashore');
+	const run = chainRun({ chosen: [climb, waiting], stock, dock, hold, parley, npcById, start: ports.find(p => p.name === 'Velia'), stashes, pace: 'full', orders: PLAIN_ORDERS });
+	const at = run.stops.find(s => s.npcId === land.rungs[makes + 1].npcId);
+	assert.ok(at && at.times > 0, 'the island above still deals');
+	const before = run.stops.slice(0, run.stops.indexOf(at)).filter(s => s.item === made).reduce((a, s) => a + s.times * s.recvMin, 0);
+	assert.ok(before >= at.times * at.giveN, 'the run makes what that island takes');
+	assert.deepEqual([...run.loaded, ...run.stops.flatMap(s => s.loads || [])].filter(l => l.item === made), [], 'so none of it is loaded');
 });
 
 test('a ceiling cuts every climb where the stock ends: nothing above it, and a good already there is not fuel', () => {
