@@ -64,6 +64,72 @@ export const DATA = [
  */
 export const RELEASES = [
 	{
+		id: '1.5.1',
+		name: TT('Fixes from your reports'),
+		date: '2026-10-04',
+		sum: TT('Fixes from your reports: a number edited in place keeps its digits, a barter run loads only what it uses and plans its whole day, storage cards line up, and the page stays still as you move around it.'),
+		thanks: {
+			text: TT('Every fix in this release started as a report — with screenshots, and in one case a film of every jump.'),
+			who: [
+				{
+					name: 'GriefLZ',
+					did: TT('Found the numbers that lost their digits, the runs that took goods from storage only to put them back, and the most-silver run that stopped half-way, each with the screenshots that showed why.')
+				},
+				{
+					name: 'Smurfberry',
+					did: TT('Caught the page stepping sideways, the storage reader’s unreadable list and the language buttons out of line, and drew a better storage card.')
+				},
+				{
+					name: 'Oni',
+					did: TT('Filmed every jump in the page — the tabs, the save, the ship on the chart — and drew the storage card the app now has.')
+				}
+			],
+			foot: TT('The box is under <b>Menu \u2192 Feedback</b>. It reaches whoever runs the site.')
+		},
+		blurb: TT('A release of fixes, every one of them sent in by a player. Numbers you type keep their digits whatever your language, the barter run plans the whole day and loads only what it hands over, and the page holds still: no step sideways, no jump when you change tab or save.'),
+		sections: [
+			{
+				title: TT('Storage cards that line up'),
+				media: 'docs/media/small/storage-cards.png',
+				alt: TT('A storage of Level 2 goods: each card with its level in the corner, its name centred and its bar along the foot'),
+				before: TT('The level sat in front of the name, so each name started at a different place and the bar rode higher under a short name than a long one.'),
+				text: TT('The level is in the card’s corner now, the name is centred under the count, and the bar keeps the foot of the card, so every card in a row lines up.')
+			},
+			{
+				title: TT('Numbers keep their digits'),
+				text: TT('A number edited in its box — a digit added to 1,234 — came back as 1. A count is now read as its digits, whatever marks are in it, and <b>1.5k</b> or <b>2,25b</b> still read as you meant. A sailor’s stats and the bag’s weight take a decimal written either way.'),
+				points: [
+					TT('Sailing Mastery no longer clears itself when it is edited.')
+				]
+			},
+			{
+				title: TT('Barter runs that make sense'),
+				points: [
+					TT('A run takes from storage only what it is short of: not goods it makes on the way, and no more than is already aboard. No more goods loaded, sailed round and put back.'),
+					TT('<b>The runs worth sailing</b> reach their full length on a slower computer too, rather than stopping at a few chains and half the Parley.'),
+					TT('A run that keeps a floor of a level makes enough for the floor and the island above, instead of sailing to the top of a chain for one trade.')
+				]
+			},
+			{
+				title: TT('A page that holds still'),
+				points: [
+					TT('The page no longer steps sideways when a tab or filter is long enough to scroll.'),
+					TT('A tab left near its top comes back at the top, so the tabs do not jump when you change tab.'),
+					TT('Your name in the masthead keeps its width while saving, so the buttons beside it stay put.'),
+					TT('The Inventory’s level row keeps the right edge, under the filters.')
+				]
+			},
+			{
+				title: TT('Around the app'),
+				points: [
+					TT('A dropdown’s list is readable in every browser — the storage reader’s was white on light grey.'),
+					TT('The language buttons set the code and the name on one line.'),
+					TT('The clip of the chart’s ship in these notes no longer hops.')
+				]
+			}
+		]
+	},
+	{
 		id: '1.5',
 		name: TT('Plan, load, sail, results'),
 		date: '2026-10-01',
@@ -923,6 +989,15 @@ export const RELEASES = [
 export const RELEASE = RELEASES[0].id;
 
 export const CHANGES = [
+	{
+		date: '2026-10-04',
+		title: TT('Fixes from the fleet: numbers, barter runs and a page that holds still'),
+		notes: [
+			TT('<b>Numbers.</b> A count is read as its digits, so an edited number keeps them; a sailor’s stats and the bag weight take a decimal either way.'),
+			TT('<b>Barter runs.</b> Only what the run is short of comes out of storage; the runs worth sailing reach their full length; a floor is made as well as the rung above.'),
+			TT('<b>The page.</b> No sideways step, no jump on a tab change or a save; storage cards line up; dropdowns are readable; the language buttons are aligned.')
+		]
+	},
 	{
 		date: '2026-10-03',
 		title: TT('The chart’s ship, links that say what they are, and the guide re-shot'),
