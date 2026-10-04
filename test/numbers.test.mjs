@@ -17,7 +17,7 @@ globalThis.document = {
 };
 
 const { setLang, locale, LANGS } = await import('../js/i18n.js');
-const { F, FD, FC, parseAmount } = await import('../js/fmt.js');
+const { F, FD, FC, parseAmount, figure } = await import('../js/fmt.js');
 
 // What each interface language shows for 1,234,567 and for 1,234.5.
 // The spaces are the ones the CLDR writes: a narrow no-break space in
@@ -72,64 +72,51 @@ for (const id of Object.keys(SHOWN)) {
 	test(`${id}: what is shown is read back as the same value`, async () => {
 		await setLang(id);
 		for (const n of WHOLE) assert.equal(parseAmount(F(n)), n, `${id} F(${n}) = ${F(n)}`);
-		for (const n of TENTHS) assert.equal(parseAmount(FD(n, 1), { decimals: true }), n, `${id} FD(${n}) = ${FD(n, 1)}`);
-		for (const n of [1.25, 0.125, 1.234]) assert.equal(parseAmount(FD(n, 3), { decimals: true }), n, `${id} FD(${n}, 3)`);
+		for (const n of TENTHS) assert.equal(figure(FD(n, 1)), n, `${id} FD(${n}) = ${FD(n, 1)}`);
 		for (const n of SHORT) assert.equal(parseAmount(FC(n)), n, `${id} FC(${n}) = ${FC(n)}`);
 	});
 }
 
-for (const id of ['us', 'fr', 'de']) {
-	test(`${id}: one million in every common hand`, async () => {
+test('a count is its digits: every mark in it is grouping, wherever it sits, in any language', async () => {
+	for (const id of ['us', 'fr', 'de', 'es']) {
 		await setLang(id);
-		for (const s of ['1.000.000', '1,000,000', '1 000 000', '1 000 000', '1 000 000', '1 000 000', "1'000'000", '1’000’000', '1000000', '1m', '１，０００，０００']) {
+		for (const s of ['1.000.000', '1,000,000', '1 000 000', '1\u202f000\u202f000', '1\u00a0000\u00a0000', "1'000'000", '1\u2019000\u2019000', '1000000', '1m', '\uff11\uff0c\uff10\uff10\uff10\uff0c\uff10\uff10\uff10']) {
 			assert.equal(parseAmount(s), 1_000_000, `${id} ${JSON.stringify(s)}`);
 		}
-	});
-}
-
-test('one mark used once: a decimal point unless it can only be grouping', async () => {
-	for (const id of ['us', 'fr']) {
-		await setLang(id);
-		// Not three digits after it: a decimal point.
-		assert.equal(parseAmount('1.5', { decimals: true }), 1.5);
-		assert.equal(parseAmount('1,5', { decimals: true }), 1.5);
-		assert.equal(parseAmount('1,25', { decimals: true }), 1.25);
-		// A leading zero, or more than three digits before it, is never grouping.
-		assert.equal(parseAmount('0,500', { decimals: true }), 0.5);
-		assert.equal(parseAmount('1234.567', { decimals: true }), 1234.567);
-		// A short form's mark is a decimal point.
-		assert.equal(parseAmount('1,5k'), 1500);
-		assert.equal(parseAmount('1.500k'), 1500);
-		// A count has no thousandths: in a whole-number field a single
-		// group of three is grouping, in any language.
+		// A grouped count edited in place: a digit added, taken away, put in front.
+		assert.equal(parseAmount('1,2345'), 12345);
+		assert.equal(parseAmount('1.2345'), 12345);
+		assert.equal(parseAmount('1,23'), 123);
+		assert.equal(parseAmount('9123.456'), 9123456);
+		assert.equal(parseAmount(',234'), 234);
+		// And so a mark is never a decimal point in a count.
+		assert.equal(parseAmount('1,5'), 15);
 		assert.equal(parseAmount('1.500'), 1500);
-		assert.equal(parseAmount('1,500'), 1500);
-		// Whole-number fields round a decimal.
-		assert.equal(parseAmount('1,5'), 2);
 	}
 });
 
-test('in a field that takes decimals, the language settles "1,500"', async () => {
-	await setLang('fr');
-	assert.equal(parseAmount('1,500', { decimals: true }), 1.5, 'French decimal comma');
-	assert.equal(parseAmount('1.500', { decimals: true }), 1500, 'the other mark groups');
-	await setLang('us');
-	assert.equal(parseAmount('1,500', { decimals: true }), 1500);
-	assert.equal(parseAmount('1.500', { decimals: true }), 1.5);
-	await setLang('de');
-	assert.equal(parseAmount('1.500', { decimals: true }), 1500);
-	assert.equal(parseAmount('1,500', { decimals: true }), 1.5);
+test('a short form takes either mark as its decimal point', () => {
+	assert.equal(parseAmount('1.5k'), 1500);
+	assert.equal(parseAmount('1,5k'), 1500);
+	assert.equal(parseAmount('2,25b'), 2_250_000_000);
+	assert.equal(parseAmount('400m'), 400_000_000);
+	assert.equal(parseAmount('1.2.3k'), null);
+	assert.equal(parseAmount('.'), null);
+	assert.equal(parseAmount('12a'), null);
 });
 
-test('both marks: the last is the decimal point, the grouping must be in threes', async () => {
-	await setLang('us');
-	assert.equal(parseAmount('1,234.5', { decimals: true }), 1234.5);
-	assert.equal(parseAmount('1.234,5', { decimals: true }), 1234.5);
-	assert.equal(parseAmount('1.234.567,25', { decimals: true }), 1234567.25);
-	assert.equal(parseAmount('12,34.5'), null);
-	assert.equal(parseAmount('1.2.3'), null);
-	assert.equal(parseAmount('1,23,456'), null);
-	assert.equal(parseAmount('1.5.'), null);
+test('a figure with a fraction: the last mark with one or two digits after it is the decimal point', () => {
+	assert.equal(figure('3.5'), 3.5);
+	assert.equal(figure('3,5'), 3.5);
+	assert.equal(figure('1,628.7'), 1628.7);
+	assert.equal(figure('1.628,7'), 1628.7);
+	assert.equal(figure('1 628,7'), 1628.7);
+	assert.equal(figure('1.628,75'), 1628.75);
+	assert.equal(figure('1,628'), 1628, 'three digits after it is thousands');
+	assert.equal(figure('12'), 12);
+	assert.equal(figure('1,62,0'), null, 'thousands come in threes');
+	assert.equal(figure('3.'), null);
+	assert.equal(figure('-3'), null);
 });
 
 test.after(() => setLang('us'));

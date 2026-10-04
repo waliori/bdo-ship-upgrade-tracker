@@ -41,7 +41,10 @@ echo "== webm -> gif"
 # run respectively.
 gif_size() {
 	case "$1" in
-		claim-a-quest|fit-a-ship|the-boards|share-a-ship|the-way|a-call-in-hand|ship-on-the-chart|a-failstack) echo "780 10" ;;
+		claim-a-quest|fit-a-ship|the-boards|share-a-ship|the-way|a-call-in-hand|a-failstack) echo "780 10" ;;
+		# The ship glides the whole clip, on the strip and on the chart, so
+		# no two frames are alike: slower, to stay with the other headlines.
+		ship-on-the-chart) echo "780 8" ;;
 		# The run now packs, casts off and flies to the chart: half a
 		# minute of whole-frame changes, so it goes slower again.
 		plan-a-run) echo "640 6" ;;

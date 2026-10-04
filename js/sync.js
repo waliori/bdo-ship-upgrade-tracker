@@ -602,7 +602,7 @@ function paint() {
 			title="${esc(account.username)} — ${esc(note)}">
 		${src ? `<img class="account-avatar" src="${esc(src)}" alt="" width="20" height="20">` : ''}
 		<span class="account-name">${esc(account.username)}</span>
-		<span class="account-note">${esc(note)}</span>
+		<span class="account-note" data-idle="${esc(NOTE.idle())}" data-busy="${esc(NOTE.syncing())}">${esc(note)}</span>
 	</button>`;
 }
 

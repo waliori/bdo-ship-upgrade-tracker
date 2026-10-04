@@ -362,7 +362,11 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 		const most = Math.max(0, first.tries * first.giveN - (held.get(c.item) || 0));
 		// `loadCap` is what an earlier laying of this same run found it
 		// would really hand over (see chainRun below).
-		const n = Math.min(have, most, budgetOf(c.item), loadCap && loadCap.has(c.item) ? loadCap.get(c.item) : Infinity);
+		// What may be spent is spent from the hold first: two of a good
+		// aboard and a budget of two is nothing more to load, where
+		// counting the budget against the storage alone asked for a third
+		// the moment the first two were ticked aboard.
+		const n = Math.min(have, most, budgetOf(c.item) - (held.get(c.item) || 0), loadCap && loadCap.has(c.item) ? loadCap.get(c.item) : Infinity);
 		if (n <= 0) continue;
 		if (n >= have) ashore.delete(c.item); else ashore.set(c.item, have - n);
 		held.set(c.item, (held.get(c.item) || 0) + n);
@@ -423,7 +427,7 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 	// Two chains up the same ladder -- one from the shore, one from a
 	// good held part-way up it -- are one climb: the islands deal once,
 	// and the good held feeds the rungs above it. The shorter is folded
-	// into the longer, its good loaded all the same.
+	// into the longer, its good loaded where the climb is short of it.
 	const climbs = chosen.filter(c => !chosen.some(d => d !== c && tailOf(d, c)));
 	const way = orders.way === 'sea' || orders.way === 'chain' ? orders.way : 'chain';
 	// The ceiling a full run barters under. 'full' takes the game's:
@@ -467,13 +471,17 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 
 	// The share of the hold a rung is for, when the hold is shared out:
 	// the thin ladder each top needs, then extras while the whole fits.
-	const vec = (rs, topWant, extra, H = held) => {
+	// A floor on the good a rung makes is fed too: the rung above hands
+	// over only what is owned past it, so a thin ladder that made five of
+	// a good kept back to four sailed to the top for one trade.
+	const vec = (rs, topWant, extra, H = held, O = ownedNow) => {
 		const top = rs.length - 1;
 		const a = new Array(rs.length);
 		let need = Infinity;
 		for (let k = top; k >= 0; k--) {
 			const r = rs[k];
-			const feed = need < Infinity ? Math.ceil(Math.max(0, need - (H.get(r.item) || 0)) / r.recvMin - 1e-9) : 0;
+			const floor = need < Infinity ? floorOf(r.item, orders) : 0;
+			const feed = need < Infinity ? Math.ceil(Math.max(0, need - (H.get(r.item) || 0), floor ? need + floor - (O.get(r.item) || 0) : 0) / r.recvMin - 1e-9) : 0;
 			a[k] = Math.min(r.tries, Math.max(feed, k === top ? topWant : extra[k]));
 			need = a[k] * r.giveN;
 		}
@@ -995,13 +1003,13 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 	// round the chains, while the whole still fits.
 	const share = (cs, limit, last = true) => {
 		const plans = cs.map(c => ({ rs: rungsLeft(c), topWant: 0, extra: [] })).filter(p => p.rs.length);
-		for (const p of plans) { p.topWant = p.rs[p.rs.length - 1].tries; p.extra = new Array(p.rs.length).fill(0); p.a = vec(p.rs, p.topWant, p.extra, held); }
+		for (const p of plans) { p.topWant = p.rs[p.rs.length - 1].tries; p.extra = new Array(p.rs.length).fill(0); p.a = vec(p.rs, p.topWant, p.extra, held, ownedNow); }
 		const live = () => plans.filter(p => p.topWant > 0);
 		while (live().length && !fitsAll(live(), limit, [], held, heldMax, room)) {
 			const most = live().reduce((x, p) => (p.topWant > x.topWant ? p : x));
 			if (most.topWant > 1) most.topWant--;
 			else live().reduce((x, p) => (weighs([...p.a.map((n, k) => [p.rs[k].item, n * p.rs[k].recvMax])]) > weighs([...x.a.map((n, k) => [x.rs[k].item, n * x.rs[k].recvMax])]) ? p : x)).topWant = 0;
-			for (const p of plans) p.a = p.topWant > 0 ? vec(p.rs, p.topWant, p.extra, held) : p.rs.map(() => 0);
+			for (const p of plans) p.a = p.topWant > 0 ? vec(p.rs, p.topWant, p.extra, held, ownedNow) : p.rs.map(() => 0);
 		}
 		let more = true;
 		while (more) {
@@ -1010,7 +1018,7 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 				for (let k = p.rs.length - 2; k >= 0; k--) {
 					if (!sellOf(p.rs[k].item) || p.extra[k] >= p.rs[k].tries || (!last && !sellable(p.rs[k].item, orders))) continue;
 					p.extra[k]++;
-					const a = vec(p.rs, p.topWant, p.extra, held);
+					const a = vec(p.rs, p.topWant, p.extra, held, ownedNow);
 					const was = p.a; p.a = a;
 					if (fitsAll(live(), limit, [], held, heldMax, room)) { more = true; break; }
 					p.extra[k]--; p.a = was;
@@ -1810,6 +1818,20 @@ export function chainRun(opts = {}) {
 		for (const l of [...run.loaded, ...(run.bagLoaded || []), ...run.stops.flatMap(x => x.loads || [])]) m.set(l.item, (m.get(l.item) || 0) + l.n);
 		return [...m].map(([item, n]) => ({ item, n }));
 	};
+	// What a load is for: the most the run is short of a good at any
+	// island that takes it, counting what is aboard and what the run
+	// itself makes of it before then. Six Fabric made at Rameda feed the
+	// five Arehaza takes; three more loaded for it rode out and came back
+	// to the storage they left.
+	const shortOf = (run, item) => {
+		let have = aboard.get(item) || 0, short = 0;
+		for (const s of run.stops) {
+			if (!s.npcId) continue;
+			if (s.give === item) { have -= (s.times || 0) * (s.giveN || 0); short = Math.max(short, -have); }
+			if (s.item === item) have += (s.times || 0) * (s.recvMin || 0);
+		}
+		return Math.max(0, Math.ceil(short - 1e-9));
+	};
 	const trimmed = new Set();
 	for (let pass = 0; pass < 3 && (loadsOf(plan).length || plan.landLoaded.length); pass++) {
 		const given = new Map();
@@ -1817,7 +1839,7 @@ export function chainRun(opts = {}) {
 		const cap = new Map(opts.loadCap || []), landCap = new Map(opts.landCap || []);
 		let over = false;
 		for (const l of loadsOf(plan)) {
-			const need = Math.max(0, Math.ceil((given.get(l.item) || 0) - (aboard.get(l.item) || 0)));
+			const need = shortOf(plan, l.item);
 			if (l.n > need) { cap.set(l.item, need); over = true; if (!need) trimmed.add(l.item); }
 		}
 		// Land goods loaded and never handed over rode the whole run for

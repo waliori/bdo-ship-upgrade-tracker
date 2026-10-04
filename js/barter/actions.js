@@ -3,7 +3,7 @@
 // returning whether the tab should be drawn again.
 
 import { morphCockpit } from './morph.js';
-import { esc, F, FC } from '../fmt.js';
+import { esc, F, FC, figure } from '../fmt.js';
 import { T, gameName } from '../i18n.js';
 import * as store from '../state.js';
 import { barterKey, periodKey } from '../clock.js';
@@ -18,7 +18,6 @@ import { pickShots } from '../barter-import.js';
 import { pageName as matPageName } from '../material-book-view.js';
 import { TOWNS } from '../screen-inventory.js';
 import { cutOf } from '../barter-short.js';
-import { figure } from '../bag-shot.js';
 import { openPicker } from '../picker.js';
 import { openTripLog } from '../triplog.js';
 import { toast, openDialog, closeDialog } from '../dialogs.js';

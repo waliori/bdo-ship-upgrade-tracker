@@ -157,6 +157,20 @@ a.ghost-btn { display: inline-flex; align-items: center; gap: 7px; text-decorati
   letter-spacing: 0.02em;
 }
 
+/* The note is as wide as the wider of "Synced" and "Saving…", which it
+   carries unseen: a save lasts a fifth of a second, and the chip
+   changing width for it pushed every button to its left seven pixels
+   out and back. The dot's colour is what says a save is under way. */
+.account-note { display: inline-block; }
+.account-note::after {
+  content: attr(data-idle) '\A' attr(data-busy);
+  white-space: pre;
+  display: block;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+}
+
 .account-note::before {
   content: '';
   position: absolute;

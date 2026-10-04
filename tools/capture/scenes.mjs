@@ -602,8 +602,11 @@ const scenes = {
 
 	/* 1.5 — the chart's ship during a run: on the leg under way, as far
 	 * along it as the run's clock has run. A leg takes minutes; the clip
-	 * has seconds, so the clock is moved on a few seconds a beat, which
-	 * moves the ship exactly as the minutes would. */
+	 * has seconds, so the page's own clock is run fast while the tape
+	 * rolls, which moves the ship exactly as the minutes would. Moving
+	 * the run's start back a beat at a time did not: the strip's scene
+	 * took each new start for a new run and dropped its ship onto the
+	 * water again, fourteen times a clip. */
 	async 'ship-on-the-chart'({ page, url }) {
 		await page.setViewport({ width: 1180, height: 760, deviceScaleFactor: 1 });
 		await barterDay(page, url, fittedShip);
@@ -616,11 +619,13 @@ const scenes = {
 		// starts from that is already the leg to the second stop.
 		await page.evaluate(() => document.querySelector('[data-act="map-step"][data-i="1"]')?.click());
 		await wait(2200);
-		const ahead = secs => page.evaluate(async n => {
-			const store = await import('/js/state.js');
-			const t = store.getView('timer');
-			store.setView('timer', { ...t, startedAt: t.startedAt - n * 1000 });
-		}, secs);
+		// The page's clock at `k` times its pace from now, or back to its
+		// own pace from where the fast one had got to.
+		const pace = k => page.evaluate(n => {
+			const real = window.__realNow || (window.__realNow = Date.now.bind(Date));
+			const from = real(), at = Date.now();
+			Date.now = () => at + (real() - from) * n;
+		}, k);
 		const leg = await page.evaluate(async () => {
 			const { timerState } = await import('/js/sail-timer.js');
 			const t = timerState();
@@ -633,7 +638,9 @@ const scenes = {
 		await page.evaluate(() => { const c = document.getElementById('__cur'); if (c) c.style.transform = 'translate(1170px, 300px)'; });
 		await rec(page, 'ship-on-the-chart', async () => {
 			await wait(900);
-			for (let k = 0; k < 14; k++) { await ahead(leg / 16); await wait(500); }
+			await pace((leg * 14 / 16) / 7);
+			await wait(7000);
+			await pace(1);
 			await wait(1200);
 		});
 		await page.setViewport({ width: 1280, height: 820, deviceScaleFactor: 1 });

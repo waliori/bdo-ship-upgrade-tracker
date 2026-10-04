@@ -173,11 +173,15 @@ const queries = {};
 // And where it was scrolled to: a tab left half-way down a long list
 // comes back there, not at the top. Kept for the session only.
 const scrolls = {};
+const SCROLL_KEPT_PAST = 120;   // px: about the masthead and the tab row
 let scrollBack = null;   // the position the next render puts back, if any
 
 /** Note where this tab was left, and ask for the next one's place back. */
 function leaveScroll(from, to) {
-	scrolls[from] = window.scrollY || 0;
+	// A tab left within sight of its own top comes back at the top: put
+	// back twenty pixels down, the masthead and the tabs sat twenty
+	// pixels higher than on the tab before, and the page jumped.
+	scrolls[from] = window.scrollY > SCROLL_KEPT_PAST ? window.scrollY : 0;
 	scrollBack = scrolls[to] || 0;
 }
 

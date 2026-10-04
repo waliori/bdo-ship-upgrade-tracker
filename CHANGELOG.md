@@ -5,6 +5,55 @@ someone who has been away. The same notes are in the app itself, under
 **Menu → What's new** — this file is generated from them by
 `node tools/build-changelog.mjs`, so the two cannot drift apart.
 
+## 1.5.1 — Fixes from your reports
+
+*2026-10-04*
+
+A release of fixes, every one of them sent in by a player. Numbers you type keep their digits whatever your language, the barter run plans the whole day and loads only what it hands over, and the page holds still: no step sideways, no jump when you change tab or save.
+
+### Asked for by you
+
+Every fix in this release started as a report — with screenshots, and in one case a film of every jump.
+
+- **GriefLZ** — Found the numbers that lost their digits, the runs that took goods from storage only to put them back, and the most-silver run that stopped half-way, each with the screenshots that showed why.
+- **Smurfberry** — Caught the page stepping sideways, the storage reader’s unreadable list and the language buttons out of line, and drew a better storage card.
+- **Oni** — Filmed every jump in the page — the tabs, the save, the ship on the chart — and drew the storage card the app now has.
+
+The box is under **Menu → Feedback**. It reaches whoever runs the site.
+
+### Storage cards that line up
+
+![A storage of Level 2 goods: each card with its level in the corner, its name centred and its bar along the foot](docs/media/small/storage-cards.png)
+
+**Before:** The level sat in front of the name, so each name started at a different place and the bar rode higher under a short name than a long one.
+
+**Now:** The level is in the card’s corner now, the name is centred under the count, and the bar keeps the foot of the card, so every card in a row lines up.
+
+### Numbers keep their digits
+
+A number edited in its box — a digit added to 1,234 — came back as 1. A count is now read as its digits, whatever marks are in it, and **1.5k** or **2,25b** still read as you meant. A sailor’s stats and the bag’s weight take a decimal written either way.
+
+- Sailing Mastery no longer clears itself when it is edited.
+
+### Barter runs that make sense
+
+- A run takes from storage only what it is short of: not goods it makes on the way, and no more than is already aboard. No more goods loaded, sailed round and put back.
+- **The runs worth sailing** reach their full length on a slower computer too, rather than stopping at a few chains and half the Parley.
+- A run that keeps a floor of a level makes enough for the floor and the island above, instead of sailing to the top of a chain for one trade.
+
+### A page that holds still
+
+- The page no longer steps sideways when a tab or filter is long enough to scroll.
+- A tab left near its top comes back at the top, so the tabs do not jump when you change tab.
+- Your name in the masthead keeps its width while saving, so the buttons beside it stay put.
+- The Inventory’s level row keeps the right edge, under the filters.
+
+### Around the app
+
+- A dropdown’s list is readable in every browser — the storage reader’s was white on light grey.
+- The language buttons set the code and the name on one line.
+- The clip of the chart’s ship in these notes no longer hops.
+
 ## 1.5 — Plan, load, sail, results
 
 *2026-10-01*

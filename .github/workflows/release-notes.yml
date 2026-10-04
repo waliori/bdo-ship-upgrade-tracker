@@ -1,0 +1,78 @@
+# A new release reaching main is told on Discord: the notes in full in
+# #release-notes, and a line in #announcements pointing at them.
+#
+# "New" is the release id in js/release.js (written from js/about.js by
+# tools/build-changelog.mjs) having no git tag yet. Once posted, the
+# release is tagged v<id>, so a re-run, or a later merge that keeps the
+# same id, posts nothing. A merge with fixes and no new notes entry keeps
+# the old id and is quiet.
+#
+# Run by hand (Actions -> release notes -> Run workflow) to post a
+# release's notes again -- after they were rewritten, say. That posts
+# whatever id is given, tag or not, and announces only when asked.
+#
+# Secrets: DISCORD_RELEASES_WEBHOOK and DISCORD_ANNOUNCE_WEBHOOK, each a
+# webhook URL of its channel. The actions are pinned to a commit, as in
+# test.yml.
+name: release notes
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      release:
+        description: 'Release id to post, as in js/about.js (e.g. 1.5.1)'
+        required: true
+      announce:
+        description: 'Also post the line in #announcements'
+        type: boolean
+        default: false
+
+# The tag is the record of what was posted, and is pushed from here.
+permissions:
+  contents: write
+
+# Two merges in quick succession must not both see the tag missing.
+concurrency:
+  group: release-notes
+  cancel-in-progress: false
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+      - name: Which release, and is it new
+        id: which
+        env:
+          ASKED: ${{ inputs.release }}
+        run: |
+          if [ -n "$ASKED" ]; then id="$ASKED"; else
+            id=$(node --input-type=module -e "import { RELEASE } from './js/release.js'; console.log(RELEASE)")
+          fi
+          echo "id=$id" >> "$GITHUB_OUTPUT"
+          if git rev-parse -q --verify "refs/tags/v$id" >/dev/null; then echo "tagged=yes" >> "$GITHUB_OUTPUT"; else echo "tagged=no" >> "$GITHUB_OUTPUT"; fi
+          echo "release $id, tagged: $(git tag -l "v$id")"
+      - name: Post
+        if: github.event_name == 'workflow_dispatch' || steps.which.outputs.tagged == 'no'
+        env:
+          DISCORD_RELEASES_WEBHOOK: ${{ secrets.DISCORD_RELEASES_WEBHOOK }}
+          DISCORD_ANNOUNCE_WEBHOOK: ${{ secrets.DISCORD_ANNOUNCE_WEBHOOK }}
+          ID: ${{ steps.which.outputs.id }}
+          ANNOUNCE: ${{ github.event_name == 'push' || inputs.announce }}
+        run: |
+          if [ "$ANNOUNCE" = "true" ]; then node tools/post-release-notes.mjs "$ID" --announce
+          else node tools/post-release-notes.mjs "$ID"; fi
+      - name: Tag it as posted
+        if: steps.which.outputs.tagged == 'no'
+        env:
+          ID: ${{ steps.which.outputs.id }}
+        run: |
+          git tag "v$ID"
+          git push origin "v$ID"
