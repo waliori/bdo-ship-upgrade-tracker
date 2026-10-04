@@ -1160,6 +1160,7 @@ img.comm-silver { width: 1.25em; height: 1.25em; vertical-align: -0.25em; object
      chip drawn in the fallback font a little more. */
   .chips, .controls, .way-opts { row-gap: 14px; }
   .inv-kinds, .inv-ladder { margin-top: 0; }
+  .inv-ladder { margin-left: 0; }
   .map-zoom { row-gap: 14px; }
   #screen .summary { row-gap: 16px; }
   .sail-bar.sailing.cockpit-foot { row-gap: 10px; }
