@@ -265,6 +265,22 @@ test('a good the run makes on the way is not loaded from storage as well, to rid
 	assert.deepEqual([...run.loaded, ...run.stops.flatMap(s => s.loads || [])].filter(l => l.item === made), [], 'so none of it is loaded');
 });
 
+test('a fast run feeds a floor as well as the rung above it: a good kept back is made past what is kept', () => {
+	// GriefLZ kept four of every [Level 5]. The thin ladder made the five
+	// the island above takes, four of them were the floor's, and the run
+	// sailed to the top of the chain for one trade.
+	const land = chains(data).find(c => c.from === 'land' && c.top === 7 && c.rungs.length >= 5);
+	const k = land.rungs.findIndex(r => levelOf(r.item) === 5);
+	const five = land.rungs[k], above = land.rungs[k + 1];
+	const orders = { ...PLAIN_ORDERS, pace: 'fast', floors: { 5: 4 } };
+	const run = chainRun({ chosen: [land], hold, parley, npcById, start: ports.find(p => p.name === 'Velia'), stashes, pace: 'fast', orders, owned: { [five.item]: 1 } });
+	const at = id => run.stops.find(s => s.npcId === id);
+	const made = at(five.npcId).times * five.recvMin;
+	assert.equal(at(five.npcId).times, Math.min(five.tries, Math.ceil((above.tries * above.giveN + 4 - 1) / five.recvMin)), 'the rung below is asked for the floor too');
+	assert.equal(at(above.npcId).times, Math.min(above.tries, Math.floor((made + 1 - 4) / above.giveN)), 'and the island above trades all that is owned past it');
+	assert.ok(at(above.npcId).times > 1, 'more than the one trade the thin ladder left');
+});
+
 test('a ceiling cuts every climb where the stock ends: nothing above it, and a good already there is not fuel', () => {
 	const four = '[Level 4] Amethyst Fragment';
 	const whole = chains(data, { [four]: 4 });

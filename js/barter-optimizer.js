@@ -204,30 +204,43 @@ export function propose({ chains = [], opts, ship, seed = [], timeCap = 0, width
 
 	const seen = new Map();
 	const start = judge(seed.filter(id => byId.has(id)));
-	let frontier = [start];
-	let partial = false;
 	// The budget is checked after each set judged, not before: a budget
 	// of nothing still judges one set, so there is always a best so far.
-	search: for (let step = 0; step < depth && frontier.length; step++) {
-		const next = [];
-		for (const state of frontier) {
-			for (const c of chains) {
-				if (state.ids.includes(c.id)) continue;
-				const cand = judge([...state.ids, c.id]);
-				const fits = !(timeCap > 0 && cand.hours > timeCap)
-					// A chain that adds nothing -- every island already dealt,
-					// or no Parley left -- is not a step worth taking.
-					&& cand.value > state.value + 1;
-				if (fits) {
-					const key = cand.ids.slice().sort().join('|');
-					if (!seen.has(key)) { seen.set(key, cand); next.push(cand); }
+	// Returns whether the budget ran out before the sets did.
+	const grow = wide => {
+		const met = new Set();
+		let frontier = [start];
+		for (let step = 0; step < depth && frontier.length; step++) {
+			const next = [];
+			for (const state of frontier) {
+				for (const c of chains) {
+					if (state.ids.includes(c.id)) continue;
+					const cand = judge([...state.ids, c.id]);
+					const fits = !(timeCap > 0 && cand.hours > timeCap)
+						// A chain that adds nothing -- every island already dealt,
+						// or no Parley left -- is not a step worth taking.
+						&& cand.value > state.value + 1;
+					if (fits) {
+						const key = cand.ids.slice().sort().join('|');
+						seen.set(key, cand);
+						if (!met.has(key)) { met.add(key); next.push(cand); }
+					}
+					if (late()) return true;
 				}
-				if (late()) { partial = true; break search; }
 			}
+			next.sort((a, b) => b.value - a.value);
+			frontier = next.slice(0, wide);
 		}
-		next.sort((a, b) => b.value - a.value);
-		frontier = next.slice(0, width);
-	}
+		return false;
+	};
+	// One chain at a time first, then the beam. The beam widens a step
+	// at a time, so a budget that ran out part-way left sets no longer
+	// than the step it had reached: on a slower machine "the most
+	// silver" was five chains and half the day's Parley, with three
+	// more chains worth sailing never judged. The narrow pass is a
+	// fifth of the work and reaches a run's full length; the beam then
+	// betters it with whatever time is left.
+	const partial = (width > 1 && grow(1)) || grow(width);
 
 	const all = [...seen.values()].filter(s => s.ids.length && s.run.trades > 0);
 	if (!all.length) return { proposals: [], best: null, partial };
