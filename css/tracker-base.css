@@ -371,14 +371,7 @@ html {
   background-color: var(--ocean-deep);
   background-image: var(--ocean-gradient);
   min-height: 100%;
-  /* The scrollbar's place is kept whether the page needs one or not.
-     Without it a short tab (the Workshop) sat half a scrollbar to the
-     right of a long one (the Tree), and the whole page stepped sideways
-     on every change of tab or filter that crossed the fold. */
-  scrollbar-gutter: stable;
 }
-/* The chart at full screen never scrolls, and wants the strip back. */
-html:has(body.map-full) { scrollbar-gutter: auto; }
 
 /* With a mouse the gradient stays put and the page scrolls over it.
    Not with background-attachment: fixed, though: Chrome repaints a
@@ -439,6 +432,21 @@ button:disabled { cursor: not-allowed; opacity: var(--btn-off); }
   max-width: 1300px;
   margin: 0 auto;
   padding: 0 24px 90px;
+}
+
+/* The page stays centred on the window, scrollbar or none. A scrollbar
+   takes its width off the right, so a long tab (the Tree) sat half a
+   scrollbar to the left of a short one (the Workshop), and the whole
+   page stepped sideways on every change of tab or filter that crossed
+   the fold. 100vw counts the scrollbar and 100% does not: the
+   difference is its width, given back on the left, and nothing at all
+   where there is no scrollbar or it floats over the page. Only where
+   the window is wider than the shell: narrower, the shell fills the
+   window and there is no centring to keep. Keeping the scrollbar's
+   lane instead (scrollbar-gutter) holds the page as still, and leaves
+   a bare stripe down the right of every page too short to scroll. */
+@media (min-width: 1340px) {
+  body { padding-left: calc(100vw - 100%); }
 }
 
 
