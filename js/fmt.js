@@ -89,9 +89,14 @@ function localeParts() {
  *   2. With both "." and "," the last one is the decimal point and the
  *      other the grouping: "1.234,5" and "1,234.5" are both 1234.5. The
  *      grouping must then come in threes, or it is a typo.
- *   3. One mark used twice or more ("1.000.000", "1,000,000") can only
+ *   3. In a whole-number field, the language's own grouping mark is
+ *      grouping wherever it sits. The field showed "1,234"; a digit
+ *      typed after it makes "1,2345", one deleted makes "1,23", and both
+ *      are the number being edited -- 12,345 and 123 -- not a decimal to
+ *      round down to 1.
+ *   4. One mark used twice or more ("1.000.000", "1,000,000") can only
  *      be grouping, and must come in threes.
- *   4. One mark used once ("1.5", "1,500"):
+ *   5. One mark used once ("1.5", "1,500"):
  *        - not followed by exactly three digits, or after a leading
  *          zero or more than three digits ("1,5", "0.500", "1234.567"):
  *          a decimal point -- grouping is never shaped like that;
@@ -140,7 +145,8 @@ export function parseAmount(raw, { signed = false, decimals = false } = {}) {
 	} else if (hasDot || hasComma) {
 		const sep = hasDot ? '.' : ',';
 		const pieces = body.split(sep);
-		if (pieces.length > 2) {
+		if (!decimals && !suffix && sep === localeParts().group) body = pieces.join('');
+		else if (pieces.length > 2) {
 			// "1.234.567" can only be grouping; anything else shaped like
 			// this is a typo, not a number.
 			if (!grouped(body, sep)) return null;

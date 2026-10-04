@@ -104,8 +104,26 @@ test('one mark used once: a decimal point unless it can only be grouping', async
 		// group of three is grouping, in any language.
 		assert.equal(parseAmount('1.500'), 1500);
 		assert.equal(parseAmount('1,500'), 1500);
-		// Whole-number fields round a decimal.
-		assert.equal(parseAmount('1,5'), 2);
+	}
+	// Whole-number fields round a decimal.
+	await setLang('fr');
+	assert.equal(parseAmount('1,5'), 2);
+	await setLang('us');
+	assert.equal(parseAmount('1.5'), 2);
+});
+
+test('a grouped count edited in place is still the count', async () => {
+	// The field showed 1,234 (or 1.234); a digit added or taken away
+	// leaves the language's grouping mark in an odd place.
+	for (const [id, g] of [['us', ','], ['es', '.'], ['de', '.']]) {
+		await setLang(id);
+		assert.equal(parseAmount(`1${g}2345`), 12345, `${id} a fifth digit`);
+		assert.equal(parseAmount(`12${g}3456`), 123456, `${id} a sixth`);
+		assert.equal(parseAmount(`1${g}23`), 123, `${id} one deleted`);
+		assert.equal(parseAmount(`9123${g}456`), 9123456, `${id} one in front`);
+		assert.equal(parseAmount(`1${g}234${g}5678`), 12345678, `${id} past a million`);
+		assert.equal(parseAmount(`${g}234`), 234, `${id} the first deleted`);
+		assert.equal(parseAmount(g), null);
 	}
 });
 
@@ -128,7 +146,7 @@ test('both marks: the last is the decimal point, the grouping must be in threes'
 	assert.equal(parseAmount('1.234.567,25', { decimals: true }), 1234567.25);
 	assert.equal(parseAmount('12,34.5'), null);
 	assert.equal(parseAmount('1.2.3'), null);
-	assert.equal(parseAmount('1,23,456'), null);
+	assert.equal(parseAmount('1,23,456', { decimals: true }), null);
 	assert.equal(parseAmount('1.5.'), null);
 });
 

@@ -9,7 +9,7 @@
 // The roster and the seating travel with the save (profile), so the
 // phone at the wharf and the desktop agree on who sits where.
 
-import { esc, F, FD } from './fmt.js';
+import { esc, F, FD, parseAmount } from './fmt.js';
 import { T, TT, said, gameName } from './i18n.js';
 import * as store from './state.js';
 import { img, iconSrc, codexName } from './ui-bits.js';
@@ -1399,8 +1399,8 @@ export function crewChange(el) {
 	const id = el.dataset.id;
 	if (looking) { toast(T('Only a look — nothing on this boat can be changed')); return true; }
 	if (act === 'crew-mastery') {
-		const v = Math.floor(Number(el.value));
-		store.setProfile('sailingMastery', Number.isFinite(v) && v > 0 ? Math.min(3000, v) : null);
+		const v = parseAmount(el.value);
+		store.setProfile('sailingMastery', v > 0 ? Math.min(3000, v) : null);
 		return true;
 	}
 	// A tick per appearance slot: the set is bought whole but worn a
