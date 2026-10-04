@@ -371,7 +371,14 @@ html {
   background-color: var(--ocean-deep);
   background-image: var(--ocean-gradient);
   min-height: 100%;
+  /* The scrollbar's place is kept whether the page needs one or not.
+     Without it a short tab (the Workshop) sat half a scrollbar to the
+     right of a long one (the Tree), and the whole page stepped sideways
+     on every change of tab or filter that crossed the fold. */
+  scrollbar-gutter: stable;
 }
+/* The chart at full screen never scrolls, and wants the strip back. */
+html:has(body.map-full) { scrollbar-gutter: auto; }
 
 /* With a mouse the gradient stays put and the page scrolls over it.
    Not with background-attachment: fixed, though: Chrome repaints a
