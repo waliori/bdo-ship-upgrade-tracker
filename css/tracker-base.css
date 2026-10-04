@@ -413,6 +413,12 @@ a:hover { color: var(--link-hi); }
 ::selection { background: rgba(var(--blue-rgb), 0.3); }
 
 input, select, textarea { outline: none; font-family: inherit; }
+/* The list a select opens is drawn by the browser on a surface of its
+   own, and takes the field's colours with it. A see-through field
+   colour landed there as light grey under the field's light ink: white
+   town names on grey, in the storage reader's "This storage is". So
+   the options say their own, solid. */
+select option, select optgroup { background-color: var(--ocean-deep); color: var(--ink); }
 button { cursor: pointer; font-family: inherit; }
 button:disabled { cursor: not-allowed; opacity: var(--btn-off); }
 :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
