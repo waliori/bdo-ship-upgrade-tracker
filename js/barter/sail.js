@@ -633,7 +633,12 @@ export function syncSail(plan) {
 		const key = stopKey(oldStops[last], last, oldStops);
 		const j = rec.stops.findIndex((s, i) => stopKey(s, i, rec.stops) === key);
 		if (j < 0) { on.laidFor = laidFor; persist(); return; }
-		rec.stops = [...oldStops.slice(0, last + 1), ...rec.stops.slice(j + 1)];
+		// An island deals once a run, and its tick is kept by its name: one
+		// the new laying visits after the last tick but the ship has already
+		// been to would come back on the end of the checklist ticked, and
+		// write its goods into the hold a second time.
+		const sailedIsles = new Set(oldStops.slice(0, last + 1).filter(s => s.npcId).map(s => s.npcId));
+		rec.stops = [...oldStops.slice(0, last + 1), ...rec.stops.slice(j + 1).filter(s => !sailedIsles.has(s.npcId))];
 		// And what was loaded before casting off stays what was loaded:
 		// the hold is written from it, and a new laying's load is goods
 		// still in the storage behind the ship.
