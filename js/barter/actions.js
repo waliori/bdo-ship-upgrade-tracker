@@ -685,9 +685,17 @@ export function barterAction(act, el, redraw) {
 		case 'barter-floor-clear': {
 			const lvs = String(el.dataset.lvs || '').split(',').map(Number).filter(n => n >= 1 && n <= 6);
 			if (!lvs.length) return true;
-			const floors = { ...ordersNow().floors };
-			for (const lv of lvs) delete floors[lv];
-			setOrders({ floors });
+			// On a stock day the floor the run keeps is the stock target.
+			if (V.goal === 'stock') {
+				const targets = { ...V.stockGoal.targets };
+				for (const lv of lvs) targets[lv] = 0;
+				V.stockGoal = { ...V.stockGoal, targets };
+				persist();
+			} else {
+				const floors = { ...ordersNow().floors };
+				for (const lv of lvs) delete floors[lv];
+				setOrders({ floors });
+			}
 			toast(lvs.length === 1
 				? T('The [Level {lv}] floor is gone — the run may spend what you hold', { lv: lvs[0] })
 				: T('{n} floors are gone — the run may spend what you hold', { n: lvs.length }));
