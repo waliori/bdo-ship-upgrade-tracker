@@ -49,6 +49,13 @@
 .seat.picked { border: 1.5px solid var(--teal); }
 .seat.armed { border: 1.5px dashed rgba(70, 224, 200, 0.9); animation: seatPulse 1.4s ease-in-out infinite; }
 .seat-plus { font-size: max(16px, 2.1cqw); color: #3d5c80; }
+/* On the ship the plus is drawn, not typed: a "+" is as tall as its
+   font's line, and a font with a tall line set it below the seat on
+   some phones. Two bars sit in the middle whatever the font. */
+.seat > .seat-plus { position: relative; width: 36%; height: 36%; font-size: 0; }
+.seat > .seat-plus::before, .seat > .seat-plus::after { content: ''; position: absolute; background: currentColor; border-radius: 1px; }
+.seat > .seat-plus::before { left: 0; right: 0; top: 50%; height: 2px; margin-top: -1px; }
+.seat > .seat-plus::after { top: 0; bottom: 0; left: 50%; width: 2px; margin-left: -1px; }
 .seat-mono { width: 70%; height: 70%; border-radius: 7px; display: grid; place-items: center; font-size: max(10px, 1.3cqw); font-weight: 800; color: #08131f; }
 .seat-lv {
   position: absolute; right: -4px; top: -4px; min-width: 15px; height: 15px; border-radius: 8px; padding: 0 3px;
