@@ -32,7 +32,7 @@ test('a hull with seats has cabin space, and the Cog has neither', () => {
 });
 
 test('the stat line reads like the ship window', () => {
-	assert.match(statsLine('Carrack (Volante)'), /13,500 LT · 20 slots · 20 sailors · 9 cannons a side · speed 120%/);
+	assert.match(statsLine('Carrack (Volante)'), /13,500 LT · 20 slots · 22 sailors · 9 cannons a side · speed 120%/);
 	assert.equal(statsLine('Not a ship'), '');
 });
 
@@ -74,9 +74,11 @@ test('the Parley cut is read off the First Mate seat, not asked for', () => {
 test('a hull offers the seats the game draws, then cabins', () => {
 	const count = (ship, pos) => seatsFor(ship, shipStats[ship]).filter(s => s.pos === pos).length;
 	const carrack = seatsFor('Carrack (Advance)', shipStats['Carrack (Advance)']);
-	assert.equal(carrack.length, 20);
+	// Cabin space 110, the smallest sailor 5: twenty-two seats, the
+	// eight named positions and fourteen cabins.
+	assert.equal(carrack.length, 22);
 	assert.equal(carrack.filter(s => s.pos === 'fish').length, 1);
-	assert.equal(carrack.filter(s => s.pos === 'cabin').length, 12);
+	assert.equal(carrack.filter(s => s.pos === 'cabin').length, 14);
 	// Each hull's extra seat, the one thing that tells the four apart.
 	assert.equal(count('Carrack (Advance)', 'mess'), 2, 'the Advance messes a second cook');
 	assert.equal(count('Carrack (Advance)', 'sail'), 1);
@@ -87,6 +89,8 @@ test('a hull offers the seats the game draws, then cabins', () => {
 	const pano = seatsFor('Panokseon', shipStats['Panokseon']);
 	assert.equal(pano.filter(s => s.pos === 'cannon').length, 3, 'two more cannon seats than a Carrack');
 	assert.equal(pano.filter(s => s.pos === 'fish').length, 0, 'no fishing seat');
+	assert.equal(pano.length, 30, 'cabin space 150 seats thirty of the smallest sailors');
+	for (const [ship, s] of Object.entries(shipStats)) assert.equal(s.crew, Math.floor(s.cabins / 5), `${ship}: as many seats as its cabin space holds`);
 	const sloop = seatsFor('Epheria Sailboat', shipStats['Epheria Sailboat']);
 	assert.deepEqual(sloop.map(s => s.pos), ['cabin', 'cabin'], 'nothing below a Carrack has a named seat');
 	assert.equal(seatsFor('Epheria Cog', shipStats['Epheria Cog']).length, 0);
@@ -144,7 +148,7 @@ test('a seated crew adds up the way the positions say', () => {
 	assert.equal(t.cabins, 10 + 8 + 10);
 	assert.equal(t.weight, 200 + 500 + 250);
 	assert.equal(t.sick, 1);
-	assert.equal(t.seats, 20);
+	assert.equal(t.seats, 22);
 	assert.equal(t.overSpace, 0);
 	assert.equal(statOf(roster[0], 'speed'), 3.1);
 });
