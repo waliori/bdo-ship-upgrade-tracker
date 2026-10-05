@@ -580,6 +580,43 @@ test('a count said on the way lays the run again without loading anything more a
 	await context.close();
 });
 
+test('a count said on the way never puts an island already dealt back on the checklist, nor writes its goods twice', async () => {
+	// Theophilos's stock run: Ginburrey (slabs to maps) and Tulu (maps to
+	// keys) ticked, then a count said at a later island. The run laid again
+	// went to Tulu before Ginburrey, and everything after Tulu in that
+	// laying -- Ginburrey among it -- was put on the end of the checklist.
+	// Ticks are kept by island, so the second Ginburrey was ticked as well,
+	// and the hold got its twenty maps twice.
+	const { page, context, errors } = await open('#barter');
+	const r = await page.evaluate(async () => {
+		const { V } = await import('/js/barter/state.js');
+		const { sailKey, syncSail, tripOf, planOfSail, stopKey, ticked } = await import('/js/barter/sail.js');
+		const { ports } = await import('/js/barter_npcs.js');
+		const slab = '[Level 2] Big Stone Slab', map = '[Level 3] Torn Pirate Treasure Map', key = "[Level 4] Pirate's Key", glass = '[Level 3] Old Hourglass', dagger = '[Level 4] Stolen Pirate Dagger';
+		const isle = (npcId, npc, give, item, times) => ({ npcId, npc, give, giveN: 1, item, recv: 2, recvMin: 2, recvMax: 2, recvText: '2', times, parley: times * 10693, weightAfter: 0, level: 3, chain: 0 });
+		const ginburrey = isle(58901, 'Denio', slab, map, 10), tulu = isle(58902, 'Metakio', map, key, 10), almai = isle(58903, 'Arutiha', glass, dagger, 4);
+		const iliya = { wharf: { name: 'Dario', at: 'Iliya Island', x: 0, y: 0 }, dropped: [], loads: [], sale: null, weightAfter: 0, chain: 0 };
+		const sailed = [ginburrey, tulu, iliya, almai];
+		V.sail = { key: sailKey(), done: [stopKey(ginburrey, 0, sailed), stopKey(tulu, 1, sailed)], seen: {}, got: {}, kept: [], laidFor: '{}', stops: sailed, loaded: [], bagLoaded: [], bagFromHold: [], weightStart: 0, bought: [], cost: 0 };
+		const before = tripOf(planOfSail(V.sail), V.sail, ports[0]).delta;
+		// A count said at Almai lays the run again, Tulu first this time.
+		V.sail.seen = { 58903: 2 };
+		syncSail({ stops: [tulu, ginburrey, iliya, almai], loaded: [], bagLoaded: [], bagFromHold: [], weightStart: 0, bought: [], cost: 0, order: [] });
+		const stops = V.sail.stops;
+		const after = tripOf(planOfSail(V.sail), V.sail, ports[0]).delta;
+		return {
+			isles: stops.filter(x => x.npcId).map(x => x.npc),
+			done: stops.filter((x, k) => ticked(V.sail.done, x, k, stops)).length,
+			before, after
+		};
+	});
+	assert.deepEqual(r.isles, ['Denio', 'Metakio', 'Arutiha'], 'every island once');
+	assert.equal(r.done, 2, 'the two stops traded, and no more');
+	assert.deepEqual(r.after, r.before, 'the hold the ticks come to is the same as before the count was said');
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
 test('a wharf call keeps its tick when a re-laying puts another call at the same wharf before it', async () => {
 	const { page, context, errors } = await open('#barter');
 	const r = await page.evaluate(async () => {
