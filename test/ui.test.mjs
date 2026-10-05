@@ -652,56 +652,129 @@ test('a count said on the way never drops an island not yet sailed that the new 
 	await context.close();
 });
 
-test('a count said on the way, laid again in any order: every island once, none lost, the ticks and the hold as they were', async () => {
-	// Many runs at random: chains of islands, some ticked, then the run laid
-	// again in another order that still keeps every island after the one
-	// that makes its goods, with a wharf call or two about.
-	const { page, context, errors } = await open('#barter');
-	const bad = await page.evaluate(async () => {
+test('counts said on the way, laid again in any order: what was sailed stays, every island once and in its place, nothing lost, the ticks and the hold as they were', async () => {
+	// Runs at random, shaped like real ones: chains of islands that start
+	// from goods loaded at cast-off, from goods picked up at a wharf call on
+	// the way, or from the shore; wharf calls between them; and two counts
+	// said at different points of the same run, more stops ticked between.
+	// Every laying again keeps every island after the one that makes its
+	// goods and after the call that loads them, as the planner does.
+	const { page, context, errors } = await open(`?seed=${process.env.FUZZ_SEED || 11}&runs=${process.env.FUZZ_RUNS || 400}#barter`);
+	const out = await page.evaluate(async () => {
 		const { V } = await import('/js/barter/state.js');
 		const { sailKey, syncSail, tripOf, planOfSail, stopKey, ticked } = await import('/js/barter/sail.js');
 		const { ports } = await import('/js/barter_npcs.js');
-		let seed = 7;
-		// mulberry32: the same runs every time, spread over the whole range.
+		let seed = Number(new URLSearchParams(location.search).get('seed') || 11);
 		const rnd = n => { seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return (((t ^ (t >>> 14)) >>> 0) % n); };
 		const shuffle = list => { const a = list.slice(); for (let i = a.length - 1; i > 0; i--) { const k = rnd(i + 1); [a[i], a[k]] = [a[k], a[i]]; } return a; };
-		// The run's islands as chains: each rung takes what the rung below made.
-		const lay = chains => { const out = []; const at = chains.map(() => 0); while (out.length < chains.flat().length) { const c = rnd(chains.length); if (at[c] < chains[c].length) out.push(chains[c][at[c]++]); } return out; };
-		const wharf = () => ({ wharf: { name: 'Dario', at: 'Iliya Island', x: 0, y: 0 }, dropped: [], loads: [], sale: null, weightAfter: 0, chain: 0 });
-		const withCalls = isles => { const out = []; isles.forEach((x, k) => { out.push(x); if (k && k < isles.length - 1 && rnd(4) === 0) out.push(wharf()); }); return out; };
-		const bad = [];
-		for (let run = 0; run < 300; run++) {
-			let id = 58000 + run * 20;
+		const call = loads => ({ wharf: { name: 'Dario', at: 'Iliya Island', x: 0, y: 0 }, dropped: [], loads, sale: null, weightAfter: 0, chain: 0 });
+		// A laying: the chains interleaved at random, each in its own order,
+		// a pickup chain's call put somewhere before its first island, and
+		// plain calls here and there.
+		const lay = chains => {
+			const out = [], at = chains.map(() => 0), called = chains.map(c => c.from !== 'pickup');
+			const left = () => chains.some((c, k) => at[k] < c.rungs.length);
+			while (left()) {
+				const k = rnd(chains.length), c = chains[k];
+				if (at[k] >= c.rungs.length) continue;
+				if (!called[k]) { out.push(call([{ item: c.rungs[0].give, n: c.rungs[0].times, lot: k }])); called[k] = true; if (rnd(2)) continue; }
+				out.push(c.rungs[at[k]++]);
+				if (rnd(5) === 0) out.push(call([]));
+			}
+			return out;
+		};
+		const bad = [], stat = { runs: 0, relays: 0, adopted: 0, kept: 0 };
+		for (let run = 0; run < Number(new URLSearchParams(location.search).get('runs') || 400); run++) {
+			let id = 60000 + run * 30;
 			const chains = Array.from({ length: 1 + rnd(4) }, (_, c) => {
-				const len = 1 + rnd(4), goods = Array.from({ length: len + 1 }, (_, g) => `[Level ${Math.min(7, g + 1)}] Good ${run}-${c}-${g}`);
-				return Array.from({ length: len }, (_, g) => ({ npcId: id++, npc: `I${run}-${c}-${g}`, give: goods[g], giveN: 1, item: goods[g + 1], recv: 2, recvMin: 2, recvMax: 2, recvText: '2', times: 1 + rnd(5), parley: 1000, weightAfter: 0, level: 3, chain: c }));
+				const len = 1 + rnd(4), from = ['cast', 'pickup', 'shore'][rnd(3)];
+				const goods = Array.from({ length: len + 1 }, (_, g) => (g === 0 && from === 'shore' ? `Shore ${run}-${c}` : `[Level ${Math.min(7, g + 1)}] Good ${run}-${c}-${g}`));
+				return { from, rungs: Array.from({ length: len }, (_, g) => ({ npcId: id++, npc: `I${run}-${c}-${g}`, give: goods[g], giveN: 1, item: goods[g + 1], recv: 2, recvMin: 2, recvMax: 2, recvText: '2', times: 1 + rnd(5), parley: 1000, weightAfter: 0, level: 3, chain: c })) };
 			});
-			const sailed = withCalls(lay(chains));
-			const upTo = rnd(sailed.length);
-			const done = sailed.slice(0, upTo + 1).map((x, k) => stopKey(x, k, sailed));
-			V.sail = { key: sailKey(), done, seen: {}, got: {}, kept: [], laidFor: '{}', stops: sailed, loaded: [], bagLoaded: [], bagFromHold: [], weightStart: 0, bought: [], cost: 0 };
-			const before = JSON.stringify(tripOf(planOfSail(V.sail), V.sail, ports[0]).delta);
-			// A count said, at an island off this run: it lays the run again
-			// and changes no figure of its own.
-			V.sail.seen = { 1: run + 1 };
-			syncSail({ stops: withCalls(lay(shuffle(chains))), loaded: [], bagLoaded: [], bagFromHold: [], weightStart: 0, bought: [], cost: 0, order: [] });
-			const stops = V.sail.stops, isles = stops.filter(x => x.npcId).map(x => x.npcId);
-			const want = chains.flat().map(x => x.npcId);
-			const doneNow = stops.filter((x, k) => ticked(V.sail.done, x, k, stops)).length;
-			const after = JSON.stringify(tripOf(planOfSail(V.sail), V.sail, ports[0]).delta);
-			// Every island after the one that makes its goods, in the checklist as it stands.
-			const order = new Map(isles.map((x, k) => [x, k]));
-			const outOfOrder = chains.some(c => c.some((x, g) => g && order.get(x.npcId) < order.get(c[g - 1].npcId)));
-			const kept = stops === sailed || stops.length === sailed.length && stops.every((x, k) => x === sailed[k]);
-			if (new Set(isles).size !== isles.length) bad.push(`run ${run}: an island twice`);
-			else if (!kept && want.some(x => !isles.includes(x))) bad.push(`run ${run}: an island lost`);
-			else if (doneNow !== done.length) bad.push(`run ${run}: ${doneNow} done for ${done.length} ticked`);
-			else if (after !== before) bad.push(`run ${run}: the hold moved`);
-			else if (outOfOrder) bad.push(`run ${run}: an island ahead of the one that makes its goods`);
+			const isles = chains.flatMap(c => c.rungs.map(r => r.npcId));
+			const loaded = chains.filter(c => c.from === 'cast').map(c => ({ item: c.rungs[0].give, n: c.rungs[0].times }));
+			V.sail = { key: sailKey(), done: [], seen: {}, got: {}, kept: [], laidFor: '{}', stops: lay(chains), loaded, bagLoaded: [], bagFromHold: [], weightStart: 0, bought: [], cost: 0 };
+			stat.runs++;
+			let ticks = 0;
+			for (let round = 0; round < 2; round++) {
+				// Tick on from where the ship is, a few stops more.
+				const stops0 = V.sail.stops;
+				ticks = Math.min(stops0.length - 1, ticks + rnd(Math.max(1, stops0.length - ticks)));
+				V.sail.done = stops0.slice(0, ticks + 1).map((x, k) => stopKey(x, k, stops0));
+				const holdBefore = JSON.stringify(tripOf(planOfSail(V.sail), V.sail, ports[0]).delta);
+				const sailed = stops0.slice(0, ticks + 1);
+				V.sail.seen = { 1: run * 10 + round + 1 };
+				syncSail({ stops: lay(shuffle(chains)), loaded: [], bagLoaded: [], bagFromHold: [], weightStart: 0, bought: [], cost: 0, order: [] });
+				stat.relays++;
+				const stops = V.sail.stops;
+				if (stops === stops0 || stops.length === stops0.length && stops.every((x, k) => x === stops0[k])) stat.kept++; else stat.adopted++;
+				const here = stops.filter(x => x.npcId).map(x => x.npcId);
+				const pos = new Map(stops.map((x, k) => [x.npcId, k]).filter(([n]) => n));
+				const err = [];
+				if (!sailed.every((x, k) => stops[k] === x)) err.push('what was sailed changed');
+				if (new Set(here).size !== here.length) err.push('an island twice');
+				if (isles.some(n => !pos.has(n))) err.push('an island lost');
+				const doneNow = stops.filter((x, k) => ticked(V.sail.done, x, k, stops)).length;
+				if (doneNow !== ticks + 1) err.push(`${doneNow} done for ${ticks + 1} ticked`);
+				if (JSON.stringify(tripOf(planOfSail(V.sail), V.sail, ports[0]).delta) !== holdBefore) err.push('the hold moved');
+				for (const c of chains) {
+					c.rungs.forEach((r, g) => { if (g && pos.get(r.npcId) < pos.get(c.rungs[g - 1].npcId)) err.push('an island ahead of the one that makes its goods'); });
+					if (c.from === 'pickup') {
+						const first = pos.get(c.rungs[0].npcId);
+						const callAt = stops.findIndex(x => (x.loads || []).some(l => l.item === c.rungs[0].give));
+						if (callAt < 0 || callAt > first) err.push('an island ahead of the call that loads its goods');
+					}
+				}
+				if (err.length) { bad.push(`run ${run}, count ${round + 1}: ${[...new Set(err)].join('; ')}`); break; }
+				ticks = Math.min(ticks, stops.length - 1);
+			}
 		}
-		return bad;
+		return { bad, stat };
 	});
-	assert.deepEqual(bad.slice(0, 5), [], `${bad.length} of 300 runs broke a rule`);
+	assert.deepEqual(out.bad.slice(0, 5), [], `${out.bad.length} of ${out.stat.relays} layings again broke a rule`);
+	// The new laying must be taken where it carries on, or the test says
+	// nothing about the merge.
+	assert.ok(out.stat.adopted > out.stat.relays / 5, `taken ${out.stat.adopted} times of ${out.stat.relays}`);
+	assert.ok(out.stat.kept > 0);
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
+test('a count said on the way never puts an island ahead of the wharf call that loads its goods', async () => {
+	// Theophilos's run after the fix for dropped islands: Arakil ticked,
+	// then "paid 3" laid the run again with Arakil later in it. The islands
+	// the new laying had before Arakil were put next -- but not the wharf
+	// calls that load their goods, so Albresser asked for nine Cron Castle
+	// Gold Coins at stop 2 that the run only picks up at stop 11.
+	const { page, context, errors } = await open('#barter');
+	const r = await page.evaluate(async () => {
+		const { V } = await import('/js/barter/state.js');
+		const { sailKey, syncSail, stopKey } = await import('/js/barter/sail.js');
+		const isle = (npcId, npc, give, item, times) => ({ npcId, npc, give, giveN: 1, item, recv: 2, recvMin: 2, recvMax: 3, recvText: '2-3', times, parley: times * 10693, weightAfter: 0, level: 3, chain: 0 });
+		const call = (loads) => ({ wharf: { name: 'Dario', at: 'Iliya Island', x: 0, y: 0 }, dropped: [], loads, sale: null, weightAfter: 0, chain: 0 });
+		const water = '[Level 2] Filtered Drinking Water', box = "[Level 3] Pirates' Supply Box", lunch = "[Level 2] Islanders' Lunchbox", gold = '[Level 2] Cron Castle Gold Coin';
+		const arakil = isle(58921, 'Curahi', water, box, 9);
+		const tigris = isle(58922, 'Perugia', box, '[Level 4] Solidified Lava', 4);
+		const angie = isle(58923, 'Neruo', lunch, '[Level 3] Torn Pirate Treasure Map', 10);
+		const albresser = isle(58924, 'Pukira', gold, '[Level 3] Weasel Leather Coat', 9);
+		const lunchCall = call([{ item: lunch, n: 10, lot: 1 }]), goldCall = call([{ item: gold, n: 9, lot: 2 }]);
+		const sailed = [arakil, tigris, lunchCall, angie, goldCall, albresser];
+		V.sail = { key: sailKey(), done: [stopKey(arakil, 0, sailed)], seen: {}, got: {}, kept: [], laidFor: '{}', stops: sailed, loaded: [], bagLoaded: [], bagFromHold: [], weightStart: 0, bought: [], cost: 0 };
+		V.sail.seen = { 58921: 3 };
+		// Laid again at "paid 3": the lunchbox trip first, Arakil after it.
+		syncSail({ stops: [lunchCall, angie, goldCall, albresser, arakil, tigris], loaded: [], bagLoaded: [], bagFromHold: [], weightStart: 0, bought: [], cost: 0, order: [] });
+		const stops = V.sail.stops;
+		// Every good a stop hands over that the run loads at a call is loaded before it.
+		const late = [];
+		stops.forEach((x, k) => {
+			if (!x.npcId) return;
+			const loadedAt = stops.findIndex(y => (y.loads || []).some(l => l.item === x.give));
+			if (loadedAt >= 0 && loadedAt > k) late.push(x.npc);
+			if (loadedAt < 0 && [lunch, gold].includes(x.give)) late.push(`${x.npc} (never loaded)`);
+		});
+		return { names: stops.map(x => x.npc || 'wharf'), late };
+	});
+	assert.deepEqual(r.late, [], `an island before the call that loads its goods: ${r.names.join(', ')}`);
 	assert.deepEqual(errors, []);
 	await context.close();
 });

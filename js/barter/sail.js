@@ -631,19 +631,35 @@ export function syncSail(plan) {
 	oldStops.forEach((s, k) => { if (ticked(on.done, s, k, oldStops)) last = k; });
 	if (last >= 0) {
 		const key = stopKey(oldStops[last], last, oldStops);
-		const j = rec.stops.findIndex((s, i) => stopKey(s, i, rec.stops) === key);
+		// A wharf call is named by its pier and the island before it, and two
+		// calls at the harbour before any island answer to the same name:
+		// one loading a later trip's goods is not one loading another's. So a
+		// call is the same stop only when it loads the same goods.
+		const loadsSaid = s => JSON.stringify((s.loads || []).map(l => [l.item, Math.round(Number(l.n) || 0)]).sort());
+		const j = rec.stops.findIndex((s, i) => stopKey(s, i, rec.stops) === key && (s.npcId || loadsSaid(s) === loadsSaid(oldStops[last])));
 		if (j < 0) { on.laidFor = laidFor; persist(); return; }
+		// The new laying is taken only where it carries on from the ship's
+		// place: everything it has before the last tick must already be
+		// done -- every island there sailed, every pickup there made. One
+		// still ahead of the ship that the new laying put behind it was lost
+		// from the checklist; moved up on its own, it went without the wharf
+		// call that loads its goods, and Albresser asked for gold coins the
+		// run had not picked up. So then the checklist stays as it was laid
+		// at cast-off, which has every pickup ahead of what needs it. The
+		// count said is still the hold's: what an island paid is read from
+		// `seen` whatever the stops say.
+		const sailedIsles = new Set(oldStops.slice(0, last + 1).filter(s => s.npcId).map(s => s.npcId));
+		const loadsOf = list => { const m = new Map(); for (const s of list) for (const l of s.loads || []) m.set(l.item, (m.get(l.item) || 0) + (Number(l.n) || 0)); return m; };
+		const made = loadsOf(oldStops.slice(0, last + 1));
+		const before = rec.stops.slice(0, j);
+		const carriesOn = before.every(s => !s.npcId || sailedIsles.has(s.npcId))
+			&& [...loadsOf(before)].every(([item, n]) => n <= (made.get(item) || 0) + 1e-9);
+		if (!carriesOn) { on.laidFor = laidFor; persist(); return; }
 		// An island deals once a run, and its tick is kept by its name: one
 		// the new laying visits after the last tick but the ship has already
 		// been to would come back on the end of the checklist ticked, and
-		// write its goods into the hold a second time. And one not yet
-		// sailed that the new laying puts before the last tick is still to
-		// sail: dropped, the island after it asked for goods never made. It
-		// goes next, in the new laying's order -- which never puts a stop
-		// ahead of the one that makes its goods.
-		const sailedIsles = new Set(oldStops.slice(0, last + 1).filter(s => s.npcId).map(s => s.npcId));
-		const ahead = s => s.npcId && !sailedIsles.has(s.npcId);
-		rec.stops = [...oldStops.slice(0, last + 1), ...rec.stops.slice(0, j).filter(ahead), ...rec.stops.slice(j + 1).filter(s => !sailedIsles.has(s.npcId))];
+		// write its goods into the hold a second time.
+		rec.stops = [...oldStops.slice(0, last + 1), ...rec.stops.slice(j + 1).filter(s => !sailedIsles.has(s.npcId))];
 		// And what was loaded before casting off stays what was loaded:
 		// the hold is written from it, and a new laying's load is goods
 		// still in the storage behind the ship.
