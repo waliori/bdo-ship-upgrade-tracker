@@ -64,6 +64,44 @@ export const DATA = [
  */
 export const RELEASES = [
 	{
+		id: '1.5.2',
+		name: TT('Runs that keep count'),
+		date: '2026-10-05',
+		sum: TT('A barter run no longer counts an island twice or loses one when you say what an island paid, the floor button works on a stock day, and a Carrack seats twenty-two.'),
+		thanks: {
+			text: TT('Two players found these, with the screenshots that pinned each one down.'),
+			who: [
+				{
+					name: 'Theophilos',
+					did: TT('Sailed run after run while the hold kept doubling, and sent the stop lists that showed islands counted twice, one dropped, and a button that did nothing.')
+				},
+				{
+					name: 'Danjorto',
+					did: TT('Asked why a Carrack stopped at twenty sailors with cabin space to spare.')
+				}
+			],
+			foot: TT('The box is under <b>Menu \u2192 Feedback</b>. It reaches whoever runs the site.')
+		},
+		blurb: TT('Fixes from two players. Saying what an island paid lays a barter run again, and that laying could count an island you had already traded at a second time, or drop one still ahead; neither can happen now. And a ship seats as many sailors as its cabin space holds.'),
+		sections: [
+			{
+				title: TT('Barter runs that keep count'),
+				points: [
+					TT('Saying what an island paid no longer puts an island you have already traded at back on the checklist, where its goods went into the hold twice and its Parley was spent twice.'),
+					TT('Nor does it drop an island still ahead — the one that makes what the next island takes.'),
+					TT('On a stock day, <b>drop the floor</b> drops that level’s stock target, as it says.')
+				]
+			},
+			{
+				title: TT('A Carrack seats twenty-two'),
+				media: 'docs/media/small/carrack-seats.png',
+				alt: TT('A Carrack with twenty-two Confident dwarves aboard: eight positions and fourteen cabins, 110 of 110 cabin space'),
+				before: TT('A Carrack stopped at twenty sailors, even with cabin space left over.'),
+				text: TT('A ship seats as many sailors as its cabin space holds of the smallest ones — five apiece — so a Carrack takes twenty-two and the Panokseon thirty. Cabin space still caps a crew of bigger sailors.')
+			}
+		]
+	},
+	{
 		id: '1.5.1',
 		name: TT('Fixes from your reports'),
 		date: '2026-10-04',
@@ -989,6 +1027,15 @@ export const RELEASES = [
 export const RELEASE = RELEASES[0].id;
 
 export const CHANGES = [
+	{
+		date: '2026-10-05',
+		title: TT('A barter run that keeps count, and twenty-two on a Carrack'),
+		notes: [
+			TT('<b>Barter runs.</b> A count said on the way no longer counts an island twice or drops one still ahead.'),
+			TT('<b>Stock days.</b> Drop the floor drops the stock target.'),
+			TT('<b>Crew.</b> A ship seats as many sailors as its cabin space holds: twenty-two on a Carrack, thirty on the Panokseon.')
+		]
+	},
 	{
 		date: '2026-10-04',
 		title: TT('Fixes from the fleet: numbers, barter runs and a page that holds still'),
