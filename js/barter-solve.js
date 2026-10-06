@@ -17,13 +17,13 @@
 //
 // Pure: no DOM, no store; the worker can run it.
 
-import { levelOf } from './barter.js';
-import { weightOf, sellOf } from './barter-plan.js';
+import { levelOf, PARLEY } from './barter.js';
+import { weightOf, sellOf, stacks } from './barter-plan.js';
 import { sellable, floorOf, PLAIN_ORDERS } from './barter-orders.js';
 import { seaDist } from './barter-route.js';
 import { METRES_PER_PX, speedMs } from './sailing.js';
 import { simulate, planPolicy } from './rpit/simulate.js';
-import { finish, indexOf } from './rpit/common.js';
+import { finish, indexOf, chainsOf } from './rpit/common.js';
 import { withChain, reorder, serial } from './rpit/insert.js';
 import { maximiseRate } from './rpit/ratio.js';
 import { search } from './rpit/alns.js';
@@ -48,13 +48,20 @@ export function unsupported(opts = {}) {
  * as climbs of station ids, in the order given.
  */
 export function instanceOf(opts) {
-	const { chosen = [], stock = {}, dock = {}, hold, parley, npcById, start, stashes = [], prefer = null, pace = 'full', orders = PLAIN_ORDERS, prices = {}, seen = {}, keep = [], land = new Map(), ship = null } = opts;
+	const { chosen = [], stock = {}, dock = {}, hold, parley, npcById, stashes = [], prefer = null, pace = 'full', orders = PLAIN_ORDERS, prices = {}, seen = {}, keep = [], land = new Map(), ship = null } = opts;
+	// A run that sails from no harbour starts at the first storage wharf:
+	// the instance needs a point to start from, and that is one a sailor
+	// calls at anyway.
+	const start = opts.start || stashes[0];
 	// A payout the sailor saw replaces the range, as chainRun counts it.
 	const fix = r => (seen[r.npcId] > 0 ? { ...r, recv: seen[r.npcId], recvMin: seen[r.npcId], recvMax: seen[r.npcId], recvText: String(seen[r.npcId]), rangeMin: r.rangeMin ?? r.recvMin, rangeMax: r.rangeMax ?? r.recvMax } : r);
 	const rowOf = new Map();
 	for (const c of chosen) for (const r of c.rungs) if (!rowOf.has(String(r.npcId))) rowOf.set(String(r.npcId), fix(r));
 	const rows = [...rowOf.values()];
-	const stations = rows.map(r => ({ id: String(r.npcId), name: r.npc, in: r.give, q: r.giveN, out: r.item, ymin: r.recvMin, ymax: r.recvMax, p: 0.5, m: r.tries, c: parley.perTrade }));
+	// Each exchange its own Parley, as chainRun charges it: the game's base
+	// for it at the sailor's rate.
+	const rate = parley.rate > 0 ? parley.rate : parley.perTrade / PARLEY.perGreatOceanTrade;
+	const stations = rows.map(r => ({ id: String(r.npcId), name: r.npc, in: r.give, q: r.giveN, out: r.item, ymin: r.recvMin, ymax: r.recvMax, p: 0.5, m: r.tries, c: r.parleyBase > 0 ? Math.floor(r.parleyBase * rate) : parley.perTrade }));
 
 	const fromPile = orders.landFrom === 'stock';
 	const goods = {};
@@ -71,7 +78,8 @@ export function instanceOf(opts) {
 			w: weightOf(name) || 0,
 			p: level && sellable(name, orders) && !keep.includes(name) ? sellOf(name) || 0 : 0,
 			b: level || fromPile ? 0 : (price && price.each) || 0,
-			cap
+			cap,
+			stack: stacks(name)
 		};
 	}
 	const floors = {};
@@ -81,8 +89,11 @@ export function instanceOf(opts) {
 	// nearest it. The dock goods are the start harbour's, loaded at the start.
 	const home = stashes.find(w => w.at === start.name) || stashes.reduce((a, w) => (!a || seaDist(start, w) < seaDist(start, a) ? w : a), null);
 	const depots = stashes.map(w => ({ id: w.at, x: w.x, y: w.y, storage: w === home ? { ...dock } : {} }));
-	const objs = [start, ...stashes, ...rows.map(r => npcById.get(r.npcId))];
-	const points = ['start', ...stashes.map(w => w.at), ...rows.map(r => String(r.npcId))];
+	// The wharves that fill the ration pool and trade nothing: every
+	// supply wharf that is not a storage's (opts.supplies, barter/route.js).
+	const supplyWharfs = opts.rations ? (opts.supplies || []).filter(w => !stashes.some(x => x.at === w.at)) : [];
+	const objs = [start, ...stashes, ...supplyWharfs, ...rows.map(r => npcById.get(r.npcId))];
+	const points = ['start', ...stashes.map(w => w.at), ...supplyWharfs.map(w => w.at), ...rows.map(r => String(r.npcId))];
 	const matrix = objs.map(a => objs.map(b => (a === b ? 0 : seaDist(a, b) * METRES_PER_PX)));
 	// Shortest by way of any point, as the bench's instances are.
 	const n = matrix.length;
@@ -90,11 +101,11 @@ export function instanceOf(opts) {
 
 	const pause = orders.pause || { isle: 0, call: 0 };
 	const I = {
-		name: 'live', goods, stations, depots,
+		name: 'live', goods, stations, depots, ...(supplyWharfs.length ? { supplies: supplyWharfs.map(w => ({ id: w.at, x: w.x, y: w.y })) } : {}),
 		start: { id: 'start', x: start.x, y: start.y },
 		travel: { points, matrix },
 		service: { station: pause.isle || 0, depot: pause.call || 0 },
-		vehicle: { Wfree: hold.free, Wdeal: hold.deal ?? hold.free, Wmax: hold.max ?? hold.deal ?? hold.free, speed: ship && ship.speed > 0 ? speedMs(ship.speed, ship.cal) : speedMs(100), slowAtMax: 0.5 },
+		vehicle: { Wfree: hold.free, Wdeal: hold.deal ?? hold.free, Wmax: hold.max ?? hold.deal ?? hold.free, speed: ship && ship.speed > 0 ? speedMs(ship.speed, ship.cal) : speedMs(100), slowAtMax: 0.5, ...(Number.isFinite(hold.slots) && hold.slots > 0 ? { slots: hold.slots } : {}), ...(opts.rations ? { rations: { reserve: 0.1, ...opts.rations } } : {}) },
 		budgets: { P: parley.bar, H: null },
 		initial: { hold: { ...stock }, floors },
 		rules: { pace, dropPolicy: 'any', home: home.at, end: prefer ? prefer.at : home.at },
@@ -102,7 +113,7 @@ export function instanceOf(opts) {
 		meta: {}
 	};
 	const chains = chosen.map((c, k) => ({ id: k, rungs: c.rungs.map(r => String(r.npcId)), top: c.top }));
-	return { I, rowOf, chains, home };
+	return { I, rowOf, chains, home, supplyWharfs };
 }
 
 /**
@@ -131,9 +142,9 @@ export function planFor(I, chains, { effort = 2, timeMs = 300, seed = 1 } = {}) 
  * least an island pays and weighed at the most, as chainRun counts -- so
  * that the numbers the tab shows are the ones the plan can promise.
  */
-export function runOf(I, plan, { chosen, rowOf, stashes, parley, prices = {}, orders = PLAIN_ORDERS, land = new Map() }) {
+export function runOf(I, plan, { chosen, rowOf, stashes, parley, prices = {}, orders = PLAIN_ORDERS, land = new Map(), supplies = [] }) {
 	const r = simulate(I, planPolicy(plan), { mode: 'robust' });
-	const wharfOf = new Map(stashes.map(w => [w.at, w]));
+	const wharfOf = new Map([...supplies, ...stashes].map(w => [w.at, w]));
 	const inChain = new Map();
 	chosen.forEach((c, k) => c.rungs.forEach(x => { const id = String(x.npcId); if (!inChain.has(id)) inChain.set(id, []); inChain.get(id).push(k); }));
 	const G = I.goods;
@@ -163,8 +174,14 @@ export function runOf(I, plan, { chosen, rowOf, stashes, parley, prices = {}, or
 			stops.push({ ...row, times: e.a, parley: e.a * parley.perTrade, level: levelOf(row.give) || 0, weightAfter: e.W, chain: k });
 			continue;
 		}
-		if (e.kind !== 'depot') continue;
+		if (e.kind !== 'depot' && e.kind !== 'supply') continue;
 		const wharf = wharfOf.get(e.at);
+		// A call that only fills the ration pool is the tab's own refill
+		// stop, laid by the planner and kept as laid (`fixed`).
+		if (e.kind === 'supply' || (!Object.keys(e.sold).length && !Object.keys(e.dropped).length && !Object.keys(e.loaded).length && e.refilled > 0)) {
+			stops.push({ wharf: { name: wharf.name, at: wharf.at, x: wharf.x, y: wharf.y }, dropped: [], loads: [], weightAfter: e.W, chain: chainNow, refill: true, fixed: true });
+			continue;
+		}
 		const stop = { wharf, dropped: [], weightAfter: e.W, chain: chainNow };
 		const items = Object.entries(e.sold).map(([item, n]) => ({ item, n, total: n * sellOf(item) }));
 		if (items.length) {
@@ -263,14 +280,59 @@ export function solveRun(opts = {}) {
 	if (missing.length) throw new Error(`new planner: not yet: ${missing.join(', ')}`);
 	const chosen = opts.chosen || [];
 	if (!chosen.length) return runOf(...emptyRun(opts));
-	const { I, rowOf, chains } = instanceOf(opts);
+	const { I, rowOf, chains, supplyWharfs } = instanceOf(opts);
 	indexOf(I);
+	const how = { chosen, rowOf, stashes: opts.stashes || [], parley: opts.parley, prices: opts.prices || {}, orders: opts.orders || PLAIN_ORDERS, land: opts.land || new Map(), supplies: supplyWharfs };
+	// The chains the search proposed, ticked as it proposed them: the plan
+	// it found, not a second laying that might land elsewhere.
+	const ids = chosen.map(c => c.id).sort().join('|');
+	if (found && found.ids === ids && found.day === dayOf(I)) return runOf(I, found.plan, how);
 	const plan = planFor(I, chains, { effort: opts.effort ?? 2, timeMs: opts.timeMs ?? 300, seed: opts.seed ?? 1 });
-	return runOf(I, plan, { chosen, rowOf, stashes: opts.stashes || [], parley: opts.parley, prices: opts.prices || {}, orders: opts.orders || PLAIN_ORDERS, land: opts.land || new Map() });
+	return runOf(I, plan, how);
+}
+
+// The last plan the search found, with the chains it climbs, for the
+// laying of those chains to give back.
+let found = null;
+// What a day is, for that: the islands, the goods aboard and ashore, the
+// hold, the rations -- everything the plan was found for but the chains.
+const dayOf = I => JSON.stringify([I.stations.map(s => [s.id, s.ymin, s.ymax, s.m]), I.initial, I.depots.map(d => d.storage), I.vehicle, I.budgets, I.rules]);
+
+/**
+ * The runs worth sailing, found by the search over every chain the board
+ * allows -- in propose()'s shape, so the tab draws them as its own: the
+ * plan the search found for the most silver an hour, as the chains of
+ * `all` it climbs. Each island the plan deals at is put to the chain
+ * that climbs furthest through the islands dealt, the longest first.
+ */
+export function newPropose(opts, all, { timeMs = 1500, seed = 1 } = {}) {
+	const missing = unsupported({ ...opts, chosen: all });
+	if (missing.length || !all.length) return { proposals: [], best: null, partial: false };
+	const { I, rowOf, supplyWharfs } = instanceOf({ ...opts, chosen: all });
+	indexOf(I);
+	const best = maximiseRate(I, (inst, o) => search(inst, { ...o, pool: chainsOf(I) }), { timeMs, seed });
+	const plan = best.plan;
+	const r = simulate(I, planPolicy(plan), { mode: 'robust' });
+	const dealt = new Set(r.log.filter(e => e.kind === 'station' && e.a > 0).map(e => e.at));
+	const picked = [];
+	const covered = new Set();
+	for (const c of [...all].sort((a, b) => b.rungs.length - a.rungs.length)) {
+		const ids = c.rungs.map(x => String(x.npcId));
+		if (!ids.every(id => dealt.has(id)) || ids.every(id => covered.has(id))) continue;
+		picked.push(c);
+		for (const id of ids) covered.add(id);
+	}
+	if (!picked.length) return { proposals: [], best: null, partial: false };
+	found = { ids: picked.map(c => c.id).sort().join('|'), plan, day: dayOf(instanceOf({ ...opts, chosen: picked }).I) };
+	const run = solveRun({ ...opts, chosen: picked });
+	const hours = run.hours;
+	const value = run.net;
+	const proposal = { kind: 'hour', label: 'The most an hour', ids: picked.map(c => c.id), run, value, hours, yard: { perUnit: run.parleyUsed > 0 ? value / (run.parleyUsed / PARLEY.perGreatOceanTrade) : 0, perHour: hours > 0 ? value / hours : 0 } };
+	return { proposals: [proposal], best: proposal, partial: false };
 }
 
 // Nothing ticked: a run with no stops, as chainRun gives one.
 function emptyRun(opts) {
 	const { I, rowOf } = instanceOf({ ...opts, chosen: [] });
-	return [I, { visits: [{ at: I.rules.end }] }, { chosen: [], rowOf, stashes: opts.stashes || [], parley: opts.parley, prices: opts.prices || {}, orders: opts.orders || PLAIN_ORDERS, land: opts.land || new Map() }];
+	return [I, { visits: [{ at: I.rules.end }] }, { chosen: [], rowOf, stashes: opts.stashes || [], parley: opts.parley, prices: opts.prices || {}, orders: opts.orders || PLAIN_ORDERS, land: opts.land || new Map(), supplies: [] }];
 }

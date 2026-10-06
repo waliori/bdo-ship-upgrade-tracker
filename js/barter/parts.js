@@ -6,7 +6,8 @@ import { T, said, gameName } from '../i18n.js';
 import * as store from '../state.js';
 import { img } from '../ui-bits.js';
 import { barterProfile, snapshot } from '../ui-state.js';
-import { shownHold, shownSlots, aboardWhat, rationDrain } from '../ship.js';
+import { shownHold, shownSlots, aboardWhat, rationDrain, currentShip } from '../ship.js';
+import { drainRate } from '../rations.js';
 import { npcById, ports, isleOf, isleShort } from '../barter_npcs.js';
 import { fmtRange, fmtDistance } from '../sailing.js';
 import { PARLEY_UNIT, NOTHING, SAIL_PRESETS, sailPresetOf, stockOrders, yardsticks } from '../barter-orders.js';
@@ -14,7 +15,8 @@ import { landPrices } from '../land-cost.js';
 import { marketStatus } from '../market.js';
 import { PARLEY, COIN, COIN_LEVEL, levelOf } from '../barter.js';
 import { exchanges, landHeld } from '../barter-plan.js';
-import { chains, chainRun, tailOf } from '../barter-chains.js';
+import { chains, chainRun as classicRun, tailOf } from '../barter-chains.js';
+import { solveRun, newPropose, unsupported } from '../barter-solve.js';
 import { shortTrades } from '../barter-short.js';
 import { V } from './state.js';
 import { fromPort, layCal, spendUsed, continueHTML, keepRoute, boardPaid } from './board.js';
@@ -23,7 +25,7 @@ import { aboardStock, everythingHeld, floorsShut, cashFloorNow, dockStock } from
 import { heldOf } from './material.js';
 import { packedNow, sparesOf, packingOf, packingLT, packingSlots, packingCount, tripsOf, stagedRun, tripsHTML, leaveHomeHTML, packingHTML, afterShelfHTML } from './packing.js';
 import { chartButton, parleyGuessed, parleyOf, stashAt, ordersNow, payRangeHTML, perUnitText, perHourText, stockGains, aheadHTML, goalLine, ladderHTML, howLine, howHTML, parleyLine, parleyHTML, marketDead, chainRow, soloRun } from './plan.js';
-import { docks, bagNow, stashes, withWaits, withRations, rationsLine, legsOf, questPlan, questsLine, questsPanels, n1, TIER, ledgerOf, runTime, routeEditBar, castOffRow, stopRows, cutsHTML } from './route.js';
+import { docks, supplies, bagNow, stashes, withWaits, withRations, rationsLine, legsOf, questPlan, questsLine, questsPanels, n1, TIER, ledgerOf, runTime, routeEditBar, castOffRow, stopRows, cutsHTML } from './route.js';
 import { sailing, planSeen, castOffCaps, castOffLand, digest } from './sail.js';
 import { SEARCH_BUDGET_MS, presetSearch, proposeAsync, searching, redrawSoon, expectedBest } from './search.js';
 import { loadingNote } from '../loading.js';
@@ -46,6 +48,23 @@ function laidOnce(key, lay) {
 	const run = laidBy.get(key);
 	return { ...run, stops: run.stops.map(x => ({ ...x })) };
 }
+
+// The new planner, for a test only: set by the comparison harness in this
+// browser's storage, never by a sailor. Off, everything is laid as before.
+const newPlanner = () => { try { return localStorage.getItem('bdo-tracker/planner') === 'new'; } catch { return false; } };
+// A run laid by the new planner where it can lay it, by chainRun where it
+// cannot yet (the bag, the coin and stock goals, the sailor's route edits).
+// The ship's rations ride along, so its refills are laid with the run.
+const withShip = o => {
+	const me = currentShip(), d = rationDrain(me);
+	return { ...o, rations: me.rations > 0 ? { full: me.rations, perMinute: drainRate(d), perMinuteOver: drainRate(d, { overweight: true }) } : null, supplies };
+};
+const chainRun = o => {
+	if (!newPlanner()) return classicRun(o);
+	const w = withShip(o);
+	if (unsupported(w).length) return classicRun(o);
+	return solveRun(w);
+};
 
 export function silverParts(me, b) {
 	const from = fromPort();
@@ -209,7 +228,10 @@ export function silverParts(me, b) {
 			const base = chainRun({ ...opts, chosen: [] });
 			solos = new Map(all.map(c => [c.id, soloRun(c, opts, from, base)]));
 		}
-		const found = proposeAsync(search, pkey, result => {
+		// The new planner, under test, searches here and now, its runs in
+		// propose()'s shape; anything it cannot lay yet is searched as before.
+		const fresh = newPlanner() && !unsupported(withShip({ ...opts, chosen: all })).length ? newPropose(withShip(opts), all) : null;
+		const found = fresh || proposeAsync(search, pkey, result => {
 			// The inputs moved on before the answer came: a newer request
 			// is out for them, and this answer is nobody's.
 			if (V.proposed.key !== pkey) return;
