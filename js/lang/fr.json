@@ -6094,5 +6094,6 @@
 	"Two players found these, with the screenshots that pinned each one down.": "Deux joueurs les ont trouvés, avec les captures qui ont permis de cerner chacun.",
 	"The run is laid at the least; tap what each island paid as you sail, and the hold counts what was paid.": "La sortie est calculée au minimum ; touchez ce que chaque île a payé en naviguant, et la cale compte ce qui a été payé.",
 	"pays": "donne",
-	"What {isle} pays a trade, as its window shows": "Ce que {isle} donne par échange, comme l’affiche sa fenêtre"
+	"What {isle} pays a trade, as its window shows": "Ce que {isle} donne par échange, comme l’affiche sa fenêtre",
+	"the corner of the received icon as the screenshot had it": "le coin de l’icône reçue, comme sur la capture"
 }

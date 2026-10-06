@@ -5971,5 +5971,6 @@
 	"Two players found these, with the screenshots that pinned each one down.": "두 플레이어가 찾아냈고, 각각을 짚어 낸 스크린샷도 보내 주었습니다.",
 	"The run is laid at the least; tap what each island paid as you sail, and the hold counts what was paid.": "항해는 최솟값으로 짜입니다. 항해하면서 각 섬이 준 개수를 누르면 선창은 실제로 받은 만큼 셉니다.",
 	"pays": "지급",
-	"What {isle} pays a trade, as its window shows": "{isle}이(가) 교환 1회에 주는 수량, 창에 표시된 대로"
+	"What {isle} pays a trade, as its window shows": "{isle}이(가) 교환 1회에 주는 수량, 창에 표시된 대로",
+	"the corner of the received icon as the screenshot had it": "스크린샷 속 받는 아이콘의 모서리"
 }

@@ -123,7 +123,7 @@ export function openBarterImport({ files, deals, onAnswers = () => {} } = {}) {
 	// reader was sure, typed where it was not.
 	const paysRange = r => r.keep && r.keep.recvMax > r.keep.recvMin;
 	const inRange = r => r.paid >= r.keep.recvMin && r.paid <= r.keep.recvMax;
-	const paidBox = (r, i) => `<label class="shot-paid">${T('pays')} <input class="purse-inline narrow" inputmode="numeric" data-paid="${i}" value="${r.paid > 0 ? r.paid : ''}" placeholder="${r.keep.recvMin}-${r.keep.recvMax}" aria-label="${T('What {isle} pays a trade, as its window shows', { isle: esc(gameName(isleOf(r.isle))) })}"></label>`;
+	const paidBox = (r, i) => `<label class="shot-paid">${r.icon ? `<img class="shot-corner" src="${esc(r.icon)}" alt="${T('the corner of the received icon as the screenshot had it')}">` : ''}${T('pays')} <input class="purse-inline narrow" inputmode="numeric" data-paid="${i}" value="${r.paid > 0 ? r.paid : ''}" placeholder="${r.keep.recvMin}-${r.keep.recvMax}" aria-label="${T('What {isle} pays a trade, as its window shows', { isle: esc(gameName(isleOf(r.isle))) })}"></label>`;
 
 	const rowHTML = (r, i) => {
 		const pick = choices(r);
@@ -244,12 +244,28 @@ export function openBarterImport({ files, deals, onAnswers = () => {} } = {}) {
 				// What the range islands pay, off their icons -- and with it
 				// which of an island's look-alike exchanges the row is.
 				const paid = image ? paidFrom(image, words, reads, scale, tables.deals) : new Map();
+				// Each icon as the screenshot had it, figure and all, so a count
+				// is checked here rather than back in the game.
+				const sheet = paid.size ? document.createElement('canvas') : null;
+				if (sheet) { sheet.width = image.width; sheet.height = image.height; sheet.getContext('2d').putImageData(image, 0, 0); }
+				// The lower half, where the figure is, and a little past the
+				// right edge it is written against: as the Inventory's corners.
+				const iconOf = ({ x, y, side }) => {
+					const bx = x + side * 0.1, by = y + side * 0.48, bw = side * 1.02, bh = side * 0.56;
+					const cut = document.createElement('canvas');
+					cut.width = Math.max(1, Math.round(bw * 3));
+					cut.height = Math.max(1, Math.round(bh * 3));
+					const ctx = cut.getContext('2d');
+					ctx.imageSmoothingQuality = 'high';
+					ctx.drawImage(sheet, bx, by, bw, bh, 0, 0, cut.width, cut.height);
+					return cut.toDataURL('image/png');
+				};
 				for (const read of reads) {
 					const got = paid.get(read.isle.id);
 					const row = inEnglish(got ? { ...read, offer: got.deal } : read);
 					// An island read twice takes the later reading: the
 					// second shot is the one the player scrolled to.
-					seen.set(row.isle.id, { ...row, keep: row.offer || null, paid: got ? got.n : 0 });
+					seen.set(row.isle.id, { ...row, keep: row.offer || null, paid: got ? got.n : 0, icon: got ? iconOf(got.icon) : '' });
 				}
 			} catch (err) {
 				skipped.push({ name: take[i].name, why: err && err.message ? err.message : T('could not be read') });

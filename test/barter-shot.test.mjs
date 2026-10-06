@@ -364,7 +364,8 @@ const paidRead = (fix, rows = fix.rows, all = []) => {
 	const live = rows.map(r => ({ isle: { id: r.isle }, offer: { npcId: r.isle, give: r.give, item: r.item, recvMin: r.recvMin, recvMax: r.recvMax }, words: r.words.map(word) }));
 	return paidFrom({ data, width: fix.w, height: fix.h }, fix.words.map(word), live, fix.scale, all);
 };
-const paidShot = (rows = PAID.rows) => new Map([...paidRead(PAID, rows)].map(([id, x]) => [id, x.n]));
+const sure = read => new Map([...read].filter(([, x]) => x.n > 0).map(([id, x]) => [id, x]));
+const paidShot = (rows = PAID.rows) => new Map([...sure(paidRead(PAID, rows))].map(([id, x]) => [id, x.n]));
 
 test('the figure on a received icon is what an island paying a range pays, and one paying a fixed count is not read', () => {
 	// Two islands paying 25-50 Cox seals, showing 25 and 34; one paying
@@ -378,15 +379,17 @@ test('a figure the island cannot pay is not taken, however plainly it reads', ()
 	const rows = PAID.rows.map(r => (r.isle === 58970 ? { ...r, recvMin: 3, recvMax: 5 } : r));
 	const read = paidShot(rows);
 	assert.equal(read.has(58970), false);
+	// Its icon is still found, for the dialog to show it.
+	assert.ok(paidRead(PAID, rows).get(58970).icon.side > 30);
 	assert.equal(read.get(58946), 25);
 });
 
 test('a coin island dealing one good two ways is told apart by its figure: the exchange is the one whose range holds it', () => {
 	// Rickun, Pakio and Haran read as their 90-200 and 175-325 exchanges,
 	// and show 385, 426 and 400: their 360-440 twins, with the same words.
-	const read = paidRead(COINS, COINS.rows, deals);
+	const read = sure(paidRead(COINS, COINS.rows, deals));
 	assert.deepEqual(Object.fromEntries([...read].map(([id, x]) => [id, [x.n, x.deal.recvMin, x.deal.recvMax]])),
 		{ 50819: [385, 360, 440], 50826: [405, 360, 440], 50817: [426, 360, 440], 50814: [400, 360, 440], 50827: [363, 360, 440] });
 	// Without the tables to find the twins in, those three are not taken.
-	assert.deepEqual([...paidRead(COINS).keys()].sort(), [50826, 50827]);
+	assert.deepEqual([...sure(paidRead(COINS)).keys()].sort(), [50826, 50827]);
 });

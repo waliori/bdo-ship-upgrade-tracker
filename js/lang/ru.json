@@ -8116,5 +8116,6 @@
 	"Two players found these, with the screenshots that pinned each one down.": "Их нашли два игрока, со скриншотами, по которым удалось найти каждую ошибку.",
 	"The run is laid at the least; tap what each island paid as you sail, and the hold counts what was paid.": "Рейс прокладывается по минимуму; отмечайте в пути, сколько заплатил каждый остров, и трюм посчитает заплаченное.",
 	"pays": "даёт",
-	"What {isle} pays a trade, as its window shows": "Сколько {isle} даёт за обмен, как показано в окне"
+	"What {isle} pays a trade, as its window shows": "Сколько {isle} даёт за обмен, как показано в окне",
+	"the corner of the received icon as the screenshot had it": "угол значка получаемого предмета, как на скриншоте"
 }

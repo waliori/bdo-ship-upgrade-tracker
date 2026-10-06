@@ -5971,5 +5971,6 @@
 	"Two players found these, with the screenshots that pinned each one down.": "ผู้เล่นสองคนพบปัญหาเหล่านี้ พร้อมภาพหน้าจอที่ชี้ชัดแต่ละข้อ",
 	"The run is laid at the least; tap what each island paid as you sail, and the hold counts what was paid.": "การออกเรือวางไว้ที่จำนวนน้อยที่สุด แตะว่าแต่ละเกาะจ่ายเท่าไรขณะแล่นเรือ แล้วระวางเรือจะนับตามที่จ่ายจริง",
 	"pays": "ให้",
-	"What {isle} pays a trade, as its window shows": "จำนวนที่ {isle} ให้ต่อการแลก ตามที่หน้าต่างแสดง"
+	"What {isle} pays a trade, as its window shows": "จำนวนที่ {isle} ให้ต่อการแลก ตามที่หน้าต่างแสดง",
+	"the corner of the received icon as the screenshot had it": "มุมของไอคอนที่ได้รับ ตามภาพหน้าจอ"
 }

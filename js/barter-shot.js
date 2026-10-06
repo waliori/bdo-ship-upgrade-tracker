@@ -411,9 +411,11 @@ export function offersFrom(words, { isles, deals }) {
  * `image` is the picture's ImageData, `words` and `rows` what readWords
  * and offersFrom gave for it, in the reader's coordinates, which are
  * `scale` times the picture's, and `deals` every exchange. Returns
- * Map(island id -> { n, deal }), with a count only where the reader was
- * sure of it and it is one the island can pay; anything else is left to
- * be said on the way.
+ * Map(island id -> { n, deal, icon }) for every such row whose icon was
+ * found: `icon` the square it sits in, { x, y, side }, for the dialog to
+ * show; `n` the count where the reader was sure of it and it is one the
+ * island can pay, and 0 otherwise -- left for the player to read off the
+ * icon, or to be said on the way.
  *
  * The count also says which exchange it is. An island can deal the same
  * good for Crow Coins two or three ways -- 90-200, 360-440, or one --
@@ -492,9 +494,10 @@ export function paidFrom(image, words, rows, scale = 1, deals = []) {
 		for (const x of reads) votes.set(x.count, [...(votes.get(x.count) || []), x.score]);
 		const [n, scores] = [...votes].sort((a, b) => b[1].length - a[1].length)[0] || [];
 		const best = scores ? Math.max(...scores) : 0;
-		if (!scores || scores.length < 2 || best < (scores.length === 3 ? 0.8 : 0.9)) return;
-		const deal = twins.find(d => n >= d.recvMin && n <= d.recvMax && d.recvMax > d.recvMin);
-		if (deal) out.set(r.isle.id, { n, deal });
+		const icon = { x: f.cx - f.side / 2, y: f.cy - f.side / 2, side: f.side };
+		const sure = scores && scores.length >= 2 && best >= (scores.length === 3 ? 0.8 : 0.9);
+		const deal = sure && twins.find(d => n >= d.recvMin && n <= d.recvMax && d.recvMax > d.recvMin);
+		out.set(r.isle.id, deal ? { n, deal, icon } : { n: 0, deal: r.offer.recvMax > r.offer.recvMin ? r.offer : twins.find(d => d.recvMax > d.recvMin), icon });
 	});
 	return out;
 }

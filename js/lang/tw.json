@@ -5971,5 +5971,6 @@
 	"Two players found these, with the screenshots that pinned each one down.": "兩位玩家找到了這些問題,還附上了讓每個問題無處可藏的截圖。",
 	"The run is laid at the least; tap what each island paid as you sail, and the hold counts what was paid.": "航次按最少數量規劃;航行時點選每座島實際付了多少,貨艙就按實際付的數量計算。",
 	"pays": "給出",
-	"What {isle} pays a trade, as its window shows": "{isle} 每次交換給出的數量，以視窗顯示為準"
+	"What {isle} pays a trade, as its window shows": "{isle} 每次交換給出的數量，以視窗顯示為準",
+	"the corner of the received icon as the screenshot had it": "所得圖示的角落，截圖中的樣子"
 }
