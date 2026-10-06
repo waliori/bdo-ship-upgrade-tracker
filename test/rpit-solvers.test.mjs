@@ -104,3 +104,27 @@ test('on a tiny cut of a real board, the exact search is never beaten', () => {
 	const rate = p => { const r = simulate(I, planPolicy(p), { mode: 'robust' }); return r.T > 0 ? r.R / r.T : 0; };
 	assert.ok(rate(e.plan) >= rate(a.plan) - 1e-6);
 });
+
+test('refills for a fixed route: the fastest set that keeps the ship fed, two in a row where a leg needs them', async () => {
+	const { refuel, rationPass } = await import('../js/rpit/common.js');
+	// At ten metres a second and six a minute the ship eats 0.01 a metre:
+	// a pool of six lasts 600 m. s1 → s2 is 1 000 m; two supply wharves lie
+	// on the way, A 350 m from s1, B 350 m from s2, 300 m apart.
+	const I = hand();
+	I.vehicle.rations = { full: 6, perMinute: 6, perMinuteOver: 6, reserve: 0 };
+	I.supplies = [{ id: 'A' }, { id: 'B' }];
+	const pts = [...I.travel.points, 'A', 'B'];
+	const near = { 'A,s1': 350, 'A,s2': 650, 'B,s1': 650, 'B,s2': 350, 'A,B': 300 };
+	const far = (a, b) => near[[a, b].sort().join()] ?? 3000;
+	I.travel = { points: pts, matrix: pts.map((a, i) => pts.map((b, j) => (i === j ? 0 : i < 6 && j < 6 ? I.travel.matrix[i][j] : far(a, b)))) };
+	// The other legs short: start → s1 200 m (2, leaving 4 -- enough for
+	// A at 3.5), and from B on 350 + 100 + 100 m (5.5) to the end.
+	const set = (a, b, d) => { const x = pts.indexOf(a), y = pts.indexOf(b); I.travel.matrix[x][y] = I.travel.matrix[y][x] = d; };
+	set('start', 's1', 200); set('s2', 's3', 100); set('s3', 'H', 100);
+	const plan = { buy: { Land: 100 }, visits: [{ at: 's1', a: 10 }, { at: 's2', a: 10 }, { at: 's3', a: 10 }, { at: 'H', sell: 'all' }] };
+	const fed = refuel(I, plan);
+	assert.deepEqual(fed.visits.map(v => v.at), ['s1', 'A', 'B', 's2', 's3', 'H'], 'one call is not enough: s1 → A → s2 eats 6.5');
+	assert.equal(simulate(I, planPolicy(fed), { mode: 'robust' }).deviations.starved, 0);
+	// The quick pass, which never puts two calls together, cannot feed it.
+	assert.ok(simulate(I, planPolicy(rationPass(I, plan, { chain: false })), { mode: 'robust' }).deviations.starved > 0);
+});

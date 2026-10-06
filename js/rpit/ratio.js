@@ -30,7 +30,9 @@ export function maximiseRate(I, inner, { timeMs = 10000, mu = null, rounds = 8, 
 		// Settled: the price of time the plan was found at is its own rate.
 		if (Math.abs(rate - m) <= 0.005 * Math.max(rate, 1)) break;
 		m = rate;
-		if (left() <= 0) break;
+		// Out of time, the rounds still run, at no time each: a search given
+		// none returns its own start, so the price of time still settles, and
+		// a search is never left at a worse rate than its start would reach.
 	}
 	return best;
 }

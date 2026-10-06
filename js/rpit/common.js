@@ -153,12 +153,13 @@ export function finish(I, stationVisits, mu = 0, { calls = [], must = null } = {
 	};
 	let cs = calls.filter(c => visits.some(v => v.at === c.before));
 	// Made sailable to the end: the calls for supplies the ration pool
-	// needs are put in here, so that every plan judged is judged with
-	// them -- what they cost in minutes and where they bend the route.
+	// needs are put in here, the fastest set of them (refuel), so that
+	// every plan judged is judged with them -- what they cost in minutes
+	// and where they bend the route.
 	const build = (vs, list) => {
 		const all = withCalls(vs, list);
 		const p = { ...startOf(I, all), visits: all };
-		return I.vehicle.rations ? rationPass(I, p) : p;
+		return I.vehicle.rations ? refuel(I, p) : p;
 	};
 	let plan = build(visits, cs);
 	let best = judge(plan);
@@ -328,4 +329,121 @@ export function rationPass(I, plan, { most = 16, chain = true } = {}) {
 		void station;
 	}
 	return { ...plan, visits };
+}
+
+/**
+ * The calls for supplies a fixed route needs, chosen exactly: the fewest
+ * minutes that keep the pool above the reserve at every island and above
+ * empty everywhere -- the fixed-route charging problem of electric-vehicle
+ * routing, which this is. A call for supplies changes nothing aboard, so
+ * the weight on every leg, and with it the pace and what a minute eats,
+ * is the route's own whatever the calls; what is left is a shortest path
+ * over where the pool was last filled: the start, every call the route
+ * already makes (each fills it), and on each leg the few wharves that bend
+ * it least, one after another where a leg is longer than a full pool
+ * lasts. Returns the plan with those calls in (supply-only calls it
+ * already had taken out first), or, when no calls can feed it, the plan
+ * as rationPass leaves it.
+ */
+export function refuel(I, plan, { near = 5 } = {}) {
+	const R0 = I.vehicle.rations;
+	if (!R0) return plan;
+	const V = I.vehicle;
+	const { dist } = indexOf(I);
+	const depotIds = new Set(I.depots.map(d => d.id));
+	const supplyIds = new Set((I.supplies || []).map(d => d.id));
+	const wharves = [...depotIds, ...supplyIds];
+	// A call that only fills the pool: a supply wharf, or a depot visited
+	// with nothing to sell, leave or load.
+	const fillOnly = v => supplyIds.has(v.at) || (depotIds.has(v.at) && !v.sell && !v.drop && !(v.load && Object.keys(v.load).length));
+	const visits = plan.visits.filter(v => !fillOnly(v));
+	const base = { ...plan, visits };
+	// The route sailed once, for the weight leaving each point.
+	const off = plan.buy || plan.load ? 1 : 0;
+	const sailed = simulate(I, planPolicy(base), { mode: 'robust' });
+	const log = sailed.log.slice(off);
+	const startW = off ? sailed.log[0].W : (log[0] ? log[0].W : 0);
+	const phi = W => (W <= V.Wfree || V.Wmax <= V.Wfree ? 1 : 1 - Math.min(1, (W - V.Wfree) / (V.Wmax - V.Wfree)) * (1 - V.slowAtMax));
+	// The points of the route; leg k arrives at visit k, from point k - 1
+	// (the start before the first). The weight a leg is sailed at is the
+	// hold as its first point left it.
+	const n = visits.length;
+	const at = k => (k < 0 ? 'start' : visits[k].at);
+	const W = k => (k <= 0 ? startW : log[k - 1].W);
+	const secPerM = k => 1 / (V.speed * phi(W(k)));
+	const eatPerM = k => (W(k) > V.Wfree + 1e-6 ? R0.perMinuteOver : R0.perMinute) / 60 * secPerM(k);
+	const isCall = k => depotIds.has(visits[k].at);
+	const isle = k => !depotIds.has(visits[k].at) && !supplyIds.has(visits[k].at);
+	const keep = R0.full * (1 - (R0.reserve || 0)), full = R0.full;
+	// Candidate wharves on each leg: those that bend it least.
+	const cands = [];
+	for (let k = 0; k < n; k++) {
+		const a = at(k - 1), b = at(k);
+		cands[k] = wharves.filter(w => w !== a && w !== b).map(w => ({ w, bend: dist(a, w) + dist(w, b) - dist(a, b) })).sort((x, y) => x.bend - y.bend).slice(0, near).map(x => x.w);
+	}
+	// Nodes: where the pool was last filled. { k, x }: standing at x with
+	// visit k the next on the route; the start is { k: 0, x: 'start' }, a
+	// call of the route's own at visit j is { k: j + 1, x: at(j) }, a call
+	// for supplies before visit k is { k, x: w, fill: true }.
+	const nodes = [{ k: 0, x: 'start', fill: false }];
+	for (let k = 0; k < n; k++) {
+		for (const w of cands[k]) nodes.push({ k, x: w, fill: true });
+		if (isCall(k)) nodes.push({ k: k + 1, x: at(k), fill: false, call: k });
+	}
+	const goal = nodes.length;   // past the last visit
+	// From node u to node v: sail on from u along the route to v; feasible
+	// when no call of the route's own lies between (it fills, and is a node
+	// of its own), the islands are reached above the reserve and v above
+	// empty. Its cost is the minutes sailed, and a call's for a new call.
+	const edge = (u, v) => {
+		let x = u.x, eat = 0, secs = 0;
+		const upto = v === null ? n : v.call !== undefined ? v.call : v.k;
+		for (let k = u.k; k < upto; k++) {
+			if (isCall(k)) return null;
+			const d = dist(x, at(k));
+			eat += d * eatPerM(k); secs += d * secPerM(k);
+			if (eat > (isle(k) ? keep : full) + 1e-6) return null;
+			x = at(k);
+		}
+		if (v === null) return { secs };
+		const k = v.call !== undefined ? v.call : v.k;
+		const tgt = v.call !== undefined ? at(v.call) : v.x;
+		if (v.call === undefined && upto !== v.k) return null;
+		const d = dist(x, tgt);
+		eat += d * eatPerM(k); secs += d * secPerM(k);
+		if (eat > full + 1e-6) return null;
+		return { secs: secs + (v.fill ? I.service.depot : 0) };
+	};
+	// Shortest path; nodes are few (a handful a leg), so a plain Dijkstra.
+	const distTo = new Array(goal + 1).fill(Infinity), prev = new Array(goal + 1).fill(-1), done = new Array(goal + 1).fill(false);
+	distTo[0] = 0;
+	for (;;) {
+		let u = -1;
+		for (let i = 0; i <= goal; i++) if (!done[i] && distTo[i] < Infinity && (u < 0 || distTo[i] < distTo[u])) u = i;
+		if (u < 0 || u === goal) break;
+		done[u] = true;
+		const U = nodes[u];
+		for (let i = 0; i < goal; i++) {
+			if (done[i] || i === u) continue;
+			const Vn = nodes[i];
+			// Only forward: a later visit, or a second call on the same leg.
+			if (Vn.k < U.k || (Vn.call === undefined && Vn.k === U.k && !U.fill && U.call === undefined && U.x !== 'start')) continue;
+			if (Vn.call !== undefined && Vn.call < U.k) continue;
+			if (Vn.fill && U.fill && Vn.k === U.k && Vn.x === U.x) continue;
+			const e = edge(U, Vn);
+			if (e && distTo[u] + e.secs < distTo[i] - 1e-9) { distTo[i] = distTo[u] + e.secs; prev[i] = u; }
+		}
+		const e = edge(U, null);
+		if (e && distTo[u] + e.secs < distTo[goal] - 1e-9) { distTo[goal] = distTo[u] + e.secs; prev[goal] = u; }
+	}
+	if (!(distTo[goal] < Infinity)) return rationPass(I, base);
+	// The calls for supplies on the path, put in before the visit each stands before.
+	const fills = [];
+	for (let i = prev[goal]; i > 0; i = prev[i]) if (nodes[i].fill) fills.unshift(nodes[i]);
+	const out = [];
+	for (let k = 0; k < n; k++) {
+		for (const f of fills) if (f.k === k) out.push({ at: f.x });
+		out.push(visits[k]);
+	}
+	return { ...plan, visits: out };
 }
