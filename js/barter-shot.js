@@ -177,30 +177,37 @@ export function linesOf(words, lh = lineHeight(words)) {
 export function isleAt(line, isles, { left = Infinity } = {}) {
 	if (!line.words.length || line.words[0].x0 > left) return null;
 	let best = null;
-	let text = '';
-	// A dense script comes back a character or two a word, so more
-	// words make up one name.
-	for (let i = 0; i < Math.min(dense(line.words[0].text) ? 8 : 4, line.words.length); i++) {
-		text += line.words[i].text;
-		const seen = plain(text);
-		if (!seen) continue;
-		for (const isle of isles) {
-			const want = plain(isle.at);
-			if (!want) continue;
-			// Either the whole name, or as much of it as the column had
-			// room for -- but never so little that two islands share it.
-			const whole = want === seen ? 1 : 0;
-			const least = dense(want) ? 3 : 6;
-			const cut = seen.length >= least && want.startsWith(seen) ? seen.length / want.length : 0;
-			// A name the engine misread rather than cut short. The cap has
-			// to be above the threshold or every long name is "close":
-			// editDistance stops counting at its cap and answers with it.
-			const slack = Math.max(1, Math.floor(want.length * 0.12));
-			const near = !whole && !cut && seen.length >= least && Math.abs(seen.length - want.length) <= slack
-				&& editDistance(seen, want, slack + 1) <= slack ? 0.8 : 0;
-			const score = Math.max(whole, cut, near);
-			if (score > 0.42 && (!best || score > best.score)) {
-				best = { isle, score, words: i + 1, right: line.words[i].x1 };
+	// The arrow button left of the name comes back as a mark or two --
+	// "4", a quote, "wa" -- that is no part of it: the name may start
+	// after up to three of them.
+	let from = 0;
+	while (from < 3 && from + 1 < line.words.length && plain(line.words[from].text).length <= 2 && !dense(line.words[from].text)) from++;
+	for (let start = 0; start <= from; start++) {
+		let text = '';
+		// A dense script comes back a character or two a word, so more
+		// words make up one name.
+		for (let i = start; i < Math.min(start + (dense(line.words[start].text) ? 8 : 4), line.words.length); i++) {
+			text += line.words[i].text;
+			const seen = plain(text);
+			if (!seen) continue;
+			for (const isle of isles) {
+				const want = plain(isle.at);
+				if (!want) continue;
+				// Either the whole name, or as much of it as the column had
+				// room for -- but never so little that two islands share it.
+				const whole = want === seen ? 1 : 0;
+				const least = dense(want) ? 3 : 6;
+				const cut = seen.length >= least && want.startsWith(seen) ? seen.length / want.length : 0;
+				// A name the engine misread rather than cut short. The cap has
+				// to be above the threshold or every long name is "close":
+				// editDistance stops counting at its cap and answers with it.
+				const slack = Math.max(1, Math.floor(want.length * 0.12));
+				const near = !whole && !cut && seen.length >= least && Math.abs(seen.length - want.length) <= slack
+					&& editDistance(seen, want, slack + 1) <= slack ? 0.8 : 0;
+				const score = Math.max(whole, cut, near);
+				if (score > 0.42 && (!best || score > best.score)) {
+					best = { isle, score, words: i + 1, right: line.words[i].x1 };
+				}
 			}
 		}
 	}
@@ -403,11 +410,17 @@ export function offersFrom(words, { isles, deals }) {
  *
  * `image` is the picture's ImageData, `words` and `rows` what readWords
  * and offersFrom gave for it, in the reader's coordinates, which are
- * `scale` times the picture's. Returns Map(island id -> count), with a
- * count only where the reader was sure of it and it is one the island
- * can pay; anything else is left to be said on the way.
+ * `scale` times the picture's, and `deals` every exchange. Returns
+ * Map(island id -> { n, deal }), with a count only where the reader was
+ * sure of it and it is one the island can pay; anything else is left to
+ * be said on the way.
+ *
+ * The count also says which exchange it is. An island can deal the same
+ * good for Crow Coins two or three ways -- 90-200, 360-440, or one --
+ * which read the same in every word of the row; the figure is the only
+ * thing that tells them apart, so `deal` is the one whose range holds it.
  */
-export function paidFrom(image, words, rows, scale = 1) {
+export function paidFrom(image, words, rows, scale = 1, deals = []) {
 	const { data, width: w, height: h } = image;
 	const out = new Map();
 	const live = rows.filter(r => r.offer);
@@ -466,13 +479,22 @@ export function paidFrom(image, words, rows, scale = 1) {
 	const sides = at.filter(Boolean).map(a => fit(x1, a.y + est * 0.15, all)).filter(Boolean).map(f => f.side);
 	const side = median(sides);
 	live.forEach((r, i) => {
-		const lo = r.offer.recvMin, hi = r.offer.recvMax;
-		if (!at[i] || !(hi > lo)) return;
+		// The row's exchange and its twins: the same good for the same pay.
+		const twins = [r.offer, ...deals.filter(d => d.npcId === r.isle.id && d.give === r.offer.give && d.item === r.offer.item && d !== r.offer)];
+		if (!at[i] || !twins.some(d => d.recvMax > d.recvMin)) return;
 		const f = fit(x1, at[i].y + side * 0.15, [side - 1, side, side + 1]);
-		// The storage count's square is a slot and its gap; the icon
-		// alone is a tenth narrower.
-		const read = readCount(data, w, h, { cx: f.cx, cy: f.cy }, f.side * 1.1);
-		if (!read.doubt && read.count >= lo && read.count <= hi) out.set(r.isle.id, read.count);
+		// The storage count's square is a slot and its gap, so the icon
+		// alone is read a little wider; how much wider suits a small icon
+		// and a big one differently, so three widths are read and the
+		// figure most of them agree on is taken.
+		const reads = [1.1, 1.2, 1.3].map(z => readCount(data, w, h, { cx: f.cx, cy: f.cy }, f.side * z)).filter(x => !x.blank);
+		const votes = new Map();
+		for (const x of reads) votes.set(x.count, [...(votes.get(x.count) || []), x.score]);
+		const [n, scores] = [...votes].sort((a, b) => b[1].length - a[1].length)[0] || [];
+		const best = scores ? Math.max(...scores) : 0;
+		if (!scores || scores.length < 2 || best < (scores.length === 3 ? 0.8 : 0.9)) return;
+		const deal = twins.find(d => n >= d.recvMin && n <= d.recvMax && d.recvMax > d.recvMin);
+		if (deal) out.set(r.isle.id, { n, deal });
 	});
 	return out;
 }

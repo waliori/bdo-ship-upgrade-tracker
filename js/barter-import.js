@@ -241,12 +241,15 @@ export function openBarterImport({ files, deals, onAnswers = () => {} } = {}) {
 				if (head.parley > 0) figures.parley = head.parley;
 				if (head.barters > 0) figures.barters = head.barters;
 				const reads = offersFrom(words, tables);
-				const paid = image ? paidFrom(image, words, reads, scale) : new Map();
+				// What the range islands pay, off their icons -- and with it
+				// which of an island's look-alike exchanges the row is.
+				const paid = image ? paidFrom(image, words, reads, scale, tables.deals) : new Map();
 				for (const read of reads) {
-					const row = inEnglish(read);
+					const got = paid.get(read.isle.id);
+					const row = inEnglish(got ? { ...read, offer: got.deal } : read);
 					// An island read twice takes the later reading: the
 					// second shot is the one the player scrolled to.
-					seen.set(row.isle.id, { ...row, keep: row.offer || null, paid: paid.get(row.isle.id) || 0 });
+					seen.set(row.isle.id, { ...row, keep: row.offer || null, paid: got ? got.n : 0 });
 				}
 			} catch (err) {
 				skipped.push({ name: take[i].name, why: err && err.message ? err.message : T('could not be read') });
