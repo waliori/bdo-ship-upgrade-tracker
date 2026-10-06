@@ -10,6 +10,7 @@
 import { readFileSync } from 'node:fs';
 
 import { boardData } from '../../js/barter-board.js';
+import { useGame } from '../../js/barter-layouts.js';
 import { exchanges, weightOf, sellOf } from '../../js/barter-plan.js';
 import { levelOf } from '../../js/barter.js';
 import { npcById, ports } from '../../js/barter_npcs.js';
@@ -22,7 +23,10 @@ import { chains } from '../../js/barter-chains.js';
 
 const read = rel => JSON.parse(readFileSync(new URL(rel, import.meta.url), 'utf8'));
 export const barterData = read('../../js/all_barter.json');
-export const combos = read('../../js/barter_combos.json').combos;
+// The 40 trade layouts, from the game's own tables (js/barter_game.js),
+// as the app builds them; a slot the game fills at random takes the app's
+// default pick for it.
+export const combos = useGame(await import('../../js/barter_game.js')).combos;
 
 /** The wharves with a storage keeper: the only places a good is sold,
  *  left or taken aboard. */

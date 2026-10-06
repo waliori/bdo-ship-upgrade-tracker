@@ -24,12 +24,12 @@ const velia = setupOf({ layout: '25', start: 'Velia', hold: 20000, pace: 'full' 
 test('layout 25 from Velia: every island, the seven storages, the sea by water', () => {
 	const I = velia.instance;
 	assert.deepEqual(validateInstance(I), []);
-	assert.equal(I.stations.length, 68);
+	assert.equal(I.stations.length, 70, 'the game tables put seventy islands on layout 25');
 	assert.equal(I.depots.length, 7);
 	assert.equal(I.vehicle.Wdeal, 34000);
 	assert.equal(I.goods[I.stations.find(s => I.goods[s.out].level === 7).out].p, 100000000);
 	const n = I.travel.points.length;
-	assert.equal(n, 1 + 7 + 68);
+	assert.equal(n, 1 + 7 + 70);
 	for (let i = 0; i < n; i++) {
 		assert.equal(I.travel.matrix[i][i], 0);
 		for (let j = 0; j < i; j++) assert.equal(I.travel.matrix[i][j], I.travel.matrix[j][i]);
