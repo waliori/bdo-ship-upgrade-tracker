@@ -264,8 +264,12 @@ export function openBarterImport({ files, deals, onAnswers = () => {} } = {}) {
 					const got = paid.get(read.isle.id);
 					const row = inEnglish(got ? { ...read, offer: got.deal } : read);
 					// An island read twice takes the later reading: the
-					// second shot is the one the player scrolled to.
-					seen.set(row.isle.id, { ...row, keep: row.offer || null, paid: got ? got.n : 0, icon: got ? iconOf(got.icon) : '' });
+					// second shot is the one the player scrolled to. But not
+					// a count it could not make out -- a row cut by the
+					// shot's edge -- over one an earlier shot read whole.
+					const was = seen.get(row.isle.id);
+					const kept = !(got && got.n) && was && was.paid > 0 && row.offer && was.keep && was.keep.give === row.offer.give && was.keep.item === row.offer.item;
+					seen.set(row.isle.id, kept ? was : { ...row, keep: row.offer || null, paid: got ? got.n : 0, icon: got ? iconOf(got.icon) : '' });
 				}
 			} catch (err) {
 				skipped.push({ name: take[i].name, why: err && err.message ? err.message : T('could not be read') });

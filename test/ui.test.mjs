@@ -578,6 +578,38 @@ test('a run under way takes nothing more out of the harbour than it loaded there
 	await context.close();
 });
 
+test('a material run is laid at the counts read off the window, and at the range where none was read', async () => {
+	// Three islands paying 25-50 Cox seals; the window showed 28 at Sokota
+	// and 30 at Dunde, and Modric's count was not read.
+	const { page, context, errors } = await open('#barter');
+	await page.waitForSelector('.barter-screen', { timeout: 15000 }); await wait(600);
+	await page.evaluate(async () => {
+		const { barterKey } = await import('/js/clock.js');
+		const store = await import('/js/state.js');
+		const seal = 'Cox Pirates Extermination Seal';
+		store.setView('barter', { goal: 'material', port: 1002, planSec: 'all', advOpen: true, wants: { [seal]: 500 }, matBoard: { day: barterKey(), on: [seal], answers: [
+			{ npcId: 58951, give: '[Level 3] Ancient Orders', recv: seal, paid: 28 },
+			{ npcId: 58910, give: '[Level 3] Rare Herb Pile', recv: seal, paid: 30 },
+			{ npcId: 58902, give: '[Level 3] Blue Candle Bundle', recv: seal }
+		] } });
+		store.addTarget('Carrack (Advance)', 1); store.setProfile('crewShip', 'Carrack (Advance)'); store.setProfile('barterCount', 4334);
+		for (const g of ['[Level 3] Blue Candle Bundle', '[Level 3] Rare Herb Pile', '[Level 3] Ancient Orders']) store.setStockAt(g, 'Iliya Island', 10, 'ashore');
+		store.flush();
+	});
+	await page.reload({ waitUntil: 'domcontentloaded' });
+	await page.waitForSelector('.barter-screen', { timeout: 15000 });
+	await page.waitForFunction(async () => { const { V } = await import('/js/barter/state.js'); return !!V.shownPlan; }, { timeout: 20000 });
+	const got = await page.evaluate(async () => {
+		const { V } = await import('/js/barter/state.js');
+		return Object.fromEntries(V.shownPlan.stops.filter(s => s.npcId).map(s => [s.npcId, [s.recvMin, s.recvMax, s.rangeMin ?? s.recvMin, s.rangeMax ?? s.recvMax]]));
+	});
+	assert.deepEqual(got[58951], [28, 28, 25, 50], 'Sokota at the 28 read, its range kept beside it');
+	assert.deepEqual(got[58910], [30, 30, 25, 50], 'Dunde at the 30 read');
+	assert.deepEqual(got[58902], [25, 50, 25, 50], 'Modric, not read, at its range');
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
 test('a count the board knows is said before the ship leaves: the checklist, the cockpit and the map card do not ask it', async () => {
 	// The barter window's screenshot showed what Ginburrey pays today (3);
 	// Tulu's count was not read. Casting off says Ginburrey's on the
