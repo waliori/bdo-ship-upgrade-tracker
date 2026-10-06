@@ -55,6 +55,17 @@ export function chainsOf(I, depth = 8) {
 	return out.map((rungs, k) => ({ id: k, rungs, top: G[indexOf(I).station.get(rungs[rungs.length - 1]).out].level }));
 }
 
+/** The instance without rations: what the cargo is laid on. Kept by the
+ *  instance, so it is made once. */
+export function dry(I) {
+	if (!I.__dry) {
+		const { rations, ...vehicle } = I.vehicle;
+		void rations;
+		Object.defineProperty(I, '__dry', { value: { ...I, vehicle }, enumerable: false });
+	}
+	return I.__dry;
+}
+
 /** A plan's value at μ: R − μ·T in robust mode, and the run behind it. */
 export function robustEval(I, plan, mu = 0) {
 	const r = simulate(I, planPolicy(plan), { mode: 'robust' });
@@ -129,8 +140,14 @@ export function finish(I, stationVisits, mu = 0, { calls = [], must = null } = {
 	// `must`: islands the plan has to deal at -- the tops of the sailor's own
 	// climbs. A plan that misses one is worth less than any that does not,
 	// whatever it earns: the search lays the climbs, it does not drop them.
-	const judge = p => {
-		const e = robustEval(I, p, mu);
+	// The cargo is laid on the day without rations -- calls for supplies
+	// change nothing aboard, so where the wharf calls go, what is dropped,
+	// what each island deals do not hang on them -- and the refills are put
+	// in once, at the end, the fastest set (refuel), and the plan judged
+	// with them. Laid with them at every trial, they were most of the cost.
+	const Ir = I.vehicle.rations ? dry(I) : I;
+	const judgeOn = (J, p) => {
+		const e = robustEval(J, p, mu);
 		// A run that runs out of rations at sea is no run at all.
 		if (e.run.deviations.starved) e.f -= e.run.deviations.starved * MISSED;
 		if (must && must.length) {
@@ -140,6 +157,7 @@ export function finish(I, stationVisits, mu = 0, { calls = [], must = null } = {
 		}
 		return e;
 	};
+	const judge = p => judgeOn(Ir, p);
 	const { station, storage } = indexOf(I);
 	let visits = stationVisits.map(v => ({ at: v.at, a: v.a ?? station.get(v.at).m }));
 	// Calls a caller already had, kept in place: { before: stationId, at }.
@@ -152,14 +170,9 @@ export function finish(I, stationVisits, mu = 0, { calls = [], must = null } = {
 		return [...out, endVisit(I)];
 	};
 	let cs = calls.filter(c => visits.some(v => v.at === c.before));
-	// Made sailable to the end: the calls for supplies the ration pool
-	// needs are put in here, the fastest set of them (refuel), so that
-	// every plan judged is judged with them -- what they cost in minutes
-	// and where they bend the route.
 	const build = (vs, list) => {
 		const all = withCalls(vs, list);
-		const p = { ...startOf(I, all), visits: all };
-		return I.vehicle.rations ? refuel(I, p) : p;
+		return { ...startOf(I, all), visits: all };
 	};
 	let plan = build(visits, cs);
 	let best = judge(plan);
@@ -243,6 +256,10 @@ export function finish(I, stationVisits, mu = 0, { calls = [], must = null } = {
 			if (e.f >= best.f - 1e-6) { visits = next; plan = p; best = e; changed = true; }
 		}
 		if (!changed) break;
+	}
+	if (I.vehicle.rations) {
+		plan = refuel(I, plan);
+		best = judgeOn(I, plan);
 	}
 	return { plan, f: best.f, R: best.R, T: best.T, visits, calls: cs };
 }
