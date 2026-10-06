@@ -25,7 +25,7 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 export const COLUMNS = ['instance', 'pace', 'solver', 'computeMs', 'meanR', 'meanT', 'rateOfMeans', 'meanRate', 'stdRate', 'minRate',
 	'robustR', 'robustT', 'robustRate', 'P', 'trades', 'calls', 'distance', 'carried',
 	'refusedOverDeal', 'clampedAttempts', 'refusedDrop', 'refusedSell', 'refusedLoad', 'revisited', 'stuck',
-	'loadThenDrop', 'idleCalls', 'consecutiveCalls', 'emptyVisits', 'planErrors'];
+	'loadThenDrop', 'idleCalls', 'consecutiveCalls', 'emptyVisits', 'starved', 'belowReserve', 'refills', 'planErrors'];
 
 /** The files a simple glob names: a directory and a `*` in the last part. */
 export function globFiles(pattern) {
@@ -50,7 +50,7 @@ export async function benchOne(instance, solverName, { scenarios = 100, seed = 1
 		instance: instance.name, pace: instance.rules.pace, solver: solverName, computeMs: round(computeMs),
 		meanR: round(r.mean.R), meanT: round(r.mean.T, 4), rateOfMeans: round(r.rateOfMeans), meanRate: round(r.mean.rate), stdRate: round(r.std.rate), minRate: round(r.min.rate),
 		robustR: round(r.robust.R), robustT: round(r.robust.T, 4), robustRate: round(r.robust.rate),
-		P: round(r.mean.P), trades: round(r.mean.trades, 2), calls: round(r.mean.calls, 2), distance: round(r.mean.distance), carried: round(r.mean.carried),
+		P: round(r.mean.P), trades: round(r.mean.trades, 2), calls: round(r.mean.calls, 2), distance: round(r.mean.distance), carried: round(r.mean.carried), refills: round(r.mean.refills || 0, 2),
 		...Object.fromEntries(Object.entries(r.deviations).map(([k, v]) => [k, round(v, 2)])),
 		...Object.fromEntries(Object.entries(r.pointless).map(([k, v]) => [k, round(v, 2)])),
 		planErrors: errors.length

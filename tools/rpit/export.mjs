@@ -40,7 +40,9 @@ const list = v => String(v).split(',').map(s => s.trim()).filter(Boolean);
 /** The cases a command line asks for, as setupOf arguments. */
 export function casesOf(o) {
 	const base = {};
-	for (const k of ['parley', 'perTrade', 'sell', 'p', 'speed']) if (o[k] !== undefined) base[k] = Number(o[k]);
+	for (const k of ['parley', 'perTrade', 'sell', 'p', 'speed', 'board', 'crewTick', 'breezy']) if (o[k] !== undefined) base[k] = Number(o[k]);
+	if (o.hull) base.hull = o.hull;
+	if (o.rations === 'off') base.rations = false;
 	for (const k of ['stock', 'storage', 'floors']) if (o[k] !== undefined) base[k] = o[k] === 'auto' ? 'auto' : JSON.parse(o[k]);
 	if (o.dropPolicy) base.dropPolicy = o.dropPolicy;
 	if (o.end) base.end = o.end;
