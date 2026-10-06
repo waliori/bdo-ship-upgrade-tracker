@@ -45,8 +45,15 @@ export function tinyOf(I, { chains: want = 2, rungs: most = 3 } = {}) {
 	const matrix = points.map(a => points.map(b => (a === b ? 0 : dist(a, b))));
 	const initial = { hold: Object.fromEntries(Object.entries(I.initial.hold).filter(([g]) => g in goods)), floors: Object.fromEntries(Object.entries(I.initial.floors).filter(([g]) => g in goods)) };
 	void station;
+	// A tiny board is a short trip, cut to check a search against the exact
+	// answer: no rations and no supply wharves, which the exact search does
+	// not lay.
+	const { supplies, ...rest } = I;
+	void supplies;
+	const { rations, ...vehicle } = I.vehicle;
+	void rations;
 	return {
-		...I, name: `${I.name}-tiny${want}x${most}`, goods, stations, depots, travel: { points, matrix }, initial,
+		...rest, vehicle, name: `${I.name}-tiny${want}x${most}`, goods, stations, depots, travel: { points, matrix }, initial,
 		meta: { ...I.meta, tiny: { from: I.name, chains: picked.map(c => c.rungs) } }
 	};
 }

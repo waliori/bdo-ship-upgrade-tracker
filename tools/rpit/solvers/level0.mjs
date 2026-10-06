@@ -9,6 +9,7 @@
 
 import { propose } from '../../../js/barter-optimizer.js';
 import { chainRun } from '../../../js/barter-chains.js';
+import { rationPass } from '../../../js/rpit/common.js';
 
 /** The app's run as a plan: its start, then every stop in order. */
 export function planOfRun(run, instance) {
@@ -48,8 +49,10 @@ export function solve(instance, { setup, timeMs = Infinity } = {}) {
 	if (!pick) return { plan: { visits: [{ at: instance.rules.end }] }, info: { ids: [], partial: r.partial } };
 	const byId = new Map(chainsAll.map(c => [c.id, c]));
 	const run = chainRun({ ...opts, chosen: pick.ids.map(id => byId.get(id)), effort: 2 });
+	// Its refills laid as the Barter tab lays them: after the route, where
+	// the pool would run low (barter/route.js withRations).
 	return {
-		plan: planOfRun(run, instance),
+		plan: rationPass(instance, planOfRun(run, instance), { chain: false }),
 		info: { ids: pick.ids, partial: r.partial, hoursApp: run.hours, netApp: run.net, tradesApp: run.trades }
 	};
 }

@@ -21,7 +21,7 @@ import { table } from '../tools/rpit/report.mjs';
 
 const velia = setupOf({ layout: '25', start: 'Velia', hold: 20000, pace: 'full' });
 
-test('layout 25 from Velia: every island, the seven storages, the sea by water', () => {
+test('layout 25 from Velia: every island, the seven storages and the supply wharves, the sea by water', () => {
 	const I = velia.instance;
 	assert.deepEqual(validateInstance(I), []);
 	assert.equal(I.stations.length, 70, 'the game tables put seventy islands on layout 25');
@@ -29,7 +29,7 @@ test('layout 25 from Velia: every island, the seven storages, the sea by water',
 	assert.equal(I.vehicle.Wdeal, 34000);
 	assert.equal(I.goods[I.stations.find(s => I.goods[s.out].level === 7).out].p, 100000000);
 	const n = I.travel.points.length;
-	assert.equal(n, 1 + 7 + 70);
+	assert.equal(n, 1 + 7 + 16 + 70, 'the harbour, seven storages, sixteen supply wharves, seventy islands');
 	for (let i = 0; i < n; i++) {
 		assert.equal(I.travel.matrix[i][i], 0);
 		for (let j = 0; j < i; j++) assert.equal(I.travel.matrix[i][j], I.travel.matrix[j][i]);

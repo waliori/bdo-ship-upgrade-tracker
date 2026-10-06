@@ -193,3 +193,44 @@ test('evaluate: the rate of means, and a robust run beside the sampled ones', ()
 	assert.equal(r.robust.R, 10 * 1000000 - 1000);
 	assert.equal(r.solver, 'hand');
 });
+
+test('a wharf loads to the hold limit and no further; only exchanges go past it', () => {
+	// 4 000 LT limit: of twenty [Level 2]s at 400 waiting at home, ten fit.
+	const I = tiny({ vehicle: { Wfree: 4000, Wdeal: 6800, Wmax: 6800 } });
+	I.depots[0].storage = { L2: 20 };
+	const plan = { load: { L2: 20 }, visits: [{ at: 's3', a: 10 }, { at: 'H', sell: 'all' }] };
+	const r = simulate(I, planPolicy(plan), { mode: 'robust' });
+	assert.equal(r.log[0].loaded.L2, 10);
+	assert.equal(r.deviations.refusedLoad, 1);
+});
+
+test('a hold of few slots takes no more of what does not stack', () => {
+	// [Level 3] made not to stack, five slots: ten attempts would need ten.
+	const I = tiny({ vehicle: { slots: 5 } });
+	I.goods.L3 = { ...I.goods.L3, level: 5, stack: false };
+	const r = simulate(I, planPolicy(climb), { mode: 'robust' });
+	// L2 stacks in one slot; each [Level 3] takes its own.
+	assert.equal(r.log[3].a, 4);
+	assert.equal(r.log[3].why, 'slots');
+});
+
+test('rations: sailing eats the pool, a wharf fills it, running dry is counted', () => {
+	// 10 m/s, four one-kilometre legs: 400 s of sailing.
+	const rations = { full: 100, perMinute: 6, perMinuteOver: 3, reserve: 0.1 };
+	const r = simulate(tiny({ vehicle: { rations } }), planPolicy(climb), { mode: 'robust' });
+	assert.ok(Math.abs(r.eaten - 40) < 1e-6, `${r.eaten}`);
+	assert.equal(r.deviations.starved, 0);
+	assert.equal(r.refills, 1, 'the call at the end fills it');
+	// A pool too small for the run runs dry on the way.
+	const dry = simulate(tiny({ vehicle: { rations: { ...rations, full: 15 } } }), planPolicy(climb), { mode: 'robust' });
+	assert.ok(dry.deviations.starved >= 1);
+	// A call for supplies on the way fills it again: s1 → D (supplies) → s2.
+	const I = tiny({ vehicle: { rations: { ...rations, full: 30 } } });
+	I.supplies = [{ id: 'S' }];
+	I.travel = { points: [...I.travel.points, 'S'], matrix: [...I.travel.matrix.map((row, i) => [...row, i === 3 || i === 4 ? 500 : 2000]), [2000, 2000, 2000, 500, 500, 2000, 0]] };
+	const plan = { buy: { Land: 100 }, visits: [{ at: 's1', a: 10 }, { at: 'S' }, { at: 's2', a: 10 }, { at: 's3', a: 10 }, { at: 'H', sell: 'all' }] };
+	const fed = simulate(I, planPolicy(plan), { mode: 'robust' });
+	assert.equal(fed.log[2].kind, 'supply');
+	assert.equal(fed.deviations.starved, 0);
+	assert.equal(fed.pointless.idleCalls, 0, 'a call that filled the pool did something');
+});

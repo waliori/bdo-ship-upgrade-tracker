@@ -34,6 +34,10 @@ export function validateInstance(I) {
 		if (!int(s.m) || s.m < 1) e.push(`station ${s.id} m < 1`);
 		if (!num(s.c) || s.c < 0) e.push(`station ${s.id} c < 0`);
 	}
+	if (I.supplies !== undefined) {
+		if (!Array.isArray(I.supplies)) e.push('supplies is not a list');
+		else for (const d of I.supplies) seen(d.id);
+	}
 	if (!Array.isArray(I.depots) || !I.depots.length) e.push('depots missing');
 	else for (const d of I.depots) {
 		seen(d.id);
@@ -55,7 +59,7 @@ export function validateInstance(I) {
 				}
 			}
 		}
-		const want = ['start', ...(I.depots || []).map(d => d.id), ...(I.stations || []).map(s => s.id)];
+		const want = ['start', ...(I.depots || []).map(d => d.id), ...(I.supplies || []).map(d => d.id), ...(I.stations || []).map(s => s.id)];
 		for (const id of want) if (!T.points.includes(id)) e.push(`point ${id} not in travel`);
 	}
 	const V = I.vehicle;
@@ -64,6 +68,12 @@ export function validateInstance(I) {
 		if (!(V.Wfree <= V.Wdeal && V.Wdeal <= V.Wmax)) e.push('vehicle needs Wfree ≤ Wdeal ≤ Wmax');
 		if (!(V.speed > 0)) e.push('vehicle speed ≤ 0');
 		if (!num(V.slowAtMax) || V.slowAtMax <= 0 || V.slowAtMax > 1) e.push('vehicle slowAtMax outside (0, 1]');
+		if (V.slots !== undefined && V.slots !== null && !(int(V.slots) && V.slots > 0)) e.push('vehicle slots not a positive whole number');
+		if (V.rations) {
+			const r = V.rations;
+			if (!num(r.full) || r.full <= 0 || !num(r.perMinute) || r.perMinute < 0 || !num(r.perMinuteOver) || r.perMinuteOver < 0) e.push('vehicle rations malformed');
+			if (r.reserve !== undefined && !(num(r.reserve) && r.reserve >= 0 && r.reserve < 1)) e.push('vehicle rations reserve outside [0, 1)');
+		}
 	}
 	if (!obj(I.service) || !num(I.service.station) || !num(I.service.depot)) e.push('service malformed');
 	if (!obj(I.budgets) || !num(I.budgets.P) || !(I.budgets.H === null || num(I.budgets.H))) e.push('budgets malformed');
@@ -97,6 +107,7 @@ export function validatePlan(P, I) {
 	if (!Array.isArray(P.visits)) return [...e, 'visits missing'];
 	const stations = new Map(I.stations.map(s => [s.id, s]));
 	const depots = new Set(I.depots.map(d => d.id));
+	const supplies = new Set((I.supplies || []).map(d => d.id));
 	const once = new Set();
 	const counts = (v, key, k) => {
 		if (v[key] === undefined) return;
@@ -116,7 +127,7 @@ export function validatePlan(P, I) {
 			if (!int(v.a) || v.a < 0 || v.a > stations.get(v.at).m) e.push(`visit ${k}: attempts ${v.a} outside [0, ${stations.get(v.at).m}]`);
 		} else if (depots.has(v.at)) {
 			for (const key of ['sell', 'drop', 'load']) counts(v, key, k);
-		} else e.push(`visit ${k}: ${v.at} is neither a station nor a depot`);
+		} else if (!supplies.has(v.at)) e.push(`visit ${k}: ${v.at} is neither a station nor a depot`);
 	});
 	if (!P.visits.length || !depots.has(P.visits[P.visits.length - 1].at)) e.push('the last visit is not a depot');
 	return e;

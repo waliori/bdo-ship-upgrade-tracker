@@ -131,6 +131,8 @@ export function finish(I, stationVisits, mu = 0, { calls = [], must = null } = {
 	// whatever it earns: the search lays the climbs, it does not drop them.
 	const judge = p => {
 		const e = robustEval(I, p, mu);
+		// A run that runs out of rations at sea is no run at all.
+		if (e.run.deviations.starved) e.f -= e.run.deviations.starved * MISSED;
 		if (must && must.length) {
 			const dealt = new Set(e.run.log.filter(x => x.kind === 'station' && x.a > 0).map(x => x.at));
 			const missed = must.filter(id => !dealt.has(id)).length;
@@ -150,9 +152,13 @@ export function finish(I, stationVisits, mu = 0, { calls = [], must = null } = {
 		return [...out, endVisit(I)];
 	};
 	let cs = calls.filter(c => visits.some(v => v.at === c.before));
+	// Made sailable to the end: the calls for supplies the ration pool
+	// needs are put in here, so that every plan judged is judged with
+	// them -- what they cost in minutes and where they bend the route.
 	const build = (vs, list) => {
 		const all = withCalls(vs, list);
-		return { ...startOf(I, all), visits: all };
+		const p = { ...startOf(I, all), visits: all };
+		return I.vehicle.rations ? rationPass(I, p) : p;
 	};
 	let plan = build(visits, cs);
 	let best = judge(plan);
@@ -248,4 +254,78 @@ export function insertOK(I, seq, id, pos) {
 	if (I.goods[g].level === 0 || (I.initial.hold[g] || 0) > 0 || (storage.get(g) || 0) > 0) return true;
 	for (let k = 0; k < pos; k++) if (station.get(seq[k].at).out === g) return true;
 	return false;
+}
+
+/**
+ * Calls for supplies put into a plan wherever its ration pool would run
+ * low: before the first island the pool would reach under the reserve
+ * (or before running dry on the way to a wharf), at the wharf -- a depot
+ * or a supply wharf -- that bends the leg least, at the latest leg the
+ * pool still reaches it on, and again until the run is fed. The rule the
+ * Barter tab lays its refills by (barter/route.js withRations), written
+ * against the instance so that it serves any plan: the deployed planner's,
+ * which lays its route first and its refills after, and every candidate a
+ * search judges, which is how a search weighs its refills as it goes.
+ *
+ * `chain`: a leg longer than a full pool lasts can only be sailed by way
+ * of a second wharf, a call straight after a call. The Barter tab never
+ * lays two calls in a row (false: its rule, for the deployed planner);
+ * the searches may (true), and a leg it cannot feed otherwise is fed.
+ */
+export function rationPass(I, plan, { most = 16, chain = true } = {}) {
+	const R0 = I.vehicle.rations;
+	if (!R0) return plan;
+	const { dist, station } = indexOf(I);
+	const wharves = [...I.depots.map(d => d.id), ...(I.supplies || []).map(d => d.id)];
+	const isWharf = id => wharves.includes(id);
+	const off = plan.buy || plan.load ? 1 : 0;
+	let visits = plan.visits.slice();
+	for (let round = 0; round < most; round++) {
+		const r = simulate(I, planPolicy({ ...plan, visits }), { mode: 'robust' });
+		const log = r.log.slice(off);
+		const floor = R0.full * (R0.reserve || 0);
+		// The first visit reached too low: an island under the reserve, or
+		// anything after the pool ran dry.
+		let bad = -1, lastFull = 0;
+		for (let k = 0; k < log.length; k++) {
+			// The pool on arrival: after a wharf's fill, less what it filled.
+			const e = log[k], into = e.pool - (e.refilled || 0);
+			if ((e.kind === 'station' && into < floor - 1e-6) || into <= 1e-6) { bad = k; break; }
+			if (e.kind === 'depot' || e.kind === 'supply') lastFull = k + 1;
+		}
+		if (bad < 0) return { ...plan, visits };
+		// Of the legs since the pool was last full, the one to break with a
+		// call: the wharf that bends it least, of those the pool reaches.
+		// What a metre of sea eats from where the ship stands: its pace and
+		// its rate as the simulator sails them, the hold as it leaves.
+		const V = I.vehicle;
+		const phi = W => (W <= V.Wfree || V.Wmax <= V.Wfree ? 1 : 1 - Math.min(1, (W - V.Wfree) / (V.Wmax - V.Wfree)) * (1 - V.slowAtMax));
+		const eatPerMetre = W => (W > V.Wfree + 1e-6 ? R0.perMinuteOver : R0.perMinute) / 60 / (V.speed * phi(W));
+		const perMetre = R0.perMinute / 60 / V.speed;
+		let best = null;
+		for (let j = lastFull; j <= bad; j++) {
+			const prevAt = j > 0 ? visits[j - 1].at : 'start', at = visits[j].at;
+			if (!chain && (isWharf(prevAt) || isWharf(at))) continue;
+			const poolThen = j > 0 ? log[j - 1].pool : (R0.start ?? R0.full);
+			const W = j > 0 ? log[j - 1].W : (log[0] ? log[0].W : 0);
+			for (const w of wharves) {
+				if (w === prevAt || w === at) continue;
+				const reach = dist(prevAt, w) * eatPerMetre(W);
+				if (reach > poolThen + 1e-6) continue;
+				const bend = dist(prevAt, w) + dist(w, at) - dist(prevAt, at);
+				// What is still aboard on arrival is thrown away by the fill:
+				// counted as the sea it would have sailed, so the latest call
+				// the pool allows is preferred unless an earlier lies that much
+				// more on the way.
+				const waste = (poolThen - reach) / perMetre;
+				const cost = bend + waste;
+				if (!best || cost < best.cost - 1e-6) best = { cost, j, w };
+			}
+		}
+		if (!best) return { ...plan, visits };
+		const call = I.depots.some(d => d.id === best.w) ? { at: best.w, sell: 'spare', drop: 'spare' } : { at: best.w };
+		visits = [...visits.slice(0, best.j), call, ...visits.slice(best.j)];
+		void station;
+	}
+	return { ...plan, visits };
 }

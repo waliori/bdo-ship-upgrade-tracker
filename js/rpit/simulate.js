@@ -108,6 +108,9 @@ export function simulate(I, policy, { mode = 'sample', seed = 1 } = {}) {
 	const idx = new Map(I.travel.points.map((p, i) => [p, i]));
 	const stationOf = new Map(I.stations.map(s => [s.id, s]));
 	const depotIds = new Set(I.depots.map(d => d.id));
+	// Wharves that sell supplies and nothing else: a call there fills the
+	// ration pool. Every depot fills it too.
+	const supplyIds = new Set((I.supplies || []).map(d => d.id));
 	const G = I.goods;
 	const V = I.vehicle;
 	const pace = I.rules.pace;
@@ -125,34 +128,81 @@ export function simulate(I, policy, { mode = 'sample', seed = 1 } = {}) {
 	const owned = g => (h.get(g) || 0) + Object.values(storages).reduce((a, s) => a + (s.get(g) || 0), 0);
 	const spendable = g => Math.max(0, owned(g) - (floors[g] || 0));
 	const phi = W => (W <= V.Wfree || V.Wmax <= V.Wfree ? 1 : 1 - Math.min(1, (W - V.Wfree) / (V.Wmax - V.Wfree)) * (1 - V.slowAtMax));
-
+	// The hold's slots, beside its weight: a good that stacks ([Level 1]
+	// to [Level 4], shore goods) takes one slot however many, one that
+	// does not ([Level 5] and up) a slot a unit. Counted off the weighed
+	// hold, the most that may be aboard. The game takes nothing more into
+	// a hold whose slots are full; what is aboard past them stays.
+	const SLOTS = Number.isFinite(V.slots) ? V.slots : Infinity;
+	const stack = g => (G[g] && G[g].stack !== undefined ? G[g].stack : !(G[g] && G[g].level >= 5));
+	const slotsOf = (g, n) => (!(n > EPS) ? 0 : stack(g) ? 1 : Math.ceil(n - EPS));
+	const slots = () => { let k = 0; for (const [g, n] of hw) k += slotsOf(g, n); return k; };
+	// Rations: a pool that sailing eats by the minute -- less when the hold
+	// is past its limit, which takes the sailing skill's share off -- and
+	// that any call at a wharf fills again. Absent, nothing is eaten.
+	const R0 = V.rations || null;
 	const state = {
 		at: 'start', h, hw, W: weight(), parleyLeft: I.budgets.P, time: 0, silver: 0, sold: 0, spent: 0,
-		storages, visited: new Set(), step: 0, log: [],
+		storages, visited: new Set(), step: 0, log: [], pool: R0 ? (R0.start ?? R0.full) : Infinity,
 		// What the islands sailed to were seen to pay: a policy may read
 		// an island's payout once it has been there, and not before.
 		revealed: new Map()
 	};
-	const dev = { refusedOverDeal: 0, clampedAttempts: 0, refusedDrop: 0, refusedSell: 0, refusedLoad: 0, revisited: 0, stuck: 0, startLate: 0 };
-	let trades = 0, calls = 0, distance = 0, parleyUsed = 0;
+	const dev = { refusedOverDeal: 0, clampedAttempts: 0, refusedDrop: 0, refusedSell: 0, refusedLoad: 0, revisited: 0, stuck: 0, startLate: 0, starved: 0, belowReserve: 0 };
+	let trades = 0, calls = 0, distance = 0, parleyUsed = 0, refills = 0, eaten = 0;
 
 	const travel = to => {
 		const d = I.travel.matrix[idx.get(state.at)][idx.get(to)];
 		if (d > 0) {
 			if (state.W > V.Wmax + EPS) { dev.stuck = 1; return false; }
-			state.time += d / (V.speed * phi(state.W)) / 3600;
+			const hours = d / (V.speed * phi(state.W)) / 3600;
+			state.time += hours;
 			distance += d;
+			if (R0) {
+				const use = hours * 60 * (state.W > V.Wfree + EPS ? R0.perMinuteOver : R0.perMinute);
+				eaten += use;
+				// Run dry at sea: counted, and the run goes on -- a plan that
+				// does this is not a plan, and is scored so.
+				if (state.pool - use < -EPS) { dev.starved++; state.pool = 0; }
+				else {
+					state.pool -= use;
+					// Into an island under the reserve the sailor keeps: allowed,
+					// and said. Into a wharf it is no matter: it fills there.
+					if (stationOf.has(to) && state.pool < R0.full * (R0.reserve || 0) - EPS) dev.belowReserve++;
+				}
+			}
 		}
 		state.at = to;
 		return true;
 	};
+	// A call at a wharf fills the pool to the top.
+	const refill = entry => {
+		if (!R0) return;
+		entry.refilled = R0.full - state.pool;
+		if (entry.refilled > EPS) refills++;
+		state.pool = R0.full;
+	};
+	// How many of `g` may come aboard from a wharf (or the Market, or the
+	// harbour's storage): to the hold's limit and no further -- loading
+	// stops at 100 %, only exchanges carry a hold past it -- and into the
+	// slots there are.
+	const roomFor = (g, want) => {
+		const w = G[g] ? G[g].w : 0;
+		let n = w > 0 ? Math.min(want, Math.max(0, Math.floor((V.Wfree - weight()) / w + EPS))) : want;
+		const had = hw.get(g) || 0, free = SLOTS - slots();
+		if (stack(g)) { if (!(had > EPS) && free < 1) n = 0; }
+		else n = Math.min(n, Math.max(0, Math.floor(free + EPS)));
+		return n;
+	};
 	const load = (at, want, entry) => {
 		const store = storages[at];
 		for (const [g, req] of Object.entries(want || {})) {
-			const n = Math.min(req, store.get(g) || 0);
+			const have = Math.min(req, store.get(g) || 0);
+			if (have <= EPS) continue;
+			const n = Math.min(have, roomFor(g, have));
+			if (n < have - EPS) dev.refusedLoad++;
 			if (n <= EPS) continue;
 			add(h, g, n); add(hw, g, n); add(store, g, -n);
-			if (weight() > V.Wmax + EPS) { add(h, g, -n); add(hw, g, -n); add(store, g, n); dev.refusedLoad++; continue; }
 			entry.loaded[g] = (entry.loaded[g] || 0) + n;
 		}
 		state.W = weight();
@@ -167,7 +217,7 @@ export function simulate(I, policy, { mode = 'sample', seed = 1 } = {}) {
 			if (state.step !== 0) { dev.startLate++; state.step++; continue; }
 			for (const [g, req] of Object.entries(act.buy || {})) {
 				const cap = G[g] && G[g].cap !== null && G[g].cap !== undefined ? G[g].cap : Infinity;
-				const n = Math.min(req, cap);
+				const n = Math.min(req, cap, roomFor(g, req));
 				if (n <= EPS) continue;
 				add(h, g, n); add(hw, g, n);
 				const cost = n * (G[g] ? G[g].b : 0);
@@ -202,16 +252,24 @@ export function simulate(I, policy, { mode = 'sample', seed = 1 } = {}) {
 				// Attempt by attempt: each starts under the ceiling and ends
 				// under the limit.
 				const dw = yw * G[s.out].w - s.q * G[s.in].w;
+				let slotsHit = false;
 				for (; a < most; a++) {
 					const W = weight();
 					if (W > startLimit + EPS || W + dw > endLimit + EPS) break;
+					// And the slots: an exchange that would need a slot the hold
+					// has not got is refused.
+					if (SLOTS < Infinity) {
+						const was = slots();
+						const after = was - slotsOf(s.in, hw.get(s.in) || 0) + slotsOf(s.in, (hw.get(s.in) || 0) - s.q) - slotsOf(s.out, hw.get(s.out) || 0) + slotsOf(s.out, (hw.get(s.out) || 0) + yw);
+						if (after > SLOTS && after > was) { slotsHit = true; break; }
+					}
 					add(h, s.in, -s.q); add(hw, s.in, -s.q);
 					add(h, s.out, y); add(hw, s.out, yw);
 					Y.push(y);
 				}
 				if (a < entry.req) {
 					dev.clampedAttempts++;
-					entry.why = a < most ? 'weight' : Object.entries(bounds).reduce((x, y) => (y[1] < x[1] ? y : x))[0];
+					entry.why = a < most ? (slotsHit ? 'slots' : 'weight') : Object.entries(bounds).reduce((x, y) => (y[1] < x[1] ? y : x))[0];
 				}
 				state.parleyLeft -= a * s.c; parleyUsed += a * s.c; trades += a;
 				state.visited.add(s.id);
@@ -224,6 +282,7 @@ export function simulate(I, policy, { mode = 'sample', seed = 1 } = {}) {
 			state.time += I.service.depot / 3600;
 			calls++;
 			entry.kind = 'depot';
+			refill(entry);
 			const sell = act.sell === 'all'
 				? Object.fromEntries([...h].filter(([g]) => G[g] && G[g].p > 0))
 				: act.sell || {};
@@ -247,10 +306,17 @@ export function simulate(I, policy, { mode = 'sample', seed = 1 } = {}) {
 			}
 			load(act.at, act.load, entry);
 			state.W = weight();
+		} else if (supplyIds.has(act.at)) {
+			// A call for supplies only: the pool filled, nothing traded.
+			if (!travel(act.at)) { stopped = true; break; }
+			state.time += I.service.depot / 3600;
+			calls++;
+			entry.kind = 'supply';
+			refill(entry);
 		} else {
 			entry.kind = 'unknown';
 		}
-		entry.W = state.W; entry.silver = state.silver; entry.time = state.time;
+		entry.W = state.W; entry.silver = state.silver; entry.time = state.time; entry.pool = state.pool;
 		state.log.push(entry);
 		state.step++;
 	}
@@ -263,7 +329,7 @@ export function simulate(I, policy, { mode = 'sample', seed = 1 } = {}) {
 	let carried = 0;
 	for (const [g, n] of h) carried += n * (G[g] ? G[g].p : 0);
 	return {
-		R, T, rate: T > 0 ? R / T : 0, P: parleyUsed, trades, calls, distance, carried,
+		R, T, rate: T > 0 ? R / T : 0, P: parleyUsed, trades, calls, distance, carried, refills, eaten,
 		// Where the run ended and what it held: a search that builds a plan
 		// a visit at a time reads its next move off these.
 		at: state.at, hold: Object.fromEntries(h), parleyLeft: state.parleyLeft,
@@ -289,11 +355,13 @@ export function pointlessOf(log) {
 			lastDepot = false;
 			continue;
 		}
-		if (e.kind !== 'depot' && e.kind !== 'start') continue;
+		if (e.kind !== 'depot' && e.kind !== 'start' && e.kind !== 'supply') continue;
 		for (const g of Object.keys(e.dropped || {})) if (taken.has(g)) { out.loadThenDrop++; taken.delete(g); }
 		for (const g of [...Object.keys(e.loaded || {}), ...Object.keys(e.bought || {})]) taken.add(g);
-		if (e.kind === 'depot') {
-			const did = Object.keys(e.sold).length + Object.keys(e.dropped).length + Object.keys(e.loaded).length;
+		if (e.kind === 'depot' || e.kind === 'supply') {
+			// A call that filled the ration pool did something, whatever it
+			// traded.
+			const did = Object.keys(e.sold).length + Object.keys(e.dropped).length + Object.keys(e.loaded).length + (e.refilled > 0 ? 1 : 0);
 			if (!did) out.idleCalls++;
 			if (lastDepot) out.consecutiveCalls++;
 			lastDepot = true;
@@ -318,7 +386,7 @@ export function evaluate(I, policy, { mode = 'sample', scenarios = 100, seed = 1
 	const robust = mode === 'robust' ? runs[0] : simulate(I, policy, { mode: 'robust', seed });
 	const pick = key => runs.map(r => r[key]);
 	const sum = key => Object.fromEntries(Object.keys(runs[0][key]).map(k => [k, mean(runs.map(r => r[key][k]))]));
-	const means = Object.fromEntries(['R', 'T', 'rate', 'P', 'trades', 'calls', 'distance', 'carried'].map(k => [k, mean(pick(k))]));
+	const means = Object.fromEntries(['R', 'T', 'rate', 'P', 'trades', 'calls', 'distance', 'carried', 'refills', 'eaten'].map(k => [k, mean(pick(k))]));
 	return {
 		instance: I.name, solver, mode, scenarios: n, seed, computeMs: 0,
 		mean: means,
