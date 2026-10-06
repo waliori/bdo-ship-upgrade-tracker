@@ -6092,5 +6092,7 @@
 	"Sailed run after run while the hold kept doubling, and sent the stop lists that showed islands counted twice, one dropped, and a button that did nothing.": "A navigué sortie après sortie pendant que la cale ne cessait de doubler, et a envoyé les listes d'étapes qui montraient des îles comptées deux fois, une île oubliée et un bouton qui ne faisait rien.",
 	"Saying what an island paid no longer puts an island you have already traded at back on the checklist, where its goods went into the hold twice and its Parley was spent twice.": "Dire ce qu'une île a payé ne remet plus sur la liste une île où vous avez déjà échangé : ses marchandises entraient deux fois dans la cale et sa Tractation était dépensée deux fois.",
 	"Two players found these, with the screenshots that pinned each one down.": "Deux joueurs les ont trouvés, avec les captures qui ont permis de cerner chacun.",
-	"The run is laid at the least; tap what each island paid as you sail, and the hold counts what was paid.": "La sortie est calculée au minimum ; touchez ce que chaque île a payé en naviguant, et la cale compte ce qui a été payé."
+	"The run is laid at the least; tap what each island paid as you sail, and the hold counts what was paid.": "La sortie est calculée au minimum ; touchez ce que chaque île a payé en naviguant, et la cale compte ce qui a été payé.",
+	"pays": "donne",
+	"What {isle} pays a trade, as its window shows": "Ce que {isle} donne par échange, comme l’affiche sa fenêtre"
 }

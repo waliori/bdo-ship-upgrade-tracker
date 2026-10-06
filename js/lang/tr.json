@@ -5969,5 +5969,7 @@
 	"Sailed run after run while the hold kept doubling, and sent the stop lists that showed islands counted twice, one dropped, and a button that did nothing.": "Ambar durmadan ikiye katlanırken sefer üstüne sefer yaptı ve iki kez sayılan adaları, atlanan bir adayı ve hiçbir şey yapmayan bir düğmeyi gösteren durak listelerini gönderdi.",
 	"Saying what an island paid no longer puts an island you have already traded at back on the checklist, where its goods went into the hold twice and its Parley was spent twice.": "Bir adanın ne ödediğini söylemek, zaten takas yaptığınız bir adayı artık listeye geri koymuyor: malları ambara iki kez giriyor, Müzakere Gücü de iki kez harcanıyordu.",
 	"Two players found these, with the screenshots that pinned each one down.": "İki oyuncu bunları buldu ve her birini yakalatan ekran görüntülerini gönderdi.",
-	"The run is laid at the least; tap what each island paid as you sail, and the hold counts what was paid.": "Sefer en düşük değerle planlanır; yelken açarken her adanın ne ödediğine dokunun, ambar ödenen kadarını sayar."
+	"The run is laid at the least; tap what each island paid as you sail, and the hold counts what was paid.": "Sefer en düşük değerle planlanır; yelken açarken her adanın ne ödediğine dokunun, ambar ödenen kadarını sayar.",
+	"pays": "verir",
+	"What {isle} pays a trade, as its window shows": "{isle} takas başına ne verir, penceresinde gösterildiği gibi"
 }

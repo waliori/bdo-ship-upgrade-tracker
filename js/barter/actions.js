@@ -24,7 +24,7 @@ import { toast, openDialog, closeDialog } from '../dialogs.js';
 import { cheer } from '../cheer.js';
 import { V, STEPS } from './state.js';
 import { timerAction, timerState, timerNow, startTimer, stopTimer, passedStop, arrivedAt, spanText } from '../sail-timer.js';
-import { fromPort, sailCal, itemNow, readWindow, takeFleetBoard, openBook, tellTheFleet, pickOffer, pickIsland, showGated, pickAnyIsland, boardNow } from './board.js';
+import { fromPort, sailCal, itemNow, readWindow, takeFleetBoard, openBook, tellTheFleet, pickOffer, pickIsland, showGated, pickAnyIsland, boardNow, boardPaid } from './board.js';
 import { openRolls } from './rolls.js';
 import { bringUp, patchPaid, restFind, sailLocked } from './cockpit.js';
 import { castOffFx } from './setsail.js';
@@ -430,7 +430,12 @@ export function barterAction(act, el, redraw) {
 			if (!V.shownPlan) return false;
 			// The packing the wharf step wrote goes with the run, for Abandon
 			// to put back; and what the step said, to be read on the way.
-			V.sail = { key: sailKey(), done: [], seen: {}, got: {}, kept: [], cal: sailCal(), ...sailRecord(V.shownPlan), packLog: V.packLog, told: toldOf(V.shownPlan, fromPort()) };
+			// An island whose count the board already knows -- read off its
+			// icon, or typed beside it -- is said before the ship leaves:
+			// the checklist does not ask it again.
+			const rec = sailRecord(V.shownPlan), paid = boardPaid();
+			const known = Object.fromEntries(rec.stops.filter(s => s.npcId && paid[s.npcId] && rangeOf(s).hi > rangeOf(s).lo).map(s => [s.npcId, paid[s.npcId]]));
+			V.sail = { key: sailKey(), done: [], seen: { ...known }, known: Object.keys(known), got: {}, kept: [], cal: sailCal(), ...rec, packLog: V.packLog, told: toldOf(V.shownPlan, fromPort()) };
 			V.packLog = { delta: {}, moves: [] };
 			// Sailing starts the clock, since that press is the moment the
 			// ship leaves -- and it is the gesture the browser wants before

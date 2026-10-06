@@ -17,7 +17,7 @@ import { exchanges, landHeld } from '../barter-plan.js';
 import { chains, chainRun, tailOf } from '../barter-chains.js';
 import { shortTrades } from '../barter-short.js';
 import { V } from './state.js';
-import { fromPort, layCal, spendUsed, continueHTML, keepRoute } from './board.js';
+import { fromPort, layCal, spendUsed, continueHTML, keepRoute, boardPaid } from './board.js';
 import { narrow, lvTag } from './cockpit.js';
 import { aboardStock, everythingHeld, floorsShut, cashFloorNow, dockStock } from './hold.js';
 import { heldOf } from './material.js';
@@ -158,9 +158,10 @@ export function silverParts(me, b) {
 	if (short) all = [...shortSet.picked, ...shortSet.first, ...shortSet.next];
 	const made = store.getProfile('homemade', []) || [];
 	const prices = landPrices(all.filter(c => c.from === 'land').map(c => c.item), made);
-	// A range is counted at its least, except where this run has seen
-	// what the island paid: the checklist asks at every such island.
-	const seen = { ...planSeen(sailing()) };
+	// A range is counted at its least, except where the island's count
+	// is known: read off the board's screenshot or typed beside it, or
+	// said on the checklist of the run under way.
+	const seen = { ...boardPaid(), ...planSeen(sailing()) };
 	// Everything the sailor holds, wherever it is: a floor is about the
 	// pile, not about the hold, so a run must know the whole of it
 	// before it decides what it may spend.
@@ -240,7 +241,7 @@ export function silverParts(me, b) {
 	// this card's orders let in: the key, and the figures, must not move
 	// with the card that is chosen.
 	const presetSeen = {};
-	Object.assign(presetSeen, planSeen(sailing()));
+	Object.assign(presetSeen, boardPaid(), planSeen(sailing()));
 	const baseOrders = Object.fromEntries(Object.entries(o).filter(([k]) => !sailingKeys.has(k)));
 	const presetKey = JSON.stringify([V.board.day, b.combo.id, V.board.answers, stock, dock, owned, [...land], baseOrders, V.port, V.stash, Object.values(presetPrices).map(x => x.each), me.hold, ship, opts.parley, presetSeen, V.reach, prof.barterCount, aim, ceiling, b.shut]);
 	// Asked once the main search has answered, so the two never share

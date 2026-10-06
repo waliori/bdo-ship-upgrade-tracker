@@ -5969,5 +5969,7 @@
 	"Sailed run after run while the hold kept doubling, and sent the stop lists that showed islands counted twice, one dropped, and a button that did nothing.": "船倉が倍になり続ける中で航海を重ね、島が二重に数えられ、1つが落ち、ボタンが何もしないことを示す寄港リストを送ってくれました。",
 	"Saying what an island paid no longer puts an island you have already traded at back on the checklist, where its goods went into the hold twice and its Parley was spent twice.": "島が払った数を言っても、すでに交換した島がリストに戻らなくなりました。その島の品は船倉に二重に入り、交渉力も二重に使われていました。",
 	"Two players found these, with the screenshots that pinned each one down.": "2人のプレイヤーが見つけ、それぞれを突き止めるスクリーンショットを送ってくれました。",
-	"The run is laid at the least; tap what each island paid as you sail, and the hold counts what was paid.": "航海は最小値で組まれます。航海中に各島が払った数をタップすると、船倉は実際に払われた数で数えます。"
+	"The run is laid at the least; tap what each island paid as you sail, and the hold counts what was paid.": "航海は最小値で組まれます。航海中に各島が払った数をタップすると、船倉は実際に払われた数で数えます。",
+	"pays": "受取",
+	"What {isle} pays a trade, as its window shows": "{isle}が1回の交換で渡す数（ウィンドウの表示どおり）"
 }

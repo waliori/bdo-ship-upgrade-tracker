@@ -8114,5 +8114,7 @@
 	"Sailed run after run while the hold kept doubling, and sent the stop lists that showed islands counted twice, one dropped, and a button that did nothing.": "Ходил рейс за рейсом, пока трюм всё удваивался, и прислал списки остановок, где острова считались дважды, один пропадал, а кнопка ничего не делала.",
 	"Saying what an island paid no longer puts an island you have already traded at back on the checklist, where its goods went into the hold twice and its Parley was spent twice.": "Если сказать, сколько заплатил остров, остров, где вы уже обменялись, больше не возвращается в список: его товары попадали в трюм дважды, а Убеждение тратилось дважды.",
 	"Two players found these, with the screenshots that pinned each one down.": "Их нашли два игрока, со скриншотами, по которым удалось найти каждую ошибку.",
-	"The run is laid at the least; tap what each island paid as you sail, and the hold counts what was paid.": "Рейс прокладывается по минимуму; отмечайте в пути, сколько заплатил каждый остров, и трюм посчитает заплаченное."
+	"The run is laid at the least; tap what each island paid as you sail, and the hold counts what was paid.": "Рейс прокладывается по минимуму; отмечайте в пути, сколько заплатил каждый остров, и трюм посчитает заплаченное.",
+	"pays": "даёт",
+	"What {isle} pays a trade, as its window shows": "Сколько {isle} даёт за обмен, как показано в окне"
 }

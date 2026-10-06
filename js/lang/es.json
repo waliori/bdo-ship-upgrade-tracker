@@ -6137,5 +6137,7 @@
 	"Sailed run after run while the hold kept doubling, and sent the stop lists that showed islands counted twice, one dropped, and a button that did nothing.": "Navegó travesía tras travesía mientras la bodega no paraba de duplicarse, y envió las listas de paradas que mostraban islas contadas dos veces, una saltada y un botón que no hacía nada.",
 	"Saying what an island paid no longer puts an island you have already traded at back on the checklist, where its goods went into the hold twice and its Parley was spent twice.": "Decir lo que pagó una isla ya no vuelve a poner en la lista una isla donde ya comerciaste: sus bienes entraban dos veces en la bodega y su Persuasión se gastaba dos veces.",
 	"Two players found these, with the screenshots that pinned each one down.": "Dos jugadores los encontraron, con las capturas que permitieron dar con cada uno.",
-	"The run is laid at the least; tap what each island paid as you sail, and the hold counts what was paid.": "La travesía se planifica al mínimo; toca lo que pagó cada isla mientras navegas, y la bodega cuenta lo que se pagó."
+	"The run is laid at the least; tap what each island paid as you sail, and the hold counts what was paid.": "La travesía se planifica al mínimo; toca lo que pagó cada isla mientras navegas, y la bodega cuenta lo que se pagó.",
+	"pays": "da",
+	"What {isle} pays a trade, as its window shows": "Lo que {isle} da por trueque, como lo muestra su ventana"
 }

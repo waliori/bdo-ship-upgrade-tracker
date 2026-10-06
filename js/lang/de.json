@@ -6008,5 +6008,7 @@
 	"Sailed run after run while the hold kept doubling, and sent the stop lists that showed islands counted twice, one dropped, and a button that did nothing.": "Ist Fahrt um Fahrt gesegelt, während sich der Laderaum immer wieder verdoppelte, und hat die Stopplisten geschickt, die doppelt gezählte Inseln, eine ausgelassene und einen Knopf ohne Wirkung zeigten.",
 	"Saying what an island paid no longer puts an island you have already traded at back on the checklist, where its goods went into the hold twice and its Parley was spent twice.": "Zu sagen, was eine Insel gezahlt hat, setzt eine Insel, an der du schon getauscht hast, nicht mehr zurück auf die Liste: Ihre Waren kamen doppelt in den Laderaum und ihre Überzeugungskraft wurde doppelt ausgegeben.",
 	"Two players found these, with the screenshots that pinned each one down.": "Zwei Spieler haben sie gefunden, mit den Screenshots, die jeden Fehler festgenagelt haben.",
-	"The run is laid at the least; tap what each island paid as you sail, and the hold counts what was paid.": "Die Fahrt wird zum Mindestwert geplant; tippe beim Segeln an, was jede Insel gezahlt hat, und der Laderaum zählt, was gezahlt wurde."
+	"The run is laid at the least; tap what each island paid as you sail, and the hold counts what was paid.": "Die Fahrt wird zum Mindestwert geplant; tippe beim Segeln an, was jede Insel gezahlt hat, und der Laderaum zählt, was gezahlt wurde.",
+	"pays": "gibt",
+	"What {isle} pays a trade, as its window shows": "Was {isle} pro Tausch gibt, wie das Fenster es zeigt"
 }

@@ -469,7 +469,9 @@ async function readWordsNow(file, { lang = DEFAULT_LANG, wide = LIST_WIDE, onPro
 		if (bitmap.width * bitmap.height > LIMITS.pixels) return { words: [], width: 0, height: 0, why: T('far too large to be a screenshot') };
 		const scale = Math.max(1, Math.min(3, wide / bitmap.width));
 		const words = await scan(worker, paint(bitmap, { scale }), Tesseract.PSM.SPARSE_TEXT);
-		return { words, width: bitmap.width * scale, height: bitmap.height * scale, scale };
+		// The pixels too, unscaled: what an island pays is a figure on an
+		// icon, which the words do not carry.
+		return { words, width: bitmap.width * scale, height: bitmap.height * scale, scale, image: pixelsOf(bitmap).image };
 	} finally {
 		listen = null;
 		if (bitmap) bitmap.close();

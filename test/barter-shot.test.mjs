@@ -16,7 +16,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-import { offersFrom, rowsOf, cover, plain, tierIn, isleAt, linesOf, figuresFrom, wholeIn, windowWords } from '../js/barter-shot.js';
+import { offersFrom, rowsOf, cover, plain, tierIn, isleAt, linesOf, figuresFrom, wholeIn, windowWords, paidFrom } from '../js/barter-shot.js';
 import { npcs } from '../js/barter_npcs.js';
 import { exchanges } from '../js/barter-plan.js';
 
@@ -336,4 +336,34 @@ test('the game\u2019s own window, 2026-09-27: the islands that roll a good or co
 		assert.ok(l31.rolls[a.npcId], `${name} rolls on layout 31`);
 		assert.ok(fitsAt(l31, a.npcId, a.give, a.recv), `${name}: what was read is one of its options`);
 	}
+});
+
+/* ------------------------------------------------------------------ *
+ * what an island pays, off its received icon
+ * ------------------------------------------------------------------ */
+
+// A real window: the rows as the reader found them and the strip of
+// pixels round their received icons (fixtures/barter-paid.json).
+const PAID = JSON.parse(readFileSync(new URL('./fixtures/barter-paid.json', import.meta.url), 'utf8'));
+const paidShot = (rows = PAID.rows) => {
+	const rgb = Buffer.from(PAID.rgb, 'base64'), data = new Uint8ClampedArray(PAID.w * PAID.h * 4);
+	for (let i = 0; i < PAID.w * PAID.h; i++) { data.set(rgb.subarray(i * 3, i * 3 + 3), i * 4); data[i * 4 + 3] = 255; }
+	const word = ([text, x0, y0, x1, y1]) => ({ text, x0, y0, x1, y1 });
+	const live = rows.map(r => ({ isle: { id: r.isle }, offer: { give: r.give, item: r.item, recvMin: r.recvMin, recvMax: r.recvMax }, words: r.words.map(word) }));
+	return paidFrom({ data, width: PAID.w, height: PAID.h }, PAID.words.map(word), live, PAID.scale);
+};
+
+test('the figure on a received icon is what an island paying a range pays, and one paying a fixed count is not read', () => {
+	// Two islands paying 25-50 Cox seals, showing 25 and 34; one paying
+	// 1-2 timber, showing 2; three paying one thing, read for nothing.
+	assert.deepEqual(Object.fromEntries(paidShot()), { 58946: 25, 58947: 34, 58970: 2 });
+});
+
+test('a figure the island cannot pay is not taken, however plainly it reads', () => {
+	// The 2 on the timber island, were its range 3-5: misread, or the
+	// wrong exchange picked for the row. Left for the checklist to ask.
+	const rows = PAID.rows.map(r => (r.isle === 58970 ? { ...r, recvMin: 3, recvMax: 5 } : r));
+	const read = paidShot(rows);
+	assert.equal(read.has(58970), false);
+	assert.equal(read.get(58946), 25);
 });

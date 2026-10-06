@@ -105,7 +105,7 @@ export function sailFor(npcId) {
 	if (!V.sail || !Array.isArray(V.sail.stops)) return null;
 	const s = V.sail.stops.find(x => x.npcId === npcId);
 	if (!s) return null;
-	return { done: V.sail.done.includes(`n${npcId}`), paid: V.sail.seen[npcId] || null, ask: paidAsk(s, V.sail.seen[npcId], true), owes: owesCount(s, V.sail), item: sevenOf(s, V.sail), recvText: s.recvText };
+	return { done: V.sail.done.includes(`n${npcId}`), paid: V.sail.seen[npcId] || null, ask: knownPaid(s, V.sail) ? '' : paidAsk(s, V.sail.seen[npcId], true), owes: owesCount(s, V.sail), item: sevenOf(s, V.sail), recvText: s.recvText };
 }
 
 /** What the chime calls a run: where it starts and how far it goes. */
@@ -177,6 +177,10 @@ export const PAID_CHIPS = 6;
  * or the other -- so the press that would tick it asks instead.
  */
 export const owesCount = (s, on) => !!(s && s.npcId && rangeOf(s).hi > rangeOf(s).lo && !((on && on.seen || {})[s.npcId] > 0));
+
+/** Whether a stop's count was known before the ship left -- read off
+ *  the board's screenshot or typed beside it -- so nothing asks it. */
+export const knownPaid = (s, on) => !!(s && s.npcId && on && (on.known || []).includes(String(s.npcId)) && on.seen[s.npcId] > 0);
 
 /** The range an island pays, as the table gives it -- kept even once
  *  the run has been laid again at the count it was seen to pay. */
@@ -880,7 +884,7 @@ export function recordTrip(plan, from, on = sailing(), { abandoned = false } = {
 	for (const [k, s] of plan.stops.entries()) {
 		if (!ticked(on.done, s, k, plan.stops) || !s.npcId) continue;
 		const n = on.seen[s.npcId];
-		if (n && s.recvMin !== s.recvMax) {
+		if (n && rangeOf(s).hi > rangeOf(s).lo) {
 			const key = ratioKey(s);
 			ratios[key] = { ...(ratios[key] || {}), [n]: ((ratios[key] || {})[n] || 0) + s.times };
 		}

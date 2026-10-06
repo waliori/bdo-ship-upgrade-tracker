@@ -5969,5 +5969,7 @@
 	"Sailed run after run while the hold kept doubling, and sent the stop lists that showed islands counted twice, one dropped, and a button that did nothing.": "ออกเรือรอบแล้วรอบเล่าขณะที่ระวางเรือเพิ่มเป็นสองเท่าไม่หยุด และส่งรายการจุดแวะที่แสดงเกาะที่ถูกนับซ้ำ เกาะที่หายไปหนึ่งเกาะ และปุ่มที่ไม่ทำอะไรเลย",
 	"Saying what an island paid no longer puts an island you have already traded at back on the checklist, where its goods went into the hold twice and its Parley was spent twice.": "การบอกว่าเกาะจ่ายเท่าไรไม่ทำให้เกาะที่คุณแลกไปแล้วกลับมาในรายการอีก: สินค้าของเกาะนั้นเคยเข้าระวางเรือสองครั้ง และพลังการต่อรองถูกใช้สองครั้ง",
 	"Two players found these, with the screenshots that pinned each one down.": "ผู้เล่นสองคนพบปัญหาเหล่านี้ พร้อมภาพหน้าจอที่ชี้ชัดแต่ละข้อ",
-	"The run is laid at the least; tap what each island paid as you sail, and the hold counts what was paid.": "การออกเรือวางไว้ที่จำนวนน้อยที่สุด แตะว่าแต่ละเกาะจ่ายเท่าไรขณะแล่นเรือ แล้วระวางเรือจะนับตามที่จ่ายจริง"
+	"The run is laid at the least; tap what each island paid as you sail, and the hold counts what was paid.": "การออกเรือวางไว้ที่จำนวนน้อยที่สุด แตะว่าแต่ละเกาะจ่ายเท่าไรขณะแล่นเรือ แล้วระวางเรือจะนับตามที่จ่ายจริง",
+	"pays": "ให้",
+	"What {isle} pays a trade, as its window shows": "จำนวนที่ {isle} ให้ต่อการแลก ตามที่หน้าต่างแสดง"
 }

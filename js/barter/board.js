@@ -484,13 +484,24 @@ export function takeRead(answers) {
 		const list = material ? mb.answers : V.board.answers;
 		const i = list.findIndex(x => x.npcId === a.npcId);
 		if (i >= 0) list.splice(i, 1);   // an island shows one exchange
-		list.push({ npcId: a.npcId, give: a.give, recv: a.recv });
+		list.push({ npcId: a.npcId, give: a.give, recv: a.recv, ...(a.paid > 0 ? { paid: a.paid } : {}) });
 		if (material) mats++;
 	}
 	persist();
 	if (mats) noteMatSeen();
 	const board_ = answers.length - mats;
 	toast(`${answers.length === 1 ? T('{n} island read off the screenshot', { n: answers.length }) : T('{n} islands read off the screenshot', { n: answers.length })}${mats ? ` — ${T('{n} on today\'s board, {mats} ticked on the material list', { n: board_, mats })}` : ''}`, true);
+}
+
+/** What islands paying a range pay on today's boards, read off their
+ *  icons or typed beside them: { npcId: count }. A count holds until
+ *  the board is refreshed, and the answers go with the board. */
+export function boardPaid() {
+	// Read only: it is asked while the plan is drawn, which must not
+	// reset a board or save anything.
+	const out = {};
+	for (const a of [...(V.board.answers || []), ...(V.matBoard.day === barterKey() ? V.matBoard.answers || [] : [])]) if (a.paid > 0) out[a.npcId] = a.paid;
+	return out;
 }
 
 /** What the fleet has read of today's board, once it has been asked

@@ -17,11 +17,13 @@
 // whole one, and what keeps a misread letter from inventing an offer
 // the game has never shown.
 //
-// Pure: words in, offers out. The engine that makes the words is
+// Pure: words in, offers out -- and, for what an island pays, the
+// picture's pixels in, counts out. The engine that makes the words is
 // shot-reader.js, and the dialog that acts on them is barter-import.js.
 
 import { T } from './i18n.js';
 import { editDistance, lineHeight } from './sailor-shot.js';
+import { readCount } from './storage-shot.js';
 
 /** Whether a name is in a script that packs a word into a character
  *  or two -- Hangul, kana, Han, Thai -- where a length that is a
@@ -385,6 +387,94 @@ function tierOf(name) {
  */
 export function offersFrom(words, { isles, deals }) {
 	return rowsOf(words, isles).map(row => offerOf(row, deals));
+}
+
+/**
+ * What each island paying a range pays today, read off its received
+ * icon: the figure in the icon's corner, in the font and the corner the
+ * storage window writes its counts in, and stays until the board is
+ * refreshed. No figure is one.
+ *
+ * The icon is found from its name: it sits just left of where the
+ * received item's name starts, and the names line up in one column, so
+ * the column is the rows' median start -- a word misread on one row
+ * does not move it. Its frame -- a dark square set into the lighter row
+ * -- is then fitted in the pixels, one size for the whole shot.
+ *
+ * `image` is the picture's ImageData, `words` and `rows` what readWords
+ * and offersFrom gave for it, in the reader's coordinates, which are
+ * `scale` times the picture's. Returns Map(island id -> count), with a
+ * count only where the reader was sure of it and it is one the island
+ * can pay; anything else is left to be said on the way.
+ */
+export function paidFrom(image, words, rows, scale = 1) {
+	const { data, width: w, height: h } = image;
+	const out = new Map();
+	const live = rows.filter(r => r.offer);
+	if (!live.length) return out;
+	const lum = (x, y) => { const i = (Math.round(y) * w + Math.round(x)) * 4; return 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]; };
+	// Light just outside every edge, dark just inside.
+	const frame = (cx, cy, side) => {
+		const x0 = cx - side / 2, y0 = cy - side / 2, x1 = x0 + side, y1 = y0 + side;
+		if (x0 < 4 || y0 < 4 || x1 > w - 5 || y1 > h - 5) return -Infinity;
+		let sc = 0;
+		for (let t = 3; t < side - 3; t += 2) {
+			sc += lum(x0 + t, y0 - 2) - lum(x0 + t, y0 + 2) + lum(x0 + t, y1 + 2) - lum(x0 + t, y1 - 2)
+				+ lum(x0 - 2, y0 + t) - lum(x0 + 2, y0 + t) + lum(x1 + 2, y0 + t) - lum(x1 - 2, y0 + t);
+		}
+		return sc / side;
+	};
+	// The best frame ending a third of an icon before x1, near height y.
+	const fit = (x1, y, sides) => {
+		let best = null;
+		for (const side of sides) {
+			const c = x1 - side * 0.82;
+			for (let cx = Math.round(c - side / 4); cx <= Math.round(c + side / 4); cx++) {
+				for (let cy = Math.round(y - side * 0.4); cy <= Math.round(y + side * 0.4); cy++) {
+					const v = frame(cx, cy, side);
+					if (!best || v > best.v) best = { cx, cy, side, v };
+				}
+			}
+		}
+		return best;
+	};
+	const toks = t => String(t).normalize('NFKD').replace(/\p{M}+/gu, '').toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+	// Where a name starts on its row: its leftmost word, right of what
+	// the row gives -- a word the two names share is the received one's
+	// only there.
+	const startOf = (row, name, after) => {
+		const want = toks(name).filter(t => t.length >= 3);
+		const hits = row.words.filter(x => {
+			const t = toks(x.text).join('');
+			return t.length >= 3 && x.x0 / scale > after && want.some(v => v.startsWith(t) || t.startsWith(v));
+		});
+		if (!hits.length) return null;
+		const first = hits.reduce((a, b) => (b.x0 < a.x0 ? b : a));
+		return { x: first.x0 / scale, y: (first.y0 + first.y1) / 2 / scale };
+	};
+	const est = 1.9 * lineHeight(words) / scale;
+	const median = xs => xs.sort((a, b) => a - b)[xs.length >> 1];
+	const at = live.map(r => {
+		const give = startOf(r, r.offer.give, -Infinity);
+		return startOf(r, r.offer.item, give ? give.x + est * 2 : -Infinity);
+	});
+	const xs = at.filter(Boolean).map(a => a.x);
+	if (!xs.length) return out;
+	const x1 = median(xs);
+	const all = [];
+	for (let k = Math.round(est * 0.7); k <= Math.round(est * 1.5); k++) all.push(k);
+	const sides = at.filter(Boolean).map(a => fit(x1, a.y + est * 0.15, all)).filter(Boolean).map(f => f.side);
+	const side = median(sides);
+	live.forEach((r, i) => {
+		const lo = r.offer.recvMin, hi = r.offer.recvMax;
+		if (!at[i] || !(hi > lo)) return;
+		const f = fit(x1, at[i].y + side * 0.15, [side - 1, side, side + 1]);
+		// The storage count's square is a slot and its gap; the icon
+		// alone is a tenth narrower.
+		const read = readCount(data, w, h, { cx: f.cx, cy: f.cy }, f.side * 1.1);
+		if (!read.doubt && read.count >= lo && read.count <= hi) out.set(r.isle.id, read.count);
+	});
+	return out;
 }
 
 /**

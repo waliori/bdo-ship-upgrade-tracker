@@ -578,6 +578,45 @@ test('a run under way takes nothing more out of the harbour than it loaded there
 	await context.close();
 });
 
+test('a count the board knows is said before the ship leaves: the checklist, the cockpit and the map card do not ask it', async () => {
+	// The barter window's screenshot showed what Ginburrey pays today (3);
+	// Tulu's count was not read. Casting off says Ginburrey's on the
+	// checklist and marks it known; only Tulu still owes its count.
+	const { page, context, errors } = await open('#barter');
+	const r = await page.evaluate(async () => {
+		const { V } = await import('/js/barter/state.js');
+		const { owesCount, knownPaid, sailFor } = await import('/js/barter/sail.js');
+		const { stopAsks } = await import('/js/barter/route.js');
+		const { sailHTML } = await import('/js/barter/cockpit.js');
+		const { barterAction } = await import('/js/barter/actions.js');
+		const { barterKey } = await import('/js/clock.js');
+		const isle = (npcId, npc, give, item, n) => ({ npcId, npc, give, giveN: 1, item, recv: n || 2, recvMin: n || 2, recvMax: n || 3, rangeMin: 2, rangeMax: 3, recvText: n ? String(n) : '2-3', times: 10, parley: 106930, weightAfter: 0, level: 3, chain: 0 });
+		const ginburrey = isle(58941, 'Denio', '[Level 2] Big Stone Slab', '[Level 3] Torn Pirate Treasure Map', 3);
+		const tulu = isle(58942, 'Metakio', '[Level 3] Torn Pirate Treasure Map', "[Level 4] Pirate's Key");
+		V.board = { day: barterKey(), answers: [{ npcId: 58941, give: ginburrey.give, recv: ginburrey.item, paid: 3 }, { npcId: 58942, give: tulu.give, recv: tulu.item }], own: true };
+		V.shownPlan = { stops: [ginburrey, tulu], loaded: [], weightStart: 0, order: [] };
+		barterAction('barter-sail', { dataset: {} }, () => {});
+		const on = V.sail, [g, t] = on.stops;
+		const cockpit = sailHTML();
+		return {
+			cockpit: [cockpit.includes('data-act="barter-paid"'), cockpit.includes('cockpit-ask"'), cockpit.includes('data-act="barter-stop-done"')],
+			seen: on.seen, known: on.known,
+			owes: [owesCount(g, on), owesCount(t, on)], knownPaid: [knownPaid(g, on), knownPaid(t, on)],
+			asks: [stopAsks(g, 0, on.stops, on).includes('barter-paid'), stopAsks(t, 1, on.stops, on).includes('barter-paid')],
+			card: [sailFor(58941).ask, sailFor(58942).ask !== '']
+		};
+	});
+	assert.deepEqual(r.seen, { 58941: 3 });
+	assert.deepEqual(r.known, ['58941']);
+	assert.deepEqual(r.owes, [false, true], 'only Tulu owes its count');
+	assert.deepEqual(r.knownPaid, [true, false]);
+	assert.deepEqual(r.asks, [false, true], 'the checklist asks Tulu only');
+	assert.deepEqual(r.card, ['', true], 'and so does the map card');
+	assert.deepEqual(r.cockpit, [false, false, true], 'at Ginburrey the cockpit has one Traded press and no question');
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
 test('a count said on the way leaves the checklist as it was cast off: no island twice, none lost, every pickup and bag move where it was', async () => {
 	// Saying what an island paid used to lay the whole run again from cast-off
 	// and stitch it into the checklist half sailed. Every way the new laying's
