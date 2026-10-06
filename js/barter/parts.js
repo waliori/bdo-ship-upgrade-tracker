@@ -24,7 +24,7 @@ import { heldOf } from './material.js';
 import { packedNow, sparesOf, packingOf, packingLT, packingSlots, packingCount, tripsOf, stagedRun, tripsHTML, leaveHomeHTML, packingHTML, afterShelfHTML } from './packing.js';
 import { chartButton, parleyGuessed, parleyOf, stashAt, ordersNow, payRangeHTML, perUnitText, perHourText, stockGains, aheadHTML, goalLine, ladderHTML, howLine, howHTML, parleyLine, parleyHTML, marketDead, chainRow, soloRun } from './plan.js';
 import { docks, bagNow, stashes, withWaits, withRations, rationsLine, legsOf, questPlan, questsLine, questsPanels, n1, TIER, ledgerOf, runTime, routeEditBar, castOffRow, stopRows, cutsHTML } from './route.js';
-import { sailing, planSeen, syncSail, castOffCaps, castOffLand, digest } from './sail.js';
+import { sailing, planSeen, castOffCaps, castOffLand, digest } from './sail.js';
 import { SEARCH_BUDGET_MS, presetSearch, proposeAsync, searching, redrawSoon, expectedBest } from './search.js';
 import { loadingNote } from '../loading.js';
 import { coinsOf, coinRange, bonusNote, coinPurseHTML, shortSummary, shortHTML, canAppearHTML } from './short.js';
@@ -526,7 +526,6 @@ export function silverParts(me, b) {
 	plan.stops = withRations(withWaits(qp.stops, plan.weightStart), plan.weightStart);
 	plan.questsHome = qp.home;
 	V.shownPlan = plan;
-	syncSail(plan);
 	const legs = legsOf(plan.stops);
 	// The Parley bar, stop by stop, for the whole run at once -- the
 	// chain segments below draw their own stops from the same book.

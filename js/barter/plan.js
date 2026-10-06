@@ -272,7 +272,7 @@ export function payRangeHTML(plan, opts, chosen, edits, seen, coining, stocking,
 	const cell = (k, v, trades, left, cls = '') => `<span class="pay-range-cell${cls ? ` ${cls}` : ''}"><em>${k}</em><b>${said(v)}</b><small>${T('{n} trades', { n: F(Math.round(trades || 0)) })}${Math.round(left) ? ` · ${T('{n} goods left over', { n: F(Math.round(left)) })}` : ''}</small></span>`;
 	const html = `<div class="pay-range"><span class="pay-range-k">${open.length === 1 ? T('{n} island on this run pays a range', { n: open.length }) : T('{n} islands on this run pay a range', { n: open.length })}</span>
 		${cell(T('each pays its least'), val(plan), plan.trades, over(plan), 'on')}${cell(T('halfway'), mid.v, mid.trades, mid.over)}${cell(T('each pays its most'), val(most), most.trades, over(most))}
-		<span class="pay-range-note">${T('The run is laid at the least; tap what each island paid as you sail and the rest is laid again from it.')}</span></div>`;
+		<span class="pay-range-note">${T('The run is laid at the least; tap what each island paid as you sail, and the hold counts what was paid.')}</span></div>`;
 	V.payMemo = { key, html };
 	return html;
 }

@@ -430,7 +430,7 @@ export function barterAction(act, el, redraw) {
 			if (!V.shownPlan) return false;
 			// The packing the wharf step wrote goes with the run, for Abandon
 			// to put back; and what the step said, to be read on the way.
-			V.sail = { key: sailKey(), done: [], seen: {}, got: {}, kept: [], laidFor: '{}', cal: sailCal(), ...sailRecord(V.shownPlan), packLog: V.packLog, told: toldOf(V.shownPlan, fromPort()) };
+			V.sail = { key: sailKey(), done: [], seen: {}, got: {}, kept: [], cal: sailCal(), ...sailRecord(V.shownPlan), packLog: V.packLog, told: toldOf(V.shownPlan, fromPort()) };
 			V.packLog = { delta: {}, moves: [] };
 			// Sailing starts the clock, since that press is the moment the
 			// ship leaves -- and it is the gesture the browser wants before
@@ -516,11 +516,9 @@ export function barterAction(act, el, redraw) {
 			const on = sailing();
 			const plan = sailedPlan();
 			if (!on || !plan) return false;
-			// The quests first: handing them in redraws the run without the
-			// stops put in for them, and the stops ticked are the ones left.
-			// Handing a lot in frees the way for takers left out before,
-			// and the run laid again takes them in: so again, until the run
-			// has nothing left to hand in.
+			// The quests first: every quest the checklist hands in, then the
+			// stops. The checklist stays as it was cast off, so a second round
+			// finds nothing more and the loop ends.
 			let claimed = 0;
 			for (let round = 0; V.sailAll.quests && round < 6; round++) {
 				const list = [...(plan.questsHome || []), ...plan.stops.flatMap(s => s.quests || [])].filter(x => x.step.what !== 'hunt').map(x => x.q).filter((q, i, a) => a.indexOf(q) === i && !questDone(q) && rewardOf(q));
