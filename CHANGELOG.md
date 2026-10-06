@@ -5,6 +5,41 @@ someone who has been away. The same notes are in the app itself, under
 **Menu → What's new** — this file is generated from them by
 `node tools/build-changelog.mjs`, so the two cannot drift apart.
 
+## 1.5.3 — What each island pays, off the screenshot
+
+*2026-10-06*
+
+An island that pays a range — a [Level 2] paying 2 or 3, a coin island paying 90–200 — used to be planned at the least and asked at every stop. The screenshot you already paste for the board shows what each one pays today, so the app reads it, plans the run at that count and stops asking.
+
+### Asked for by you
+
+One player asked for it, and another found what it replaces.
+
+- **Kairukae [靈花]** — Asked why the app made you say ×2 or ×3 at every stop when the barter window already shows it: paste the window, and let the app keep track.
+- **Theophilos** — His runs that counted islands twice showed that laying the route again on the way was the trouble; a count said now goes to the hold, and the checklist stays as it was cast off.
+
+The box is under **Menu → Feedback**. It reaches whoever runs the site.
+
+### What each island pays, read off its icon
+
+![A Crow Coin window read: each island’s icon corner beside its count, and the one the reader was unsure of typed from its picture](docs/media/small/counts-off-the-icon.gif)
+
+**Before:** An island paying a range was planned at its least, weighed at its most, and asked what it paid at every stop.
+
+**Now:** The figure on each received icon is read with the board: the ×2 or ×3, the Crow Coins, the seals. The run — trade goods, coins or materials — is laid at that count, carried and weighed alike, and the cockpit does not ask it again. A count holds until you refresh the board.
+
+### Checked in the app, not in the game
+
+![A Lv1 to Lv2 window read: the 2 each island pays, beside the corner of its icon](docs/media/small/twos-off-the-icon.png)
+
+Beside every count is the corner of the icon it was read off, as your screenshot had it. One the reader was not sure of is left empty for you to type from that picture; one left empty is asked on the way, as before.
+
+### A count said on the way is counted, not re-planned
+
+- Saying what an island paid no longer lays the run again: the checklist stays as it was cast off, and the hold counts what was paid.
+- An island dealing the same good for Crow Coins two ways — 90–200 or 360–440 — is told apart by the figure on its icon.
+- An island whose name has the arrow button’s marks before it in the screenshot is read again: Baeza, Kuit and others.
+
 ## 1.5.2 — Runs that keep count
 
 *2026-10-05*

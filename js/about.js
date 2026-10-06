@@ -64,6 +64,50 @@ export const DATA = [
  */
 export const RELEASES = [
 	{
+		id: '1.5.3',
+		name: TT('What each island pays, off the screenshot'),
+		date: '2026-10-06',
+		sum: TT('The barter window you paste is also read for what each island pays — the ×2 or ×3, the Crow Coins, the seals — and the run is laid at that count, with nothing to tick on the way.'),
+		thanks: {
+			text: TT('One player asked for it, and another found what it replaces.'),
+			who: [
+				{
+					name: 'Kairukae [靈花]',
+					did: TT('Asked why the app made you say ×2 or ×3 at every stop when the barter window already shows it: paste the window, and let the app keep track.')
+				},
+				{
+					name: 'Theophilos',
+					did: TT('His runs that counted islands twice showed that laying the route again on the way was the trouble; a count said now goes to the hold, and the checklist stays as it was cast off.')
+				}
+			],
+			foot: TT('The box is under <b>Menu \u2192 Feedback</b>. It reaches whoever runs the site.')
+		},
+		blurb: TT('An island that pays a range — a [Level 2] paying 2 or 3, a coin island paying 90–200 — used to be planned at the least and asked at every stop. The screenshot you already paste for the board shows what each one pays today, so the app reads it, plans the run at that count and stops asking.'),
+		sections: [
+			{
+				title: TT('What each island pays, read off its icon'),
+				media: 'docs/media/small/counts-off-the-icon.gif',
+				alt: TT('A Crow Coin window read: each island’s icon corner beside its count, and the one the reader was unsure of typed from its picture'),
+				before: TT('An island paying a range was planned at its least, weighed at its most, and asked what it paid at every stop.'),
+				text: TT('The figure on each received icon is read with the board: the ×2 or ×3, the Crow Coins, the seals. The run — trade goods, coins or materials — is laid at that count, carried and weighed alike, and the cockpit does not ask it again. A count holds until you refresh the board.')
+			},
+			{
+				title: TT('Checked in the app, not in the game'),
+				media: 'docs/media/small/twos-off-the-icon.png',
+				alt: TT('A Lv1 to Lv2 window read: the 2 each island pays, beside the corner of its icon'),
+				text: TT('Beside every count is the corner of the icon it was read off, as your screenshot had it. One the reader was not sure of is left empty for you to type from that picture; one left empty is asked on the way, as before.')
+			},
+			{
+				title: TT('A count said on the way is counted, not re-planned'),
+				points: [
+					TT('Saying what an island paid no longer lays the run again: the checklist stays as it was cast off, and the hold counts what was paid.'),
+					TT('An island dealing the same good for Crow Coins two ways — 90–200 or 360–440 — is told apart by the figure on its icon.'),
+					TT('An island whose name has the arrow button’s marks before it in the screenshot is read again: Baeza, Kuit and others.')
+				]
+			}
+		]
+	},
+	{
 		id: '1.5.2',
 		name: TT('Runs that keep count'),
 		date: '2026-10-05',
@@ -1027,6 +1071,15 @@ export const RELEASES = [
 export const RELEASE = RELEASES[0].id;
 
 export const CHANGES = [
+	{
+		date: '2026-10-06',
+		title: TT('What each island pays, read off the barter window'),
+		notes: [
+			TT('<b>Barter screenshots.</b> The figure on each received icon is read — ×2 or ×3, Crow Coins, seals — with its corner shown beside it to check, and an empty box to type the ones not read.'),
+			TT('<b>Runs.</b> Trade, coin and material runs are laid at the counts read, and the cockpit does not ask them; the rest are asked as before.'),
+			TT('<b>On the way.</b> A count said no longer lays the run again: the checklist stays as cast off and the hold counts what was paid.')
+		]
+	},
 	{
 		date: '2026-10-05',
 		title: TT('A barter run that keeps count, and twenty-two on a Carrack'),
