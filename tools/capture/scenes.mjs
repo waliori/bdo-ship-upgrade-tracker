@@ -295,6 +295,26 @@ const scenes = {
 		await page.setViewport({ width: 1280, height: 820, deviceScaleFactor: 1 });
 	},
 
+	/* 1.5.3 — a Crow Coin window read: each range island's icon corner
+	 * beside its count, the one the reader was unsure of typed off its
+	 * picture, and the islands answered. */
+	async 'counts-off-the-icon'({ page, url }) {
+		await page.setViewport({ width: 940, height: 640, deviceScaleFactor: 1 });
+		await seed(page, url, fittedShip);
+		await tab(page, 'barter');
+		const [chooser] = await Promise.all([page.waitForFileChooser(), click(page, '[data-act="barter-shot"]', { after: 900 })]);
+		await chooser.accept([shot('barter-coins.webp')]);
+		await waitFor(page, '#dialog .shot-table', { upTo: 240000, then: 900 });
+		await rec(page, 'counts-off-the-icon', async () => {
+			await wait(1000);
+			await moveTo(page, '#dialog .shot-paid');
+			await wait(1600);
+			await typeInto(page, '#dialog input[data-paid][value=""]', '141', { after: 1200 });
+			await click(page, '#dialog [data-use]', { after: 1800 });
+		});
+		await page.setViewport({ width: 1280, height: 820, deviceScaleFactor: 1 });
+	},
+
 	/* 1.4 — the layout book, with a fleet made up for the purpose (see
 	 * fakeSea): the shelf, a board that is in no record, and a layout
 	 * opened out island by island. */
@@ -1047,6 +1067,21 @@ const scenes = {
 };
 
 const stills = {
+	/* 1.5.3 — a Lv1 to Lv2 window read: the x2 each island pays, off its icon. */
+	async 'twos-off-the-icon'({ page, url }) {
+		await page.setViewport({ width: 940, height: 1000, deviceScaleFactor: 1 });
+		await seed(page, url, fittedShip);
+		await tab(page, 'barter');
+		const [chooser] = await Promise.all([page.waitForFileChooser(), click(page, '[data-act="barter-shot"]', { after: 900 })]);
+		await chooser.accept([shot('barter-lv2.webp')]);
+		await waitFor(page, '#dialog .shot-table', { upTo: 240000, then: 900 });
+		await page.evaluate(() => document.getElementById('__cur')?.remove());
+		await wait(400);
+		await wait(1200);   // the dialog's own entrance, done
+		await (await page.$('#dialog .dialog-box')).screenshot({ path: `${OUT}/twos-off-the-icon.png` });
+		await page.keyboard.press('Escape');
+		await page.setViewport({ width: 1280, height: 820, deviceScaleFactor: 1 });
+	},
 	/* 1.5 — Help: the film in seventeen chapters, each a place to start. */
 	async 'the-chapters'({ page, url }) {
 		await page.setViewport({ width: 900, height: 1000, deviceScaleFactor: 1 });

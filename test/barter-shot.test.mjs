@@ -16,7 +16,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-import { offersFrom, rowsOf, cover, plain, tierIn, isleAt, linesOf, figuresFrom, wholeIn, windowWords } from '../js/barter-shot.js';
+import { offersFrom, rowsOf, cover, plain, tierIn, isleAt, linesOf, figuresFrom, wholeIn, windowWords, paidFrom } from '../js/barter-shot.js';
 import { npcs } from '../js/barter_npcs.js';
 import { exchanges } from '../js/barter-plan.js';
 
@@ -122,6 +122,17 @@ test('an island is read at the start of a row and nowhere else', () => {
 	// the same words, but the island sits in the middle of the row
 	const shifted = linesOf(words.map(w => ({ ...w, x0: w.x0 + 400, x1: w.x1 + 400 })))[0];
 	assert.equal(isleAt(shifted, npcs, { left: 200 }), null);
+});
+
+test('the marks the arrow button leaves before a name are not part of it', () => {
+	// As read off a coin window: "4" and a quote from the arrow, then the name.
+	const line = linesOf([
+		{ text: '4', x0: 28, y0: 2, x1: 40, y1: 20 },
+		{ text: '"', x0: 55, y0: 0, x1: 60, y1: 18 },
+		{ text: 'Baeza', x0: 74, y0: 2, x1: 112, y1: 20 },
+		{ text: 'Island', x0: 117, y0: 2, x1: 160, y1: 20 }
+	])[0];
+	assert.equal(isleAt(line, npcs, { left: 200 }).isle.at, 'Baeza Island');
 });
 
 test('a line of furniture is not an island', () => {
@@ -336,4 +347,49 @@ test('the game\u2019s own window, 2026-09-27: the islands that roll a good or co
 		assert.ok(l31.rolls[a.npcId], `${name} rolls on layout 31`);
 		assert.ok(fitsAt(l31, a.npcId, a.give, a.recv), `${name}: what was read is one of its options`);
 	}
+});
+
+/* ------------------------------------------------------------------ *
+ * what an island pays, off its received icon
+ * ------------------------------------------------------------------ */
+
+// A real window: the rows as the reader found them and the strip of
+// pixels round their received icons (fixtures/barter-paid.json).
+const PAID = JSON.parse(readFileSync(new URL('./fixtures/barter-paid.json', import.meta.url), 'utf8'));
+const COINS = JSON.parse(readFileSync(new URL('./fixtures/barter-paid-coins.json', import.meta.url), 'utf8'));
+const paidRead = (fix, rows = fix.rows, all = []) => {
+	const rgb = Buffer.from(fix.rgb, 'base64'), data = new Uint8ClampedArray(fix.w * fix.h * 4);
+	for (let i = 0; i < fix.w * fix.h; i++) { data.set(rgb.subarray(i * 3, i * 3 + 3), i * 4); data[i * 4 + 3] = 255; }
+	const word = ([text, x0, y0, x1, y1]) => ({ text, x0, y0, x1, y1 });
+	const live = rows.map(r => ({ isle: { id: r.isle }, offer: { npcId: r.isle, give: r.give, item: r.item, recvMin: r.recvMin, recvMax: r.recvMax }, words: r.words.map(word) }));
+	return paidFrom({ data, width: fix.w, height: fix.h }, fix.words.map(word), live, fix.scale, all);
+};
+const sure = read => new Map([...read].filter(([, x]) => x.n > 0).map(([id, x]) => [id, x]));
+const paidShot = (rows = PAID.rows) => new Map([...sure(paidRead(PAID, rows))].map(([id, x]) => [id, x.n]));
+
+test('the figure on a received icon is what an island paying a range pays, and one paying a fixed count is not read', () => {
+	// Two islands paying 25-50 Cox seals, showing 25 and 34; one paying
+	// 1-2 timber, showing 2; three paying one thing, read for nothing.
+	assert.deepEqual(Object.fromEntries(paidShot()), { 58946: 25, 58947: 34, 58970: 2 });
+});
+
+test('a figure the island cannot pay is not taken, however plainly it reads', () => {
+	// The 2 on the timber island, were its range 3-5: misread, or the
+	// wrong exchange picked for the row. Left for the checklist to ask.
+	const rows = PAID.rows.map(r => (r.isle === 58970 ? { ...r, recvMin: 3, recvMax: 5 } : r));
+	const read = paidShot(rows);
+	assert.equal(read.has(58970), false);
+	// Its icon is still found, for the dialog to show it.
+	assert.ok(paidRead(PAID, rows).get(58970).icon.side > 30);
+	assert.equal(read.get(58946), 25);
+});
+
+test('a coin island dealing one good two ways is told apart by its figure: the exchange is the one whose range holds it', () => {
+	// Rickun, Pakio and Haran read as their 90-200 and 175-325 exchanges,
+	// and show 385, 426 and 400: their 360-440 twins, with the same words.
+	const read = sure(paidRead(COINS, COINS.rows, deals));
+	assert.deepEqual(Object.fromEntries([...read].map(([id, x]) => [id, [x.n, x.deal.recvMin, x.deal.recvMax]])),
+		{ 50819: [385, 360, 440], 50826: [405, 360, 440], 50817: [426, 360, 440], 50814: [400, 360, 440], 50827: [363, 360, 440] });
+	// Without the tables to find the twins in, those three are not taken.
+	assert.deepEqual([...sure(paidRead(COINS)).keys()].sort(), [50826, 50827]);
 });

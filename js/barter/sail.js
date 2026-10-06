@@ -105,7 +105,7 @@ export function sailFor(npcId) {
 	if (!V.sail || !Array.isArray(V.sail.stops)) return null;
 	const s = V.sail.stops.find(x => x.npcId === npcId);
 	if (!s) return null;
-	return { done: V.sail.done.includes(`n${npcId}`), paid: V.sail.seen[npcId] || null, ask: paidAsk(s, V.sail.seen[npcId], true), owes: owesCount(s, V.sail), item: sevenOf(s, V.sail), recvText: s.recvText };
+	return { done: V.sail.done.includes(`n${npcId}`), paid: V.sail.seen[npcId] || null, ask: knownPaid(s, V.sail) ? '' : paidAsk(s, V.sail.seen[npcId], true), owes: owesCount(s, V.sail), item: sevenOf(s, V.sail), recvText: s.recvText };
 }
 
 /** What the chime calls a run: where it starts and how far it goes. */
@@ -177,6 +177,10 @@ export const PAID_CHIPS = 6;
  * or the other -- so the press that would tick it asks instead.
  */
 export const owesCount = (s, on) => !!(s && s.npcId && rangeOf(s).hi > rangeOf(s).lo && !((on && on.seen || {})[s.npcId] > 0));
+
+/** Whether a stop's count was known before the ship left -- read off
+ *  the board's screenshot or typed beside it -- so nothing asks it. */
+export const knownPaid = (s, on) => !!(s && s.npcId && on && (on.known || []).includes(String(s.npcId)) && on.seen[s.npcId] > 0);
 
 /** The range an island pays, as the table gives it -- kept even once
  *  the run has been laid again at the count it was seen to pay. */
@@ -598,73 +602,6 @@ export function sailRecord(plan) {
 }
 
 /**
- * The checklist laid again from what the islands paid.
- *
- * The run's stops were written down once, at cast-off, and a count
- * tapped on the way -- Sokota paid three, not two -- laid the plan
- * again on the tab and left the checklist standing as it was: the
- * cockpit and the Map went on saying the old counts and the old
- * weights all the way to the end. So whenever the plan is laid with a
- * new set of answers, the record is written again from it. The ticks
- * are kept -- they are keyed by place, not by position -- and a stop
- * put in or taken out by the new laying is simply there or not.
- */
-export function syncSail(plan) {
-	const on = sailing();
-	if (!on || !plan || !plan.stops || !plan.stops.length) return;
-	const laidFor = JSON.stringify(on.seen || {});
-	if (on.laidFor === laidFor) return;
-	// Quest stops ticked before the new laying keep their tick by place:
-	// laid again, a quest stop can move among the stops and answer to a
-	// new name, and the tick stayed behind on the old one.
-	const oldStops = Array.isArray(on.stops) ? on.stops : [];
-	const questPlaces = new Set(oldStops.filter((s, k) => s.quest && s.place && ticked(on.done, s, k, oldStops)).map(s => s.place.name));
-	// What has been sailed stays as it was sailed. Laid again from the
-	// cast-off with the new counts, the run can reorder or add stops
-	// before the ship's place -- a call to sell a good loaded at the
-	// start, put in ahead of the call already made -- and the ticks and
-	// the hold were then read against a route nobody sailed. So the new
-	// laying is taken from the last stop ticked on; where it no longer
-	// passes there, the run is kept as it is.
-	const rec = sailRecord(plan);
-	let last = -1;
-	oldStops.forEach((s, k) => { if (ticked(on.done, s, k, oldStops)) last = k; });
-	if (last >= 0) {
-		const key = stopKey(oldStops[last], last, oldStops);
-		const j = rec.stops.findIndex((s, i) => stopKey(s, i, rec.stops) === key);
-		if (j < 0) { on.laidFor = laidFor; persist(); return; }
-		// An island deals once a run, and its tick is kept by its name: one
-		// the new laying visits after the last tick but the ship has already
-		// been to would come back on the end of the checklist ticked, and
-		// write its goods into the hold a second time. And one not yet
-		// sailed that the new laying puts before the last tick is still to
-		// sail: dropped, the island after it asked for goods never made. It
-		// goes next, in the new laying's order -- which never puts a stop
-		// ahead of the one that makes its goods.
-		const sailedIsles = new Set(oldStops.slice(0, last + 1).filter(s => s.npcId).map(s => s.npcId));
-		const ahead = s => s.npcId && !sailedIsles.has(s.npcId);
-		rec.stops = [...oldStops.slice(0, last + 1), ...rec.stops.slice(0, j).filter(ahead), ...rec.stops.slice(j + 1).filter(s => !sailedIsles.has(s.npcId))];
-		// And what was loaded before casting off stays what was loaded:
-		// the hold is written from it, and a new laying's load is goods
-		// still in the storage behind the ship.
-		for (const k of ['loaded', 'bagLoaded', 'bagFromHold', 'weightStart', 'slotsStart', 'bought', 'cost']) if (k in on) rec[k] = on[k];
-	}
-	Object.assign(on, rec, { laidFor });
-	// A quest stop the new laying puts in, whose quests were all handed
-	// in already -- "All done" hands them in before the counts are said
-	// -- is a stop already made: ticked, not left standing at the end.
-	const done = new Set(on.done);
-	on.stops.forEach((s, k) => {
-		if (!s.quest) return;
-		const qs = hydrate(s.quests);
-		if (s.place && questPlaces.has(s.place.name)) done.add(stopKey(s, k, on.stops));
-		else if (qs.length && qs.every(x => x.q && questDone(x.q))) done.add(stopKey(s, k, on.stops));
-	});
-	on.done = [...done];
-	persist();
-}
-
-/**
  * What a run already cast off may take out of the harbour's storage:
  * what it loaded there, what it put in the bag there, and what its
  * calls back pick up -- and nothing more of any good that waits there.
@@ -947,7 +884,7 @@ export function recordTrip(plan, from, on = sailing(), { abandoned = false } = {
 	for (const [k, s] of plan.stops.entries()) {
 		if (!ticked(on.done, s, k, plan.stops) || !s.npcId) continue;
 		const n = on.seen[s.npcId];
-		if (n && s.recvMin !== s.recvMax) {
+		if (n && rangeOf(s).hi > rangeOf(s).lo) {
 			const key = ratioKey(s);
 			ratios[key] = { ...(ratios[key] || {}), [n]: ((ratios[key] || {})[n] || 0) + s.times };
 		}

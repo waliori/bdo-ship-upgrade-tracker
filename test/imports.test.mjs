@@ -63,3 +63,22 @@ test('every name imported from a module in js/ is one it exports', () => {
 	}
 	assert.deepEqual(missing, []);
 });
+
+// A run's checklist is written when the run is cast off and read back
+// when a save is opened -- never while it is sailed. Saying what an
+// island paid once laid the run again and stitched the new laying into
+// the checklist half sailed, and every way the new laying's past differed
+// from the one sailed was a bug: islands traded twice, islands dropped,
+// pickups and bag moves lost. The count is the hold's; the stops stay.
+test('nothing rewrites a run\'s checklist while it is sailed', () => {
+	const writes = [];
+	for (const f of files) {
+		fs.readFileSync(f, 'utf8').split('\n').forEach((line, k) => {
+			if (/\b(V\.sail|sail|on)\.stops\s*=[^=]|Object\.assign\(\s*(V\.sail|on)\b|\bV\.sail\s*=\s*\{/.test(line)) writes.push(`${path.relative(ROOT, f)}:${k + 1}`);
+		});
+	}
+	const files_ = writes.map(w => w.replace(/:\d+$/, ''));
+	assert.deepEqual([...new Set(files_)].sort(), ['js/barter/actions.js', 'js/barter/view.js'],
+		`only casting off (actions.js) and opening a save (view.js) write the checklist: ${writes.join(', ')}`);
+	assert.equal(writes.length, 2, `one write each: ${writes.join(', ')}`);
+});

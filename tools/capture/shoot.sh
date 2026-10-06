@@ -51,7 +51,7 @@ gif_size() {
 		share-a-drawing|todays-errands) echo "720 8" ;;
 		# The 1.4 clips are dialogs full of small pictures that scroll: a
 		# narrower frame and fewer of them, or the book alone is three megabytes.
-		read-a-storage|read-the-window) echo "780 9" ;;
+		read-a-storage|read-the-window|counts-off-the-icon) echo "780 9" ;;
 		the-layout-book) echo "780 8" ;;
 		a-dry-chain) echo "900 10" ;;
 		# The barter steps: each press opens a new page of the tab, and
@@ -99,7 +99,7 @@ for name in share-a-drawing your-own-board a-call-in-hand; do
 done
 # The errands panel redraws its whole list at once and then the chart
 # under it, so it goes narrower and slower again.
-for name in read-a-storage read-the-window; do
+for name in read-a-storage read-the-window counts-off-the-icon; do
 	./tools/capture/togif.sh "$RAW/$name.webm" "$OUT/small/$name.gif" 480 7
 done
 # The 1.2 barter clips the What's New dialog serves.
@@ -129,6 +129,8 @@ done
 # shows in a chat, which is the og card itself.
 ffmpeg -v error -y -i "$RAW/the-chapters.png" -vf "crop=560:820:170:90,scale=480:-2" "$OUT/small/the-chapters.png"
 ffmpeg -v error -y -i og/ship.png -vf scale=560:-2 "$OUT/small/link-preview.png"
+# 1.5.3: a Lv1 to Lv2 window read, its x2 counts beside their icons.
+ffmpeg -v error -y -i "$RAW/twos-off-the-icon.png" -vf scale=560:-2 "$OUT/small/twos-off-the-icon.png"
 
 # The link-preview cards: the og still above wrote them, each already
 # held under 600 KB, and og.png beside them.

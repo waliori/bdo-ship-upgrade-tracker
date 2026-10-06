@@ -22,7 +22,7 @@ import { weightOf, slotsHeld, slotsFor, rankOf } from '../barter-plan.js';
 import { parleyOf, ordersNow } from './plan.js';
 import { placeOf, legsOf, questWanted, tradesDone, questChip, n1, TIER, ledgerOf, doneLabel, sevenOf, fourNote, stopDid, stopAsks, rationMarks } from './route.js';
 import { fmtRations, RATION_RESERVE } from '../rations.js';
-import { sailing, stopKey, ticked, runLabel, runMarks, PAID_CHIPS, owesCount, rangeOf, paidAsk, unsaid, sailedPlan, aboardNow, stopEffects } from './sail.js';
+import { sailing, stopKey, ticked, runLabel, runMarks, PAID_CHIPS, owesCount, rangeOf, paidAsk, knownPaid, unsaid, sailedPlan, aboardNow, stopEffects } from './sail.js';
 import { VOUCHER } from './view.js';
 
 /* ------------------------------------------------------------------ *
@@ -412,7 +412,9 @@ export function cockpitHTML({ map = false } = {}) {
 	// which as it is ticked, since the press is the same press; one that
 	// pays a wide range has a box to type the window's figure into.
 	const { lo, hi } = rangeOf(s);
-	const fewPays = s.npcId && hi > lo && hi - lo + 1 <= PAID_CHIPS;
+	// A count known before the ship left is not asked: one Traded press.
+	const known = knownPaid(s, on);
+	const fewPays = s.npcId && hi > lo && hi - lo + 1 <= PAID_CHIPS && !known;
 	// An island that pays two or three keeps its chips once it is done,
 	// the one tapped marked: a count tapped wrong is put right by tapping
 	// the other, without unticking anything. The Map's card kept its
@@ -425,7 +427,7 @@ export function cockpitHTML({ map = false } = {}) {
 			: owesCount(s, on)
 				? `<button class="cockpit-go waits" disabled title="${T('Type what the window showed first')}">${T('Traded ×{n}', { n: F(s.times) })} — ${T('type what it paid')}</button>`
 				: `<button class="cockpit-go" data-act="barter-stop-done" data-k="${esc(key)}">${s.npcId ? `${T('Traded ×{n}', { n: F(s.times) })}${hi > lo && said > 0 ? ` · ${T('paid {n}', { n: F(said) })}` : ''}` : doneLabel(s)}</button>${s.wait ? `<button class="cockpit-go end" data-act="barter-step" data-id="results" title="${T('What is ticked so far is the run; the results step records it')}">${T('End the run here')}</button>` : ''}`;
-	const ask = s.npcId && hi > lo
+	const ask = s.npcId && hi > lo && !known
 		? (fewPays ? `<p class="cockpit-ask">${T('This island pays <b>{range}</b> a trade. Tap what it paid — the run is then recorded exactly.', { range: `${lo}-${hi}` })}</p>`
 			: `<p class="cockpit-ask">${T('This island pays a range. Type what the window showed, or pick one:')} ${paidAsk(s, on.seen[s.npcId])}${on.seen[s.npcId] > 0 ? ` <span class="teal">${T('then press Traded')}</span>` : ''}</p>${paidPicks(s, on, map)}`)
 		: '';

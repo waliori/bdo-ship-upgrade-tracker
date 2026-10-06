@@ -555,7 +555,11 @@ export function materialParts(me, data) {
 	// Only the material list's own islands: a refresh deals the material
 	// list or the trade board, never both, so nothing of the trade board
 	// is here to sail for.
-	const picks = showing.filter(a => forRun.has(a.recv) && openTo(a.npcId, a.give, a.recv, barters) && canGive(a.give) && !skipped.has(a.npcId)).map(pickOf).filter(Boolean).map(x => ({ ...x, tries: leftOf(x.npcId, x.tries, matUsed) })).filter(x => x.tries > 0);
+	// An island whose count was read off the window -- or typed beside it --
+	// is laid at that count, carried and weighed alike; the range the table
+	// gives stays beside it, as the trade board's run keeps it.
+	const known = (x, n) => (x && n > 0 ? { ...x, recv: n, recvMin: n, recvMax: n, recvText: String(n), rangeMin: x.recvMin, rangeMax: x.recvMax } : x);
+	const picks = showing.filter(a => forRun.has(a.recv) && openTo(a.npcId, a.give, a.recv, barters) && canGive(a.give) && !skipped.has(a.npcId)).map(a => known(pickOf(a), a.paid)).filter(Boolean).map(x => ({ ...x, tries: leftOf(x.npcId, x.tries, matUsed) })).filter(x => x.tries > 0);
 	// Aboard and given by no island of the run: put in the home harbour's
 	// storage before casting off, and the run laid without it.
 	const gives = new Set(picks.map(x => x.give));

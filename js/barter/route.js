@@ -30,7 +30,7 @@ import { fromPort, sailCal, sailLag } from './board.js';
 import { parleyNotes } from './cockpit.js';
 import { aboardStock } from './hold.js';
 import { ordersNow } from './plan.js';
-import { sailing, stopKey, ticked, owesCount, paidAsk } from './sail.js';
+import { sailing, stopKey, ticked, owesCount, paidAsk, knownPaid } from './sail.js';
 import { VOUCHER, legsCache } from './view.js';
 import { lvChips } from '../lv-chips.js';
 
@@ -546,7 +546,7 @@ export function stopDid(s, board = false) {
  */
 export function stopAsks(s, k, stops, on, { paid = true } = {}) {
 	const key = stopKey(s, k, stops);
-	const ask = paid ? paidAsk(s, on.seen[s.npcId]) : '';
+	const ask = paid && !knownPaid(s, on) ? paidAsk(s, on.seen[s.npcId]) : '';
 	let got = '';
 	if (s.npcId && levelOf(s.item) === 7) {
 		const four = seventhsOf(s.npcId);

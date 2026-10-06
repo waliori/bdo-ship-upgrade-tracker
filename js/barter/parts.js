@@ -17,14 +17,14 @@ import { exchanges, landHeld } from '../barter-plan.js';
 import { chains, chainRun, tailOf } from '../barter-chains.js';
 import { shortTrades } from '../barter-short.js';
 import { V } from './state.js';
-import { fromPort, layCal, spendUsed, continueHTML, keepRoute } from './board.js';
+import { fromPort, layCal, spendUsed, continueHTML, keepRoute, boardPaid } from './board.js';
 import { narrow, lvTag } from './cockpit.js';
 import { aboardStock, everythingHeld, floorsShut, cashFloorNow, dockStock } from './hold.js';
 import { heldOf } from './material.js';
 import { packedNow, sparesOf, packingOf, packingLT, packingSlots, packingCount, tripsOf, stagedRun, tripsHTML, leaveHomeHTML, packingHTML, afterShelfHTML } from './packing.js';
 import { chartButton, parleyGuessed, parleyOf, stashAt, ordersNow, payRangeHTML, perUnitText, perHourText, stockGains, aheadHTML, goalLine, ladderHTML, howLine, howHTML, parleyLine, parleyHTML, marketDead, chainRow, soloRun } from './plan.js';
 import { docks, bagNow, stashes, withWaits, withRations, rationsLine, legsOf, questPlan, questsLine, questsPanels, n1, TIER, ledgerOf, runTime, routeEditBar, castOffRow, stopRows, cutsHTML } from './route.js';
-import { sailing, planSeen, syncSail, castOffCaps, castOffLand, digest } from './sail.js';
+import { sailing, planSeen, castOffCaps, castOffLand, digest } from './sail.js';
 import { SEARCH_BUDGET_MS, presetSearch, proposeAsync, searching, redrawSoon, expectedBest } from './search.js';
 import { loadingNote } from '../loading.js';
 import { coinsOf, coinRange, bonusNote, coinPurseHTML, shortSummary, shortHTML, canAppearHTML } from './short.js';
@@ -158,9 +158,10 @@ export function silverParts(me, b) {
 	if (short) all = [...shortSet.picked, ...shortSet.first, ...shortSet.next];
 	const made = store.getProfile('homemade', []) || [];
 	const prices = landPrices(all.filter(c => c.from === 'land').map(c => c.item), made);
-	// A range is counted at its least, except where this run has seen
-	// what the island paid: the checklist asks at every such island.
-	const seen = { ...planSeen(sailing()) };
+	// A range is counted at its least, except where the island's count
+	// is known: read off the board's screenshot or typed beside it, or
+	// said on the checklist of the run under way.
+	const seen = { ...boardPaid(), ...planSeen(sailing()) };
 	// Everything the sailor holds, wherever it is: a floor is about the
 	// pile, not about the hold, so a run must know the whole of it
 	// before it decides what it may spend.
@@ -240,7 +241,7 @@ export function silverParts(me, b) {
 	// this card's orders let in: the key, and the figures, must not move
 	// with the card that is chosen.
 	const presetSeen = {};
-	Object.assign(presetSeen, planSeen(sailing()));
+	Object.assign(presetSeen, boardPaid(), planSeen(sailing()));
 	const baseOrders = Object.fromEntries(Object.entries(o).filter(([k]) => !sailingKeys.has(k)));
 	const presetKey = JSON.stringify([V.board.day, b.combo.id, V.board.answers, stock, dock, owned, [...land], baseOrders, V.port, V.stash, Object.values(presetPrices).map(x => x.each), me.hold, ship, opts.parley, presetSeen, V.reach, prof.barterCount, aim, ceiling, b.shut]);
 	// Asked once the main search has answered, so the two never share
@@ -526,7 +527,6 @@ export function silverParts(me, b) {
 	plan.stops = withRations(withWaits(qp.stops, plan.weightStart), plan.weightStart);
 	plan.questsHome = qp.home;
 	V.shownPlan = plan;
-	syncSail(plan);
 	const legs = legsOf(plan.stops);
 	// The Parley bar, stop by stop, for the whole run at once -- the
 	// chain segments below draw their own stops from the same book.

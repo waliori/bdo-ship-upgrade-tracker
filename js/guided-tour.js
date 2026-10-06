@@ -146,7 +146,7 @@ function castOff() {
 	if (!plan || !Array.isArray(plan.stops) || !plan.stops.length) return null;
 	const marks = runMarks(plan, legsOf(plan.stops));
 	if (!marks.length) return null;
-	const sail = { key: sailKey(), done: [], seen: {}, got: {}, kept: [], laidFor: '{}', cal: sailCal(), ...sailRecord(plan), packLog: { delta: {}, moves: [] }, told: toldOf(plan, fromPort()) };
+	const sail = { key: sailKey(), done: [], seen: {}, got: {}, kept: [], cal: sailCal(), ...sailRecord(plan), packLog: { delta: {}, moves: [] }, told: toldOf(plan, fromPort()) };
 	const seconds = Math.max(30, Math.min(6 * 3600, Math.round(marks[marks.length - 1].at)));
 	const timer = {
 		startedAt: Date.now() - UNDER_WAY * 1000, seconds, label: runLabel(plan).slice(0, 60),

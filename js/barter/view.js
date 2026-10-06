@@ -98,9 +98,10 @@ export function restore() {
 			// run that outlived its page -- a phone gone to sleep, a tab
 			// reloaded an hour in, which is most runs -- was recorded as if
 			// its shore goods had cost nothing.
-			for (const k of ['loaded', 'bagLoaded', 'bagFromHold', 'bought', 'parleyUsed', 'cost', 'silver', 'net', 'trades', 'questsHome', 'chains', 'goal', 'item', 'time', 'port', 'drawnAt', 'lastTick', 'lastAt', 'weightStart', 'laidFor', 'appliedN', 'cal']) if (s.sail[k] !== undefined) keep[k] = s.sail[k];
+			for (const k of ['loaded', 'bagLoaded', 'bagFromHold', 'bought', 'parleyUsed', 'cost', 'silver', 'net', 'trades', 'questsHome', 'chains', 'goal', 'item', 'time', 'port', 'drawnAt', 'lastTick', 'lastAt', 'weightStart', 'appliedN', 'cal']) if (s.sail[k] !== undefined) keep[k] = s.sail[k];
 			if (s.sail.applied) keep.applied = cleanApplied(s.sail.applied);
 			if (s.sail.packLog) keep.packLog = cleanApplied(s.sail.packLog);
+			if (Array.isArray(s.sail.known)) keep.known = s.sail.known.map(String);
 			if (Array.isArray(s.sail.told)) keep.told = s.sail.told.filter(x => x && typeof x.item === 'string' && typeof x.g === 'string');
 			V.sail = { key: s.sail.key, done: s.sail.done.map(String), seen: {}, got: {}, kept: Array.isArray(s.sail.kept) ? s.sail.kept.map(String) : [], stops: Array.isArray(s.sail.stops) ? s.sail.stops : [], ...keep };
 			for (const [k, v] of Object.entries(s.sail.seen || {})) if (Number(v) > 0) V.sail.seen[k] = Number(v);
@@ -125,7 +126,7 @@ export function restore() {
 				day: String(s.matBoard.day || ''),
 				// `took` marks an island ticked from a board on file or from
 				// another sailor's reading rather than read off the window.
-				answers: s.matBoard.answers.filter(a => a && npcById.has(Number(a.npcId)) && typeof a.give === 'string' && typeof a.recv === 'string').map(a => ({ npcId: Number(a.npcId), give: a.give, recv: a.recv, ...(a.took === 'book' || a.took === 'fleet' ? { took: a.took } : {}) })),
+				answers: s.matBoard.answers.filter(a => a && npcById.has(Number(a.npcId)) && typeof a.give === 'string' && typeof a.recv === 'string').map(a => ({ npcId: Number(a.npcId), give: a.give, recv: a.recv, ...(a.took === 'book' || a.took === 'fleet' ? { took: a.took } : {}), ...(Number(a.paid) > 0 ? { paid: Math.floor(Number(a.paid)) } : {}) })),
 				// Where a list taken rather than read came from: a board in
 				// the book, or another sailor's reading.
 				...(s.matBoard.from && (s.matBoard.from.kind === 'book' || s.matBoard.from.kind === 'fleet')
@@ -145,7 +146,7 @@ export function restore() {
 		if (s.board && Array.isArray(s.board.answers)) {
 			V.board = {
 				day: String(s.board.day || ''),
-				answers: s.board.answers.filter(a => a && npcById.has(Number(a.npcId)) && typeof a.give === 'string' && typeof a.recv === 'string').map(a => ({ npcId: Number(a.npcId), give: a.give, recv: a.recv })),
+				answers: s.board.answers.filter(a => a && npcById.has(Number(a.npcId)) && typeof a.give === 'string' && typeof a.recv === 'string').map(a => ({ npcId: Number(a.npcId), give: a.give, recv: a.recv, ...(Number(a.paid) > 0 ? { paid: Math.floor(Number(a.paid)) } : {}) })),
 				// A board sailed on the sailor's own word rather than on
 				// one of the forty layouts.
 				own: s.board.own === true,

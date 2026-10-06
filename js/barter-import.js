@@ -118,6 +118,13 @@ export function openBarterImport({ files, deals, onAnswers = () => {} } = {}) {
 		return list.slice(0, 4);
 	};
 
+	// An exchange paying a range: what the icon showed is the count the
+	// run is laid with and the checklist does not ask for. Read where the
+	// reader was sure, typed where it was not.
+	const paysRange = r => r.keep && r.keep.recvMax > r.keep.recvMin;
+	const inRange = r => r.paid >= r.keep.recvMin && r.paid <= r.keep.recvMax;
+	const paidBox = (r, i) => `<label class="shot-paid">${r.icon ? `<img class="shot-corner" src="${esc(r.icon)}" alt="${T('the corner of the received icon as the screenshot had it')}">` : ''}${T('pays')} <input class="purse-inline narrow" inputmode="numeric" data-paid="${i}" value="${r.paid > 0 ? r.paid : ''}" placeholder="${r.keep.recvMin}-${r.keep.recvMax}" aria-label="${T('What {isle} pays a trade, as its window shows', { isle: esc(gameName(isleOf(r.isle))) })}"></label>`;
+
 	const rowHTML = (r, i) => {
 		const pick = choices(r);
 		const chosen = r.keep ? pick.findIndex(d => d.give === r.keep.give && d.item === r.keep.item) : -1;
@@ -130,7 +137,7 @@ export function openBarterImport({ files, deals, onAnswers = () => {} } = {}) {
 				<option value="">${T('— none of these')}</option>
 			</select>`
 		: `<span class="quiet">${T('nothing the codex lists fits that row')}</span>`}</td>
-			<td class="shot-note">${r.offer ? `<span class="quiet">${T('read')}</span>` : `<span class="shot-warn" title="${esc(said(r.why) || '')}">⚠ ${esc(said(r.why) || T('unsure'))}</span>`}</td>
+			<td class="shot-note">${paysRange(r) ? paidBox(r, i) : r.offer ? `<span class="quiet">${T('read')}</span>` : `<span class="shot-warn" title="${esc(said(r.why) || '')}">⚠ ${esc(said(r.why) || T('unsure'))}</span>`}</td>
 		</tr>`;
 	};
 
@@ -216,7 +223,7 @@ export function openBarterImport({ files, deals, onAnswers = () => {} } = {}) {
 			draw(reviewView());
 			return;
 		}
-		const { offersFrom, figuresFrom, localized, inEnglish } = shot;
+		const { offersFrom, paidFrom, figuresFrom, localized, inEnglish } = shot;
 		// The islands and exchanges as the client names them. What is
 		// read is handed back in English, which is what the app keeps.
 		const lang = shotLang();
@@ -225,7 +232,7 @@ export function openBarterImport({ files, deals, onAnswers = () => {} } = {}) {
 			if (me.signal.aborted) break;
 			say(i / take.length, T('Reading {i} of {n} — {name}', { i: i + 1, n: take.length, name: take[i].name }));
 			try {
-				const { words } = await readWords(take[i], { lang });
+				const { words, image, scale } = await readWords(take[i], { lang });
 				// The head of the window says what the sailor's own bar
 				// holds and how many barters are behind them. Both are
 				// fields the app otherwise asks them to type and then
@@ -233,11 +240,36 @@ export function openBarterImport({ files, deals, onAnswers = () => {} } = {}) {
 				const head = figuresFrom(words);
 				if (head.parley > 0) figures.parley = head.parley;
 				if (head.barters > 0) figures.barters = head.barters;
-				for (const read of offersFrom(words, tables)) {
-					const row = inEnglish(read);
+				const reads = offersFrom(words, tables);
+				// What the range islands pay, off their icons -- and with it
+				// which of an island's look-alike exchanges the row is.
+				const paid = image ? paidFrom(image, words, reads, scale, tables.deals) : new Map();
+				// Each icon as the screenshot had it, figure and all, so a count
+				// is checked here rather than back in the game.
+				const sheet = paid.size ? document.createElement('canvas') : null;
+				if (sheet) { sheet.width = image.width; sheet.height = image.height; sheet.getContext('2d').putImageData(image, 0, 0); }
+				// The lower half, where the figure is, and a little past the
+				// right edge it is written against: as the Inventory's corners.
+				const iconOf = ({ x, y, side }) => {
+					const bx = x + side * 0.1, by = y + side * 0.48, bw = side * 1.02, bh = side * 0.56;
+					const cut = document.createElement('canvas');
+					cut.width = Math.max(1, Math.round(bw * 3));
+					cut.height = Math.max(1, Math.round(bh * 3));
+					const ctx = cut.getContext('2d');
+					ctx.imageSmoothingQuality = 'high';
+					ctx.drawImage(sheet, bx, by, bw, bh, 0, 0, cut.width, cut.height);
+					return cut.toDataURL('image/png');
+				};
+				for (const read of reads) {
+					const got = paid.get(read.isle.id);
+					const row = inEnglish(got ? { ...read, offer: got.deal } : read);
 					// An island read twice takes the later reading: the
-					// second shot is the one the player scrolled to.
-					seen.set(row.isle.id, { ...row, keep: row.offer || null });
+					// second shot is the one the player scrolled to. But not
+					// a count it could not make out -- a row cut by the
+					// shot's edge -- over one an earlier shot read whole.
+					const was = seen.get(row.isle.id);
+					const kept = !(got && got.n) && was && was.paid > 0 && row.offer && was.keep && was.keep.give === row.offer.give && was.keep.item === row.offer.item;
+					seen.set(row.isle.id, kept ? was : { ...row, keep: row.offer || null, paid: got ? got.n : 0, icon: got ? iconOf(got.icon) : '' });
 				}
 			} catch (err) {
 				skipped.push({ name: take[i].name, why: err && err.message ? err.message : T('could not be read') });
@@ -256,7 +288,7 @@ export function openBarterImport({ files, deals, onAnswers = () => {} } = {}) {
 	function use() {
 		const taking = rows.filter(r => r.keep);
 		if (!taking.length && !figuresOnly()) return;
-		const answers = taking.map(r => ({ npcId: r.isle.id, give: r.keep.give, recv: r.keep.item, qty: r.keep.giveText || '1' }));
+		const answers = taking.map(r => ({ npcId: r.isle.id, give: r.keep.give, recv: r.keep.item, qty: r.keep.giveText || '1', ...(paysRange(r) && inRange(r) ? { paid: r.paid } : {}) }));
 		if (figures.take) {
 			if (figures.parley > 0) store.setProfileMany({ parleyHeld: Math.round(figures.parley) });
 			if (figures.barters > 0 && !oddBarters()) store.setProfile('barterCount', Math.round(figures.barters));
@@ -288,6 +320,7 @@ export function openBarterImport({ files, deals, onAnswers = () => {} } = {}) {
 			r.keep = e.target.checked ? (r.keep || choices(r)[0] || null) : null;
 			draw(reviewView());
 		});
+		on('[data-paid]', 'change', e => { rows[Number(e.target.dataset.paid)].paid = Math.floor(Number(e.target.value)) || 0; });
 		on('[data-offer]', 'change', e => {
 			const r = rows[Number(e.target.dataset.offer)];
 			const pick = choices(r);

@@ -548,21 +548,19 @@ test('the Results step opens with no run under way, and keeps past runs there', 
 	await context.close();
 });
 
-test('a count said on the way lays the run again without loading anything more at the harbour', async () => {
+test('a run under way takes nothing more out of the harbour than it loaded there', async () => {
 	const { page, context, errors } = await open('#barter');
 	const r = await page.evaluate(async () => {
 		const { V } = await import('/js/barter/state.js');
-		const { sailKey, syncSail, castOffCaps, castOffLand } = await import('/js/barter/sail.js');
+		const { sailKey, castOffCaps, castOffLand } = await import('/js/barter/sail.js');
 		const slab = '[Level 2] Big Stone Slab', knife = '[Level 3] Round Knife', tear = "[Level 5] Statue's Tear";
 		const iliya = { name: 'Dario', at: 'Iliya Island', x: 0, y: 0 };
 		const louruve = { npcId: 58985, npc: 'Julio', give: slab, giveN: 1, item: knife, recv: 2, recvMin: 2, recvMax: 3, recvText: '2-3', times: 5, parley: 1000, weightAfter: 0, level: 3, chain: 0 };
 		const call = { wharf: iliya, dropped: [], loads: [{ item: tear, n: 5 }], sale: null, weightAfter: 0, chain: 0 };
 		// Cast off with the slabs ticked aboard: nothing left to load at the
 		// start, the Statue's Tears picked up at a call back.
-		V.sail = { key: sailKey(), done: ['n58985'], seen: { 58985: 2 }, got: {}, kept: [], laidFor: '{}', stops: [louruve, call], loaded: [], bagLoaded: [], bagFromHold: [], weightStart: 11611, bought: [], cost: 0 };
+		V.sail = { key: sailKey(), done: ['n58985'], seen: { 58985: 2 }, got: {}, kept: [], stops: [louruve, call], loaded: [], bagLoaded: [], bagFromHold: [], weightStart: 11611, bought: [], cost: 0 };
 		const caps = Object.fromEntries(castOffCaps(V.sail, { [slab]: 4, [tear]: 5, 'Cactus Rind': 10 }));
-		// Laid again at "paid 2", free to load: four more slabs out of storage.
-		syncSail({ stops: [{ ...louruve, times: 9, recvText: '2' }, call], loaded: [{ item: slab, n: 4 }], bagLoaded: [], bagFromHold: [], weightStart: 13211, bought: [], cost: 0, order: [] });
 		// And the shore goods bought at the Market: no more than were bought,
 		// unless the run takes them off the sailor's own pile.
 		V.sail.bought = [{ item: 'Grilled Bird Meat', n: 300, each: 1000 }];
@@ -580,128 +578,135 @@ test('a count said on the way lays the run again without loading anything more a
 	await context.close();
 });
 
-test('a count said on the way never puts an island already dealt back on the checklist, nor writes its goods twice', async () => {
-	// Theophilos's stock run: Ginburrey (slabs to maps) and Tulu (maps to
-	// keys) ticked, then a count said at a later island. The run laid again
-	// went to Tulu before Ginburrey, and everything after Tulu in that
-	// laying -- Ginburrey among it -- was put on the end of the checklist.
-	// Ticks are kept by island, so the second Ginburrey was ticked as well,
-	// and the hold got its twenty maps twice.
+test('a material run is laid at the counts read off the window, and at the range where none was read', async () => {
+	// Three islands paying 25-50 Cox seals; the window showed 28 at Sokota
+	// and 30 at Dunde, and Modric's count was not read.
+	const { page, context, errors } = await open('#barter');
+	await page.waitForSelector('.barter-screen', { timeout: 15000 }); await wait(600);
+	await page.evaluate(async () => {
+		const { barterKey } = await import('/js/clock.js');
+		const store = await import('/js/state.js');
+		const seal = 'Cox Pirates Extermination Seal';
+		store.setView('barter', { goal: 'material', port: 1002, planSec: 'all', advOpen: true, wants: { [seal]: 500 }, matBoard: { day: barterKey(), on: [seal], answers: [
+			{ npcId: 58951, give: '[Level 3] Ancient Orders', recv: seal, paid: 28 },
+			{ npcId: 58910, give: '[Level 3] Rare Herb Pile', recv: seal, paid: 30 },
+			{ npcId: 58902, give: '[Level 3] Blue Candle Bundle', recv: seal }
+		] } });
+		store.addTarget('Carrack (Advance)', 1); store.setProfile('crewShip', 'Carrack (Advance)'); store.setProfile('barterCount', 4334);
+		for (const g of ['[Level 3] Blue Candle Bundle', '[Level 3] Rare Herb Pile', '[Level 3] Ancient Orders']) store.setStockAt(g, 'Iliya Island', 10, 'ashore');
+		store.flush();
+	});
+	await page.reload({ waitUntil: 'domcontentloaded' });
+	await page.waitForSelector('.barter-screen', { timeout: 15000 });
+	await page.waitForFunction(async () => { const { V } = await import('/js/barter/state.js'); return !!V.shownPlan; }, { timeout: 20000 });
+	const got = await page.evaluate(async () => {
+		const { V } = await import('/js/barter/state.js');
+		return Object.fromEntries(V.shownPlan.stops.filter(s => s.npcId).map(s => [s.npcId, [s.recvMin, s.recvMax, s.rangeMin ?? s.recvMin, s.rangeMax ?? s.recvMax]]));
+	});
+	assert.deepEqual(got[58951], [28, 28, 25, 50], 'Sokota at the 28 read, its range kept beside it');
+	assert.deepEqual(got[58910], [30, 30, 25, 50], 'Dunde at the 30 read');
+	assert.deepEqual(got[58902], [25, 50, 25, 50], 'Modric, not read, at its range');
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
+test('a count the board knows is said before the ship leaves: the checklist, the cockpit and the map card do not ask it', async () => {
+	// The barter window's screenshot showed what Ginburrey pays today (3);
+	// Tulu's count was not read. Casting off says Ginburrey's on the
+	// checklist and marks it known; only Tulu still owes its count.
 	const { page, context, errors } = await open('#barter');
 	const r = await page.evaluate(async () => {
 		const { V } = await import('/js/barter/state.js');
-		const { sailKey, syncSail, tripOf, planOfSail, stopKey, ticked } = await import('/js/barter/sail.js');
-		const { ports } = await import('/js/barter_npcs.js');
-		const slab = '[Level 2] Big Stone Slab', map = '[Level 3] Torn Pirate Treasure Map', key = "[Level 4] Pirate's Key", glass = '[Level 3] Old Hourglass', dagger = '[Level 4] Stolen Pirate Dagger';
-		const isle = (npcId, npc, give, item, times) => ({ npcId, npc, give, giveN: 1, item, recv: 2, recvMin: 2, recvMax: 2, recvText: '2', times, parley: times * 10693, weightAfter: 0, level: 3, chain: 0 });
-		const ginburrey = isle(58901, 'Denio', slab, map, 10), tulu = isle(58902, 'Metakio', map, key, 10), almai = isle(58903, 'Arutiha', glass, dagger, 4);
-		const iliya = { wharf: { name: 'Dario', at: 'Iliya Island', x: 0, y: 0 }, dropped: [], loads: [], sale: null, weightAfter: 0, chain: 0 };
-		const sailed = [ginburrey, tulu, iliya, almai];
-		V.sail = { key: sailKey(), done: [stopKey(ginburrey, 0, sailed), stopKey(tulu, 1, sailed)], seen: {}, got: {}, kept: [], laidFor: '{}', stops: sailed, loaded: [], bagLoaded: [], bagFromHold: [], weightStart: 0, bought: [], cost: 0 };
-		const before = tripOf(planOfSail(V.sail), V.sail, ports[0]).delta;
-		// A count said at Almai lays the run again, Tulu first this time.
-		V.sail.seen = { 58903: 2 };
-		syncSail({ stops: [tulu, ginburrey, iliya, almai], loaded: [], bagLoaded: [], bagFromHold: [], weightStart: 0, bought: [], cost: 0, order: [] });
-		const stops = V.sail.stops;
-		const after = tripOf(planOfSail(V.sail), V.sail, ports[0]).delta;
+		const { owesCount, knownPaid, sailFor } = await import('/js/barter/sail.js');
+		const { stopAsks } = await import('/js/barter/route.js');
+		const { sailHTML } = await import('/js/barter/cockpit.js');
+		const { barterAction } = await import('/js/barter/actions.js');
+		const { barterKey } = await import('/js/clock.js');
+		const isle = (npcId, npc, give, item, n) => ({ npcId, npc, give, giveN: 1, item, recv: n || 2, recvMin: n || 2, recvMax: n || 3, rangeMin: 2, rangeMax: 3, recvText: n ? String(n) : '2-3', times: 10, parley: 106930, weightAfter: 0, level: 3, chain: 0 });
+		const ginburrey = isle(58941, 'Denio', '[Level 2] Big Stone Slab', '[Level 3] Torn Pirate Treasure Map', 3);
+		const tulu = isle(58942, 'Metakio', '[Level 3] Torn Pirate Treasure Map', "[Level 4] Pirate's Key");
+		V.board = { day: barterKey(), answers: [{ npcId: 58941, give: ginburrey.give, recv: ginburrey.item, paid: 3 }, { npcId: 58942, give: tulu.give, recv: tulu.item }], own: true };
+		V.shownPlan = { stops: [ginburrey, tulu], loaded: [], weightStart: 0, order: [] };
+		barterAction('barter-sail', { dataset: {} }, () => {});
+		const on = V.sail, [g, t] = on.stops;
+		const cockpit = sailHTML();
 		return {
-			isles: stops.filter(x => x.npcId).map(x => x.npc),
-			done: stops.filter((x, k) => ticked(V.sail.done, x, k, stops)).length,
-			before, after
+			cockpit: [cockpit.includes('data-act="barter-paid"'), cockpit.includes('cockpit-ask"'), cockpit.includes('data-act="barter-stop-done"')],
+			seen: on.seen, known: on.known,
+			owes: [owesCount(g, on), owesCount(t, on)], knownPaid: [knownPaid(g, on), knownPaid(t, on)],
+			asks: [stopAsks(g, 0, on.stops, on).includes('barter-paid'), stopAsks(t, 1, on.stops, on).includes('barter-paid')],
+			card: [sailFor(58941).ask, sailFor(58942).ask !== '']
 		};
 	});
-	assert.deepEqual(r.isles, ['Denio', 'Metakio', 'Arutiha'], 'every island once');
-	assert.equal(r.done, 2, 'the two stops traded, and no more');
-	assert.deepEqual(r.after, r.before, 'the hold the ticks come to is the same as before the count was said');
+	assert.deepEqual(r.seen, { 58941: 3 });
+	assert.deepEqual(r.known, ['58941']);
+	assert.deepEqual(r.owes, [false, true], 'only Tulu owes its count');
+	assert.deepEqual(r.knownPaid, [true, false]);
+	assert.deepEqual(r.asks, [false, true], 'the checklist asks Tulu only');
+	assert.deepEqual(r.card, ['', true], 'and so does the map card');
+	assert.deepEqual(r.cockpit, [false, false, true], 'at Ginburrey the cockpit has one Traded press and no question');
 	assert.deepEqual(errors, []);
 	await context.close();
 });
 
-test('a count said on the way never drops an island not yet sailed that the new laying puts earlier', async () => {
-	// Theophilos's next run: Teyamal and the Iliya call ticked, Sokota
-	// (fish bones to drinking water) still ahead, then Kanvera, which
-	// trades that water. A count lays the run again with Sokota put before
-	// Teyamal -- and only what came after the last tick was kept, so Sokota
-	// left the checklist and Kanvera asked for five trades of water that
-	// was never made.
+test('a count said on the way leaves the checklist as it was cast off: no island twice, none lost, every pickup and bag move where it was', async () => {
+	// Saying what an island paid used to lay the whole run again from cast-off
+	// and stitch it into the checklist half sailed. Every way the new laying's
+	// past differed from the one sailed was a bug Theophilos sailed into: an
+	// island traded twice (30 maps for 20), one dropped (Sokota, so Kanvera
+	// asked for water never made), one put ahead of the call that loads its
+	// goods (gold coins never picked up), one asked for goods in the bag (7
+	// coins traded with 5 aboard). The checklist now stays as it was cast off;
+	// the count is the hold's. Each of those checklists, a count said on it
+	// the way the cockpit says one, and the Barter tab drawn again.
 	const { page, context, errors } = await open('#barter');
 	const r = await page.evaluate(async () => {
 		const { V } = await import('/js/barter/state.js');
-		const { sailKey, syncSail, stopKey } = await import('/js/barter/sail.js');
-		const isle = (npcId, npc, give, item, times) => ({ npcId, npc, give, giveN: 1, item, recv: 2, recvMin: 2, recvMax: 3, recvText: '2-3', times, parley: times * 10693, weightAfter: 0, level: 3, chain: 0 });
-		const water = '[Level 2] Filtered Drinking Water';
-		const teyamal = isle(58911, 'Purani', '[Level 3] Pirates\' Supply Box', "[Level 4] Boatman's Manual", 10);
-		const sokota = isle(58912, 'Sherahi', '[Level 1] Giant Fish Bone', water, 2);
-		const kanvera = isle(58913, 'Panishu', water, '[Level 3] Torn Pirate Treasure Map', 5);
-		const riyed = isle(58914, 'Rian', '[Level 3] Torn Pirate Treasure Map', "[Level 4] Marine Knights' Spear", 10);
-		const iliya = { wharf: { name: 'Dario', at: 'Iliya Island', x: 0, y: 0 }, dropped: [], loads: [], sale: null, weightAfter: 0, chain: 0 };
-		const sailed = [teyamal, iliya, sokota, kanvera, riyed];
-		V.sail = { key: sailKey(), done: [stopKey(teyamal, 0, sailed), stopKey(iliya, 1, sailed)], seen: {}, got: {}, kept: [], laidFor: '{}', stops: sailed, loaded: [], bagLoaded: [], bagFromHold: [], weightStart: 0, bought: [], cost: 0 };
-		V.sail.seen = { 58911: 2 };
-		syncSail({ stops: [sokota, teyamal, iliya, kanvera, riyed], loaded: [], bagLoaded: [], bagFromHold: [], weightStart: 0, bought: [], cost: 0, order: [] });
-		const names = V.sail.stops.map(x => x.npc || 'wharf');
-		const { ticked } = await import('/js/barter/sail.js');
-		const done = V.sail.stops.filter((x, k) => ticked(V.sail.done, x, k, V.sail.stops)).length;
-		return { names, done, sokotaBeforeKanvera: names.indexOf('Sherahi') >= 0 && names.indexOf('Sherahi') < names.indexOf('Panishu') };
-	});
-	assert.ok(r.names.includes('Sherahi'), `Sokota is still to sail: ${r.names.join(', ')}`);
-	assert.ok(r.sokotaBeforeKanvera, 'and before the island that trades what it makes');
-	assert.equal(r.names.filter(n => n === 'Purani').length, 1, 'and Teyamal, sailed, is not put back');
-	assert.equal(r.done, 2, 'and only the two stops sailed count as done');
-	assert.deepEqual(errors, []);
-	await context.close();
-});
-
-test('a count said on the way, laid again in any order: every island once, none lost, the ticks and the hold as they were', async () => {
-	// Many runs at random: chains of islands, some ticked, then the run laid
-	// again in another order that still keeps every island after the one
-	// that makes its goods, with a wharf call or two about.
-	const { page, context, errors } = await open('#barter');
-	const bad = await page.evaluate(async () => {
-		const { V } = await import('/js/barter/state.js');
-		const { sailKey, syncSail, tripOf, planOfSail, stopKey, ticked } = await import('/js/barter/sail.js');
+		const { sailKey, stopKey, ticked, tripOf, planOfSail, sailing } = await import('/js/barter/sail.js');
+		const { barterAction } = await import('/js/barter/actions.js');
+		const { renderBarter } = await import('/js/screen-barter.js');
 		const { ports } = await import('/js/barter_npcs.js');
-		let seed = 7;
-		// mulberry32: the same runs every time, spread over the whole range.
-		const rnd = n => { seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return (((t ^ (t >>> 14)) >>> 0) % n); };
-		const shuffle = list => { const a = list.slice(); for (let i = a.length - 1; i > 0; i--) { const k = rnd(i + 1); [a[i], a[k]] = [a[k], a[i]]; } return a; };
-		// The run's islands as chains: each rung takes what the rung below made.
-		const lay = chains => { const out = []; const at = chains.map(() => 0); while (out.length < chains.flat().length) { const c = rnd(chains.length); if (at[c] < chains[c].length) out.push(chains[c][at[c]++]); } return out; };
-		const wharf = () => ({ wharf: { name: 'Dario', at: 'Iliya Island', x: 0, y: 0 }, dropped: [], loads: [], sale: null, weightAfter: 0, chain: 0 });
-		const withCalls = isles => { const out = []; isles.forEach((x, k) => { out.push(x); if (k && k < isles.length - 1 && rnd(4) === 0) out.push(wharf()); }); return out; };
-		const bad = [];
-		for (let run = 0; run < 300; run++) {
-			let id = 58000 + run * 20;
-			const chains = Array.from({ length: 1 + rnd(4) }, (_, c) => {
-				const len = 1 + rnd(4), goods = Array.from({ length: len + 1 }, (_, g) => `[Level ${Math.min(7, g + 1)}] Good ${run}-${c}-${g}`);
-				return Array.from({ length: len }, (_, g) => ({ npcId: id++, npc: `I${run}-${c}-${g}`, give: goods[g], giveN: 1, item: goods[g + 1], recv: 2, recvMin: 2, recvMax: 2, recvText: '2', times: 1 + rnd(5), parley: 1000, weightAfter: 0, level: 3, chain: c }));
-			});
-			const sailed = withCalls(lay(chains));
-			const upTo = rnd(sailed.length);
-			const done = sailed.slice(0, upTo + 1).map((x, k) => stopKey(x, k, sailed));
-			V.sail = { key: sailKey(), done, seen: {}, got: {}, kept: [], laidFor: '{}', stops: sailed, loaded: [], bagLoaded: [], bagFromHold: [], weightStart: 0, bought: [], cost: 0 };
-			const before = JSON.stringify(tripOf(planOfSail(V.sail), V.sail, ports[0]).delta);
-			// A count said, at an island off this run: it lays the run again
-			// and changes no figure of its own.
-			V.sail.seen = { 1: run + 1 };
-			syncSail({ stops: withCalls(lay(shuffle(chains))), loaded: [], bagLoaded: [], bagFromHold: [], weightStart: 0, bought: [], cost: 0, order: [] });
-			const stops = V.sail.stops, isles = stops.filter(x => x.npcId).map(x => x.npcId);
-			const want = chains.flat().map(x => x.npcId);
-			const doneNow = stops.filter((x, k) => ticked(V.sail.done, x, k, stops)).length;
-			const after = JSON.stringify(tripOf(planOfSail(V.sail), V.sail, ports[0]).delta);
-			// Every island after the one that makes its goods, in the checklist as it stands.
-			const order = new Map(isles.map((x, k) => [x, k]));
-			const outOfOrder = chains.some(c => c.some((x, g) => g && order.get(x.npcId) < order.get(c[g - 1].npcId)));
-			const kept = stops === sailed || stops.length === sailed.length && stops.every((x, k) => x === sailed[k]);
-			if (new Set(isles).size !== isles.length) bad.push(`run ${run}: an island twice`);
-			else if (!kept && want.some(x => !isles.includes(x))) bad.push(`run ${run}: an island lost`);
-			else if (doneNow !== done.length) bad.push(`run ${run}: ${doneNow} done for ${done.length} ticked`);
-			else if (after !== before) bad.push(`run ${run}: the hold moved`);
-			else if (outOfOrder) bad.push(`run ${run}: an island ahead of the one that makes its goods`);
+		const isle = (npcId, npc, give, item, times) => ({ npcId, npc, give, giveN: 1, item, recv: 2, recvMin: 2, recvMax: 3, recvText: '2-3', times, parley: times * 10693, weightAfter: 0, level: 3, chain: 0 });
+		const call = (x = {}) => ({ wharf: { name: 'Dario', at: 'Iliya Island', x: 0, y: 0 }, dropped: [], loads: [], sale: null, weightAfter: 0, chain: 0, ...x });
+		const G = n => `[Level 2] ${n}`, H = n => `[Level 3] ${n}`, K = n => `[Level 4] ${n}`;
+		const ginburrey = isle(58941, 'Denio', G('Big Stone Slab'), H('Torn Pirate Treasure Map'), 10);
+		const tulu = isle(58942, 'Metakio', H('Torn Pirate Treasure Map'), K("Pirate's Key"), 10);
+		const sokota = isle(58943, 'Sherahi', '[Level 1] Giant Fish Bone', G('Filtered Drinking Water'), 2);
+		const kanvera = isle(58944, 'Panishu', G('Filtered Drinking Water'), H('Torn Pirate Treasure Map'), 5);
+		const angie = isle(58945, 'Neruo', G("Islanders' Lunchbox"), H('Torn Pirate Treasure Map'), 10);
+		const albresser = isle(58946, 'Pukira', G('Cron Castle Gold Coin'), H('Weasel Leather Coat'), 5);
+		const runs = {
+			doubled: [ginburrey, tulu, call(), kanvera],
+			dropped: [ginburrey, call(), sokota, kanvera],
+			pickup: [ginburrey, call({ loads: [{ item: G("Islanders' Lunchbox"), n: 10, lot: 1 }] }), angie],
+			bag: [call({ toBag: [{ item: G('Cron Castle Gold Coin'), n: 2 }] }), ginburrey, albresser, call({ fromBag: [{ item: G('Cron Castle Gold Coin'), n: 2 }] })]
+		};
+		const out = {};
+		for (const [name, stops] of Object.entries(runs)) {
+			const done = stops.slice(0, 2).map((x, k) => stopKey(x, k, stops));
+			V.sail = { key: sailKey(), done, seen: {}, got: {}, kept: [], stops: stops.slice(), loaded: [], bagLoaded: [], bagFromHold: [], weightStart: 0, bought: [], cost: 0 };
+			const before = tripOf(planOfSail(V.sail), V.sail, ports[0]).delta;
+			// "paid 3" at Ginburrey, as the cockpit's chip says it, then the tab drawn.
+			barterAction('barter-paid', { dataset: { npc: String(ginburrey.npcId), n: '3' } }, () => {});
+			renderBarter();
+			const on = sailing() || V.sail;
+			const after = tripOf(planOfSail(on), on, ports[0]).delta;
+			out[name] = {
+				same: on.stops.length === stops.length && on.stops.every((x, k) => x === stops[k] || JSON.stringify(x) === JSON.stringify(stops[k])),
+				done: on.stops.filter((x, k) => ticked(on.done, x, k, on.stops)).length,
+				maps: [before[H('Torn Pirate Treasure Map')] || 0, after[H('Torn Pirate Treasure Map')] || 0]
+			};
 		}
-		return bad;
+		return out;
 	});
-	assert.deepEqual(bad.slice(0, 5), [], `${bad.length} of 300 runs broke a rule`);
+	for (const [name, x] of Object.entries(r)) {
+		assert.ok(x.same, `${name}: the checklist is the one cast off`);
+		assert.equal(x.done, 2, `${name}: and only the two stops sailed are done`);
+	}
+	// The count said is the hold's all the same: Ginburrey's ten trades at
+	// three maps (thirty, ten of them traded at Tulu), where an unsaid range
+	// is counted at its middle (twenty-five).
+	assert.deepEqual(r.doubled.maps, [15, 20], 'the hold follows "paid 3"');
 	assert.deepEqual(errors, []);
 	await context.close();
 });
@@ -2936,11 +2941,13 @@ test('the run laid out is the wharf step: a strip along the foot appears as chai
 	// The islands that pay a range are not ticked by that: each waits to
 	// be told what it paid, and the cockpit stands at the first of them.
 	// Saying it -- a chip a count -- ticks the stop with it.
-	// Saying the counts lays the run again, and more trades can bring a
-	// barter quest within reach -- a quest stop the run now makes, and on
-	// some days a wharf call and another island that pays a range with it
-	// (which quests are open turns over at the daily reset). Each round
-	// says what is asked and ticks the rest at once, until none is left.
+	// Saying the counts leaves the checklist as it was cast off: the same
+	// stops, in the same order, from the first count said to the last --
+	// laid again and stitched in, a run doubled islands, dropped them and
+	// lost their pickups. Each round says what is asked and ticks the rest
+	// at once, until none is left.
+	const stopsOf = () => page.evaluate(async () => { const sail = await import('/js/barter/sail.js'); const on = sail.sailing(); return on ? on.stops.map((x, k) => sail.stopKey(x, k, on.stops)).join(' ') : ''; });
+	const castOff = await stopsOf();
 	for (let round = 0; round < 4 && !/(\d+) of \1 stops done/.test(await text(page, '.sail-n')); round++) {
 		if (round) {
 			await page.evaluate(() => document.querySelector('.cockpit-foot [data-act="barter-sail-all"]').click()); await wait(800);
@@ -2973,6 +2980,7 @@ test('the run laid out is the wharf step: a strip along the foot appears as chai
 	}
 	const allText = await text(page, '.sail-n');
 	assert.match(allText, /(\d+) of \1 stops done/, `${allText} — at: ${await text(page, '.cockpit .panel-body')}`);
+	assert.equal(await stopsOf(), castOff, 'every count said, and the stops are the ones cast off');
 	// Every stop ticked, the step says so and points at the results.
 	assert.match(await text(page, '.all-ticked'), /Every stop is ticked/i);
 	// The results: the figures, the stops one under another, and the
