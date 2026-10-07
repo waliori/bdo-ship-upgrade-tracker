@@ -54,7 +54,9 @@ export function search(I, { mu = 0, timeMs = 10000, warm = null, seed = 1, most 
 	// search lays them, it does not choose among them. Greedy, which would
 	// start from the few that pay best, is not asked.
 	if (!fixed) {
-		const g = greedy(I, { mu, pool: chains });
+		// Greedy capped: past thirty runs judged it found no more on the real
+		// boards, and uncapped it took the whole second the search is given.
+		const g = greedy(I, { mu, pool: chains, most: 30 });
 		const fromGreedy = judge(reorder(I, g.seq), []);
 		const plainGreedy = judge(g.seq, g.calls || []);
 		const t = byTrips(I, { mu, pool: chains });

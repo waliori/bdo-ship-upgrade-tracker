@@ -11,8 +11,8 @@ import { chainsOf, finish } from './common.js';
 import { growByChains, thinLadder } from './insert.js';
 import { maximiseRate } from './ratio.js';
 
-export function build(I, { mu = 0, pool = null } = {}) {
-	const { seq } = growByChains(I, [], pool || chainsOf(I), mu);
+export function build(I, { mu = 0, pool = null, most = Infinity } = {}) {
+	const { seq } = growByChains(I, [], pool || chainsOf(I), mu, { most });
 	const out = finish(I, seq, mu);
 	return { ...out, seq: out.visits };
 }

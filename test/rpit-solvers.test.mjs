@@ -139,3 +139,12 @@ test('a session of so many hours: the plan stays inside it, and earns more than 
 	assert.ok(r.T <= T0 * 2 + 1e-6, `${r.T} h > ${T0 * 2} h`);
 	assert.ok(r.R >= simulate(I, planPolicy(free.plan), { mode: 'robust' }).R - 1e-6);
 });
+
+test('counted in steps, not milliseconds: the same board gives the same plan twice', () => {
+	const { instance: I } = setupOf({ layout: '25', start: 'Velia', hold: 20000, pace: 'fast' });
+	const J = { ...I, rules: { ...I.rules, hours: 4 } };
+	const a = alns.search(J, { mu: 0, timeMs: Infinity, most: 15, seed: 1 });
+	const b = alns.search(J, { mu: 0, timeMs: Infinity, most: 15, seed: 1 });
+	assert.equal(a.iterations, 15);
+	assert.deepEqual(a.plan, b.plan);
+});

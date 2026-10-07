@@ -131,7 +131,7 @@ export function instanceOf(opts) {
  * takes it: 0 the chains' thin ladders in a quick order, 1 the route
  * searched, 2 the search over attempts, order and calls (ALNS).
  */
-export function planFor(I, chains, { effort = 2, timeMs = 300, seed = 1 } = {}) {
+export function planFor(I, chains, { effort = 2, seed = 1 } = {}) {
 	let seq = [];
 	for (const c of chains) seq = withChain(I, seq, c.rungs);
 	// Two ways to start: the climbs threaded together by the shortest
@@ -142,7 +142,9 @@ export function planFor(I, chains, { effort = 2, timeMs = 300, seed = 1 } = {}) 
 	const worth = s => { const b = maximiseRate(I, (inst, o) => finish(inst, s, o.mu, { must }), { timeMs: Infinity, rounds: 6 }); return { s, b, rate: b.T > 0 ? b.R / b.T - (b.f < -1e12 ? 1e18 : 0) : 0 }; };
 	const tried = starts.map(worth).sort((a, b) => b.rate - a.rate);
 	if (effort < 2) return tried[0].b.plan;
-	const best = maximiseRate(I, (inst, o) => search(inst, { ...o, pool: chains, fixed: true, warm: o.warm || { seq: tried[0].s, calls: [] } }), { timeMs, seed });
+	// Each round's search counted in steps, not milliseconds: the same
+	// climbs laid the same way on any machine.
+	const best = maximiseRate(I, (inst, o) => search(inst, { ...o, timeMs: Infinity, most: Math.ceil(WORK / 6), pool: chains, fixed: true, warm: o.warm || { seq: tried[0].s, calls: [] } }), { timeMs: Infinity, rounds: 6, seed });
 	return best.plan;
 }
 
@@ -296,7 +298,7 @@ export function solveRun(opts = {}) {
 	// it found, not a second laying that might land elsewhere.
 	const ids = chosen.map(c => c.id).sort().join('|');
 	if (found && found.ids === ids && found.day === dayOf(I)) return runOf(I, found.plan, how);
-	const plan = planFor(I, chains, { effort: opts.effort ?? 2, timeMs: opts.timeMs ?? 300, seed: opts.seed ?? 1 });
+	const plan = planFor(I, chains, { effort: opts.effort ?? 2, seed: opts.seed ?? 1 });
 	return runOf(I, plan, how);
 }
 
@@ -314,16 +316,22 @@ const dayOf = I => JSON.stringify([I.stations.map(s => [s.id, s.ymin, s.ymax, s.
  * `all` it climbs. Each island the plan deals at is put to the chain
  * that climbs furthest through the islands dealt, the longest first.
  */
-export function newPropose(opts, all, { timeMs = 1500, seed = 1, session = 0 } = {}) {
+// The search's work, counted in its own steps and not in milliseconds: the
+// same board and the same orders give the same run on any machine, busy or
+// not. About a second and a half on a desktop (2026-10-07).
+const WORK = 120;
+// No cap on hours: the board cleared -- the most silver, however long.
+const CLEAR = 24;
+
+export function newPropose(opts, all, { seed = 1, session = 0 } = {}) {
 	const missing = unsupported({ ...opts, chosen: all });
 	if (missing.length || !all.length) return { proposals: [], best: null, partial: false };
 	const { I, rowOf, supplyWharfs } = instanceOf({ ...opts, chosen: all });
 	indexOf(I);
-	// A session given: the most silver inside it, time priced at nothing.
-	if (session > 0) I.rules.hours = session;
-	const best = session > 0
-		? search(I, { mu: 0, timeMs, seed, pool: chainsOf(I) })
-		: maximiseRate(I, (inst, o) => search(inst, { ...o, pool: chainsOf(I) }), { timeMs, seed });
+	// The most silver inside the session, time priced at nothing; with none
+	// set, the most the board gives.
+	I.rules.hours = session > 0 ? session : CLEAR;
+	const best = search(I, { mu: 0, timeMs: Infinity, most: WORK, seed, pool: chainsOf(I) });
 	const plan = best.plan;
 	const r = simulate(I, planPolicy(plan), { mode: 'robust' });
 	const dealt = new Set(r.log.filter(e => e.kind === 'station' && e.a > 0).map(e => e.at));
@@ -340,7 +348,7 @@ export function newPropose(opts, all, { timeMs = 1500, seed = 1, session = 0 } =
 	const run = solveRun({ ...opts, chosen: picked });
 	const hours = run.hours;
 	const value = run.net;
-	const proposal = { kind: 'hour', label: session > 0 ? `The most in ${session} h` : 'The most an hour', ids: picked.map(c => c.id), run, value, hours, yard: { perUnit: run.parleyUsed > 0 ? value / (run.parleyUsed / PARLEY.perGreatOceanTrade) : 0, perHour: hours > 0 ? value / hours : 0 } };
+	const proposal = { kind: 'hour', label: session > 0 ? `The most in ${session} h` : 'The most the board gives', ids: picked.map(c => c.id), run, value, hours, yard: { perUnit: run.parleyUsed > 0 ? value / (run.parleyUsed / PARLEY.perGreatOceanTrade) : 0, perHour: hours > 0 ? value / hours : 0 } };
 	return { proposals: [proposal], best: proposal, partial: false };
 }
 
