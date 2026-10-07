@@ -25,7 +25,7 @@
 import { rng } from './simulate.js';
 import { chainsOf, finish, indexOf } from './common.js';
 import { cheapestPos, growByChains, reorder, serial, bare, quick } from './insert.js';
-import { build as greedy } from './greedy.js';
+import { build as greedy, byTrips } from './greedy.js';
 import { maximiseRate } from './ratio.js';
 
 const DESTROY = ['random', 'related', 'chain', 'thin', 'thick', 'reorder', 'serial'];
@@ -57,7 +57,9 @@ export function search(I, { mu = 0, timeMs = 10000, warm = null, seed = 1, most 
 		const g = greedy(I, { mu, pool: chains });
 		const fromGreedy = judge(reorder(I, g.seq), []);
 		const plainGreedy = judge(g.seq, g.calls || []);
-		for (const c of [fromGreedy, plainGreedy]) if (!cur || c.f > cur.f) cur = c;
+		const t = byTrips(I, { mu, pool: chains });
+		const trips = judge(t.seq, t.calls || []);
+		for (const c of [fromGreedy, plainGreedy, trips]) if (!cur || c.f > cur.f) cur = c;
 	}
 	let best = cur;
 

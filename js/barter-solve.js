@@ -21,7 +21,11 @@ import { levelOf, PARLEY } from './barter.js';
 import { weightOf, sellOf, stacks } from './barter-plan.js';
 import { sellable, floorOf, PLAIN_ORDERS } from './barter-orders.js';
 import { seaDist } from './barter-route.js';
-import { METRES_PER_PX, speedMs } from './sailing.js';
+import { METRES_PER_PX, speedMs, BAND_MEASURED } from './sailing.js';
+
+// The tab times a leg at the middle of the speed's measured band: the
+// mean of the quick end and the slow, a shade slower than the speed itself.
+const MID_PACE = (1 / (1 + BAND_MEASURED) + 1 / (1 - BAND_MEASURED)) / 2;
 import { simulate, planPolicy } from './rpit/simulate.js';
 import { finish, indexOf, chainsOf } from './rpit/common.js';
 import { withChain, reorder, serial } from './rpit/insert.js';
@@ -95,18 +99,23 @@ export function instanceOf(opts) {
 	const objs = [start, ...stashes, ...supplyWharfs, ...rows.map(r => npcById.get(r.npcId))];
 	const points = ['start', ...stashes.map(w => w.at), ...supplyWharfs.map(w => w.at), ...rows.map(r => String(r.npcId))];
 	const matrix = objs.map(a => objs.map(b => (a === b ? 0 : seaDist(a, b) * METRES_PER_PX)));
-	// Shortest by way of any point, as the bench's instances are.
-	const n = matrix.length;
-	for (let k = 0; k < n; k++) for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) if (matrix[i][k] + matrix[k][j] < matrix[i][j]) matrix[i][j] = matrix[i][k] + matrix[k][j];
+	// Leg by leg as the app sails and times them: straight from one stop to
+	// the next, never by way of a third (the bench's instances take the
+	// shortest way round; a run laid on those came out longer in the tab).
 
 	const pause = orders.pause || { isle: 0, call: 0 };
 	const I = {
 		name: 'live', goods, stations, depots, ...(supplyWharfs.length ? { supplies: supplyWharfs.map(w => ({ id: w.at, x: w.x, y: w.y })) } : {}),
 		start: { id: 'start', x: start.x, y: start.y },
 		travel: { points, matrix },
-		service: { station: pause.isle || 0, depot: pause.call || 0 },
-		vehicle: { Wfree: hold.free, Wdeal: hold.deal ?? hold.free, Wmax: hold.max ?? hold.deal ?? hold.free, speed: ship && ship.speed > 0 ? speedMs(ship.speed, ship.cal) : speedMs(100), slowAtMax: 0.5, ...(Number.isFinite(hold.slots) && hold.slots > 0 ? { slots: hold.slots } : {}), ...(opts.rations ? { rations: { reserve: 0.1, ...opts.rations } } : {}) },
-		budgets: { P: parley.bar, H: null },
+		// What every leg costs beyond the sailing, as the tab times it.
+		service: { station: pause.isle || 0, depot: pause.call || 0, leg: ship && ship.lag > 0 ? ship.lag : 0 },
+		vehicle: { Wfree: hold.free, Wdeal: hold.deal ?? hold.free, Wmax: hold.max ?? hold.deal ?? hold.free, speed: (ship && ship.speed > 0 ? speedMs(ship.speed, ship.cal) : speedMs(100)) / MID_PACE, slowAtMax: 0.5, ...(Number.isFinite(hold.slots) && hold.slots > 0 ? { slots: hold.slots } : {}), ...(opts.rations ? { rations: { reserve: 0.1, ...opts.rations } } : {}) },
+		// The bar as it stands, and the vouchers apart: each comes on its own
+		// cooldown, so a bar and four vouchers are not one bigger bar.
+		budgets: parley.vouchers > 0 && parley.held > 0
+			? { P: parley.held, H: null, vouchers: { n: parley.vouchers, each: PARLEY.voucher, max: PARLEY.max, cooldownH: 2 } }
+			: { P: parley.bar, H: null },
 		initial: { hold: { ...stock }, floors },
 		rules: { pace, dropPolicy: 'any', home: home.at, end: prefer ? prefer.at : home.at },
 		objective: 'silver_per_hour',

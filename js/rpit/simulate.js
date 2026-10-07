@@ -150,12 +150,31 @@ export function simulate(I, policy, { mode = 'sample', seed = 1 } = {}) {
 	};
 	const dev = { refusedOverDeal: 0, clampedAttempts: 0, refusedDrop: 0, refusedSell: 0, refusedLoad: 0, revisited: 0, stuck: 0, startLate: 0, starved: 0, belowReserve: 0 };
 	let trades = 0, calls = 0, distance = 0, parleyUsed = 0, refills = 0, eaten = 0;
+	// Vouchers: a quarter of a bar each, drawn only when the whole of it
+	// fits under the bar's top, and two hours apart. One is drawn when the
+	// attempts asked for here cost more than the bar holds; with its
+	// cooldown still running, the ship waits it out where it is. The app's
+	// ledger draws a little earlier, when the run is going to need it, so
+	// this is the most waiting a plan can meet, not the least.
+	const VO = I.budgets.vouchers || null;
+	const vouch = VO ? { left: VO.n, lastAt: -Infinity } : null;
+	let waited = 0, vouchersUsed = 0;
+	const drawFor = (need, entry) => {
+		while (vouch.left > 0 && state.parleyLeft < need && VO.max - state.parleyLeft >= VO.each - EPS) {
+			const w = Math.max(0, vouch.lastAt + VO.cooldownH - state.time);
+			state.time += w; waited += w;
+			state.parleyLeft += VO.each; vouch.left--; vouchersUsed++;
+			vouch.lastAt = state.time;
+			entry.voucher = (entry.voucher || 0) + 1;
+			if (w > 0) entry.waited = (entry.waited || 0) + w;
+		}
+	};
 
 	const travel = to => {
 		const d = I.travel.matrix[idx.get(state.at)][idx.get(to)];
 		if (d > 0) {
 			if (state.W > V.Wmax + EPS) { dev.stuck = 1; return false; }
-			const hours = d / (V.speed * phi(state.W)) / 3600;
+			const hours = (d / (V.speed * phi(state.W)) + (I.service.leg || 0)) / 3600;
 			state.time += hours;
 			distance += d;
 			if (R0) {
@@ -241,6 +260,7 @@ export function simulate(I, policy, { mode = 'sample', seed = 1 } = {}) {
 			else {
 				// Each bound on the attempts, kept apart so that a visit that
 				// fell short can say which of them it was.
+				if (vouch && s.c > 0) drawFor(entry.req * s.c, entry);
 				const bounds = { m: s.m, goods: Math.floor((h.get(s.in) || 0) / s.q + EPS), parley: s.c > 0 ? Math.floor(state.parleyLeft / s.c + EPS) : Infinity, floor: Math.floor(spendable(s.in) / s.q + EPS) };
 				const most = Math.min(entry.req, ...Object.values(bounds));
 				// What each attempt here pays: the board's draw, read in the
@@ -329,7 +349,7 @@ export function simulate(I, policy, { mode = 'sample', seed = 1 } = {}) {
 	let carried = 0;
 	for (const [g, n] of h) carried += n * (G[g] ? G[g].p : 0);
 	return {
-		R, T, rate: T > 0 ? R / T : 0, P: parleyUsed, trades, calls, distance, carried, refills, eaten,
+		R, T, rate: T > 0 ? R / T : 0, P: parleyUsed, waited, vouchersUsed, trades, calls, distance, carried, refills, eaten,
 		// Where the run ended and what it held: a search that builds a plan
 		// a visit at a time reads its next move off these.
 		at: state.at, hold: Object.fromEntries(h), parleyLeft: state.parleyLeft,

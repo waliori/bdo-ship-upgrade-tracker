@@ -234,3 +234,23 @@ test('rations: sailing eats the pool, a wharf fills it, running dry is counted',
 	assert.equal(fed.deviations.starved, 0);
 	assert.equal(fed.pointless.idleCalls, 0, 'a call that filled the pool did something');
 });
+
+test('vouchers: a quarter of a bar each, drawn when the island asks for more than the bar holds, two hours apart', () => {
+	const stations = tiny().stations.map(s => ({ ...s, c: s.id === 's3' ? 200 : 0 }));
+	const plan = { buy: { Land: 100 }, visits: [{ at: 's1', a: 10 }, { at: 's2', a: 10 }, { at: 's3', a: 3 }, { at: 'H', sell: 'all' }] };
+	// A bar of 300 pays one attempt; no vouchers, one it is.
+	const bare = simulate(tiny({ stations, budgets: { P: 300, H: null } }), planPolicy(plan), { mode: 'robust' });
+	assert.equal(bare.log[3].a, 1);
+	// Two vouchers of 250: the first goes in at once (550), the second only
+	// after its two-hour cooldown, the ship waiting at the island (800).
+	const I = tiny({ stations, budgets: { P: 300, H: null, vouchers: { n: 2, each: 250, max: 1000, cooldownH: 2 } } });
+	const r = simulate(I, planPolicy(plan), { mode: 'robust' });
+	assert.equal(r.log[3].a, 3);
+	assert.equal(r.vouchersUsed, 2);
+	assert.ok(Math.abs(r.waited - 2) < 1e-9, `${r.waited} h waited`);
+	assert.ok(Math.abs(r.T - bare.T - 2) < 1e-6);
+	// A bar too full for a whole quarter draws none.
+	const full = simulate(tiny({ stations, budgets: { P: 900, H: null, vouchers: { n: 2, each: 250, max: 1000, cooldownH: 2 } } }), planPolicy({ ...plan, visits: plan.visits.map(v => (v.at === 's3' ? { at: 's3', a: 5 } : v)) }), { mode: 'robust' });
+	assert.equal(full.vouchersUsed, 0);
+	assert.equal(full.log[3].a, 4);
+});

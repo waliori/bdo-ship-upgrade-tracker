@@ -19,7 +19,7 @@ import { chains, chainRun as classicRun, tailOf } from '../barter-chains.js';
 import { solveRun, newPropose, unsupported } from '../barter-solve.js';
 import { shortTrades } from '../barter-short.js';
 import { V } from './state.js';
-import { fromPort, layCal, spendUsed, continueHTML, keepRoute, boardPaid } from './board.js';
+import { fromPort, layCal, sailLag, spendUsed, continueHTML, keepRoute, boardPaid } from './board.js';
 import { narrow, lvTag } from './cockpit.js';
 import { aboardStock, everythingHeld, floorsShut, cashFloorNow, dockStock } from './hold.js';
 import { heldOf } from './material.js';
@@ -188,7 +188,7 @@ export function silverParts(me, b) {
 	const owned = Object.fromEntries(everythingHeld());
 	// The ship's pace rides along: a run laid more than one way is kept
 	// by what it is worth an hour, and the hour is the ship's.
-	const opts = { stock, dock, hold: me.hold, parley: parleyOf(prof), npcById, start: from, stashes, prefer: stashAt(), pace, orders: o, prices, seen, keep: V.reach ? [V.reach] : [], land, owned, ship: { speed: me.speed.sea, cal: layCal() }, bag: bagNow(), docks };
+	const opts = { stock, dock, hold: me.hold, parley: parleyOf(prof), npcById, start: from, stashes, prefer: stashAt(), pace, orders: o, prices, seen, keep: V.reach ? [V.reach] : [], land, owned, ship: { speed: me.speed.sea, cal: layCal(), lag: sailLag() }, bag: bagNow(), docks };
 	// Each chain on its own, for its row: the list is sorted by the
 	// yardstick, silver a Parley unit, the guide's measure of a chain,
 	// so the best use of the day's Parley is at the top of its group.
