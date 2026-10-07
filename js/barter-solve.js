@@ -318,8 +318,12 @@ const dayOf = I => JSON.stringify([I.stations.map(s => [s.id, s.ymin, s.ymax, s.
  */
 // The search's work, counted in its own steps and not in milliseconds: the
 // same board and the same orders give the same run on any machine, busy or
-// not. About a second and a half on a desktop (2026-10-07).
-const WORK = 120;
+// not. On the real boards of 2026-10-07 the starts did the work and a
+// hundred steps more found nothing; forty keep the room to, in about a
+// second on a desktop.
+// ponytail: runs on the page's thread (2–3 s with the starts); the worker
+// the classic search uses is where it belongs before it ships.
+const WORK = 40;
 // No cap on hours: the board cleared -- the most silver, however long.
 const CLEAR = 24;
 

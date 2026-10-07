@@ -19,12 +19,16 @@ export function build(I, { mu = 0, pool = null, most = Infinity } = {}) {
 
 /**
  * Trip by trip: each climb alone, from home and back, judged on its own;
- * then, the best first by what it earns an hour, each laid after the
- * last while it still raises R − μ·T. A sailor with a stocked storage
- * sails this way -- a climb a trip, home between -- and a start that
- * mixes every climb from the first leg reaches it only through a long
- * walk of small moves, which the search did not find (2026-10-07: on a
- * real board, 1.75 billion against the 2.6 the trips make).
+ * then laid one after another while each still raises R − μ·T. A sailor
+ * with a stocked storage sails this way -- a climb a trip, home between --
+ * and a start that mixes every climb from the first leg reaches it only
+ * through a long walk of small moves, which the search did not find
+ * (2026-10-07: on a real board, 1.75 billion against the 2.6 the trips
+ * make). Climbs share their upper islands, and an island is sailed to
+ * once, so the order they are taken in decides which are laid at all:
+ * the best an hour first, the most silver first, and the longest first
+ * (the climbs from [Level 2] in storage, which a long day and vouchers
+ * pay for) are each tried, and the best kept.
  */
 export function byTrips(I, { mu = 0, pool = null } = {}) {
 	const solo = [];
@@ -32,16 +36,20 @@ export function byTrips(I, { mu = 0, pool = null } = {}) {
 		const a = thinLadder(I, c.rungs);
 		const seq = c.rungs.map((at, k) => ({ at, a: a[k] }));
 		const e = finish(I, seq, mu);
-		if (e.f > 0 && e.T > 0) solo.push({ c, seq, rate: e.f / e.T });
+		if (e.f > 0 && e.T > 0) solo.push({ c, seq, f: e.f, rate: e.f / e.T });
 	}
-	solo.sort((x, y) => y.rate - x.rate);
-	let cur = finish(I, [], mu), seq = [];
-	for (const { c, seq: add } of solo) {
-		if (c.rungs.some(id => seq.some(v => v.at === id))) continue;
-		const e = finish(I, [...seq, ...add], mu);
-		if (e.f > cur.f) { cur = e; seq = [...seq, ...add]; }
+	const orders = [(x, y) => y.rate - x.rate, (x, y) => y.f - x.f, (x, y) => y.c.rungs.length - x.c.rungs.length || y.f - x.f];
+	let best = null;
+	for (const cmp of orders) {
+		let cur = finish(I, [], mu), seq = [];
+		for (const { c, seq: add } of solo.slice().sort(cmp)) {
+			if (c.rungs.some(id => seq.some(v => v.at === id))) continue;
+			const e = finish(I, [...seq, ...add], mu);
+			if (e.f > cur.f) { cur = e; seq = [...seq, ...add]; }
+		}
+		if (!best || cur.f > best.f) best = cur;
 	}
-	return { ...cur, seq: cur.visits };
+	return { ...best, seq: best.visits };
 }
 
 export function solve(I, { timeMs = 10000, seed = 1, mu = null } = {}) {
