@@ -51,6 +51,7 @@ function laidOnce(key, lay) {
 
 // The new planner, for a test only: set by the comparison harness in this
 // browser's storage, never by a sailor. Off, everything is laid as before.
+const sessionHours = () => { try { return Number(localStorage.getItem('bdo-tracker/planner-hours')) || 0; } catch { return 0; } };
 const newPlanner = () => { try { return localStorage.getItem('bdo-tracker/planner') === 'new'; } catch { return false; } };
 // A run laid by the new planner where it can lay it, by chainRun where it
 // cannot yet (the bag, the coin and stock goals, the sailor's route edits).
@@ -230,7 +231,7 @@ export function silverParts(me, b) {
 		}
 		// The new planner, under test, searches here and now, its runs in
 		// propose()'s shape; anything it cannot lay yet is searched as before.
-		const fresh = newPlanner() && !unsupported(withShip({ ...opts, chosen: all })).length ? newPropose(withShip(opts), all) : null;
+		const fresh = newPlanner() && !unsupported(withShip({ ...opts, chosen: all })).length ? newPropose(withShip(opts), all, { hours: sessionHours() }) : null;
 		const found = fresh || proposeAsync(search, pkey, result => {
 			// The inputs moved on before the answer came: a newer request
 			// is out for them, and this answer is nobody's.

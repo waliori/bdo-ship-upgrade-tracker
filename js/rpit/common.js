@@ -69,8 +69,12 @@ export function dry(I) {
 /** A plan's value at μ: R − μ·T in robust mode, and the run behind it. */
 export function robustEval(I, plan, mu = 0) {
 	const r = simulate(I, planPolicy(plan), { mode: 'robust' });
-	return { f: r.R - mu * r.T, R: r.R, T: r.T, run: r };
+	// A session of so many hours: each hour past it costs more than any
+	// hour can earn, so the search pulls a long plan back inside it.
+	const over = I.rules.hours > 0 ? Math.max(0, r.T - I.rules.hours) * OVERTIME : 0;
+	return { f: r.R - mu * r.T - over, R: r.R, T: r.T, run: r };
 }
+const OVERTIME = 1e11;
 
 /** A visit to the end depot that sells what the run made. */
 export const endVisit = I => ({ at: I.rules.end, sell: 'spare', drop: 'spare' });

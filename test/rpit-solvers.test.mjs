@@ -128,3 +128,14 @@ test('refills for a fixed route: the fastest set that keeps the ship fed, two in
 	// The quick pass, which never puts two calls together, cannot feed it.
 	assert.ok(simulate(I, planPolicy(rationPass(I, plan, { chain: false })), { mode: 'robust' }).deviations.starved > 0);
 });
+
+test('a session of so many hours: the plan stays inside it, and earns more than the best hour alone', () => {
+	const { instance: I } = setupOf({ layout: '25', start: 'Velia', hold: 20000, pace: 'full' });
+	const free = alns.solve(I, { timeMs: 400, seed: 3 });
+	const T0 = simulate(I, planPolicy(free.plan), { mode: 'robust' }).T;
+	const J = { ...I, rules: { ...I.rules, hours: T0 * 2 } };
+	const { plan } = alns.search(J, { mu: 0, timeMs: 600, seed: 3 });
+	const r = simulate(J, planPolicy(plan), { mode: 'robust' });
+	assert.ok(r.T <= T0 * 2 + 1e-6, `${r.T} h > ${T0 * 2} h`);
+	assert.ok(r.R >= simulate(I, planPolicy(free.plan), { mode: 'robust' }).R - 1e-6);
+});
