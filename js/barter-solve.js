@@ -321,8 +321,9 @@ const dayOf = I => JSON.stringify([I.stations.map(s => [s.id, s.ymin, s.ymax, s.
 // not. On the real boards of 2026-10-07 the starts did the work and a
 // hundred steps more found nothing; forty keep the room to, in about a
 // second on a desktop.
-// ponytail: runs on the page's thread (2–3 s with the starts); the worker
-// the classic search uses is where it belongs before it ships.
+// ponytail: runs on the page's thread (1–6 s with the starts and the two
+// rounds an hour); the worker the classic search uses is where it belongs
+// before it ships.
 const WORK = 40;
 // No cap on hours: the board cleared -- the most silver, however long.
 const CLEAR = 24;
@@ -333,9 +334,16 @@ export function newPropose(opts, all, { seed = 1, session = 0 } = {}) {
 	const { I, rowOf, supplyWharfs } = instanceOf({ ...opts, chosen: all });
 	indexOf(I);
 	// The most silver inside the session, time priced at nothing; with none
-	// set, the most the board gives.
+	// set, the most the board gives. Searched from the best an hour too:
+	// with time free the search lays every climb at once and sits there,
+	// while the plan that earns most an hour, grown to fill the session,
+	// was worth half as much again on an empty storage (2026-10-07).
 	I.rules.hours = session > 0 ? session : CLEAR;
-	const best = search(I, { mu: 0, timeMs: Infinity, most: WORK, seed, pool: chainsOf(I) });
+	const pool = chainsOf(I);
+	// Two rounds of the price of time: a third found nothing more on the
+	// real boards and cost as much again.
+	const rate = maximiseRate(I, (inst, o) => search(inst, { ...o, timeMs: Infinity, most: Math.ceil(WORK / 4), pool }), { timeMs: Infinity, rounds: 2, seed });
+	const best = search(I, { mu: 0, timeMs: Infinity, most: WORK, seed, pool, warm: { seq: rate.seq, calls: rate.calls } });
 	const plan = best.plan;
 	const r = simulate(I, planPolicy(plan), { mode: 'robust' });
 	const dealt = new Set(r.log.filter(e => e.kind === 'station' && e.a > 0).map(e => e.at));
