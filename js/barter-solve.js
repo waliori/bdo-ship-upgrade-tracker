@@ -305,14 +305,14 @@ const dayOf = I => JSON.stringify([I.stations.map(s => [s.id, s.ymin, s.ymax, s.
  * `all` it climbs. Each island the plan deals at is put to the chain
  * that climbs furthest through the islands dealt, the longest first.
  */
-export function newPropose(opts, all, { timeMs = 1500, seed = 1, hours = 0 } = {}) {
+export function newPropose(opts, all, { timeMs = 1500, seed = 1, session = 0 } = {}) {
 	const missing = unsupported({ ...opts, chosen: all });
 	if (missing.length || !all.length) return { proposals: [], best: null, partial: false };
 	const { I, rowOf, supplyWharfs } = instanceOf({ ...opts, chosen: all });
 	indexOf(I);
 	// A session given: the most silver inside it, time priced at nothing.
-	if (hours > 0) I.rules.hours = hours;
-	const best = hours > 0
+	if (session > 0) I.rules.hours = session;
+	const best = session > 0
 		? search(I, { mu: 0, timeMs, seed, pool: chainsOf(I) })
 		: maximiseRate(I, (inst, o) => search(inst, { ...o, pool: chainsOf(I) }), { timeMs, seed });
 	const plan = best.plan;
@@ -331,7 +331,7 @@ export function newPropose(opts, all, { timeMs = 1500, seed = 1, hours = 0 } = {
 	const run = solveRun({ ...opts, chosen: picked });
 	const hours = run.hours;
 	const value = run.net;
-	const proposal = { kind: 'hour', label: hours > 0 ? `The most in ${hours} h` : 'The most an hour', ids: picked.map(c => c.id), run, value, hours, yard: { perUnit: run.parleyUsed > 0 ? value / (run.parleyUsed / PARLEY.perGreatOceanTrade) : 0, perHour: hours > 0 ? value / hours : 0 } };
+	const proposal = { kind: 'hour', label: session > 0 ? `The most in ${session} h` : 'The most an hour', ids: picked.map(c => c.id), run, value, hours, yard: { perUnit: run.parleyUsed > 0 ? value / (run.parleyUsed / PARLEY.perGreatOceanTrade) : 0, perHour: hours > 0 ? value / hours : 0 } };
 	return { proposals: [proposal], best: proposal, partial: false };
 }
 

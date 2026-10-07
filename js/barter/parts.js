@@ -231,7 +231,7 @@ export function silverParts(me, b) {
 		}
 		// The new planner, under test, searches here and now, its runs in
 		// propose()'s shape; anything it cannot lay yet is searched as before.
-		const fresh = newPlanner() && !unsupported(withShip({ ...opts, chosen: all })).length ? newPropose(withShip(opts), all, { hours: sessionHours() }) : null;
+		const fresh = newPlanner() && !unsupported(withShip({ ...opts, chosen: all })).length ? newPropose(withShip(opts), all, { session: sessionHours() }) : null;
 		const found = fresh || proposeAsync(search, pkey, result => {
 			// The inputs moved on before the answer came: a newer request
 			// is out for them, and this answer is nobody's.
