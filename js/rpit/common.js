@@ -72,9 +72,14 @@ export function robustEval(I, plan, mu = 0) {
 	// A session of so many hours: each hour past it costs more than any
 	// hour can earn, so the search pulls a long plan back inside it.
 	const over = I.rules.hours > 0 ? Math.max(0, r.T - I.rules.hours) * OVERTIME : 0;
-	return { f: r.R - mu * r.T - over, R: r.R, T: r.T, run: r };
+	// The sailor's two rules: nothing taken out of storage only to be put
+	// back, nothing carried to the storage twice. A plan that breaks one is
+	// worth less than any that does not, whatever it earns.
+	const waste = (r.pointless.loadThenDrop + r.pointless.storedTwice) * WASTE;
+	return { f: r.R - mu * r.T - over - waste, R: r.R, T: r.T, run: r };
 }
 const OVERTIME = 1e11;
+const WASTE = 1e12;
 
 /** A visit to the end depot that sells what the run made. */
 export const endVisit = I => ({ at: I.rules.end, sell: 'spare', drop: 'spare' });

@@ -364,8 +364,11 @@ export function simulate(I, policy, { mode = 'sample', seed = 1 } = {}) {
  * islands sailed to that dealt nothing.
  */
 export function pointlessOf(log) {
-	const out = { loadThenDrop: 0, idleCalls: 0, consecutiveCalls: 0, emptyVisits: 0 };
+	const out = { loadThenDrop: 0, storedTwice: 0, idleCalls: 0, consecutiveCalls: 0, emptyVisits: 0 };
 	const taken = new Set();
+	// A good left in storage at one call and again at a later one: carried
+	// to the storage twice where once would have done.
+	const stored = new Set();
 	let lastDepot = false;
 	for (const e of log) {
 		if (e.kind === 'station') {
@@ -377,14 +380,19 @@ export function pointlessOf(log) {
 		}
 		if (e.kind !== 'depot' && e.kind !== 'start' && e.kind !== 'supply') continue;
 		for (const g of Object.keys(e.dropped || {})) if (taken.has(g)) { out.loadThenDrop++; taken.delete(g); }
+		if (e.kind === 'depot') for (const [g, n] of Object.entries(e.dropped || {})) if (n > 0) { if (stored.has(g)) out.storedTwice++; stored.add(g); }
 		for (const g of [...Object.keys(e.loaded || {}), ...Object.keys(e.bought || {})]) taken.add(g);
 		if (e.kind === 'depot' || e.kind === 'supply') {
 			// A call that filled the ration pool did something, whatever it
 			// traded.
 			const did = Object.keys(e.sold).length + Object.keys(e.dropped).length + Object.keys(e.loaded).length + (e.refilled > 0 ? 1 : 0);
 			if (!did) out.idleCalls++;
-			if (lastDepot) out.consecutiveCalls++;
-			lastDepot = true;
+			// Two calls in a row: the second could have been the first. A call
+			// only for supplies on the way is not one.
+			const traded = Object.keys(e.sold).length + Object.keys(e.dropped).length + Object.keys(e.loaded).length > 0;
+			const suppliesOnly = !traded && e.refilled > 0;
+			if (lastDepot && !suppliesOnly) out.consecutiveCalls++;
+			if (!suppliesOnly) lastDepot = true;
 		}
 	}
 	return out;

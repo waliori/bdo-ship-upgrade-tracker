@@ -72,7 +72,7 @@ test('robust: the climb scores what it scores on paper', () => {
 	assert.ok(Math.abs(r.T - (400 + 3 * 45 + 120) / 3600) < 1e-9);
 	assert.equal(r.calls, 1);
 	assert.equal(r.P, 30);
-	assert.deepEqual(r.pointless, { loadThenDrop: 0, idleCalls: 0, consecutiveCalls: 0, emptyVisits: 0 });
+	assert.deepEqual(r.pointless, { loadThenDrop: 0, storedTwice: 0, idleCalls: 0, consecutiveCalls: 0, emptyVisits: 0 });
 });
 
 test('sample: an island pays the same at every attempt, drawn once for the board', () => {
@@ -253,4 +253,13 @@ test('vouchers: a quarter of a bar each, drawn when the island asks for more tha
 	const full = simulate(tiny({ stations, budgets: { P: 900, H: null, vouchers: { n: 2, each: 250, max: 1000, cooldownH: 2 } } }), planPolicy({ ...plan, visits: plan.visits.map(v => (v.at === 's3' ? { at: 's3', a: 5 } : v)) }), { mode: 'robust' });
 	assert.equal(full.vouchersUsed, 0);
 	assert.equal(full.log[3].a, 4);
+});
+
+test('a good carried to the storage at two calls is stored twice, and the planner judges it so', async () => {
+	const { robustEval } = await import('../js/rpit/common.js');
+	const twice = { buy: { Land: 100 }, visits: [{ at: 's1', a: 10 }, { at: 's2', a: 10 }, { at: 'H', drop: { L2: 5 } }, { at: 's3', a: 2 }, { at: 'H', drop: { L2: 5 }, sell: 'all' }] };
+	const once = { buy: { Land: 100 }, visits: [{ at: 's1', a: 10 }, { at: 's2', a: 10 }, { at: 's3', a: 2 }, { at: 'H', drop: { L2: 10 }, sell: 'all' }] };
+	assert.equal(simulate(tiny(), planPolicy(twice), { mode: 'robust' }).pointless.storedTwice, 1);
+	assert.equal(simulate(tiny(), planPolicy(once), { mode: 'robust' }).pointless.storedTwice, 0);
+	assert.ok(robustEval(tiny(), twice).f < robustEval(tiny(), once).f - 1e11);
 });
