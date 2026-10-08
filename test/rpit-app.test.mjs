@@ -97,3 +97,20 @@ test('the bag is tried where a run goes home for a later trip\'s goods, and kept
 	const inBag = Object.fromEntries(bagged.bagLoaded.map(l => [l.item, l.n]));
 	for (const s of bagged.stops) for (const l of s.fromBag || []) assert.ok((inBag[l.item] || 0) >= l.n - 1e-9, `${l.item} out of the bag but never put in`);
 });
+
+test('the worker answers for the new planner, and the plan it found, remembered on the page, is the run laid', async () => {
+	const { handleRequest } = await import('../js/barter-worker.js');
+	const { rememberFound } = await import('../js/barter-solve.js');
+	const msg = structuredClone({ id: 7, planner: 'new', opts: base, chains: all.filter(c => c.from !== 'land') });
+	const out = handleRequest(msg);
+	assert.equal(out.id, 7);
+	assert.ok(!out.error, out.error);
+	const best = out.result.best;
+	assert.ok(best && best.ids.length && out.result.kept.ids);
+	rememberFound(structuredClone(out.result.kept));
+	const { cutOf, cutAt } = await import('../js/barter-short.js');
+	// Ticked as the tab ticks them: whole climbs, and climbs cut short by their cut ids.
+	const ticked = best.ids.map(id => { const { base: b, k } = cutOf(id); const c = all.find(x => x.id === b); return k >= 0 ? cutAt(c, k) : c; });
+	assert.ok(ticked.every(Boolean));
+	assert.equal(solveRun({ ...base, chosen: ticked }).net, best.run.net);
+});
