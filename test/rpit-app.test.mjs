@@ -72,3 +72,16 @@ test('the chain way sails each climb whole before the next', () => {
 		}
 	}
 });
+
+test('a climb that cashes in for Crow Coins is laid, and its coins counted; the coin goal proposes the most coins', async () => {
+	const { newPropose } = await import('../js/barter-solve.js');
+	const withCoins = chains(d34, stock, dock, null, 0, true);
+	const coin = withCoins.find(c => c.pays === 'coin' && c.from !== 'land');
+	assert.ok(coin, 'a coin climb on the board');
+	const run = solveRun({ ...base, chosen: [coin] });
+	assert.ok(run.coins > 0, 'coins counted');
+	assert.equal(run.coins, run.stops.filter(s => s.item === 'Crow Coin').reduce((a, s) => a + s.times * s.recvMin, 0));
+	const found = newPropose({ ...base, aim: { kind: 'coins' } }, withCoins.filter(c => c.from !== 'land'));
+	assert.equal(found.best.kind, 'coins');
+	assert.ok(found.best.value > 0 && found.best.value === found.best.run.coins);
+});

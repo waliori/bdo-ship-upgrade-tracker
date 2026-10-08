@@ -17,7 +17,7 @@
 //
 // Pure: no DOM, no store; the worker can run it.
 
-import { levelOf, PARLEY } from './barter.js';
+import { levelOf, PARLEY, COIN } from './barter.js';
 import { cutAt } from './barter-short.js';
 import { weightOf, sellOf, stacks } from './barter-plan.js';
 import { sellable, floorOf, PLAIN_ORDERS } from './barter-orders.js';
@@ -37,8 +37,7 @@ import { search } from './rpit/alns.js';
 export function unsupported(opts = {}) {
 	const out = [];
 	if (opts.bag && opts.bag.free > 0) out.push('bag');
-	if (opts.aim) out.push(`aim:${opts.aim.kind || 'stock'}`);
-	if ((opts.chosen || []).some(c => c.rungs.some(r => r.item === 'Crow Coin'))) out.push('coins');
+	if (opts.aim && opts.aim.kind !== 'coins') out.push(`aim:${opts.aim.kind || 'stock'}`);
 	return out;
 }
 
@@ -52,6 +51,13 @@ export function unsupported(opts = {}) {
 // two wharves share the place -- Abandoned Pier is Purio and Torio, four
 // kilometres apart, and one id for both had the ship fill up at one and be
 // timed to the other (2026-10-08).
+// A run for coins is judged on the coins it brings back, the silver only
+// between two that bring the same, as chainRun's coin goal judges them: a
+// coin here is worth more than any run's silver (a few billion), and less
+// than the sailor's rules -- a hundred coins are not worth storing a good
+// twice, nor ten thousand an hour past the session (common.js).
+const COIN_WORTH = 1e10;
+
 const supplyId = (list, w) => (list.filter(x => x.at === w.at).length > 1 ? `${w.at} (${w.name})` : w.at);
 
 export function instanceOf(opts) {
@@ -120,7 +126,7 @@ export function instanceOf(opts) {
 			? { P: parley.held, H: null, vouchers: { n: parley.vouchers, each: PARLEY.voucher, max: PARLEY.max, cooldownH: 2 } }
 			: { P: parley.bar, H: null },
 		initial: { hold: { ...stock }, floors },
-		rules: { pace, dropPolicy: 'any', home: home.at, end: prefer ? prefer.at : home.at },
+		rules: { pace, dropPolicy: 'any', home: home.at, end: prefer ? prefer.at : home.at, ...(opts.aim && opts.aim.kind === 'coins' ? { coinWorth: COIN_WORTH } : {}) },
 		objective: 'silver_per_hour',
 		meta: {}
 	};
@@ -284,6 +290,10 @@ export function runOf(I, plan, { chosen, rowOf, stashes, parley, prices = {}, or
 		cost, net: silver - cost, silver,
 		keptWorth: kept.reduce((a, s) => a + s.total, 0) + stashed.reduce((a, s) => a + s.total, 0),
 		trades: r.trades, parleyUsed: r.P, parleyBar: parley.bar,
+		// The Crow Coins the run is paid, as chainRun counts them: the
+		// least each exchange pays, and the most.
+		coins: stops.reduce((a, s) => a + (s.item === COIN ? s.times * s.recvMin : 0), 0),
+		coinsMax: stops.reduce((a, s) => a + (s.item === COIN ? s.times * s.recvMax : 0), 0),
 		weightStart, weightPeak: peak, hold: opts0(I),
 		rungs: [],
 		hours: r.T,
@@ -476,8 +486,9 @@ export function newPropose(opts0, all0, { seed = 1, session = 0 } = {}) {
 	keep(picked.map(c => c.id).sort().join('|'), { plan: kept.plan, day: dayOf(atPick), hold: { ...atPick.initial.hold } });
 	const run = solveRun({ ...opts, chosen: picked });
 	const hours = run.hours;
-	const value = run.net;
-	const proposal = { kind: 'hour', label: session > 0 ? `The most in ${session} h` : 'The most the board gives', ids: picked.map(c => c.id), run, value, hours, yard: { perUnit: run.parleyUsed > 0 ? value / (run.parleyUsed / PARLEY.perGreatOceanTrade) : 0, perHour: hours > 0 ? value / hours : 0 } };
+	const value = I.rules.coinWorth > 0 ? run.coins : run.net;
+	const coined = I.rules.coinWorth > 0;
+	const proposal = { kind: coined ? 'coins' : 'hour', label: coined ? 'The most coins' : session > 0 ? `The most in ${session} h` : 'The most the board gives', ids: picked.map(c => c.id), run, value, hours, yard: { perUnit: run.parleyUsed > 0 ? value / (run.parleyUsed / PARLEY.perGreatOceanTrade) : 0, perHour: hours > 0 ? value / hours : 0 } };
 	return { proposals: [proposal], best: proposal, partial: false };
 }
 

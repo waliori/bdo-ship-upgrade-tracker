@@ -47,7 +47,9 @@ export function chainsOf(I, depth = 8) {
 	const out = [];
 	const walk = (path) => {
 		const last = path[path.length - 1];
-		if (G[last.out] && G[last.out].p > 0) out.push(path.map(s => s.id));
+		// A climb ends where its good sells -- or, on a run for coins, where it
+		// is paid in Crow Coins.
+		if (G[last.out] && (G[last.out].p > 0 || (I.rules.coinWorth > 0 && last.out === 'Crow Coin'))) out.push(path.map(s => s.id));
 		if (path.length >= depth) return;
 		for (const t of takers.get(last.out) || []) if (!path.includes(t)) walk([...path, t]);
 	};
@@ -76,9 +78,11 @@ export function robustEval(I, plan, mu = 0) {
 	// back, nothing carried to the storage twice. A plan that breaks one is
 	// worth less than any that does not, whatever it earns.
 	const waste = (r.pointless.loadThenDrop + r.pointless.storedTwice) * WASTE;
-	return { f: r.R - mu * r.T - over - waste, R: r.R, T: r.T, run: r };
+	// A run for coins: each coin the exchanges pay outweighs any silver.
+	const coins = I.rules.coinWorth > 0 ? r.log.reduce((a, e) => a + (e.kind === 'station' && e.out === 'Crow Coin' ? e.Y.reduce((x, y) => x + y, 0) : 0), 0) * I.rules.coinWorth : 0;
+	return { f: r.R - mu * r.T - over - waste + coins, R: r.R, T: r.T, run: r };
 }
-const OVERTIME = 1e11;
+const OVERTIME = 1e14;
 const WASTE = 1e12;
 
 /** A visit to the end depot that sells what the run made. */
