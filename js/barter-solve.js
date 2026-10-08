@@ -36,7 +36,6 @@ import { search } from './rpit/alns.js';
 /** What the new planner cannot lay yet, for these options; empty when it can. */
 export function unsupported(opts = {}) {
 	const out = [];
-	if (opts.bag && opts.bag.free > 0) out.push('bag');
 	if (opts.aim && opts.aim.kind !== 'coins') out.push(`aim:${opts.aim.kind || 'stock'}`);
 	return out;
 }
@@ -119,7 +118,7 @@ export function instanceOf(opts) {
 		travel: { points, matrix },
 		// What every leg costs beyond the sailing, as the tab times it.
 		service: { station: pause.isle || 0, depot: pause.call || 0, leg: ship && ship.lag > 0 ? ship.lag : 0 },
-		vehicle: { Wfree: hold.free, Wdeal: hold.deal ?? hold.free, Wmax: hold.max ?? hold.deal ?? hold.free, speed: (ship && ship.speed > 0 ? speedMs(ship.speed, ship.cal) : speedMs(100)) / MID_PACE, slowAtMax: 0.5, ...(Number.isFinite(hold.slots) && hold.slots > 0 ? { slots: hold.slots } : {}), ...(opts.rations ? { rations: { reserve: 0.1, ...opts.rations } } : {}) },
+		vehicle: { Wfree: hold.free, Wdeal: hold.deal ?? hold.free, Wmax: hold.max ?? hold.deal ?? hold.free, speed: (ship && ship.speed > 0 ? speedMs(ship.speed, ship.cal) : speedMs(100)) / MID_PACE, slowAtMax: 0.5, ...(Number.isFinite(hold.slots) && hold.slots > 0 ? { slots: hold.slots } : {}), ...(opts.rations ? { rations: { reserve: 0.1, ...opts.rations } } : {}), ...(opts.bag && opts.bag.free > 0 ? { bag: { free: opts.bag.free, slots: Number.isFinite(opts.bag.slots) ? opts.bag.slots : Infinity } } : {}) },
 		// The bar as it stands, and the vouchers apart: each comes on its own
 		// cooldown, so a bar and four vouchers are not one bigger bar.
 		budgets: parley.vouchers > 0 && parley.held > 0
@@ -206,7 +205,8 @@ export function runOf(I, plan, { chosen, rowOf, stashes, parley, prices = {}, or
 		const wharf = wharfOf.get(e.at);
 		// A call that only fills the ration pool is the tab's own refill
 		// stop, laid by the planner and kept as laid (`fixed`).
-		if (e.kind === 'supply' || (!Object.keys(e.sold).length && !Object.keys(e.dropped).length && !Object.keys(e.loaded).length && e.refilled > 0)) {
+		const fetched = Object.entries(e.fetched || {}).map(([item, n]) => ({ item, n }));
+		if (!fetched.length && (e.kind === 'supply' || (!Object.keys(e.sold).length && !Object.keys(e.dropped).length && !Object.keys(e.loaded).length && e.refilled > 0))) {
 			stops.push({ wharf: { name: wharf.name, at: wharf.at, x: wharf.x, y: wharf.y }, dropped: [], loads: [], weightAfter: e.W, chain: chainNow, refill: true, fixed: true });
 			continue;
 		}
@@ -221,7 +221,11 @@ export function runOf(I, plan, { chosen, rowOf, stashes, parley, prices = {}, or
 			stashed.push({ item, n, at: wharf.at, each: sellOf(item), total: n * sellOf(item), chain: chainNow });
 		}
 		const loads = Object.entries(e.loaded).map(([item, n]) => ({ item, n }));
-		if (loads.length) { lotStarts.push(stops.length); stop.loads = loads; }
+		if (loads.length) stop.loads = loads;
+		// Out of the sailor's bag at this wharf: a later trip's goods, as
+		// chainRun's `fromBag` -- the trip starts here, not at home.
+		if (fetched.length) stop.fromBag = fetched;
+		if (loads.length || fetched.length) lotStarts.push(stops.length);
 		stops.push(stop);
 	}
 
@@ -244,7 +248,7 @@ export function runOf(I, plan, { chosen, rowOf, stashes, parley, prices = {}, or
 		while (lots.length <= L) lots.push([]);
 		if (!lots.some(l => l.includes(s.chain))) lots[L].push(s.chain);
 	}
-	for (const s of stops) if (s.loads) { const L = lotOfStop(stops.indexOf(s)); for (const l of s.loads) l.lot = L; }
+	for (const s of stops) for (const l of [...(s.loads || []), ...(s.fromBag || [])]) l.lot = lotOfStop(stops.indexOf(s));
 	order.forEach((_, i) => { if (!lots.some(l => l.includes(i))) (lots[lots.length - 1] || (lots[0] = [])).push(i); });
 
 	// Why a climb stopped short of its top: the first rung of it the run did
@@ -282,6 +286,9 @@ export function runOf(I, plan, { chosen, rowOf, stashes, parley, prices = {}, or
 	return {
 		order, lots, stops, sold, kept, stashed,
 		loaded: Object.entries(start.loaded || {}).map(([item, n]) => ({ item, n })),
+		// The bag as chainRun reports it: what goes into it before casting off.
+		bagLoaded: Object.entries(start.bagged || {}).map(([item, n]) => ({ item, n })), bagFromHold: [], bagShort: false,
+		bag: I.vehicle.bag ? { free: I.vehicle.bag.free, slots: Number.isFinite(I.vehicle.bag.slots) ? I.vehicle.bag.slots : null } : null,
 		landLoaded: Object.entries(start.bought || {}).map(([item, n]) => ({ item, n })),
 		bagLoaded: [], bagFromHold: [], bagPeak: 0, bagShort: false, bag: null,
 		cut, skippedWhole: [],

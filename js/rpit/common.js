@@ -128,6 +128,18 @@ export function startOf(I, visits) {
 }
 
 /** The depot that bends the leg from `a` to `b` least. */
+/** The wharf of any kind -- a storage's or a supply wharf -- that bends the
+ *  leg a → b least: where goods come out of the bag. */
+export function nearestWharf(I, a, b) {
+	const { depots, dist } = indexOf(I);
+	let best = null, bd = Infinity;
+	for (const d of [...depots, ...(I.supplies || []).map(x => x.id)]) {
+		const x = dist(a, d) + dist(d, b) - dist(a, b);
+		if (x < bd) { bd = x; best = d; }
+	}
+	return best;
+}
+
 export function nearestCall(I, a, b) {
 	const { depots, dist } = indexOf(I);
 	let best = null, bd = Infinity;
@@ -177,7 +189,7 @@ export function finish(I, stationVisits, mu = 0, { calls = [], must = null } = {
 	const withCalls = (vs, cs) => {
 		const out = [];
 		for (const v of vs) {
-			for (const c of cs) if (c.before === v.at) out.push({ at: c.at, sell: 'spare', drop: 'spare', ...(c.load ? { load: c.load } : {}) });
+			for (const c of cs) if (c.before === v.at) out.push({ at: c.at, sell: 'spare', drop: 'spare', ...(c.load ? { load: c.load } : {}), ...(c.fromBag ? { fromBag: c.fromBag } : {}) });
 			out.push(v);
 		}
 		return [...out, endVisit(I)];
@@ -185,7 +197,10 @@ export function finish(I, stationVisits, mu = 0, { calls = [], must = null } = {
 	let cs = calls.filter(c => visits.some(v => v.at === c.before));
 	const build = (vs, list) => {
 		const all = withCalls(vs, list);
-		return { ...startOf(I, all), visits: all };
+		// What the calls take out of the bag goes into it before casting off.
+		const bag = {};
+		for (const c of list) for (const [g, n] of Object.entries(c.fromBag || {})) bag[g] = (bag[g] || 0) + n;
+		return { ...startOf(I, all), visits: all, ...(Object.keys(bag).length ? { bag } : {}) };
 	};
 	let plan = build(visits, cs);
 	let best = judge(plan);
@@ -206,12 +221,20 @@ export function finish(I, stationVisits, mu = 0, { calls = [], must = null } = {
 			const short = homeHas(log[k]);
 			const d = short ? I.rules.home : nearestCall(I, prev ? prev.at : 'start', at);
 			const s0 = station.get(at);
-			const trial = [...cs, { before: at, at: d, ...(short ? { load: { [s0.in]: (log[k].req - log[k].a) * s0.q } } : {}) }];
-			const p = build(visits, trial);
-			const e = judge(p);
+			const want = { [s0.in]: (log[k].req - log[k].a) * s0.q };
+			const trials = [[...cs, { before: at, at: d, ...(short ? { load: want } : {}) }]];
+			// Or, with a bag, the goods ride in it from the start and come
+			// aboard at the wharf nearest the way -- no sail home for them
+			// (the sailor's trick, 2026-09-25).
+			if (short && I.vehicle.bag) trials.push([...cs, { before: at, at: nearestWharf(I, prev ? prev.at : 'start', at), fromBag: want }]);
+			let kept = false;
+			for (const trial of trials) {
+				const p = build(visits, trial);
+				const e = judge(p);
+				if (e.f > best.f + 1e-6) { cs = trial; plan = p; best = e; changed = true; kept = true; }
+			}
 			// Kept or not, this island is not asked about again this round.
-			if (e.f > best.f + 1e-6) { cs = trial; plan = p; best = e; changed = true; }
-			else cs = [...cs, { before: at, at: d, tried: true }];
+			if (!kept) cs = [...cs, { before: at, at: d, tried: true }];
 		}
 		cs = cs.filter(c => !c.tried);
 		// A call to sail lighter. No island refused the hold, but a leg sailed
@@ -395,7 +418,7 @@ export function refuel(I, plan, { near = 5 } = {}) {
 	const wharves = [...depotIds, ...supplyIds];
 	// A call that only fills the pool: a supply wharf, or a depot visited
 	// with nothing to sell, leave or load.
-	const fillOnly = v => supplyIds.has(v.at) || (depotIds.has(v.at) && !v.sell && !v.drop && !(v.load && Object.keys(v.load).length));
+	const fillOnly = v => !(v.fromBag && Object.keys(v.fromBag).length) && (supplyIds.has(v.at) || (depotIds.has(v.at) && !v.sell && !v.drop && !(v.load && Object.keys(v.load).length)));
 	const visits = plan.visits.filter(v => !fillOnly(v));
 	const base = { ...plan, visits };
 	// The route sailed once, for the weight leaving each point.

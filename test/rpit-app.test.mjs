@@ -85,3 +85,14 @@ test('a climb that cashes in for Crow Coins is laid, and its coins counted; the 
 	assert.equal(found.best.kind, 'coins');
 	assert.ok(found.best.value > 0 && found.best.value === found.best.run.coins);
 });
+
+test('the bag is tried where a run goes home for a later trip\'s goods, and kept only where it pays', () => {
+	// On this board every trip ends at the harbour to sell, so the goods
+	// for the next come aboard on a call made anyway: the bag goes unused,
+	// as chainRun leaves it, and the run is no worse for having one.
+	const plain = solveRun(base);
+	const bagged = solveRun({ ...base, bag: { free: 20000, slots: 10 } });
+	assert.ok(bagged.net >= plain.net - 1e-6 && bagged.hours <= plain.hours + 1e-6);
+	const inBag = Object.fromEntries(bagged.bagLoaded.map(l => [l.item, l.n]));
+	for (const s of bagged.stops) for (const l of s.fromBag || []) assert.ok((inBag[l.item] || 0) >= l.n - 1e-9, `${l.item} out of the bag but never put in`);
+});

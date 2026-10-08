@@ -263,3 +263,19 @@ test('a good carried to the storage at two calls is stored twice, and the planne
 	assert.equal(simulate(tiny(), planPolicy(once), { mode: 'robust' }).pointless.storedTwice, 0);
 	assert.ok(robustEval(tiny(), twice).f < robustEval(tiny(), once).f - 1e11);
 });
+
+test('the bag: filled from the home storage before casting off, weighing nothing on the ship, emptied into the hold at a wharf', () => {
+	// Five [Level 2]s from H's storage ride in the bag to D, come aboard
+	// there and make two [Level 3]s at s3.
+	const I = tiny({ vehicle: { bag: { free: 5000, slots: 2 } } });
+	const plan = { bag: { L2: 5 }, visits: [{ at: 'D', fromBag: { L2: 5 } }, { at: 's3', a: 2 }, { at: 'H', sell: 'all' }] };
+	const r = simulate(I, planPolicy(plan), { mode: 'robust' });
+	assert.equal(r.log[0].W, 0, 'the bag weighs nothing on the ship');
+	assert.deepEqual(r.log[0].bagged, { L2: 5 });
+	assert.deepEqual(r.log[1].fetched, { L2: 5 });
+	assert.equal(r.log[2].a, 2);
+	assert.equal(r.R, 2 * 1000000);
+	// More than the bag's room stays ashore.
+	const small = simulate(tiny({ vehicle: { bag: { free: 1000, slots: 2 } } }), planPolicy(plan), { mode: 'robust' });
+	assert.deepEqual(small.log[0].bagged, { L2: 2 });
+});

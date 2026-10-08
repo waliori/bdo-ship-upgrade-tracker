@@ -55,10 +55,10 @@ export function rng(seed) {
  * expected, and the yields are not obliged to agree with it.
  */
 export function planPolicy(plan) {
-	const off = plan.buy || plan.load ? 1 : 0;
+	const off = plan.buy || plan.load || plan.bag ? 1 : 0;
 	return {
 		next(state, I) {
-			if (state.step === 0 && off) return { start: true, buy: plan.buy || {}, load: plan.load || {} };
+			if (state.step === 0 && off) return { start: true, buy: plan.buy || {}, load: plan.load || {}, bag: plan.bag || {} };
 			const k = state.step - off;
 			if (k >= plan.visits.length) return null;
 			const v = plan.visits[k];
@@ -227,6 +227,40 @@ export function simulate(I, policy, { mode = 'sample', seed = 1 } = {}) {
 		state.W = weight();
 	};
 
+	// The sailor's own bag: a second hold that weighs nothing on the ship,
+	// filled from the harbour's storage before casting off and emptied into
+	// the hold at any wharf -- goods move between them only there. Its room
+	// is a weight and a number of kinds (`V.bag`: { free, slots }).
+	const BAG = V.bag || null;
+	const bag = state.bag = new Map();
+	const bagRoom = g => {
+		if (!BAG) return 0;
+		const used = [...bag].reduce((a, [x, n]) => a + n * (G[x] ? G[x].w : 0), 0);
+		const w = G[g] ? G[g].w : 0;
+		const n = w > 0 ? Math.max(0, Math.floor((BAG.free - used) / w + EPS)) : Infinity;
+		return bag.has(g) || bag.size < (BAG.slots ?? Infinity) ? n : 0;
+	};
+	const intoBag = (want, entry) => {
+		const store = storages[I.rules.home];
+		for (const [g, req] of Object.entries(want || {})) {
+			const n = Math.min(req, store.get(g) || 0, bagRoom(g));
+			if (n < req - EPS) dev.refusedLoad++;
+			if (n <= EPS) continue;
+			add(bag, g, n); add(store, g, -n);
+			(entry.bagged = entry.bagged || {})[g] = n;
+		}
+	};
+	const outOfBag = (want, entry) => {
+		for (const [g, req] of Object.entries(want || {})) {
+			const n = Math.min(req, bag.get(g) || 0, roomFor(g, req));
+			if (n < req - EPS) dev.refusedLoad++;
+			if (n <= EPS) continue;
+			add(bag, g, -n); add(h, g, n); add(hw, g, n);
+			(entry.fetched = entry.fetched || {})[g] = n;
+		}
+		state.W = weight();
+	};
+
 	let stopped = false;
 	for (;;) {
 		const act = policy.next(state, I, policyRng);
@@ -246,6 +280,7 @@ export function simulate(I, policy, { mode = 'sample', seed = 1 } = {}) {
 			// What is loaded before casting off comes out of the home
 			// storage at the harbour: no call, and no leg to the wharf.
 			load(I.rules.home, act.load, entry);
+			intoBag(act.bag, entry);
 			entry.kind = 'start';
 		} else if (stationOf.has(act.at)) {
 			const s = stationOf.get(act.at);
@@ -325,14 +360,17 @@ export function simulate(I, policy, { mode = 'sample', seed = 1 } = {}) {
 				entry.dropped[g] = n;
 			}
 			load(act.at, act.load, entry);
+			outOfBag(act.fromBag, entry);
 			state.W = weight();
 		} else if (supplyIds.has(act.at)) {
-			// A call for supplies only: the pool filled, nothing traded.
+			// A call for supplies -- the pool filled, nothing traded -- and,
+			// any wharf being one, for what the bag holds.
 			if (!travel(act.at)) { stopped = true; break; }
 			state.time += I.service.depot / 3600;
 			calls++;
 			entry.kind = 'supply';
 			refill(entry);
+			outOfBag(act.fromBag, entry);
 		} else {
 			entry.kind = 'unknown';
 		}
@@ -381,15 +419,15 @@ export function pointlessOf(log) {
 		if (e.kind !== 'depot' && e.kind !== 'start' && e.kind !== 'supply') continue;
 		for (const g of Object.keys(e.dropped || {})) if (taken.has(g)) { out.loadThenDrop++; taken.delete(g); }
 		if (e.kind === 'depot') for (const [g, n] of Object.entries(e.dropped || {})) if (n > 0) { if (stored.has(g)) out.storedTwice++; stored.add(g); }
-		for (const g of [...Object.keys(e.loaded || {}), ...Object.keys(e.bought || {})]) taken.add(g);
+		for (const g of [...Object.keys(e.loaded || {}), ...Object.keys(e.bought || {}), ...Object.keys(e.fetched || {})]) taken.add(g);
 		if (e.kind === 'depot' || e.kind === 'supply') {
 			// A call that filled the ration pool did something, whatever it
 			// traded.
-			const did = Object.keys(e.sold).length + Object.keys(e.dropped).length + Object.keys(e.loaded).length + (e.refilled > 0 ? 1 : 0);
+			const did = Object.keys(e.sold).length + Object.keys(e.dropped).length + Object.keys(e.loaded).length + Object.keys(e.fetched || {}).length + (e.refilled > 0 ? 1 : 0);
 			if (!did) out.idleCalls++;
 			// Two calls in a row: the second could have been the first. A call
 			// only for supplies on the way is not one.
-			const traded = Object.keys(e.sold).length + Object.keys(e.dropped).length + Object.keys(e.loaded).length > 0;
+			const traded = Object.keys(e.sold).length + Object.keys(e.dropped).length + Object.keys(e.loaded).length + Object.keys(e.fetched || {}).length > 0;
 			const suppliesOnly = !traded && e.refilled > 0;
 			if (lastDepot && !suppliesOnly) out.consecutiveCalls++;
 			if (!suppliesOnly) lastDepot = true;
