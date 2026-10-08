@@ -72,8 +72,11 @@ export function dry(I) {
 export function robustEval(I, plan, mu = 0) {
 	const r = simulate(I, planPolicy(plan), { mode: 'robust' });
 	// A session of so many hours: each hour past it costs more than any
-	// hour can earn, so the search pulls a long plan back inside it.
-	const over = I.rules.hours > 0 ? Math.max(0, r.T - I.rules.hours) * OVERTIME : 0;
+	// hour can earn, so the search pulls a long plan back inside it. Hours
+	// under way, as the sailor's order says and chainRun counts them -- the
+	// sailing, not the stands at islands and wharves: counted with them, a
+	// one-hour order shut out the climb the classic planner sails in it.
+	const over = I.rules.hours > 0 ? Math.max(0, (r.underWay ?? r.T) - I.rules.hours) * OVERTIME : 0;
 	// The sailor's two rules: nothing taken out of storage only to be put
 	// back, nothing carried to the storage twice. A plan that breaks one is
 	// worth less than any that does not, whatever it earns.
@@ -104,6 +107,9 @@ export function startOf(I, visits) {
 	let W = Object.entries(I.initial.hold).reduce((a, [g, n]) => a + n * (G[g] ? G[g].w : 0), 0);
 	for (const v of visits) {
 		const s = station.get(v.at);
+		// A call that loads at the harbour later: what it brings aboard is
+		// not loaded at the start as well.
+		if (!s && v.load && v.at === I.rules.home) for (const [g, n] of Object.entries(v.load)) held.set(g, (held.get(g) || 0) + n);
 		if (!s || !(v.a > 0)) continue;
 		const need = v.a * s.q;
 		const have = (held.get(s.in) || 0) + (made.get(s.in) || 0);
@@ -227,6 +233,26 @@ export function finish(I, stationVisits, mu = 0, { calls = [], must = null } = {
 			// aboard at the wharf nearest the way -- no sail home for them
 			// (the sailor's trick, 2026-09-25).
 			if (short && I.vehicle.bag) trials.push([...cs, { before: at, at: nearestWharf(I, prev ? prev.at : 'start', at), fromBag: want }]);
+			// Or the hold was full of later climbs' goods, loaded at the start
+			// as far as it carried them: those left at home and brought aboard
+			// on a call there before the first island that takes each -- a
+			// climb a trip, as a sailor with a stocked storage sails. At the
+			// fast pace the hold cannot grow past its limit, and a climb with
+			// the next trips' goods aboard stalled at its first rung
+			// (2026-10-08, a four-hour session).
+			if (!short && plan.load) {
+				const ki = visits.findIndex(v => v.at === at);
+				const firstUse = new Map();
+				visits.forEach((v, i) => { const s = station.get(v.at); if (s && !firstUse.has(s.in)) firstUse.set(s.in, i); });
+				const home = new Map();
+				for (const [g, n] of Object.entries(plan.load)) {
+					const i = firstUse.get(g);
+					if (i === undefined || i <= ki || cs.some(c => c.before === visits[i].at)) continue;
+					const b = visits[i].at;
+					home.set(b, { ...(home.get(b) || {}), [g]: n });
+				}
+				if (home.size) trials.push([...cs, ...[...home].map(([before, load]) => ({ before, at: I.rules.home, load }))]);
+			}
 			let kept = false;
 			for (const trial of trials) {
 				const p = build(visits, trial);

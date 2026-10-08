@@ -125,7 +125,7 @@ export function instanceOf(opts) {
 			? { P: parley.held, H: null, vouchers: { n: parley.vouchers, each: PARLEY.voucher, max: PARLEY.max, cooldownH: 2 } }
 			: { P: parley.bar, H: null },
 		initial: { hold: { ...stock }, floors },
-		rules: { pace, dropPolicy: 'any', home: home.at, end: prefer ? prefer.at : home.at, ...(opts.aim && opts.aim.kind === 'coins' ? { coinWorth: COIN_WORTH } : {}) },
+		rules: { pace, dropPolicy: 'any', home: home.at, end: prefer ? prefer.at : home.at, underWaySpeed: ship && ship.speed > 0 ? speedMs(ship.speed, ship.cal) : speedMs(100), ...(opts.aim && opts.aim.kind === 'coins' ? { coinWorth: COIN_WORTH } : {}) },
 		objective: 'silver_per_hour',
 		meta: {}
 	};
@@ -361,11 +361,13 @@ function edits(I, chains, chosen, plan, run, opts) {
 	const nudge = opts.nudge || {}, tripOrder = opts.tripOrder || [];
 	if (!Object.keys(nudge).length && !tripOrder.length) return plan;
 	const { station } = indexOf(I);
-	const chainOf = id => chains.findIndex(c => c.rungs.includes(id));
+	// Climbs and trips as the run shown numbers them -- the order it meets
+	// the climbs in, not the order they were ticked in.
+	const chainOf = id => { const st = run.stops.find(x => x.npcId && String(x.npcId) === id); return st ? st.chain : -1; };
 	const lotOf = id => { const k = chainOf(id); return run.lots.findIndex(l => l.includes(k)); };
 	let seq = plan.visits.filter(v => station.has(v.at)).map(v => ({ at: v.at, a: v.a }));
 	if (tripOrder.length && run.lots.length > 1) {
-		const keyOf = lot => lot.map(k => chosen[k].id).sort().join('+');
+		const keyOf = lot => lot.map(k => run.order[k].id).sort().join('+');
 		const rank = j => { const i = tripOrder.indexOf(keyOf(run.lots[j])); return i < 0 ? tripOrder.length + j : i; };
 		seq = seq.map((v, i) => ({ v, i })).sort((x, y) => rank(lotOf(x.v.at)) - rank(lotOf(y.v.at)) || x.i - y.i).map(x => x.v);
 	}
@@ -380,7 +382,10 @@ function edits(I, chains, chosen, plan, run, opts) {
 			i = j;
 		}
 	}
-	return finish(I, seq, 0, { must: chains.map(c => c.rungs[c.rungs.length - 1]) }).plan;
+	// Laid again from the order alone: the attempts the old order asked for
+	// need not suit the new one, and held to them the laying dropped a
+	// climb rather than trim its rungs (2026-10-08).
+	return finish(I, seq.map(v => ({ at: v.at })), 0, { must: chains.map(c => c.rungs[c.rungs.length - 1]) }).plan;
 }
 
 // The plans the search found, by the chains each climbs, for the laying of

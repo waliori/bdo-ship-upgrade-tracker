@@ -142,7 +142,7 @@ export function simulate(I, policy, { mode = 'sample', seed = 1 } = {}) {
 	// that any call at a wharf fills again. Absent, nothing is eaten.
 	const R0 = V.rations || null;
 	const state = {
-		at: 'start', h, hw, W: weight(), parleyLeft: I.budgets.P, time: 0, silver: 0, sold: 0, spent: 0,
+		at: 'start', h, hw, W: weight(), parleyLeft: I.budgets.P, time: 0, underWay: 0, silver: 0, sold: 0, spent: 0,
 		storages, visited: new Set(), step: 0, log: [], pool: R0 ? (R0.start ?? R0.full) : Infinity,
 		// What the islands sailed to were seen to pay: a policy may read
 		// an island's payout once it has been there, and not before.
@@ -174,7 +174,11 @@ export function simulate(I, policy, { mode = 'sample', seed = 1 } = {}) {
 		const d = I.travel.matrix[idx.get(state.at)][idx.get(to)];
 		if (d > 0) {
 			if (state.W > V.Wmax + EPS) { dev.stuck = 1; return false; }
-			const hours = (d / (V.speed * phi(state.W)) + (I.service.leg || 0)) / 3600;
+			// Under way as the sailor's order counts it (chainRun's hoursOf):
+			// the leg at the ship's own speed, whatever the hold.
+			const under = d / (I.rules.underWaySpeed || V.speed * phi(state.W)) / 3600;
+			state.underWay += under;
+			const hours = under + (I.service.leg || 0) / 3600;
 			state.time += hours;
 			distance += d;
 			if (R0) {
@@ -387,7 +391,7 @@ export function simulate(I, policy, { mode = 'sample', seed = 1 } = {}) {
 	let carried = 0;
 	for (const [g, n] of h) carried += n * (G[g] ? G[g].p : 0);
 	return {
-		R, T, rate: T > 0 ? R / T : 0, P: parleyUsed, waited, vouchersUsed, trades, calls, distance, carried, refills, eaten,
+		R, T, underWay: state.underWay, rate: T > 0 ? R / T : 0, P: parleyUsed, waited, vouchersUsed, trades, calls, distance, carried, refills, eaten,
 		// Where the run ended and what it held: a search that builds a plan
 		// a visit at a time reads its next move off these.
 		at: state.at, hold: Object.fromEntries(h), parleyLeft: state.parleyLeft,

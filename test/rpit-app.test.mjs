@@ -59,6 +59,7 @@ test('a trip order set is sailed as set, and a stop moved moves on the route tha
 	const i = was.findIndex((id, k) => k > 0 && chainAt(id) !== chainAt(was[k - 1]) && lotAt(id) === lotAt(was[k - 1]));
 	assert.ok(i > 0, 'a stop whose neighbour before it is of another climb, in the same trip');
 	const now = isles(solveRun({ ...base, nudge: { [was[i]]: -1 } }));
+	assert.deepEqual([...now].sort(), [...was].sort(), 'every island still sailed');
 	assert.ok(now.indexOf(was[i]) < now.indexOf(was[i - 1]), 'the stop moved ahead of its neighbour');
 });
 

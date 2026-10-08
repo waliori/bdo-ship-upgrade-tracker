@@ -136,7 +136,8 @@ test('a session of so many hours: the plan stays inside it, and earns more than 
 	const J = { ...I, rules: { ...I.rules, hours: T0 * 2 } };
 	const { plan } = alns.search(J, { mu: 0, timeMs: 600, seed: 3 });
 	const r = simulate(J, planPolicy(plan), { mode: 'robust' });
-	assert.ok(r.T <= T0 * 2 + 1e-6, `${r.T} h > ${T0 * 2} h`);
+	// The session is hours under way, as the sailor's order counts them.
+	assert.ok(r.underWay <= T0 * 2 + 1e-6, `${r.underWay} h under way > ${T0 * 2} h`);
 	assert.ok(r.R >= simulate(I, planPolicy(free.plan), { mode: 'robust' }).R - 1e-6);
 });
 
