@@ -127,25 +127,30 @@ export function instanceOf(opts) {
 
 /**
  * The plan for the chosen chains: every island of theirs, in the order and
- * with the attempts and calls that earn most an hour. `effort` as chainRun
- * takes it: 0 the chains' thin ladders in a quick order, 1 the route
- * searched, 2 the search over attempts, order and calls (ALNS).
+ * with the attempts and calls that make the most silver inside the
+ * session (with none, however long it takes). `effort` as chainRun takes
+ * it: 0 the chains' thin ladders in a quick order, 1 the route searched,
+ * 2 the search over attempts, order and calls (ALNS).
+ *
+ * Judged an hour at a time, as it was, it thinned every island's trades
+ * and threaded the trips together: the run the search proposed, laid
+ * again once its goods were ticked aboard, came out at half the silver
+ * (2026-10-07, real boards).
  */
-export function planFor(I, chains, { effort = 2, seed = 1 } = {}) {
+export function planFor(I, chains, { effort = 2, seed = 1, session = 0 } = {}) {
 	let seq = [];
 	for (const c of chains) seq = withChain(I, seq, c.rungs);
-	// Two ways to start: the climbs threaded together by the shortest
-	// route, and the climbs one after another -- which a small hold needs.
-	// Whichever is worth more after it is made sailable goes on.
 	const must = chains.map(c => c.rungs[c.rungs.length - 1]);
-	const starts = [reorder(I, seq, { effort: Math.min(effort, 2) }), serial(I, seq, chains)];
-	const worth = s => { const b = maximiseRate(I, (inst, o) => finish(inst, s, o.mu, { must }), { timeMs: Infinity, rounds: 6 }); return { s, b, rate: b.T > 0 ? b.R / b.T - (b.f < -1e12 ? 1e18 : 0) : 0 }; };
-	const tried = starts.map(worth).sort((a, b) => b.rate - a.rate);
-	if (effort < 2) return tried[0].b.plan;
-	// Each round's search counted in steps, not milliseconds: the same
-	// climbs laid the same way on any machine.
-	const best = maximiseRate(I, (inst, o) => search(inst, { ...o, timeMs: Infinity, most: Math.ceil(WORK / 6), pool: chains, fixed: true, warm: o.warm || { seq: tried[0].s, calls: [] } }), { timeMs: Infinity, rounds: 6, seed });
-	return best.plan;
+	I.rules.hours = session > 0 ? session : CLEAR;
+	// Three ways to start: the climbs threaded together by the shortest
+	// route; one after another as ticked; one after another, the best
+	// first -- a trip each, which a stocked storage and a small hold need.
+	const solo = new Map(chains.map(c => [c.id, finish(I, c.rungs.map(at => ({ at })), 0).f]));
+	const best1st = chains.slice().sort((a, b) => solo.get(b.id) - solo.get(a.id));
+	const starts = [reorder(I, seq, { effort: Math.min(effort, 2) }), serial(I, seq, chains), serial(I, seq, best1st)];
+	const tried = starts.map(s => finish(I, s, 0, { must })).sort((a, b) => b.f - a.f);
+	if (effort < 2) return tried[0].plan;
+	return search(I, { mu: 0, timeMs: Infinity, most: WORK, seed, pool: chains, fixed: true, warm: { seq: tried[0].visits, calls: tried[0].calls } }).plan;
 }
 
 /**
@@ -297,17 +302,43 @@ export function solveRun(opts = {}) {
 	// The chains the search proposed, ticked as it proposed them: the plan
 	// it found, not a second laying that might land elsewhere.
 	const ids = chosen.map(c => c.id).sort().join('|');
-	if (found && found.ids === ids && found.day === dayOf(I)) return runOf(I, found.plan, how);
-	const plan = planFor(I, chains, { effort: opts.effort ?? 2, seed: opts.seed ?? 1 });
+	const had = found.get(ids);
+	if (had && had.day === dayOf(I)) return runOf(I, asPacked(had.plan, had.hold, I), how);
+	const plan = planFor(I, chains, { effort: opts.effort ?? 2, seed: opts.seed ?? 1, session: opts.session || 0 });
 	return runOf(I, plan, how);
 }
 
-// The last plan the search found, with the chains it climbs, for the
-// laying of those chains to give back.
-let found = null;
-// What a day is, for that: the islands, the goods aboard and ashore, the
-// hold, the rations -- everything the plan was found for but the chains.
-const dayOf = I => JSON.stringify([I.stations.map(s => [s.id, s.ymin, s.ymax, s.m]), I.initial, I.depots.map(d => d.storage), I.vehicle, I.budgets, I.rules]);
+// The plans the search found, by the chains each climbs, for the laying of
+// those chains to give back. Several: ticking goods aboard asks the search
+// again, and what it finds then must not push out the plan being packed.
+const found = new Map();
+const keep = (ids, x) => { found.delete(ids); found.set(ids, x); if (found.size > 8) found.delete(found.keys().next().value); };
+// The day it was found for -- the board, the hold, the rations, everything
+// but the chains -- with the goods aboard and the goods in the home
+// storage counted together: ticking the start's goods aboard moves them
+// from one to the other, and the plan is the same plan after it.
+const homeOf = I => I.depots.find(d => d.id === I.rules.home) || { storage: {} };
+// Only the goods the chains take and give: the wharf step moves others
+// about as well (2026-10-07: five Green Salt Lumps no chain of the run
+// touched), and a plan is not a different plan for it.
+const goodsOf = I => {
+	const used = new Set(I.stations.flatMap(s => [s.in, s.out]));
+	const all = {};
+	for (const m of [homeOf(I).storage, I.initial.hold]) for (const [g, n] of Object.entries(m)) if (used.has(g)) all[g] = (all[g] || 0) + n;
+	return Object.fromEntries(Object.entries(all).filter(([, n]) => n > 0).sort());
+};
+const dayOf = I => JSON.stringify([I.stations.map(s => [s.id, s.ymin, s.ymax, s.m]).sort((a, b) => (a[0] < b[0] ? -1 : 1)), goodsOf(I), I.initial.floors, I.depots.filter(d => d !== homeOf(I)).map(d => d.storage), I.vehicle, I.budgets, I.rules]);
+// The found plan for the day as it is now: what was to be loaded at the
+// start and is aboard already is not loaded again.
+const asPacked = (plan, was, I) => {
+	if (!plan.load) return plan;
+	const load = {};
+	for (const [g, n] of Object.entries(plan.load)) {
+		const moved = (I.initial.hold[g] || 0) - (was[g] || 0);
+		if (n - moved > 1e-9) load[g] = n - moved;
+	}
+	return { ...plan, load };
+};
 
 /**
  * The runs worth sailing, found by the search over every chain the board
@@ -356,7 +387,8 @@ export function newPropose(opts, all, { seed = 1, session = 0 } = {}) {
 		for (const id of ids) covered.add(id);
 	}
 	if (!picked.length) return { proposals: [], best: null, partial: false };
-	found = { ids: picked.map(c => c.id).sort().join('|'), plan, day: dayOf(instanceOf({ ...opts, chosen: picked }).I) };
+	const atPick = instanceOf({ ...opts, chosen: picked }).I;
+	keep(picked.map(c => c.id).sort().join('|'), { plan, day: dayOf(atPick), hold: { ...atPick.initial.hold } });
 	const run = solveRun({ ...opts, chosen: picked });
 	const hours = run.hours;
 	const value = run.net;

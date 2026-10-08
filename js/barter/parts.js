@@ -58,7 +58,7 @@ const newPlanner = () => { try { return localStorage.getItem('bdo-tracker/planne
 // The ship's rations ride along, so its refills are laid with the run.
 const withShip = o => {
 	const me = currentShip(), d = rationDrain(me);
-	return { ...o, rations: me.rations > 0 ? { full: me.rations, perMinute: drainRate(d), perMinuteOver: drainRate(d, { overweight: true }) } : null, supplies };
+	return { ...o, rations: me.rations > 0 ? { full: me.rations, perMinute: drainRate(d), perMinuteOver: drainRate(d, { overweight: true }) } : null, supplies, session: sessionHours() || (o.orders && o.orders.hours) || 0 };
 };
 const chainRun = o => {
 	if (!newPlanner()) return classicRun(o);
@@ -231,7 +231,7 @@ export function silverParts(me, b) {
 		}
 		// The new planner, under test, searches here and now, its runs in
 		// propose()'s shape; anything it cannot lay yet is searched as before.
-		const fresh = newPlanner() && !unsupported(withShip({ ...opts, chosen: all })).length ? newPropose(withShip(opts), all, { session: sessionHours() || o.hours || 0 }) : null;
+		const fresh = newPlanner() && !unsupported(withShip({ ...opts, chosen: all })).length ? newPropose(withShip(opts), all, { session: withShip(opts).session }) : null;
 		const found = fresh || proposeAsync(search, pkey, result => {
 			// The inputs moved on before the answer came: a newer request
 			// is out for them, and this answer is nobody's.
