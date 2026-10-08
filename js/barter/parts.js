@@ -49,12 +49,12 @@ function laidOnce(key, lay) {
 	return { ...run, stops: run.stops.map(x => ({ ...x })) };
 }
 
-// The new planner, for a test only: set by the comparison harness in this
-// browser's storage, never by a sailor. Off, everything is laid as before.
+// The planner: the new one (barter-solve.js), unless this browser's storage
+// says 'classic' -- chainRun and the beam search, kept to fall back on and
+// to compare against. `planner-hours` is the comparison harness's session.
 const sessionHours = () => { try { return Number(localStorage.getItem('bdo-tracker/planner-hours')) || 0; } catch { return 0; } };
-const newPlanner = () => { try { return localStorage.getItem('bdo-tracker/planner') === 'new'; } catch { return false; } };
-// A run laid by the new planner where it can lay it, by chainRun where it
-// cannot yet (the bag, the coin and stock goals, the sailor's route edits).
+const newPlanner = () => { try { return localStorage.getItem('bdo-tracker/planner') !== 'classic'; } catch { return true; } };
+// A run laid by the new planner, by chainRun where it cannot lay it.
 // The ship's rations ride along, so its refills are laid with the run.
 const withShip = o => {
 	const me = currentShip(), d = rationDrain(me);
