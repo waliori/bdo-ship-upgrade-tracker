@@ -52,6 +52,12 @@ export function unsupported(opts = {}) {
  * board gives it (payouts seen this run folded in); and the chosen chains
  * as climbs of station ids, in the order given.
  */
+// A supply wharf's point: its place, or with its own name beside it where
+// two wharves share the place -- Abandoned Pier is Purio and Torio, four
+// kilometres apart, and one id for both had the ship fill up at one and be
+// timed to the other (2026-10-08).
+const supplyId = (list, w) => (list.filter(x => x.at === w.at).length > 1 ? `${w.at} (${w.name})` : w.at);
+
 export function instanceOf(opts) {
 	const { chosen = [], stock = {}, dock = {}, hold, parley, npcById, stashes = [], prefer = null, pace = 'full', orders = PLAIN_ORDERS, prices = {}, seen = {}, keep = [], land = new Map(), ship = null } = opts;
 	// A run that sails from no harbour starts at the first storage wharf:
@@ -98,7 +104,7 @@ export function instanceOf(opts) {
 	// supply wharf that is not a storage's (opts.supplies, barter/route.js).
 	const supplyWharfs = opts.rations ? (opts.supplies || []).filter(w => !stashes.some(x => x.at === w.at)) : [];
 	const objs = [start, ...stashes, ...supplyWharfs, ...rows.map(r => npcById.get(r.npcId))];
-	const points = ['start', ...stashes.map(w => w.at), ...supplyWharfs.map(w => w.at), ...rows.map(r => String(r.npcId))];
+	const points = ['start', ...stashes.map(w => w.at), ...supplyWharfs.map(w => supplyId(supplyWharfs, w)), ...rows.map(r => String(r.npcId))];
 	const matrix = objs.map(a => objs.map(b => (a === b ? 0 : seaDist(a, b) * METRES_PER_PX)));
 	// Leg by leg as the app sails and times them: straight from one stop to
 	// the next, never by way of a third (the bench's instances take the
@@ -106,7 +112,7 @@ export function instanceOf(opts) {
 
 	const pause = orders.pause || { isle: 0, call: 0 };
 	const I = {
-		name: 'live', goods, stations, depots, ...(supplyWharfs.length ? { supplies: supplyWharfs.map(w => ({ id: w.at, x: w.x, y: w.y })) } : {}),
+		name: 'live', goods, stations, depots, ...(supplyWharfs.length ? { supplies: supplyWharfs.map(w => ({ id: supplyId(supplyWharfs, w), x: w.x, y: w.y })) } : {}),
 		start: { id: 'start', x: start.x, y: start.y },
 		travel: { points, matrix },
 		// What every leg costs beyond the sailing, as the tab times it.
@@ -161,7 +167,7 @@ export function planFor(I, chains, { effort = 2, seed = 1, session = 0 } = {}) {
  */
 export function runOf(I, plan, { chosen, rowOf, stashes, parley, prices = {}, orders = PLAIN_ORDERS, land = new Map(), supplies = [] }) {
 	const r = simulate(I, planPolicy(plan), { mode: 'robust' });
-	const wharfOf = new Map([...supplies, ...stashes].map(w => [w.at, w]));
+	const wharfOf = new Map([...supplies.map(w => [supplyId(supplies, w), w]), ...stashes.map(w => [w.at, w])]);
 	const inChain = new Map();
 	chosen.forEach((c, k) => c.rungs.forEach(x => { const id = String(x.npcId); if (!inChain.has(id)) inChain.set(id, []); inChain.get(id).push(k); }));
 	const G = I.goods;

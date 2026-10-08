@@ -267,8 +267,17 @@ export function finish(I, stationVisits, mu = 0, { calls = [], must = null } = {
 		if (!changed) break;
 	}
 	if (I.vehicle.rations) {
-		plan = refuel(I, plan);
+		const unfed = plan;
+		plan = refuel(I, unfed);
 		best = judgeOn(I, plan);
+		// The five wharves nearest a leg's line are where a refill costs least,
+		// not always where one can be had: a route the app fed by Abandoned
+		// Pier starved here for want of it (2026-10-08). Every wharf, then.
+		if (best.run.deviations.starved) {
+			const wide = refuel(I, unfed, { near: Infinity });
+			const e = judgeOn(I, wide);
+			if (e.f > best.f) { plan = wide; best = e; }
+		}
 	}
 	return { plan, f: best.f, R: best.R, T: best.T, visits, calls: cs };
 }
@@ -337,7 +346,8 @@ export function rationPass(I, plan, { most = 16, chain = true } = {}) {
 			const W = j > 0 ? log[j - 1].W : (log[0] ? log[0].W : 0);
 			for (const w of wharves) {
 				if (w === prevAt || w === at) continue;
-				const reach = dist(prevAt, w) * eatPerMetre(W);
+				// The leg's lag eats too, as the simulator counts it.
+				const reach = dist(prevAt, w) * eatPerMetre(W) + (I.service.leg || 0) * (W > V.Wfree + 1e-6 ? R0.perMinuteOver : R0.perMinute) / 60;
 				if (reach > poolThen + 1e-6) continue;
 				const bend = dist(prevAt, w) + dist(w, at) - dist(prevAt, at);
 				// What is still aboard on arrival is thrown away by the fill:
@@ -397,7 +407,11 @@ export function refuel(I, plan, { near = 5 } = {}) {
 	const at = k => (k < 0 ? 'start' : visits[k].at);
 	const W = k => (k <= 0 ? startW : log[k - 1].W);
 	const secPerM = k => 1 / (V.speed * phi(W(k)));
-	const eatPerM = k => (W(k) > V.Wfree + 1e-6 ? R0.perMinuteOver : R0.perMinute) / 60 * secPerM(k);
+	const eatPerS = k => (W(k) > V.Wfree + 1e-6 ? R0.perMinuteOver : R0.perMinute) / 60;
+	// A leg sailed d metres, as the simulator times it: its sailing and the
+	// lag every leg has; and what that eats.
+	const lag = I.service.leg || 0;
+	const legSecs = (k, d) => (d > 0 ? d * secPerM(k) + lag : 0);
 	const isCall = k => depotIds.has(visits[k].at);
 	const isle = k => !depotIds.has(visits[k].at) && !supplyIds.has(visits[k].at);
 	const keep = R0.full * (1 - (R0.reserve || 0)), full = R0.full;
@@ -426,8 +440,8 @@ export function refuel(I, plan, { near = 5 } = {}) {
 		const upto = v === null ? n : v.call !== undefined ? v.call : v.k;
 		for (let k = u.k; k < upto; k++) {
 			if (isCall(k)) return null;
-			const d = dist(x, at(k));
-			eat += d * eatPerM(k); secs += d * secPerM(k);
+			const t = legSecs(k, dist(x, at(k)));
+			eat += t * eatPerS(k); secs += t;
 			if (eat > (isle(k) ? keep : full) + 1e-6) return null;
 			x = at(k);
 		}
@@ -435,8 +449,8 @@ export function refuel(I, plan, { near = 5 } = {}) {
 		const k = v.call !== undefined ? v.call : v.k;
 		const tgt = v.call !== undefined ? at(v.call) : v.x;
 		if (v.call === undefined && upto !== v.k) return null;
-		const d = dist(x, tgt);
-		eat += d * eatPerM(k); secs += d * secPerM(k);
+		const t = legSecs(k, dist(x, tgt));
+		eat += t * eatPerS(k); secs += t;
 		if (eat > full + 1e-6) return null;
 		return { secs: secs + (v.fill ? I.service.depot : 0) };
 	};

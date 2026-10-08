@@ -148,3 +148,23 @@ test('counted in steps, not milliseconds: the same board gives the same plan twi
 	assert.equal(a.iterations, 15);
 	assert.deepEqual(a.plan, b.plan);
 });
+
+test('refills reckon each leg as the simulator times it, lag and all', async () => {
+	const { refuel } = await import('../js/rpit/common.js');
+	// The hand board's refuel case with three seconds of lag a leg: s1 → A
+	// eats 3.5 and the lag 0.3, more than the 3.7 left after the first leg.
+	// A planner blind to the lag lays s1 → A → B → s2 and the ship starves.
+	const I = hand();
+	I.vehicle.rations = { full: 6, perMinute: 6, perMinuteOver: 6, reserve: 0 };
+	I.service = { ...I.service, leg: 3 };
+	I.supplies = [{ id: 'A' }, { id: 'B' }];
+	const pts = [...I.travel.points, 'A', 'B'];
+	const near = { 'A,s1': 350, 'A,s2': 650, 'B,s1': 650, 'B,s2': 350, 'A,B': 300 };
+	const far = (a, b) => near[[a, b].sort().join()] ?? 3000;
+	I.travel = { points: pts, matrix: pts.map((a, i) => pts.map((b, j) => (i === j ? 0 : i < 6 && j < 6 ? I.travel.matrix[i][j] : far(a, b)))) };
+	const set = (a, b, d) => { const x = pts.indexOf(a), y = pts.indexOf(b); I.travel.matrix[x][y] = I.travel.matrix[y][x] = d; };
+	set('start', 's1', 200); set('s2', 's3', 100); set('s3', 'H', 100);
+	const plan = { buy: { Land: 100 }, visits: [{ at: 's1', a: 10 }, { at: 's2', a: 10 }, { at: 's3', a: 10 }, { at: 'H', sell: 'all' }] };
+	const fed = refuel(I, plan);
+	assert.notDeepEqual(fed.visits.map(v => v.at), ['s1', 'A', 'B', 's2', 's3', 'H'], 'the lag makes s1 → A one ration too far');
+});
