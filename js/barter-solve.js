@@ -495,13 +495,22 @@ export function newPropose(opts0, all0, { seed = 1, session = 0 } = {}) {
 	const kept = (opts.orders || PLAIN_ORDERS).way === 'chain'
 		? { plan: planFor(lay, instanceOf({ ...opts, chosen: picked }).chains, { seed, session, way: 'chain' }) }
 		: finish(lay, best.seq.filter(v => on.has(v.at)), 0, { calls: (best.calls || []).filter(c => on.has(c.before)) });
-	keep(picked.map(c => c.id).sort().join('|'), { plan: kept.plan, day: dayOf(atPick), hold: { ...atPick.initial.hold } });
+	const memo = { ids: picked.map(c => c.id).sort().join('|'), plan: kept.plan, day: dayOf(atPick), hold: { ...atPick.initial.hold } };
+	keep(memo.ids, memo);
 	const run = solveRun({ ...opts, chosen: picked });
 	const hours = run.hours;
 	const value = I.rules.coinWorth > 0 ? run.coins : run.net;
 	const coined = I.rules.coinWorth > 0;
 	const proposal = { kind: coined ? 'coins' : 'hour', label: coined ? 'The most coins' : session > 0 ? `The most in ${session} h` : 'The most the board gives', ids: picked.map(c => c.id), run, value, hours, yard: { perUnit: run.parleyUsed > 0 ? value / (run.parleyUsed / PARLEY.perGreatOceanTrade) : 0, perHour: hours > 0 ? value / hours : 0 } };
-	return { proposals: [proposal], best: proposal, partial: false };
+	// The plan found goes back with the answer: searched in a worker, it is
+	// the page's solveRun that has to know it, to lay the run proposed.
+	return { proposals: [proposal], best: proposal, partial: false, kept: memo };
+}
+
+/** A plan found elsewhere -- in the worker -- remembered here, so the run
+ *  proposed is the run laid when its climbs are ticked. */
+export function rememberFound(memo) {
+	if (memo && memo.ids) keep(memo.ids, memo);
 }
 
 // Nothing ticked: a run with no stops, as chainRun gives one.

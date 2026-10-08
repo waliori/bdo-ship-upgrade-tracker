@@ -16,7 +16,7 @@ import { marketStatus } from '../market.js';
 import { PARLEY, COIN, COIN_LEVEL, levelOf } from '../barter.js';
 import { exchanges, landHeld } from '../barter-plan.js';
 import { chains, chainRun as classicRun, tailOf } from '../barter-chains.js';
-import { solveRun, newPropose, unsupported } from '../barter-solve.js';
+import { solveRun, unsupported, rememberFound } from '../barter-solve.js';
 import { shortTrades, cutOf, cutAt } from '../barter-short.js';
 import { V } from './state.js';
 import { fromPort, layCal, sailLag, spendUsed, continueHTML, keepRoute, boardPaid } from './board.js';
@@ -229,10 +229,13 @@ export function silverParts(me, b) {
 			const base = chainRun({ ...opts, chosen: [] });
 			solos = new Map(all.map(c => [c.id, soloRun(c, opts, from, base)]));
 		}
-		// The new planner, under test, searches here and now, its runs in
-		// propose()'s shape; anything it cannot lay yet is searched as before.
-		const fresh = newPlanner() && !unsupported(withShip({ ...opts, chosen: all })).length ? newPropose(withShip(opts), all, { session: withShip(opts).session }) : null;
-		const found = fresh || proposeAsync(search, pkey, result => {
+		// The new planner, under test, searches in the worker as the classic
+		// search does, its runs in propose()'s shape; what it cannot lay yet
+		// is searched as before. The plan it found comes back with them.
+		const ship = withShip(opts);
+		const asked = newPlanner() && !unsupported({ ...ship, chosen: all }).length ? { planner: 'new', opts: ship, chains: all, session: ship.session } : search;
+		const found = proposeAsync(asked, pkey, result => {
+			rememberFound(result.kept);
 			// The inputs moved on before the answer came: a newer request
 			// is out for them, and this answer is nobody's.
 			if (V.proposed.key !== pkey) return;
@@ -247,6 +250,7 @@ export function silverParts(me, b) {
 		// Until the answer comes the last proposals stand in, when they
 		// belong to this board, under a note that the search is out.
 		const onBoard = new Set(all.map(c => c.id));
+		if (found) rememberFound(found.kept);
 		V.proposed = found
 			? { key: pkey, solos, ...found, working: false }
 			: { key: pkey, solos, proposals: V.proposed.proposals.filter(p => p.ids.every(id => onBoard.has(id))), best: V.proposed.key === pkey ? V.proposed.best : null, partial: false, working: true };

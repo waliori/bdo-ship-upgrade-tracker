@@ -10,6 +10,7 @@ import { boardData, gatedOffers } from '../barter-board.js';
 import { npcById } from '../barter_npcs.js';
 import { fmtRange } from '../sailing.js';
 import { propose } from '../barter-optimizer.js';
+import { answer } from '../barter-worker.js';
 import { coins as coinShop } from '../sea_coins.js';
 import { landPrices } from '../land-cost.js';
 import { marketSilver, marketStatus } from '../market.js';
@@ -146,7 +147,7 @@ export function presetSearch(key, jobs) {
 
 /** A request answered on this thread after all. */
 function answerHere(req) {
-	req.then(propose(req.args));
+	req.then(answer(req.args));
 }
 
 /**
@@ -174,7 +175,7 @@ export function proposeAsync(args, tag, then) {
 		V.presetState.job = null;
 	}
 	const w = workerOf();
-	if (!w) return propose(args);
+	if (!w) return answer(args);
 	const id = ++V.reqSeq;
 	const timer = setTimeout(() => {
 		// Nothing back long past the budget: the worker is stuck. This
@@ -190,7 +191,7 @@ export function proposeAsync(args, tag, then) {
 	} catch {
 		// Something in the arguments would not clone: this thread instead.
 		settle();
-		return propose(args);
+		return answer(args);
 	}
 	return null;
 }

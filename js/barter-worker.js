@@ -21,6 +21,13 @@
 // exported so a test can call it without a Worker.
 
 import { propose } from './barter-optimizer.js';
+import { newPropose } from './barter-solve.js';
+
+/** The search a request asks for: the classic beam search, or -- `planner:
+ *  'new'` -- the new planner over { opts, chains, session }. */
+export function answer({ planner, ...args }) {
+	return planner === 'new' ? newPropose(args.opts, args.chains, { session: args.session || 0 }) : propose(args);
+}
 
 export const DEFAULT_BUDGET_MS = 1500;
 
@@ -28,7 +35,7 @@ export const DEFAULT_BUDGET_MS = 1500;
 export function handleRequest(msg) {
 	const { id = null, budgetMs = DEFAULT_BUDGET_MS, ...args } = msg || {};
 	try {
-		return { id, result: propose({ ...args, budgetMs }) };
+		return { id, result: answer({ ...args, budgetMs }) };
 	} catch (err) {
 		return { id, error: String(err && err.message || err) };
 	}
