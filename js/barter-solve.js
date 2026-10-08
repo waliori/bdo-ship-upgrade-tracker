@@ -38,10 +38,6 @@ export function unsupported(opts = {}) {
 	const out = [];
 	if (opts.bag && opts.bag.free > 0) out.push('bag');
 	if (opts.aim) out.push(`aim:${opts.aim.kind || 'stock'}`);
-	if (opts.orders && opts.orders.way === 'chain') out.push('way:chain');
-	if ((opts.skipIsles || []).length) out.push('skipIsles');
-	if (Object.keys(opts.nudge || {}).length) out.push('nudge');
-	if ((opts.tripOrder || []).length) out.push('tripOrder');
 	if ((opts.chosen || []).some(c => c.rungs.some(r => r.item === 'Crow Coin'))) out.push('coins');
 	return out;
 }
@@ -144,7 +140,7 @@ export function instanceOf(opts) {
  * again once its goods were ticked aboard, came out at half the silver
  * (2026-10-07, real boards).
  */
-export function planFor(I, chains, { effort = 2, seed = 1, session = 0 } = {}) {
+export function planFor(I, chains, { effort = 2, seed = 1, session = 0, way = 'sea' } = {}) {
 	let seq = [];
 	for (const c of chains) seq = withChain(I, seq, c.rungs);
 	const must = chains.map(c => c.rungs[c.rungs.length - 1]);
@@ -154,9 +150,12 @@ export function planFor(I, chains, { effort = 2, seed = 1, session = 0 } = {}) {
 	// first -- a trip each, which a stocked storage and a small hold need.
 	const solo = new Map(chains.map(c => [c.id, finish(I, c.rungs.map(at => ({ at })), 0).f]));
 	const best1st = chains.slice().sort((a, b) => solo.get(b.id) - solo.get(a.id));
-	const starts = [reorder(I, seq, { effort: Math.min(effort, 2) }), serial(I, seq, chains), serial(I, seq, best1st)];
+	// The chain way -- the sailor's order, "chain after chain" -- sails each
+	// climb whole before the next: the climbs one after another, and no
+	// search that would thread them together.
+	const starts = way === 'chain' ? [serial(I, seq, chains), serial(I, seq, best1st)] : [reorder(I, seq, { effort: Math.min(effort, 2) }), serial(I, seq, chains), serial(I, seq, best1st)];
 	const tried = starts.map(s => finish(I, s, 0, { must })).sort((a, b) => b.f - a.f);
-	if (effort < 2) return tried[0].plan;
+	if (effort < 2 || way === 'chain') return tried[0].plan;
 	return search(I, { mu: 0, timeMs: Infinity, most: WORK, seed, pool: chains, fixed: true, warm: { seq: tried[0].visits, calls: tried[0].calls } }).plan;
 }
 
@@ -294,15 +293,32 @@ export function runOf(I, plan, { chosen, rowOf, stashes, parley, prices = {}, or
 const opts0 = I => ({ free: I.vehicle.Wfree, deal: I.vehicle.Wdeal, max: I.vehicle.Wmax });
 
 /**
+ * The islands the sailor took off the route, as chainRun takes them: a
+ * climb goes as far as the island before the first of them, and one taken
+ * off at its very first island is not sailed -- said in `skippedWhole`.
+ */
+function skipping(opts) {
+	const skip = new Set(opts.skipIsles || []);
+	if (!skip.size) return { opts, skippedWhole: [] };
+	const trimmed = (opts.chosen || []).map(c => {
+		const i = c.rungs.findIndex(r => skip.has(r.npcId));
+		return i < 0 ? c : { ...c, rungs: c.rungs.slice(0, i), fullRungs: c.rungs, skippedAt: c.rungs[i] };
+	});
+	const skippedWhole = trimmed.filter(c => !c.rungs.length).map(c => ({ id: c.id, item: c.item, npcId: c.skippedAt.npcId, npc: c.skippedAt.npc, of: c.fullRungs.length }));
+	return { opts: { ...opts, chosen: trimmed.filter(c => c.rungs.length), skipIsles: [] }, skippedWhole };
+}
+
+/**
  * chainRun, laid by the new planner: the same options in, a run of the
  * same shape out. Throws on what it cannot lay yet (see `unsupported`), so
  * no caller is handed a run that quietly ignored the bag or a route edit.
  */
-export function solveRun(opts = {}) {
-	const missing = unsupported(opts);
+export function solveRun(opts0 = {}) {
+	const missing = unsupported(opts0);
 	if (missing.length) throw new Error(`new planner: not yet: ${missing.join(', ')}`);
+	const { opts, skippedWhole } = skipping(opts0);
 	const chosen = opts.chosen || [];
-	if (!chosen.length) return runOf(...emptyRun(opts));
+	if (!chosen.length) return { ...runOf(...emptyRun(opts)), skippedWhole };
 	const { I, rowOf, chains, supplyWharfs } = instanceOf(opts);
 	indexOf(I);
 	const how = { chosen, rowOf, stashes: opts.stashes || [], parley: opts.parley, prices: opts.prices || {}, orders: opts.orders || PLAIN_ORDERS, land: opts.land || new Map(), supplies: supplyWharfs };
@@ -310,9 +326,44 @@ export function solveRun(opts = {}) {
 	// it found, not a second laying that might land elsewhere.
 	const ids = chosen.map(c => c.id).sort().join('|');
 	const had = found.get(ids);
-	if (had && had.day === dayOf(I)) return runOf(I, asPacked(had.plan, had.hold, I), how);
-	const plan = planFor(I, chains, { effort: opts.effort ?? 2, seed: opts.seed ?? 1, session: opts.session || 0 });
-	return runOf(I, plan, how);
+	const plan = had && had.day === dayOf(I) ? asPacked(had.plan, had.hold, I) : planFor(I, chains, { effort: opts.effort ?? 2, seed: opts.seed ?? 1, session: opts.session || 0, way: (opts.orders || PLAIN_ORDERS).way });
+	const edited = edits(I, chains, chosen, plan, runOf(I, plan, how), opts);
+	return { ...runOf(I, edited, how), skippedWhole };
+}
+
+/**
+ * The sailor's own edits on the wharf step, laid onto the plan as chainRun
+ * lays them: the trips named in `tripOrder` sailed in that order, any
+ * others after them as they were; a stop `nudge`d sooner or later a step
+ * at a time, never past an island of its own climb -- a good is not handed
+ * over before it is made -- and never out of its trip. The calls are laid
+ * again round the order as the sailor left it; nothing is searched, or the
+ * search would undo the edit.
+ */
+function edits(I, chains, chosen, plan, run, opts) {
+	const nudge = opts.nudge || {}, tripOrder = opts.tripOrder || [];
+	if (!Object.keys(nudge).length && !tripOrder.length) return plan;
+	const { station } = indexOf(I);
+	const chainOf = id => chains.findIndex(c => c.rungs.includes(id));
+	const lotOf = id => { const k = chainOf(id); return run.lots.findIndex(l => l.includes(k)); };
+	let seq = plan.visits.filter(v => station.has(v.at)).map(v => ({ at: v.at, a: v.a }));
+	if (tripOrder.length && run.lots.length > 1) {
+		const keyOf = lot => lot.map(k => chosen[k].id).sort().join('+');
+		const rank = j => { const i = tripOrder.indexOf(keyOf(run.lots[j])); return i < 0 ? tripOrder.length + j : i; };
+		seq = seq.map((v, i) => ({ v, i })).sort((x, y) => rank(lotOf(x.v.at)) - rank(lotOf(y.v.at)) || x.i - y.i).map(x => x.v);
+	}
+	for (const [id, by] of Object.entries(nudge)) {
+		let i = seq.findIndex(v => v.at === String(id));
+		if (i < 0 || !by) continue;
+		const dir = Math.sign(by);
+		for (let step = 0; step < Math.abs(by); step++) {
+			const j = i + dir;
+			if (j < 0 || j >= seq.length || chainOf(seq[j].at) === chainOf(seq[i].at) || lotOf(seq[j].at) !== lotOf(seq[i].at)) break;
+			[seq[i], seq[j]] = [seq[j], seq[i]];
+			i = j;
+		}
+	}
+	return finish(I, seq, 0, { must: chains.map(c => c.rungs[c.rungs.length - 1]) }).plan;
 }
 
 // The plans the search found, by the chains each climbs, for the laying of
@@ -366,7 +417,10 @@ const WORK = 40;
 // No cap on hours: the board cleared -- the most silver, however long.
 const CLEAR = 24;
 
-export function newPropose(opts, all, { seed = 1, session = 0 } = {}) {
+export function newPropose(opts0, all0, { seed = 1, session = 0 } = {}) {
+	// The islands taken off the route are off every climb proposed too.
+	const { opts } = skipping({ ...opts0, chosen: all0 });
+	const all = opts.chosen;
 	const missing = unsupported({ ...opts, chosen: all });
 	if (missing.length || !all.length) return { proposals: [], best: null, partial: false };
 	const { I, rowOf, supplyWharfs } = instanceOf({ ...opts, chosen: all });
@@ -416,7 +470,9 @@ export function newPropose(opts, all, { seed = 1, session = 0 } = {}) {
 	const atPick = instanceOf({ ...opts, chosen: picked }).I;
 	const on = new Set(atPick.stations.map(s => s.id));
 	const lay = { ...atPick, rules: { ...atPick.rules, hours: I.rules.hours } };
-	const kept = finish(lay, best.seq.filter(v => on.has(v.at)), 0, { calls: (best.calls || []).filter(c => on.has(c.before)) });
+	const kept = (opts.orders || PLAIN_ORDERS).way === 'chain'
+		? { plan: planFor(lay, instanceOf({ ...opts, chosen: picked }).chains, { seed, session, way: 'chain' }) }
+		: finish(lay, best.seq.filter(v => on.has(v.at)), 0, { calls: (best.calls || []).filter(c => on.has(c.before)) });
 	keep(picked.map(c => c.id).sort().join('|'), { plan: kept.plan, day: dayOf(atPick), hold: { ...atPick.initial.hold } });
 	const run = solveRun({ ...opts, chosen: picked });
 	const hours = run.hours;
