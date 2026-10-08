@@ -18,6 +18,7 @@
 // Pure: no DOM, no store; the worker can run it.
 
 import { levelOf, PARLEY } from './barter.js';
+import { cutAt } from './barter-short.js';
 import { weightOf, sellOf, stacks } from './barter-plan.js';
 import { sellable, floorOf, PLAIN_ORDERS } from './barter-orders.js';
 import { seaDist } from './barter-route.js';
@@ -386,9 +387,31 @@ export function newPropose(opts, all, { seed = 1, session = 0 } = {}) {
 		picked.push(c);
 		for (const id of ids) covered.add(id);
 	}
+	// An island dealt at whose climb stops short of the top: that climb cut
+	// at the last island it reaches, ticked as a short trip's are.
+	for (const id of dealt) {
+		if (covered.has(id)) continue;
+		let cut = null;
+		for (const c of all) {
+			const ids = c.rungs.map(x => String(x.npcId));
+			let k = -1;
+			while (k + 1 < ids.length && dealt.has(ids[k + 1])) k++;
+			if (k >= ids.indexOf(id) && ids.indexOf(id) >= 0 && (!cut || k > cut.k)) cut = { c, k };
+		}
+		if (!cut) continue;
+		picked.push(cutAt(cut.c, cut.k));
+		for (const x of cut.c.rungs.slice(0, cut.k + 1)) covered.add(String(x.npcId));
+	}
 	if (!picked.length) return { proposals: [], best: null, partial: false };
+	// The plan laid again on the picked climbs alone: an island it dealt at
+	// whose climb it left short of the top belongs to no climb a sailor can
+	// tick, and the goods loaded for it went straight back ashore at the
+	// first call (2026-10-07). Same islands, same order, same calls.
 	const atPick = instanceOf({ ...opts, chosen: picked }).I;
-	keep(picked.map(c => c.id).sort().join('|'), { plan, day: dayOf(atPick), hold: { ...atPick.initial.hold } });
+	const on = new Set(atPick.stations.map(s => s.id));
+	const lay = { ...atPick, rules: { ...atPick.rules, hours: I.rules.hours } };
+	const kept = finish(lay, best.seq.filter(v => on.has(v.at)), 0, { calls: (best.calls || []).filter(c => on.has(c.before)) });
+	keep(picked.map(c => c.id).sort().join('|'), { plan: kept.plan, day: dayOf(atPick), hold: { ...atPick.initial.hold } });
 	const run = solveRun({ ...opts, chosen: picked });
 	const hours = run.hours;
 	const value = run.net;

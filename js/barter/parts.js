@@ -17,7 +17,7 @@ import { PARLEY, COIN, COIN_LEVEL, levelOf } from '../barter.js';
 import { exchanges, landHeld } from '../barter-plan.js';
 import { chains, chainRun as classicRun, tailOf } from '../barter-chains.js';
 import { solveRun, newPropose, unsupported } from '../barter-solve.js';
-import { shortTrades } from '../barter-short.js';
+import { shortTrades, cutOf, cutAt } from '../barter-short.js';
 import { V } from './state.js';
 import { fromPort, layCal, sailLag, spendUsed, continueHTML, keepRoute, boardPaid } from './board.js';
 import { narrow, lvTag } from './cockpit.js';
@@ -311,7 +311,10 @@ export function silverParts(me, b) {
 		V.routesAuto = '';
 		persist();
 	}
-	const chosen = short ? shortSet.picked : all.filter(c => V.routes.ids.includes(c.id));
+	// A climb the new planner proposed cut short -- climbed only as far as it
+	// pays -- is ticked by its cut id, as a short trip's are.
+	const cuts = V.routes.ids.map(cutOf).filter(x => x.k >= 0).map(x => { const c = all.find(y => y.id === x.base); return c ? cutAt(c, x.k) : null; }).filter(Boolean);
+	const chosen = short ? shortSet.picked : [...all.filter(c => V.routes.ids.includes(c.id)), ...cuts];
 	const sameSet = (x, y) => x.length === y.length && x.slice().sort().join('|') === y.slice().sort().join('|');
 	const cards = V.proposed.proposals.map(p => {
 		const isl = p.run.stops.filter(s => s.npcId).length;
