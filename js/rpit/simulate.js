@@ -174,11 +174,7 @@ export function simulate(I, policy, { mode = 'sample', seed = 1 } = {}) {
 		const d = I.travel.matrix[idx.get(state.at)][idx.get(to)];
 		if (d > 0) {
 			if (state.W > V.Wmax + EPS) { dev.stuck = 1; return false; }
-			// Under way as the sailor's order counts it (chainRun's hoursOf):
-			// the leg at the ship's own speed, whatever the hold.
-			const under = d / (I.rules.underWaySpeed || V.speed * phi(state.W)) / 3600;
-			state.underWay += under;
-			const hours = under + (I.service.leg || 0) / 3600;
+			const hours = (d / (V.speed * phi(state.W)) + (I.service.leg || 0)) / 3600;
 			state.time += hours;
 			distance += d;
 			if (R0) {
@@ -388,6 +384,17 @@ export function simulate(I, policy, { mode = 'sample', seed = 1 } = {}) {
 
 	const R = state.sold - state.spent;
 	const T = state.time;
+	// Under way as the sailor's order counts it (chainRun's hoursOf): the
+	// cargo's route -- the islands and the calls that trade, the calls only
+	// for supplies left out, as the app lays those after -- at the ship's
+	// own speed, whatever the hold.
+	{
+		const traded = e => e.kind === 'station' || (e.kind === 'depot' && Object.keys(e.sold).length + Object.keys(e.dropped).length + Object.keys(e.loaded).length + Object.keys(e.fetched || {}).length > 0);
+		const route = ['start', ...state.log.filter(traded).map(e => e.at), ...(stopped ? [] : [I.rules.end])];
+		let d = 0;
+		for (let k = 1; k < route.length; k++) d += I.travel.matrix[idx.get(route[k - 1])][idx.get(route[k])];
+		state.underWay = d / (I.rules.underWaySpeed || V.speed) / 3600;
+	}
 	let carried = 0;
 	for (const [g, n] of h) carried += n * (G[g] ? G[g].p : 0);
 	return {
