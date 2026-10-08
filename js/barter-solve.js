@@ -28,7 +28,7 @@ import { METRES_PER_PX, speedMs, BAND_MEASURED } from './sailing.js';
 // mean of the quick end and the slow, a shade slower than the speed itself.
 const MID_PACE = (1 / (1 + BAND_MEASURED) + 1 / (1 - BAND_MEASURED)) / 2;
 import { simulate, planPolicy } from './rpit/simulate.js';
-import { finish, indexOf, chainsOf } from './rpit/common.js';
+import { finish, indexOf, chainsOf, fillOfRun } from './rpit/common.js';
 import { withChain, reorder, serial } from './rpit/insert.js';
 import { maximiseRate } from './rpit/ratio.js';
 import { search } from './rpit/alns.js';
@@ -36,7 +36,6 @@ import { search } from './rpit/alns.js';
 /** What the new planner cannot lay yet, for these options; empty when it can. */
 export function unsupported(opts = {}) {
 	const out = [];
-	if (opts.aim && opts.aim.kind !== 'coins') out.push(`aim:${opts.aim.kind || 'stock'}`);
 	return out;
 }
 
@@ -125,7 +124,7 @@ export function instanceOf(opts) {
 			? { P: parley.held, H: null, vouchers: { n: parley.vouchers, each: PARLEY.voucher, max: PARLEY.max, cooldownH: 2 } }
 			: { P: parley.bar, H: null },
 		initial: { hold: { ...stock }, floors },
-		rules: { pace, dropPolicy: 'any', home: home.at, end: prefer ? prefer.at : home.at, underWaySpeed: ship && ship.speed > 0 ? speedMs(ship.speed, ship.cal) : speedMs(100), ...(opts.aim && opts.aim.kind === 'coins' ? { coinWorth: COIN_WORTH } : {}) },
+		rules: { pace, dropPolicy: 'any', home: home.at, end: prefer ? prefer.at : home.at, underWaySpeed: ship && ship.speed > 0 ? speedMs(ship.speed, ship.cal) : speedMs(100), ...(opts.aim && opts.aim.kind === 'coins' ? { coinWorth: COIN_WORTH } : {}), ...(opts.aim && opts.aim.targets ? { stock: { kind: opts.aim.kind, targets: opts.aim.targets, held: Object.fromEntries(opts.aim.held || []) } } : {}) },
 		objective: 'silver_per_hour',
 		meta: {}
 	};
@@ -499,9 +498,9 @@ export function newPropose(opts0, all0, { seed = 1, session = 0 } = {}) {
 	keep(memo.ids, memo);
 	const run = solveRun({ ...opts, chosen: picked });
 	const hours = run.hours;
-	const value = I.rules.coinWorth > 0 ? run.coins : run.net;
-	const coined = I.rules.coinWorth > 0;
-	const proposal = { kind: coined ? 'coins' : 'hour', label: coined ? 'The most coins' : session > 0 ? `The most in ${session} h` : 'The most the board gives', ids: picked.map(c => c.id), run, value, hours, yard: { perUnit: run.parleyUsed > 0 ? value / (run.parleyUsed / PARLEY.perGreatOceanTrade) : 0, perHour: hours > 0 ? value / hours : 0 } };
+	const value = I.rules.coinWorth > 0 ? run.coins : I.rules.stock ? fillOfRun(instanceOf({ ...opts, chosen: picked }).I, simulate(lay, planPolicy(kept.plan), { mode: 'robust' })) : run.net;
+	const coined = I.rules.coinWorth > 0, stocked = !!I.rules.stock;
+	const proposal = { kind: coined ? 'coins' : stocked ? 'stock' : 'hour', label: coined ? 'The most coins' : stocked ? 'The fullest stock' : session > 0 ? `The most in ${session} h` : 'The most the board gives', ids: picked.map(c => c.id), run, value, hours, yard: { perUnit: run.parleyUsed > 0 ? value / (run.parleyUsed / PARLEY.perGreatOceanTrade) : 0, perHour: hours > 0 ? value / hours : 0 } };
 	// The plan found goes back with the answer: searched in a worker, it is
 	// the page's solveRun that has to know it, to lay the run proposed.
 	return { proposals: [proposal], best: proposal, partial: false, kept: memo };

@@ -49,7 +49,7 @@ export function chainsOf(I, depth = 8) {
 		const last = path[path.length - 1];
 		// A climb ends where its good sells -- or, on a run for coins, where it
 		// is paid in Crow Coins.
-		if (G[last.out] && (G[last.out].p > 0 || (I.rules.coinWorth > 0 && last.out === 'Crow Coin'))) out.push(path.map(s => s.id));
+		if (G[last.out] && (G[last.out].p > 0 || (I.rules.coinWorth > 0 && last.out === 'Crow Coin') || (I.rules.stock && G[last.out].level > 0))) out.push(path.map(s => s.id));
 		if (path.length >= depth) return;
 		for (const t of takers.get(last.out) || []) if (!path.includes(t)) walk([...path, t]);
 	};
@@ -69,6 +69,31 @@ export function dry(I) {
 }
 
 /** A plan's value at μ: R − μ·T in robust mode, and the run behind it. */
+/**
+ * What a sailed run filled of the stock (I.rules.stock: { targets by level,
+ * held by good }): Σ level × (min(count after, target) − min(count before,
+ * target)), the counts moved by what the islands took and gave and what
+ * was sold -- loads and drops only move goods from one store to another.
+ */
+export function fillOfRun(I, r) {
+	const S = I.rules.stock;
+	const { station } = indexOf(I);
+	const delta = new Map();
+	const add = (g, n) => delta.set(g, (delta.get(g) || 0) + n);
+	for (const e of r.log) {
+		if (e.kind === 'station' && e.a > 0) { add(e.in, -e.a * station.get(e.at).q); add(e.out, e.Y.reduce((x, y) => x + y, 0)); }
+		for (const [g, n] of Object.entries(e.sold || {})) add(g, -n);
+	}
+	let v = 0;
+	for (const [g, d] of delta) {
+		const lv = I.goods[g] ? I.goods[g].level : 0;
+		if (!lv) continue;
+		const t = S.targets[lv] || 0, c0 = S.held[g] || 0;
+		v += lv * (Math.min(Math.max(0, c0 + d), t) - Math.min(c0, t));
+	}
+	return v;
+}
+
 export function robustEval(I, plan, mu = 0) {
 	const r = simulate(I, planPolicy(plan), { mode: 'robust' });
 	// A session of so many hours: each hour past it costs more than any
@@ -83,6 +108,17 @@ export function robustEval(I, plan, mu = 0) {
 	const waste = (r.pointless.loadThenDrop + r.pointless.storedTwice) * WASTE;
 	// A run for coins: each coin the exchanges pay outweighs any silver.
 	const coins = I.rules.coinWorth > 0 ? r.log.reduce((a, e) => a + (e.kind === 'station' && e.out === 'Crow Coin' ? e.Y.reduce((x, y) => x + y, 0) : 0), 0) * I.rules.coinWorth : 0;
+	// A run for the stock is worth what it fills, as chainRun's stock goal
+	// judges it (fillOf): each good counted to its level's target and no
+	// further, by its level -- the silver it costs ashore and the Parley
+	// only between two that fill alike; or, run for the barter count, its
+	// trades first.
+	if (I.rules.stock) {
+		const fill = fillOfRun(I, r);
+		const cost = r.spent + r.P * 10;
+		const f = I.rules.stock.kind === 'trades' ? r.trades * 1e9 + fill * 1e6 - cost / 1e3 : fill * 1e9 - cost;
+		return { f: f - mu * r.T - over - waste, R: r.R, T: r.T, fill, run: r };
+	}
 	return { f: r.R - mu * r.T - over - waste + coins, R: r.R, T: r.T, run: r };
 }
 const OVERTIME = 1e14;

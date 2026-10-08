@@ -114,3 +114,18 @@ test('the worker answers for the new planner, and the plan it found, remembered 
 	assert.ok(ticked.every(Boolean));
 	assert.equal(solveRun({ ...base, chosen: ticked }).net, best.run.net);
 });
+
+test('the stock goal: the run proposed fills the stock -- each good to its level\'s target, as chainRun\'s fillOf counts it', async () => {
+	const { newPropose } = await import('../js/barter-solve.js');
+	const { fillOf } = await import('../js/barter-optimizer.js');
+	const { levelOf } = await import('../js/barter.js');
+	const targets = { 1: 40, 2: 40, 3: 40, 4: 40, 5: 20, 6: 20 };
+	const held = Object.entries({ ...stock, ...dock });
+	const aim = { kind: 'fill', targets, held };
+	const found = newPropose({ ...base, aim }, all);
+	assert.equal(found.best.kind, 'stock');
+	assert.ok(found.best.value > 0, 'something filled');
+	// The app's own count of the same run agrees.
+	const app = fillOf(found.best.run, { targetOf: g => targets[levelOf(g)] || 0, held: new Map(held), stock });
+	assert.ok(app >= found.best.value - 1e-6, `fillOf ${app} against ${found.best.value}`);
+});

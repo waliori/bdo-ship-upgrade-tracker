@@ -398,7 +398,7 @@ export function simulate(I, policy, { mode = 'sample', seed = 1 } = {}) {
 	let carried = 0;
 	for (const [g, n] of h) carried += n * (G[g] ? G[g].p : 0);
 	return {
-		R, T, underWay: state.underWay, rate: T > 0 ? R / T : 0, P: parleyUsed, waited, vouchersUsed, trades, calls, distance, carried, refills, eaten,
+		R, T, spent: state.spent, underWay: state.underWay, rate: T > 0 ? R / T : 0, P: parleyUsed, waited, vouchersUsed, trades, calls, distance, carried, refills, eaten,
 		// Where the run ended and what it held: a search that builds a plan
 		// a visit at a time reads its next move off these.
 		at: state.at, hold: Object.fromEntries(h), parleyLeft: state.parleyLeft,
