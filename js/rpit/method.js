@@ -9,8 +9,9 @@
 // order is laid again by `finish`, and the better of the two returned.
 
 import { finish, robustEval, chainsOf, endVisit } from './common.js';
-import { buildTrips, wetTrip } from './trips.js';
-import { pickDay } from './pick.js';
+import { buildTrips, wetTrip, tripOf } from './trips.js';
+import { pickDay, legHours } from './pick.js';
+import { reorder, serial } from './insert.js';
 
 // No session: the board cleared, however long.
 const CLEAR = 24;
@@ -54,6 +55,32 @@ const callsOf = (I, plan) => {
 	return out;
 };
 
+/**
+ * Two trips sailed one after another, laid as one: the leg home between
+ * them saved, the islands threaded. Each pair of neighbours in the day is
+ * tried, in the orders the catalogue tries, and merged while the merged
+ * trip is worth at least the two and sails no longer than the two with
+ * the leg between; the attempts, loads and buys are the same islands',
+ * so what the day was chosen under still holds.
+ */
+function merged(I, trips, { H, chains }) {
+	const out = trips.slice();
+	for (let k = 0; k + 1 < out.length;) {
+		const a = out[k], b = out[k + 1];
+		const both = a.f + b.f, span = a.T + legHours(I, a.to, b.from) + b.T;
+		const ids = [...new Set([...a.chainIds, ...b.chainIds])].sort((x, y) => x - y);
+		const seq = [...a.seq, ...b.seq];
+		const mine = ids.map(id => chains.find(c => c.id === id)).filter(Boolean);
+		let best = null;
+		for (const order of [seq, reorder(I, seq), serial(I, seq, mine)]) {
+			const t = tripOf(I, order, { from: a.from, to: b.to, chainIds: ids, id: `${a.id}&${b.id}` });
+			if (t && t.f >= both - 1e-6 && t.T <= span + 1e-9 && (!best || t.f > best.f + 1e-9 || (Math.abs(t.f - best.f) <= 1e-9 && t.T < best.T))) best = t;
+		}
+		if (best) out.splice(k, 2, best); else k++;
+	}
+	return out;
+}
+
 /** The day laid, judged, and laid again by `finish` when the labels said more. */
 function dayOf(I, trips) {
 	const laid = layDay(I, trips);
@@ -76,12 +103,21 @@ export function solve(I, { session = 0, seed = 1, most = 400, grow = 60, near = 
 	// The day picked over the dry labels, its trips laid again with their
 	// refills; a trip the ship cannot be fed on leaves the catalogue, and
 	// the day is picked again without it.
+	const chains = pool || chainsOf(I);
 	const pick = mu => {
+		let again = false;
 		for (;;) {
 			const day = pickDay(I, trips, { H, mu });
 			const wet = day.trips.map(t => wetTrip(I, t));
 			const fed = wet.every(Boolean);
-			if (fed) return { ...day, trips: wet, ...dayOf(I, wet) };
+			if (fed) {
+				// Neighbours merged; the merged trips offered to the catalogue and
+				// the day picked once more, so the hours a merge saves are sailed.
+				const m = merged(I, wet, { H, chains });
+				const fresh = m.filter(t => t.id.includes('&') && !trips.some(x => x.id === t.id && x.from === t.from));
+				if (fresh.length && !again) { trips = [...trips, ...fresh]; again = true; continue; }
+				return { ...day, trips: m, ...dayOf(I, m) };
+			}
 			const out = new Set(day.trips.filter((t, k) => !wet[k]));
 			trips = trips.filter(t => !out.has(t));
 		}

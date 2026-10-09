@@ -148,6 +148,29 @@ export function pickDay(I, trips, { H, mu = 0, mostNodes = 100000 } = {}) {
 		const g = day.greedy([t0, ...byWorth.filter(t => t !== t0)]);
 		if (g.value > best.value) best = g;
 	}
+	// The day bettered a trip at a time: one added where it fits, or one
+	// swapped for a trip of the day worth less, until neither helps. What
+	// the search below cannot finish inside its node cap starts from here.
+	const replay = seq => {
+		const st = dayState(I, { H, mu });
+		let v = 0;
+		for (const t of seq) { const leg = st.fits(t); if (leg === null) return null; st.take(t, leg); v += worth(t); }
+		return v;
+	};
+	for (let moved = true; moved;) {
+		moved = false;
+		for (const t of byWorth) {
+			if (best.trips.includes(t)) continue;
+			const added = replay([...best.trips, t]);
+			if (added !== null && added > best.value + 1e-9) { best = { value: added, trips: [...best.trips, t] }; moved = true; continue; }
+			for (let k = 0; k < best.trips.length; k++) {
+				if (worth(t) <= worth(best.trips[k]) + 1e-9) continue;
+				const seq = best.trips.slice(); seq[k] = t;
+				const v = replay(seq);
+				if (v !== null && v > best.value + 1e-9) { best = { value: v, trips: seq }; moved = true; break; }
+			}
+		}
+	}
 	const { lam, bound: root } = relaxed(I, cat, { H, mu, lb: best.value });
 	const price = t => worth(t) - Object.entries(t.att).reduce((a, [s, n]) => a + (lam.get(s) || 0) * n, 0);
 	// The search's order is the relaxed day's: by worth an hour at the
