@@ -11,7 +11,7 @@
 // drops and where.
 
 import { finish, indexOf, robustEval, chainsOf, dry } from './common.js';
-import { withChain, thinLadder, reorder } from './insert.js';
+import { withChain, thinLadder, reorder, serial } from './insert.js';
 
 /**
  * The instance as a trip from wharf `from` to wharf `to` sees it: the
@@ -67,10 +67,12 @@ export function tripOf(I, seq, { from = 'start', to = I.rules.end, chainIds = []
  * -- and a trip laid with its refills costs twenty times one laid without.
  * The trips a day picks are laid again with them (`wetTrip`). Trips are
  * laid from home to the run's end; the best few are laid again from where
- * the ship is, for the day's first. Bounded by `most` trips and `grow`
- * growths, so the time it takes is the board's size and nothing else.
+ * the ship is, for the day's first. Bounded by `most` trips, `grow`
+ * growths and `lays` trips laid while growing -- a long trip costs more
+ * to lay than a short one -- so the time it takes is the board's and
+ * nothing else.
  */
-export function buildTrips(I, { pool = null, session = Infinity, most = 400, grow = 40, near = 8, firsts = Math.min(40, Math.floor(most / 10)) } = {}) {
+export function buildTrips(I, { pool = null, session = Infinity, most = 400, grow = 40, near = 8, lays = 800, firsts = Math.min(40, Math.floor(most / 10)) } = {}) {
 	const chains = pool || chainsOf(I);
 	const { dist, station } = indexOf(I);
 	const D = I.vehicle.rations ? dry(I) : I;
@@ -83,6 +85,8 @@ export function buildTrips(I, { pool = null, session = Infinity, most = 400, gro
 		return true;
 	};
 	const better = (cand, t) => cand && cand.f > t.f * 1.005;
+	let laid = 0;
+	const lay = (seq, o) => { laid++; return tripOf(D, seq, o); };
 	const ladderOf = c => { const a = thinLadder(I, c.rungs); return c.rungs.map((at, k) => ({ at, a: a[k] })); };
 	for (const c of chains) add(tripOf(D, ladderOf(c), { from: home, chainIds: [c.id] }));
 	const byRate = (a, b) => b.f / b.T - a.f / a.T;
@@ -94,7 +98,7 @@ export function buildTrips(I, { pool = null, session = Infinity, most = 400, gro
 	const full = t => (t.id.includes('#all') ? '#all' : '');
 	// Room kept for the trips laid again from where the ship is.
 	const room = most - firsts;
-	for (let g = 0; g < grow && out.length < room; g++) {
+	for (let g = 0; g < grow && out.length < room && laid < lays; g++) {
 		const t = out.filter(x => !grown.has(family(x))).sort(byRate)[0];
 		if (!t) break;
 		grown.add(family(t));
@@ -110,12 +114,19 @@ export function buildTrips(I, { pool = null, session = Infinity, most = 400, gro
 			// the other, and sometimes not.
 			const ids = [...t.chainIds, c.id].sort((a, b) => a - b);
 			const packed = withChain(I, t.seq, c.rungs);
-			const cand = tripOf(D, packed, { from: home, chainIds: ids, id: `${ids.join('+')}${full(t)}` });
-			if (better(cand, t)) {
-				add(cand);
-				const again = tripOf(D, reorder(I, packed), { from: home, chainIds: ids, id: `${ids.join('+')}${full(t)}` });
-				if (again && (again.f > cand.f + 1e-9 || (Math.abs(again.f - cand.f) <= 1e-9 && again.T < cand.T - 1e-9))) { seen.delete(key(cand)); out.splice(out.indexOf(cand), 1); add(again); }
+			// Four orders of the same islands: the climb's rungs put in where
+			// they lengthen the route least; the whole route searched again for
+			// the shortest sail; and the climbs one after another, the new one
+			// last or first. The best kept -- a route a few minutes shorter is
+			// the difference between a trip inside the session and one out.
+			const mine = ids.map(id => chains.find(c => c.id === id));
+			const orders = [packed, reorder(I, packed), serial(I, packed, mine), serial(I, packed, [mine[mine.length - 1], ...mine.slice(0, -1)])];
+			let cand = null;
+			for (const seq of orders) {
+				const x = lay(seq, { from: home, chainIds: ids, id: `${ids.join('+')}${full(t)}` });
+				if (x && (!cand || x.f > cand.f + 1e-9 || (Math.abs(x.f - cand.f) <= 1e-9 && x.T < cand.T - 1e-9))) cand = x;
 			}
+			if (better(cand, t)) add(cand);
 			if (out.length >= room) break;
 		}
 		// More attempts: every rung at all its island allows -- `finish` keeps
@@ -124,7 +135,7 @@ export function buildTrips(I, { pool = null, session = Infinity, most = 400, gro
 		// alone feeds nothing, the rungs above must take it too.
 		const slack = t.seq.some(v => v.a < station.get(v.at).m);
 		if (slack && !full(t) && out.length < room) {
-			const cand = tripOf(D, t.seq.map(w => ({ at: w.at, a: station.get(w.at).m })), { from: home, chainIds: t.chainIds, id: `${t.chainIds.join('+')}#all` });
+			const cand = lay(t.seq.map(w => ({ at: w.at, a: station.get(w.at).m })), { from: home, chainIds: t.chainIds, id: `${t.chainIds.join('+')}#all` });
 			if (better(cand, t)) add(cand);
 		}
 		for (const cid of t.chainIds) {
@@ -135,14 +146,14 @@ export function buildTrips(I, { pool = null, session = Infinity, most = 400, gro
 			for (let k = 1; k <= 3 && out.length < room; k++) {
 				if (!t.seq.some(v => rungs.has(v.at) && v.a + k <= station.get(v.at).m)) break;
 				const seq = t.seq.map(w => ({ at: w.at, a: rungs.has(w.at) ? Math.min(station.get(w.at).m, w.a + k) : w.a }));
-				const cand = tripOf(D, seq, { from: home, chainIds: t.chainIds, id: `${t.id}#${cid}x${k}` });
+				const cand = lay(seq, { from: home, chainIds: t.chainIds, id: `${t.id}#${cid}x${k}` });
 				if (!better(cand, last)) break;
 				add(cand); last = cand;
 			}
 		}
 	}
 	// From where the ship is, with what it holds: the day's first trip.
-	for (const t of out.slice().sort(byRate).slice(0, firsts)) add(tripOf(D, t.seq, { from: 'start', chainIds: t.chainIds, id: t.id }));
+	for (const t of out.slice().sort(byRate).slice(0, firsts)) add(lay(t.seq, { from: 'start', chainIds: t.chainIds, id: t.id }));
 	return out.sort(byRate);
 }
 
