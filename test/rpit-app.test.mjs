@@ -129,3 +129,25 @@ test('the stock goal: the run proposed fills the stock -- each good to its level
 	const app = fillOf(found.best.run, { targetOf: g => targets[levelOf(g)] || 0, held: new Map(held), stock });
 	assert.ok(app >= found.best.value - 1e-6, `fillOf ${app} against ${found.best.value}`);
 });
+
+test('the trip planner answers through the worker, inside the session, and the plan remembered is the run laid', async () => {
+	const { handleRequest } = await import('../js/barter-worker.js');
+	const { rememberFound, newPropose } = await import('../js/barter-solve.js');
+	const { cutOf, cutAt } = await import('../js/barter-short.js');
+	const chainsAll = all.filter(c => c.from !== 'land');
+	const out = handleRequest(structuredClone({ id: 9, planner: 'trips', opts: base, chains: chainsAll, session: 3 }));
+	assert.equal(out.id, 9);
+	assert.ok(!out.error, out.error);
+	const best = out.result.best;
+	assert.ok(best && best.ids.length && out.result.kept.ids);
+	assert.ok(best.run.hours <= 3 + 0.5, `${best.run.hours} h for a 3 h session`);
+	rememberFound(structuredClone(out.result.kept));
+	const ticked = best.ids.map(id => { const { base: b, k } = cutOf(id); const c = all.find(x => x.id === b); return k >= 0 ? cutAt(c, k) : c; });
+	assert.ok(ticked.every(Boolean));
+	assert.equal(solveRun({ ...base, chosen: ticked }).net, best.run.net);
+	// The engine is a switch on newPropose; the default is still the ALNS.
+	const a = newPropose(base, chainsAll, { session: 3 });
+	const t = newPropose(base, chainsAll, { session: 3, engine: 'trips' });
+	assert.ok(a.best && t.best);
+	assert.equal(t.best.kind, 'hour');
+});

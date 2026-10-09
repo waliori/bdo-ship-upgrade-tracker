@@ -51,9 +51,11 @@ function laidOnce(key, lay) {
 
 // The planner: the new one (barter-solve.js), unless this browser's storage
 // says 'classic' -- chainRun and the beam search, kept to fall back on and
-// to compare against. `planner-hours` is the comparison harness's session.
+// to compare against; 'trips' asks the new one for its trip planner.
+// `planner-hours` is the comparison harness's session.
 const sessionHours = () => { try { return Number(localStorage.getItem('bdo-tracker/planner-hours')) || 0; } catch { return 0; } };
-const newPlanner = () => { try { return localStorage.getItem('bdo-tracker/planner') !== 'classic'; } catch { return true; } };
+const plannerOf = () => { try { return localStorage.getItem('bdo-tracker/planner') || 'new'; } catch { return 'new'; } };
+const newPlanner = () => plannerOf() !== 'classic';
 // A run laid by the new planner, by chainRun where it cannot lay it.
 // The ship's rations ride along, so its refills are laid with the run.
 const withShip = o => {
@@ -233,7 +235,7 @@ export function silverParts(me, b) {
 		// search does, its runs in propose()'s shape; what it cannot lay yet
 		// is searched as before. The plan it found comes back with them.
 		const ship = withShip(opts);
-		const asked = newPlanner() && !unsupported({ ...ship, chosen: all }).length ? { planner: 'new', opts: ship, chains: all, session: ship.session } : search;
+		const asked = newPlanner() && !unsupported({ ...ship, chosen: all }).length ? { planner: plannerOf(), opts: ship, chains: all, session: ship.session } : search;
 		const found = proposeAsync(asked, pkey, result => {
 			rememberFound(result.kept);
 			// The inputs moved on before the answer came: a newer request

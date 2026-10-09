@@ -24,9 +24,12 @@ import { propose } from './barter-optimizer.js';
 import { newPropose } from './barter-solve.js';
 
 /** The search a request asks for: the classic beam search, or -- `planner:
- *  'new'` -- the new planner over { opts, chains, session }. */
+ *  'new'` -- the new planner over { opts, chains, session }; `'trips'` asks it
+ *  for its trip planner. */
 export function answer({ planner, ...args }) {
-	return planner === 'new' ? newPropose(args.opts, args.chains, { session: args.session || 0 }) : propose(args);
+	return planner === 'new' || planner === 'trips'
+		? newPropose(args.opts, args.chains, { session: args.session || 0, engine: planner === 'trips' ? 'trips' : 'alns' })
+		: propose(args);
 }
 
 export const DEFAULT_BUDGET_MS = 1500;

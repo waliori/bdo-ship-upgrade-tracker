@@ -88,6 +88,34 @@ and the refills laid last, as a shortest path over where the pool was last
 filled (`refuel`, the fixed-route charging problem of electric-vehicle
 routing), every wharf tried when the nearest five cannot feed the ship.
 
+## The trip planner
+
+A second way of finding a run (`js/rpit/trips.js`, `pick.js`, `method.js`),
+switched on by setting `bdo-tracker/planner` to `trips` in the browser's
+storage. Where the search above edits one long route, this one works in
+two stages:
+
+1. **Trips.** A trip is a wharf, islands, a wharf -- sailable on its own,
+   laid and simulated once, and labelled: what it earns, how long it
+   sails, what it spends, which attempts it uses at each island, what it
+   loads, buys and drops, and where. Every climb alone is a seed; the best
+   seeds are grown -- a near climb packed in, every rung of a climb asked
+   for more -- while the trip is worth more for it. A few hundred trips,
+   laid on the day without rations (a refill changes nothing a label
+   says); the trips the day picks are laid again with their refills.
+2. **The day.** Among the trips, the day is chosen exactly: inside the
+   session, no island asked for more than it allows, no storage or Market
+   emptied twice, the Parley and the vouchers, nothing dropped at a wharf
+   by two trips. A bound on what any choice could earn is found with it
+   (the attempt caps priced into the trips, the hours relaxed), so the run
+   comes with a figure for how far it could at most be from the best the
+   trips allow.
+
+The chosen trips are laid as one plan and judged by the simulator; the
+figures shown are the plan's, never the labels'. Nothing in it is random,
+and it uses nothing of the search above. `tools/rpit/compare.mjs` runs the
+two head to head on the bench instances at the app's budget.
+
 ## From the plan to the tab
 
 - The search runs in the worker (`js/barter-worker.js`, `planner: 'new'`), as

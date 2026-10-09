@@ -32,6 +32,7 @@ import { finish, indexOf, chainsOf, fillOfRun } from './rpit/common.js';
 import { withChain, reorder, serial } from './rpit/insert.js';
 import { maximiseRate } from './rpit/ratio.js';
 import { search } from './rpit/alns.js';
+import { solve as solveTrips } from './rpit/method.js';
 
 /** What the new planner cannot lay yet, for these options; empty when it can. */
 export function unsupported(opts = {}) {
@@ -438,7 +439,7 @@ const WORK = 40;
 // No cap on hours: the board cleared -- the most silver, however long.
 const CLEAR = 24;
 
-export function newPropose(opts0, all0, { seed = 1, session = 0 } = {}) {
+export function newPropose(opts0, all0, { seed = 1, session = 0, engine = 'alns' } = {}) {
 	// The islands taken off the route are off every climb proposed too.
 	const { opts } = skipping({ ...opts0, chosen: all0 });
 	const all = opts.chosen;
@@ -453,10 +454,15 @@ export function newPropose(opts0, all0, { seed = 1, session = 0 } = {}) {
 	// was worth half as much again on an empty storage (2026-10-07).
 	I.rules.hours = session > 0 ? session : CLEAR;
 	const pool = chainsOf(I);
-	// Two rounds of the price of time: a third found nothing more on the
-	// real boards and cost as much again.
-	const rate = maximiseRate(I, (inst, o) => search(inst, { ...o, timeMs: Infinity, most: Math.ceil(WORK / 4), pool }), { timeMs: Infinity, rounds: 2, seed });
-	const best = search(I, { mu: 0, timeMs: Infinity, most: WORK, seed, pool, warm: { seq: rate.seq, calls: rate.calls } });
+	// The trip planner (js/rpit/method.js), or the ALNS: two rounds of the
+	// price of time -- a third found nothing more on the real boards and
+	// cost as much again -- then the session.
+	const best = engine === 'trips'
+		? solveTrips(I, { session: I.rules.hours, seed, pool })
+		: (() => {
+			const rate = maximiseRate(I, (inst, o) => search(inst, { ...o, timeMs: Infinity, most: Math.ceil(WORK / 4), pool }), { timeMs: Infinity, rounds: 2, seed });
+			return search(I, { mu: 0, timeMs: Infinity, most: WORK, seed, pool, warm: { seq: rate.seq, calls: rate.calls } });
+		})();
 	const plan = best.plan;
 	const r = simulate(I, planPolicy(plan), { mode: 'robust' });
 	const dealt = new Set(r.log.filter(e => e.kind === 'station' && e.a > 0).map(e => e.at));
