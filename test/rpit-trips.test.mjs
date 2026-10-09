@@ -8,7 +8,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { tripOf, fromTo } from '../js/rpit/trips.js';
+import { tripOf, fromTo, buildTrips } from '../js/rpit/trips.js';
 import { indexOf } from '../js/rpit/common.js';
 import { thinLadder } from '../js/rpit/insert.js';
 import { simulate, planPolicy } from '../js/rpit/simulate.js';
@@ -87,4 +87,38 @@ test('a trip that earns nothing is no trip', () => {
 	const I = hand();
 	I.goods.L3.p = 0;
 	assert.equal(tripOf(I, ladder(I), { chainIds: [0] }), null);
+});
+
+test('the hand board\'s catalogue: the one climb, once, from where the ship is', () => {
+	const trips = buildTrips(hand());
+	assert.equal(trips.length, 1);
+	assert.equal(trips[0].from, 'start');
+	assert.equal(trips[0].R, 10 * 1000000 - 1000);
+});
+
+test('on a real board every label is what the simulator says of its plan; the catalogue is bounded and the same twice', () => {
+	const { instance: I } = setupOf({ layout: '25', start: 'Iliya Island', hold: 20000, pace: 'fast', storage: 'auto' });
+	const trips = buildTrips(I, { most: 60, grow: 10, near: 4, session: 6 });
+	assert.ok(trips.length > 1 && trips.length <= 60);
+	assert.ok(trips.some(t => t.chainIds.length > 1), 'a trip of two climbs packed');
+	for (const t of trips) {
+		const J = fromTo(I, t.from, t.to);
+		const r = simulate(J, planPolicy(t.plan), { mode: 'robust' });
+		assert.equal(t.R, r.R, t.id);
+		assert.equal(t.T, r.underWay, t.id);
+		assert.ok(t.T <= 6);
+		assert.equal(r.deviations.starved || 0, 0);
+		assert.equal(r.pointless.storedTwice + r.pointless.loadThenDrop, 0);
+	}
+	const ids = trips.map(t => `${t.id}@${t.from}>${t.to}`);
+	assert.equal(new Set(ids).size, ids.length, 'no trip twice');
+	assert.deepEqual(JSON.stringify(buildTrips(I, { most: 60, grow: 10, near: 4, session: 6 })), JSON.stringify(trips));
+});
+
+test('a stocked storage: the trip\'s loads are read off the start, by wharf', () => {
+	const { instance: I } = setupOf({ layout: '25', start: 'Iliya Island', hold: 20000, pace: 'fast', storage: 'auto' });
+	const home = I.rules.home;
+	const stocked = buildTrips(I, { most: 40, grow: 5, near: 3 }).filter(t => t.loads[home]);
+	assert.ok(stocked.length, 'a trip that loads from the storage');
+	for (const t of stocked) for (const [g, n] of Object.entries(t.loads[home])) assert.ok(n <= (I.depots.find(d => d.id === home).storage[g] || 0), `${g} loaded past the storage`);
 });
