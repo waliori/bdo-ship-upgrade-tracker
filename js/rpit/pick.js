@@ -135,13 +135,19 @@ export function bound(I, trips, { H, mu = 0, steps = 60 } = {}) {
  * in turn, cut where the trips left could not beat the best found. Past
  * `mostNodes` the search stops where it is and says so (`exact: false`).
  */
-export function pickDay(I, trips, { H, mu = 0, mostNodes = 200000 } = {}) {
+export function pickDay(I, trips, { H, mu = 0, mostNodes = 100000 } = {}) {
 	const day = dayState(I, { H, mu });
 	const { worth, fits, take, untake, caps, used } = day;
 	const cat = trips.filter(t => t.T <= H + 1e-9 && worth(t) > 0);
 	// A day to beat: the trips by their worth an hour, taken while they fit.
 	const byWorth = cat.slice().sort((a, b) => worth(b) / b.T - worth(a) / a.T);
 	let best = day.greedy(byWorth);
+	// And with each of the best dozen trips taken first: the one the rate
+	// puts first is often the one that leaves the least room.
+	for (const t0 of byWorth.slice(0, 12)) {
+		const g = day.greedy([t0, ...byWorth.filter(t => t !== t0)]);
+		if (g.value > best.value) best = g;
+	}
 	const { lam, bound: root } = relaxed(I, cat, { H, mu, lb: best.value });
 	const price = t => worth(t) - Object.entries(t.att).reduce((a, [s, n]) => a + (lam.get(s) || 0) * n, 0);
 	// The search's order is the relaxed day's: by worth an hour at the

@@ -8,8 +8,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { tripOf, fromTo, buildTrips } from '../js/rpit/trips.js';
-import { indexOf } from '../js/rpit/common.js';
+import { tripOf, fromTo, buildTrips, wetTrip } from '../js/rpit/trips.js';
+import { indexOf, dry } from '../js/rpit/common.js';
 import { thinLadder } from '../js/rpit/insert.js';
 import { simulate, planPolicy } from '../js/rpit/simulate.js';
 import { setupOf } from '../tools/rpit/setup.mjs';
@@ -95,19 +95,26 @@ test('the hand board\'s catalogue: the one climb, from home and from where the s
 	for (const t of trips) assert.equal(t.R, 10 * 1000000 - 1000);
 });
 
-test('on a real board every label is what the simulator says of its plan; the catalogue is bounded and the same twice', () => {
+test('on a real board every label is what the simulator says of its plan, dry and fed alike; the catalogue is bounded and the same twice', () => {
 	const { instance: I } = setupOf({ layout: '25', start: 'Iliya Island', hold: 20000, pace: 'fast', storage: 'auto' });
 	const trips = buildTrips(I, { most: 60, grow: 10, near: 4, session: 6 });
 	assert.ok(trips.length > 1 && trips.length <= 60);
 	assert.ok(trips.some(t => t.chainIds.length > 1), 'a trip of two climbs packed');
 	for (const t of trips) {
-		const J = fromTo(I, t.from, t.to);
-		const r = simulate(J, planPolicy(t.plan), { mode: 'robust' });
+		// The label is the trip's on the day without rations ...
+		const r = simulate(dry(fromTo(I, t.from, t.to)), planPolicy(t.plan), { mode: 'robust' });
 		assert.equal(t.R, r.R, t.id);
 		assert.equal(t.T, r.underWay, t.id);
 		assert.ok(t.T <= 6);
-		assert.equal(r.deviations.starved || 0, 0);
 		assert.equal(r.pointless.storedTwice + r.pointless.loadThenDrop, 0);
+		// ... and holds, fed, with its refills laid in.
+		const w = wetTrip(I, t);
+		assert.ok(w, `${t.id} cannot be fed`);
+		const rw = simulate(fromTo(I, w.from, w.to), planPolicy(w.plan), { mode: 'robust' });
+		assert.equal(w.R, rw.R);
+		assert.equal(rw.deviations.starved || 0, 0);
+		assert.ok(w.R >= t.R - 1e-6, `${t.id} earns less with its refills: ${w.R} against ${t.R}`);
+		assert.ok(w.T <= t.T + 1e-6, `${t.id} sails longer under way with its refills: ${w.T} against ${t.T}`);
 	}
 	const ids = trips.map(t => `${t.id}@${t.from}>${t.to}`);
 	assert.equal(new Set(ids).size, ids.length, 'no trip twice');

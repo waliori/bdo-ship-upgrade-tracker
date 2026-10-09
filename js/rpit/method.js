@@ -9,7 +9,7 @@
 // order is laid again by `finish`, and the better of the two returned.
 
 import { finish, robustEval, chainsOf, endVisit } from './common.js';
-import { buildTrips } from './trips.js';
+import { buildTrips, wetTrip } from './trips.js';
 import { pickDay } from './pick.js';
 
 // No session: the board cleared, however long.
@@ -72,10 +72,19 @@ export function solve(I, { session = 0, seed = 1, most = 400, grow = 60, near = 
 	void seed;
 	const t0 = performance.now();
 	const H = session > 0 ? session : CLEAR;
-	const trips = buildTrips(I, { pool: pool || chainsOf(I), session: H, most, grow, near });
+	let trips = buildTrips(I, { pool: pool || chainsOf(I), session: H, most, grow, near });
+	// The day picked over the dry labels, its trips laid again with their
+	// refills; a trip the ship cannot be fed on leaves the catalogue, and
+	// the day is picked again without it.
 	const pick = mu => {
-		const day = pickDay(I, trips, { H, mu });
-		return { ...day, ...dayOf(I, day.trips) };
+		for (;;) {
+			const day = pickDay(I, trips, { H, mu });
+			const wet = day.trips.map(t => wetTrip(I, t));
+			const fed = wet.every(Boolean);
+			if (fed) return { ...day, trips: wet, ...dayOf(I, wet) };
+			const out = new Set(day.trips.filter((t, k) => !wet[k]));
+			trips = trips.filter(t => !out.has(t));
+		}
 	};
 	let best = pick(0);
 	if (!(session > 0)) {
@@ -96,7 +105,7 @@ export function solve(I, { session = 0, seed = 1, most = 400, grow = 60, near = 
 		plan, seq: stationsOf(I, plan), calls: callsOf(I, plan), f: best.f, R: best.R, T: best.T,
 		info: {
 			R: best.R, T: best.T, bound: Math.max(best.bound, best.R), gap: best.bound > 0 ? Math.max(0, best.bound - best.R) / best.bound : 0,
-			trips: best.trips.map(t => ({ id: t.id, from: t.from, to: t.to, R: t.R, T: t.T })), nodes: best.nodes, ms: performance.now() - t0
+			trips: best.trips.map(t => ({ id: t.id, from: t.from, to: t.to, R: t.R, T: t.T })), nodes: best.nodes, exact: best.exact, catalogue: trips.length, ms: performance.now() - t0
 		}
 	};
 }
