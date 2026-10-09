@@ -105,18 +105,21 @@ export function solve(I, { session = 0, seed = 1, most = 400, grow = 60, near = 
 	// the day is picked again without it.
 	const chains = pool || chainsOf(I);
 	const pick = mu => {
-		let again = false;
+		let first = null;
 		for (;;) {
 			const day = pickDay(I, trips, { H, mu });
 			const wet = day.trips.map(t => wetTrip(I, t));
 			const fed = wet.every(Boolean);
 			if (fed) {
 				// Neighbours merged; the merged trips offered to the catalogue and
-				// the day picked once more, so the hours a merge saves are sailed.
+				// the day picked once more, so the hours a merge saves are sailed
+				// -- and the better of the two days kept, as a search cut short
+				// by its node cap can come back with less.
 				const m = merged(I, wet, { H, chains });
+				const found = { ...day, trips: m, ...dayOf(I, m) };
 				const fresh = m.filter(t => t.id.includes('&') && !trips.some(x => x.id === t.id && x.from === t.from));
-				if (fresh.length && !again) { trips = [...trips, ...fresh]; again = true; continue; }
-				return { ...day, trips: m, ...dayOf(I, m) };
+				if (fresh.length && !first) { first = found; trips = [...trips, ...fresh]; continue; }
+				return first && (first.f > found.f + 1e-9 || (Math.abs(first.f - found.f) <= 1e-9 && first.T <= found.T)) ? first : found;
 			}
 			const out = new Set(day.trips.filter((t, k) => !wet[k]));
 			trips = trips.filter(t => !out.has(t));
