@@ -87,3 +87,21 @@ test('the first trip leaves from where the ship is; a trip from a depot follows 
 test('nothing fits: an empty day, not an error', () => {
 	assert.deepEqual(pickDay(toy(), [trip('a', { f: 10, T: 3 })], { H: 2 }), { value: 0, trips: [], bound: 0, nodes: 1, exact: true });
 });
+
+test('an island is sailed to once a day: two trips through the same island are never both picked', () => {
+	const a = trip('a', { f: 10, att: { x: 3 } });
+	const b = trip('b', { f: 9, att: { x: 3 } });   // x allows 6, but the simulator refuses a second visit
+	const c = trip('c', { f: 5, att: { y: 2 } });
+	assert.deepEqual(pickDay(toy(), [a, b, c], { H: 3 }).trips.map(t => t.id), ['a', 'c']);
+});
+
+test('the trip from where the ship is may come first before trips the rate ranks above it', () => {
+	// Thirteen short trips from home at a better rate, and one from the ship's
+	// start worth nine of them: the best day is the start trip and ten more.
+	const trips = [trip('s', { f: 900, T: 0.5, from: 'start' })];
+	for (let i = 0; i < 13; i++) trips.push(trip(`h${i}`, { f: 100, T: 0.05 }));
+	const day = pickDay(toy(), trips, { H: 1 });
+	assert.equal(day.value, 1900);
+	assert.equal(day.trips[0].id, 's');
+	assert.ok(day.exact);
+});

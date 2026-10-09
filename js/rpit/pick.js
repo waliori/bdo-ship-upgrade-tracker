@@ -29,7 +29,7 @@ function dayState(I, { H, mu }) {
 	const caps = new Map(I.stations.map(s => [s.id, s.m]));
 	const stock = new Map(I.depots.map(d => [d.id, { ...(d.storage || {}) }]));
 	const bar = I.budgets.P + (I.budgets.vouchers ? I.budgets.vouchers.n * I.budgets.vouchers.each : 0);
-	const used = { T: 0, P: 0, att: {}, loads: {}, buys: {}, drops: new Set(), at: 'start' };
+	const used = { T: 0, P: 0, att: {}, loads: {}, buys: {}, drops: new Set(), isles: new Set(), at: 'start' };
 	const worth = t => t.f - mu * t.T;
 	/** The leg to the trip's start when it fits, else null. */
 	const fits = t => {
@@ -37,6 +37,8 @@ function dayState(I, { H, mu }) {
 		if (t.from === 'start' && used.at !== 'start') return null;
 		const leg = legHours(I, used.at, t.from);
 		if (used.T + leg + t.T > H + 1e-9 || used.P + t.P > bar + 1e-9) return null;
+		// An island is sailed to once a day: the simulator refuses a second visit.
+		for (const s of Object.keys(t.att)) if (used.isles.has(s)) return null;
 		for (const [s, n] of Object.entries(t.att)) if ((used.att[s] || 0) + n > caps.get(s)) return null;
 		for (const [w, what] of Object.entries(t.drops)) for (const g of Object.keys(what)) if (used.drops.has(`${w}/${g}`)) return null;
 		for (const [w, what] of Object.entries(t.loads)) for (const [g, n] of Object.entries(what)) {
@@ -48,7 +50,7 @@ function dayState(I, { H, mu }) {
 	const take = (t, leg) => {
 		const was = used.at;
 		used.T += leg + t.T; used.P += t.P; used.at = t.to;
-		for (const [s, n] of Object.entries(t.att)) used.att[s] = (used.att[s] || 0) + n;
+		for (const [s, n] of Object.entries(t.att)) { used.att[s] = (used.att[s] || 0) + n; used.isles.add(s); }
 		for (const [w, what] of Object.entries(t.loads)) for (const [g, n] of Object.entries(what)) used.loads[`${w}/${g}`] = (used.loads[`${w}/${g}`] || 0) + n;
 		for (const [w, what] of Object.entries(t.drops)) for (const [g, n] of Object.entries(what)) {
 			used.drops.add(`${w}/${g}`);
@@ -61,7 +63,7 @@ function dayState(I, { H, mu }) {
 	};
 	const untake = (t, leg, was) => {
 		used.T -= leg + t.T; used.P -= t.P; used.at = was;
-		for (const [s, n] of Object.entries(t.att)) used.att[s] -= n;
+		for (const [s, n] of Object.entries(t.att)) { used.att[s] -= n; used.isles.delete(s); }
 		for (const [w, what] of Object.entries(t.loads)) for (const [g, n] of Object.entries(what)) used.loads[`${w}/${g}`] -= n;
 		for (const [w, what] of Object.entries(t.drops)) for (const [g, n] of Object.entries(what)) { used.drops.delete(`${w}/${g}`); stock.get(w)[g] -= n; }
 		for (const [g, n] of Object.entries(t.buys)) used.buys[g] -= n;
@@ -204,6 +206,17 @@ export function pickDay(I, trips, { H, mu = 0, mostNodes = 100000 } = {}) {
 		}
 		dfs(k + 1);
 	};
-	dfs(0);
+	// A trip from where the ship is can only be the day's first, whatever
+	// its rank: the search is run once with no such trip, and once with each
+	// of them taken first, on one node budget.
+	const firsts = [null, ...order.filter(t => t.from === 'start')];
+	for (const t0 of firsts) {
+		if (!t0) { dfs(0); continue; }
+		const leg = fits(t0);
+		if (leg === null) continue;
+		const was = take(t0, leg); seq.push(t0); cur += worth(t0);
+		dfs(0);
+		cur -= worth(t0); seq.pop(); untake(t0, leg, was);
+	}
 	return { value: best.value, trips: best.trips, bound: Math.max(root, best.value), nodes, exact };
 }

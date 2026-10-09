@@ -128,3 +128,13 @@ test('a stocked storage: the trip\'s loads are read off the start, by wharf', ()
 	assert.ok(stocked.length, 'a trip that loads from the storage');
 	for (const t of stocked) for (const [g, n] of Object.entries(t.loads[home])) assert.ok(n <= (I.depots.find(d => d.id === home).storage[g] || 0), `${g} loaded past the storage`);
 });
+
+test('the bag is filled where the ship starts and nowhere else: a trip from a wharf is laid without one', () => {
+	const I = hand();
+	I.vehicle.bag = { free: 1000, slots: 5 };
+	assert.deepEqual(fromTo(I, 'start', 'H').vehicle.bag, { free: 1000, slots: 5 });
+	assert.equal(fromTo(I, 'H', 'H').vehicle.bag, undefined);
+	assert.equal(fromTo(I, 'D', 'H').vehicle.bag, undefined);
+	const t = tripOf(I, ladder(I), { from: 'H', chainIds: [0] });
+	assert.ok(t && !t.plan.bag);
+});

@@ -28,9 +28,14 @@ export function fromTo(I, from, to) {
 		for (let j = 0; j < matrix.length; j++) { matrix[s][j] = matrix[f][j]; matrix[j][s] = matrix[j][f]; }
 		matrix[s][s] = 0;
 	}
+	// The bag is filled where the ship starts and nowhere else: a trip from
+	// a wharf is laid without one.
+	const { bag, ...noBag } = I.vehicle;
+	void bag;
 	return {
 		...I,
 		travel: { ...I.travel, matrix },
+		vehicle: from === 'start' ? I.vehicle : noBag,
 		initial: { ...I.initial, hold: from === 'start' ? I.initial.hold : {} },
 		rules: { ...I.rules, home: from === 'start' ? I.rules.home : from, end: to }
 	};
