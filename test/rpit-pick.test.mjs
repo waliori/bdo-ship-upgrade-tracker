@@ -21,7 +21,7 @@ const toy = () => ({
 	budgets: { P: 100, vouchers: { n: 1, each: 50 } },
 	rules: { home: 'H', end: 'H', underWaySpeed: 1 }
 });
-const trip = (id, o) => ({ id, from: 'start', to: 'H', f: 0, T: 1, P: 0, att: {}, loads: {}, buys: {}, drops: {}, ...o, R: o.f });
+const trip = (id, o) => ({ id, from: 'H', to: 'H', f: 0, T: 1, P: 0, att: {}, loads: {}, buys: {}, drops: {}, ...o, R: o.f });
 
 test('the most within the session, and the attempt caps across trips', () => {
 	const trips = [
@@ -73,7 +73,7 @@ test('no good dropped at the same wharf by two trips', () => {
 
 test('the first trip leaves from where the ship is; a trip from a depot follows one that ends there or pays the leg', () => {
 	assert.equal(legHours(toy(), 'H', 'D'), 1);
-	const a = trip('a', { f: 10, T: 1, to: 'D' });
+	const a = trip('a', { f: 10, T: 1, from: 'start', to: 'D' });
 	const b = trip('b', { f: 9, T: 1, from: 'D', to: 'H' });
 	const c = trip('c', { f: 9, T: 1, from: 'D', to: 'H' });
 	assert.deepEqual(pickDay(toy(), [a, b], { H: 2 }).trips.map(t => t.id), ['a', 'b']);
@@ -85,5 +85,5 @@ test('the first trip leaves from where the ship is; a trip from a depot follows 
 });
 
 test('nothing fits: an empty day, not an error', () => {
-	assert.deepEqual(pickDay(toy(), [trip('a', { f: 10, T: 3 })], { H: 2 }), { value: 0, trips: [], bound: 0, nodes: 1 });
+	assert.deepEqual(pickDay(toy(), [trip('a', { f: 10, T: 3 })], { H: 2 }), { value: 0, trips: [], bound: 0, nodes: 1, exact: true });
 });

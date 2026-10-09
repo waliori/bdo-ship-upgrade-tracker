@@ -89,11 +89,10 @@ test('a trip that earns nothing is no trip', () => {
 	assert.equal(tripOf(I, ladder(I), { chainIds: [0] }), null);
 });
 
-test('the hand board\'s catalogue: the one climb, once, from where the ship is', () => {
+test('the hand board\'s catalogue: the one climb, from home and from where the ship is', () => {
 	const trips = buildTrips(hand());
-	assert.equal(trips.length, 1);
-	assert.equal(trips[0].from, 'start');
-	assert.equal(trips[0].R, 10 * 1000000 - 1000);
+	assert.deepEqual(trips.map(t => t.from).sort(), ['H', 'start']);
+	for (const t of trips) assert.equal(t.R, 10 * 1000000 - 1000);
 });
 
 test('on a real board every label is what the simulator says of its plan; the catalogue is bounded and the same twice', () => {
