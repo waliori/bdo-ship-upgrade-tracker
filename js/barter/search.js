@@ -130,12 +130,12 @@ function presetNext() {
 	st.busy = true;
 	searchLight();
 	const w = presetWorkerOf();
-	if (!w) { setTimeout(() => done(propose({ ...job.args, budgetMs: 150 })), 0); return; }
+	if (!w) { setTimeout(() => done(answer({ ...job.args, budgetMs: 150 })), 0); return; }
 	w.onmessage = evt => done(evt.data && evt.data.result);
 	// A worker that fails mid-job leaves the job to this thread, and the
 	// cards after it too: the cards never filled when it went.
-	w.onerror = () => { V.presetWorker = null; V.presetLost = true; setTimeout(() => done(propose({ ...job.args, budgetMs: 150 })), 0); };
-	try { w.postMessage({ id: job.id, ...job.args, budgetMs: PRESET_BUDGET_MS }); } catch { done(propose({ ...job.args, budgetMs: 150 })); }
+	w.onerror = () => { V.presetWorker = null; V.presetLost = true; setTimeout(() => done(answer({ ...job.args, budgetMs: 150 })), 0); };
+	try { w.postMessage({ id: job.id, ...job.args, budgetMs: PRESET_BUDGET_MS }); } catch { done(answer({ ...job.args, budgetMs: 150 })); }
 }
 export function presetSearch(key, jobs) {
 	if (V.presetState.key === key) { presetNext(); return; }

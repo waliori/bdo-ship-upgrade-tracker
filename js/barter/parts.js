@@ -279,7 +279,12 @@ export function silverParts(me, b) {
 		const oo = { ...o, ...p.orders };
 		const coveredBy = c => c.from !== 'land' || oo.landFrom !== 'stock' || (land.get(c.item) || 0) >= c.rungs[0].giveN;
 		const list = reachCut(everything.filter(c => (oo.buy || c.from !== 'land') && !c.gate && coveredBy(c)));
-		return { id: p.id, args: { chains: list, opts: { ...opts, pace: oo.pace, orders: oo, prices: presetPrices, seen: presetSeen }, ship, timeCap: oo.hours, aim } };
+		const oopts = { ...opts, pace: oo.pace, orders: oo, prices: presetPrices, seen: presetSeen };
+		// Each card is laid by the planner the main search uses: the new
+		// one, under that way's own orders and hours, where it can lay it.
+		const w = withShip(oopts);
+		const asked = newPlanner() && !unsupported({ ...w, chosen: list }).length ? { planner: 'new', opts: w, chains: list, session: w.session } : { chains: list, opts: oopts, ship, timeCap: oo.hours, aim };
+		return { id: p.id, args: asked };
 	}));
 	// Ticks left to the search -- a new board, or a way of sailing just
 	// changed under ticks that were the search's own -- take its answer
