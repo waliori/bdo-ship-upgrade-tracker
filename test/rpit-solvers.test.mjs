@@ -101,6 +101,20 @@ test('greedy climbs the one chain; ALNS keeps it; exact agrees', () => {
 	}
 });
 
+test('an island is asked for no more than the climb above uses: the spare attempts cost Parley for nothing', () => {
+	// The top deals once; the rungs below are asked for one each, not
+	// the ten the board allows -- the same silver, a tenth of the Parley.
+	// Handed a plan that asks ten of each and no steps to search, the
+	// search still gives one of each back.
+	const I = hand();
+	I.stations[2].m = 1;
+	const warm = { seq: [{ at: 's1', a: 10 }, { at: 's2', a: 10 }, { at: 's3', a: 1 }], calls: [] };
+	const out = alns.search(I, { most: 0, warm, fixed: true, pool: chainsOf(I) });
+	const r = robustEval(I, out.plan).run;
+	assert.equal(r.R, 1000000 - 100);
+	assert.equal(r.P, 3, `Parley spent ${r.P}, three attempts expected`);
+});
+
 test('ALNS draws the same way for the same seed, and never falls below greedy', () => {
 	const { instance: I } = setupOf({ layout: '25', start: 'Velia', hold: 20000, pace: 'full' });
 	const a = alns.solve(I, { timeMs: 400, seed: 3 });
