@@ -197,7 +197,9 @@ export function isleAt(line, isles, { left = Infinity } = {}) {
 				// room for -- but never so little that two islands share it.
 				const whole = want === seen ? 1 : 0;
 				const least = dense(want) ? 3 : 6;
-				const cut = seen.length >= least && want.startsWith(seen) ? seen.length / want.length : 0;
+				// "Shipwrecked" alone opens five wrecks' names: a cut that two
+				// islands share names neither, and the next word decides.
+				const cut = seen.length >= least && want.startsWith(seen) && isles.filter(o => plain(o.at).startsWith(seen)).length === 1 ? seen.length / want.length : 0;
 				// A name the engine misread rather than cut short. The cap has
 				// to be above the threshold or every long name is "close":
 				// editDistance stops counting at its cap and answers with it.
