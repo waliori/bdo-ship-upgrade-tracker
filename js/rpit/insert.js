@@ -31,12 +31,18 @@ export function cheapestPos(I, seq, id, from = 0) {
  */
 export function thinLadder(I, rungs) {
 	const { station } = indexOf(I);
+	// A floor the sailor keeps is filled before a good is spent: what a
+	// rung must make for the one above is what that one hands over, and
+	// the floor's shortfall on top -- or the rung above starves at it.
+	const floors = I.initial.floors || {};
+	const owned = g => (I.initial.hold[g] || 0) + I.depots.reduce((n, d) => n + ((d.storage || {})[g] || 0), 0);
+	const short = g => Math.max(0, (floors[g] || 0) - owned(g));
 	const a = new Array(rungs.length);
 	let need = Infinity;
 	for (let k = rungs.length - 1; k >= 0; k--) {
 		const s = station.get(rungs[k]);
 		a[k] = need === Infinity ? s.m : Math.min(s.m, Math.ceil(need / Math.max(s.ymin, 1e-9) - 1e-9));
-		need = a[k] * s.q;
+		need = a[k] * s.q + short(s.in);
 	}
 	return a;
 }

@@ -69,6 +69,22 @@ test('a thin ladder feeds the top and no more', () => {
 	assert.deepEqual(thinLadder(I, ['s1', 's2', 's3']), [4, 4, 4]);
 });
 
+test('a thin ladder under a floor: the shortfall made before the rung above spends, so the climb is not starved', () => {
+	// Four [Level 3]s take eight [Level 2]s; a floor of five [Level 2]s
+	// with none owned is filled first: thirteen, seven attempts paying two.
+	const I = hand();
+	I.stations[2].m = 4;
+	I.initial.floors = { L2: 5 };
+	assert.deepEqual(thinLadder(I, ['s1', 's2', 's3']), [7, 7, 4]);
+	const laid = finish(I, ['s1', 's2', 's3'].map((at, k) => ({ at, a: [7, 7, 4][k] })), 0);
+	const r = simulate(I, planPolicy(laid.plan), { mode: 'robust' });
+	assert.equal(r.deviations.starved || 0, 0);
+	assert.equal(r.log.filter(e => e.kind === 'station' && e.at === 's3').reduce((a, e) => a + e.a, 0), 4);
+	// Three in the storage: only the two short are made on top.
+	I.depots[0].storage = { L2: 3 };
+	assert.deepEqual(thinLadder(I, ['s1', 's2', 's3']), [5, 5, 4]);
+});
+
 test('finish buys what the islands take, and writes the attempts made', () => {
 	const out = finish(hand(), [{ at: 's1' }, { at: 's2' }, { at: 's3' }]);
 	assert.deepEqual(out.plan.buy, { Land: 100 });
