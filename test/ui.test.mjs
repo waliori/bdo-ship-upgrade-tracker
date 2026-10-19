@@ -2576,6 +2576,39 @@ test('two chains on one pile: the second start says none are left, asks before i
 	await context.close();
 });
 
+test('a selling call left unticked is said on the results step, with the tick to hand', async () => {
+	const { page, context, errors } = await open('#barter');
+	await page.waitForSelector('.barter-screen', { timeout: 15000 }); await wait(600);
+	await page.evaluate(async () => {
+		const { barterKey } = await import('/js/clock.js');
+		const store = await import('/js/state.js');
+		store.setView('barter', { goal: 'silver', port: 1002, planSec: 'all', advOpen: true, board: { day: barterKey(), answers: [{ npcId: 58948, give: '[Level 6] Top-Quality Coconut Syrup', recv: "[Level 7] Artisan's Seashell Necklace" }, { npcId: 58901, give: 'Vinegar', recv: '[Level 1] Cherry Tree Seed Pouch' }] } });
+		// Five [Level 6]s aboard: the run climbs them to the top and sells at the wharf.
+		store.setStockAt('[Level 6] Top-Quality Coconut Syrup', "Ship's hold", 5);
+		store.setProfile('barterCount', 1);
+		store.flush();
+	});
+	await page.reload({ waitUntil: 'domcontentloaded' });
+	await page.waitForSelector('.chain', { timeout: 15000 });
+	await page.evaluate(async () => { const store = await import('/js/state.js'); store.addTarget('Carrack (Advance)', 1); store.setProfile('crewShip', 'Carrack (Advance)'); });
+	await page.waitForFunction(() => document.querySelector('[data-act="barter-cast-off"]:not([disabled]), .run-dock'), { timeout: 20000 });
+	await laidOut(page);
+	await page.evaluate(() => document.querySelector('[data-act="barter-cast-off"]').click()); await wait(2500);
+	// Straight to the results with nothing ticked: the call that sells is
+	// named, and the goods it sells are still aboard.
+	await page.evaluate(() => [...document.querySelectorAll('[data-act="barter-step"][data-id="results"]')].find(e => e.getBoundingClientRect().width > 0).click()); await wait(1500);
+	const note = await text(page, '.receipt-acts');
+	assert.match(note, /still aboard: the call at .+ that sells them is not ticked/);
+	const tick = await page.$('.receipt-acts [data-act="barter-stop-done"]');
+	assert.ok(tick, 'the tick is to hand');
+	await tick.evaluate(e => e.click()); await wait(1200);
+	const after = await text(page, '.receipt-acts');
+	assert.doesNotMatch(after, /still aboard/);
+	assert.match(await text(page, '.run-tiles'), /sold at the wharf call/);
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
 test('a run recorded adds its trades to Total Barters, and says what that opened', async () => {
 	const { page, context, errors } = await open('#barter');
 	await page.waitForSelector('.barter-screen', { timeout: 15000 }); await wait(600);

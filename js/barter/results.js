@@ -13,7 +13,7 @@ import { fromPort } from './board.js';
 import { lvTag, parleySpentOf, stopAt, stopNames, parleyNotes } from './cockpit.js';
 import { parleyGuessed, parleyOf } from './plan.js';
 import { legsOf, n1, TIER, ledgerOf } from './route.js';
-import { sailing, ticked, owesCount, unsaid, tripOf, sailedPlan } from './sail.js';
+import { sailing, ticked, owesCount, unsaid, tripOf, sailedPlan, stopKey } from './sail.js';
 import { todayHTML, weekHTML } from './today.js';
 import { VOUCHER } from './view.js';
 
@@ -145,6 +145,11 @@ export function resultsHTML() {
 	const tile = (k, v, sub, cls = '') => `<div><div class="summary-k">${k}</div><div class="summary-v${cls ? ` ${cls}` : ''}">${v}</div><div class="summary-sub">${sub}</div></div>`;
 	const timer = timerState();
 	const owed = stops.filter(s => owesCount(s, on)).length;
+	// A wharf call that sells, left unticked: the goods it sells stay in
+	// the hold, and the next plan sells them again at its first call. Said
+	// here, with the tick to hand, rather than found a run later.
+	const unsold = stops.map((s, k) => ({ s, k })).filter(({ s, k }) => s.wharf && s.sale && s.sale.n > 0 && !ticked(on.done, s, k, stops));
+	const unsoldNote = unsold.map(({ s, k }) => ` <b class="amber">${T('{n} goods still aboard: the call at {wharf} that sells them is not ticked.', { n: n1(s.sale.n), wharf: esc(gameName(s.wharf.name)) })}</b> <button class="linky" data-act="barter-stop-done" data-k="${esc(stopKey(s, k, stops))}">${T('Sold there — tick it')}</button>`).join('');
 	const tiles = `<div class="run-tiles">
 		${tile(`⚓ ${T('Stops')}`, `${doneN} / ${stops.length}`, complete ? T('every stop ticked') : at >= 0 ? T('stop {n} is next', { n: at + 1 }) : '')}
 		${tile(`⇄ ${T('Trades made')}`, F(trip.trades), `${T('of {n} planned', { n: F(plan.trades || 0) })} · ${T('Total Barters → {n}', { n: F(prof.barterCount + Math.round(trip.trades)) })}`)}
@@ -164,7 +169,7 @@ export function resultsHTML() {
 	// A material run sells nothing: its silver is only what the shore
 	// goods cost, said as such, and nothing when none was bought.
 	const receipt = `${materialing && !net ? '' : `<div class="receipt-net"><span>${materialing ? T('Silver spent ashore') : T('Silver, net')}</span><b class="${net < 0 ? 'warn' : 'gold'}">${net ? `${net > 0 ? '+' : '−'}${FC(Math.abs(net))}` : '—'}</b></div>`}
-	<div class="receipt-acts"><span class="panel-sub">${T('The hold already follows every ticked stop. Recording adds the Parley, Total Barters, the quests and the log; its Undo takes the whole run back.')}${owed ? ` <b class="amber">${owed === 1 ? T('{n} island still waits for its count.', { n: owed }) : T('{n} islands still wait for their count.', { n: owed })}</b>` : ''}</span><button class="linky danger" data-act="barter-sail-drop" title="${T('Drop the checklist; nothing is recorded')}">${T('Abandon')}</button><button class="act" data-act="barter-record" ${doneN ? '' : 'disabled'} title="${T('The stops done go into the Inventory as one change')}">${T('Record the trip')}</button></div>`;
+	<div class="receipt-acts"><span class="panel-sub">${T('The hold already follows every ticked stop. Recording adds the Parley, Total Barters, the quests and the log; its Undo takes the whole run back.')}${owed ? ` <b class="amber">${owed === 1 ? T('{n} island still waits for its count.', { n: owed }) : T('{n} islands still wait for their count.', { n: owed })}</b>` : ''}${unsoldNote}</span><button class="linky danger" data-act="barter-sail-drop" title="${T('Drop the checklist; nothing is recorded')}">${T('Abandon')}</button><button class="act" data-act="barter-record" ${doneN ? '' : 'disabled'} title="${T('The stops done go into the Inventory as one change')}">${T('Record the trip')}</button></div>`;
 	return `<section class="panel"><div class="panel-head"><h2 class="panel-title">${complete ? T('The run, complete') : T('The run so far')}</h2><span class="panel-sub">${timer ? `${T('under way')} ⏱ ${esc(spanText(timer.ran))}` : ''}</span><span class="panel-spacer"></span><button class="linky" data-act="barter-step" data-id="sail">‹ ${T('Back to the run')}</button></div><div class="panel-body">${tiles}</div></section>
 		<section class="panel"><div class="panel-head"><h2 class="panel-title">${T('The exchange')}</h2><span class="panel-sub">${complete ? T('what recording will change') : T('so far — only ticked stops count')}</span></div><div class="panel-body">${exchangeHTML(gave, got, { spent: trip.spent, silver: trip.silver, coins, parley: spent, vouchers: drawnSoFar, guessedCoins })}${receipt}</div></section>
 		<section class="panel log-panel"><div class="panel-head"><h2 class="panel-title">${T('Stop by stop')}</h2><span class="panel-sub">${complete ? T('complete') : T('{n} still to go', { n: stops.length - doneN })}</span></div>${log}</section>
