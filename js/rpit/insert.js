@@ -27,9 +27,9 @@ export function cheapestPos(I, seq, id, from = 0) {
  * just enough attempts to feed the rung above, counted at the least an
  * island pays. What a climb needs, not what its islands would take -- a
  * foot of ten attempts at every rung fills the hold with goods the top
- * never uses. `top` asks the top for fewer than it allows.
+ * never uses.
  */
-export function thinLadder(I, rungs, top = Infinity) {
+export function thinLadder(I, rungs) {
 	const { station } = indexOf(I);
 	// A floor the sailor keeps is filled before a good is spent: what a
 	// rung must make for the one above is what that one hands over, and
@@ -41,7 +41,7 @@ export function thinLadder(I, rungs, top = Infinity) {
 	let need = Infinity;
 	for (let k = rungs.length - 1; k >= 0; k--) {
 		const s = station.get(rungs[k]);
-		a[k] = need === Infinity ? Math.min(s.m, top) : Math.min(s.m, Math.ceil(need / Math.max(s.ymin, 1e-9) - 1e-9));
+		a[k] = need === Infinity ? s.m : Math.min(s.m, Math.ceil(need / Math.max(s.ymin, 1e-9) - 1e-9));
 		need = a[k] * s.q + short(s.in);
 	}
 	return a;

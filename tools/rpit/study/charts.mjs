@@ -6,7 +6,6 @@
 // steps.csv    one row a search step: the candidate's value, the
 //              current and the best, the operators, acceptance.
 // rounds.csv   one row a price-of-time round: μ, R, T, rate.
-// thick.csv    one row a thickening try after the search.
 import fs from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
@@ -16,7 +15,7 @@ fs.mkdirSync(out, { recursive: true });
 const who = id => (id ? createHash('sha256').update(String(id)).digest('hex').slice(0, 10) : '');
 const cell = v => (v === null || v === undefined ? '' : typeof v === 'number' ? String(v) : `"${String(v).replace(/"/g, '""')}"`);
 const csv = (name, head, rows) => fs.writeFileSync(path.join(out, name), [head.join(','), ...rows.map(r => r.map(cell).join(','))].join('\n') + '\n');
-const records = [], steps = [], rounds = [], thick = [];
+const records = [], steps = [], rounds = [];
 for (const f of fs.readdirSync(dir).filter(f => f.endsWith('.json')).sort()) {
 	const rec = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'));
 	const st = rec.body || {};
@@ -31,11 +30,9 @@ for (const f of fs.readdirSync(dir).filter(f => f.endsWith('.json')).sort()) {
 		if (e.k === 'start') round++;
 		if (e.k === 'round') rounds.push([rec.id, e.round, e.mu, e.f, e.R, e.T, e.rate]);
 		else if (e.k === 'step') steps.push([rec.id, round, e.it, e.op, e.rep, e.f, e.cur, e.best, e.acc, e.ok, e.temp]);
-		else if (e.k === 'thick') thick.push([rec.id, e.chain, e.top, e.f, e.kept]);
 	}
 }
 csv('records.csv', ['id', 'at', 'who', 'planner', 'release', 'layout', 'day', 'session', 'chains', 'R', 'T', 'mu', 'steps', 'ms', 'value', 'hours', 'sailed_net', 'sailed_trades', 'sailed_done', 'sailed_all', 'sailed_hours', 'abandoned', 'planned_net', 'planned_hours'], records);
 csv('steps.csv', ['id', 'round', 'it', 'op', 'rep', 'f', 'cur', 'best', 'acc', 'ok', 'temp'], steps);
 csv('rounds.csv', ['id', 'round', 'mu', 'f', 'R', 'T', 'rate'], rounds);
-csv('thick.csv', ['id', 'chain', 'top', 'f', 'kept'], thick);
-console.log(`${records.length} studies: ${steps.length} steps, ${rounds.length} rounds, ${thick.length} thickenings → ${out}`);
+console.log(`${records.length} studies: ${steps.length} steps, ${rounds.length} rounds → ${out}`);

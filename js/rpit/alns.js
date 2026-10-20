@@ -24,7 +24,7 @@
 
 import { rng } from './simulate.js';
 import { chainsOf, finish, indexOf } from './common.js';
-import { cheapestPos, growByChains, reorder, serial, bare, quick, thinLadder } from './insert.js';
+import { cheapestPos, growByChains, reorder, serial, bare, quick } from './insert.js';
 import { build as greedy, byTrips } from './greedy.js';
 import { maximiseRate } from './ratio.js';
 
@@ -35,8 +35,8 @@ const DESTROY = ['random', 'related', 'chain', 'thin', 'thick', 'reorder', 'seri
 const REPAIR = ['bare', 'careful'];
 
 // `trace`, an array when given, is written as the search goes -- the
-// starts, every step, the operator weights, the thickening -- for the
-// study of how a plan was found (js/barter/study.js).
+// starts, every step, the operator weights, the end -- for the study of
+// how a plan was found (js/barter/study.js).
 export function search(I, { mu = 0, timeMs = 10000, warm = null, seed = 1, most = 20000, pool = null, fixed = false, trace = null } = {}) {
 	// Fixed climbs must reach their tops.
 	const must = fixed && pool ? pool.map(c => c.rungs[c.rungs.length - 1]) : null;
@@ -156,32 +156,11 @@ export function search(I, { mu = 0, timeMs = 10000, warm = null, seed = 1, most 
 			if (trace) trace.push({ k: 'weights', it: it + 1, w: { ...weights } });
 		}
 	}
-	// A climb thin at its top is thickened whole: the top asked for one
-	// more and the rungs below for what feeds it, as long as the run earns
-	// more. A thin top is a hollow no single move climbs out of: more
-	// attempts at the top alone find no goods and are written off as made,
-	// more at the rung below make goods nothing above takes (Hakoven ×1 and
-	// Olvia ×1 under Padix ×5 on a sailor's board, 2026-10-19).
-	const at = id => best.seq.find(v => v.at === id);
-	for (const c of chains) {
-		if (!c.rungs.every(id => at(id))) continue;
-		for (;;) {
-			const top = at(c.rungs[c.rungs.length - 1]);
-			if (!top || top.a >= station.get(top.at).m) break;
-			const want = thinLadder(I, c.rungs, top.a + 1);
-			const seq = best.seq.map(v => ({ ...v }));
-			// A thickening kept can have dropped a rung of this climb -- an
-			// island the laying found dealing nothing -- and the climb is
-			// done with.
-			const rungs = c.rungs.map(id => seq.find(x => x.at === id));
-			if (rungs.some(v => !v)) break;
-			rungs.forEach((v, k) => { v.a = Math.max(v.a, want[k]); });
-			const cand = judge(seq, best.calls);
-			if (trace) trace.push({ k: 'thick', chain: c.id, top: top.a + 1, f: cand.f, kept: cand.f > best.f + 1e-6 ? 1 : 0 });
-			if (!(cand.f > best.f + 1e-6)) break;
-			best = cand;
-		}
-	}
+	// The plan is returned as the search left it: a plan that sits in a
+	// hollow -- a climb asked for one at its top under a foot asked for
+	// five -- is what this search finds, and the study keeps it so. What
+	// the search does is written in docs/planner.md; a step past it is a
+	// method of its own, not this one.
 	if (trace) trace.push({ k: 'end', it, f: best.f, R: best.R, T: best.T, ms: performance.now() - t0 });
 	return { ...best, iterations: it };
 }

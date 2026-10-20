@@ -18,10 +18,16 @@ const KEEP = 12;
 /** A plan proposed: sent, and its id kept under the climbs it ticks. */
 export function noteFound(result, { layout = null, day = null, port = null } = {}) {
 	if (!result || !result.study || !result.best) return;
-	const id = uuid();
-	const key = keyOf(result.best.ids);
-	V.studies = [...(V.studies || []).filter(s => s.key !== key).slice(-(KEEP - 1)), { id, key }];
-	send('/api/study', { id, at: Date.now(), release: RELEASE, device: store.getSetting('sync.device', null), layout: layout === null || layout === undefined ? null : String(layout), day, port, ...result.study });
+	// Nothing the study does may reach the tab: a study that cannot be
+	// written is not written.
+	try {
+		const id = uuid();
+		const key = keyOf(result.best.ids);
+		V.studies = [...(V.studies || []).filter(s => s.key !== key).slice(-(KEEP - 1)), { id, key }];
+		send('/api/study', { id, at: Date.now(), release: RELEASE, device: store.getSetting('sync.device', null), layout: layout === null || layout === undefined ? null : String(layout), day, port, ...result.study });
+	} catch {
+		// Left unsent.
+	}
 }
 
 /** The study whose plan ticks these climbs, if one was proposed. */
@@ -33,7 +39,11 @@ export function studyOf(ids) {
 
 /** The run recorded, under the study of the plan it sailed. */
 export function noteSailed(id, outcome) {
-	if (id) send(`/api/study/${id}/sailed`, outcome);
+	try {
+		if (id) send(`/api/study/${id}/sailed`, outcome);
+	} catch {
+		// Left unsent.
+	}
 }
 
 const keyOf = ids => (ids || []).map(String).sort().join('|');
