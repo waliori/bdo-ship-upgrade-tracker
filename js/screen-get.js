@@ -444,7 +444,9 @@ function planHead(way, steps, things) {
 function questStep(way, n, q) {
 	const picks = store.getProfile('questPicks', {}) || {};
 	const wanted = new Set(Object.keys(snapshot.missing || {}));
-	const chip = (item, qty, cls = '') => `<span class="reward${wanted.has(item) ? ' wanted' : ''}${cls}" data-peek="${esc(item)}">${img(item, 'reward-icon')}<b>${F(qty)}×</b> ${esc(gameName(item))}</span>`;
+	// A reward chip says what the quest gives, as the game does; when the
+	// plan needs less of it, how much, beside.
+	const chip = (item, qty, cls = '', need = qty) => `<span class="reward${wanted.has(item) ? ' wanted' : ''}${cls}" data-peek="${esc(item)}">${img(item, 'reward-icon')}<b>${F(qty)}×</b> ${esc(gameName(item))}${need < qty ? ` <i>${T('{n} of them needed', { n: F(need) })}</i>` : ''}</span>`;
 
 	const shown = way.quests.filter(x => nameHas(x.name, q) || x.pays.some(p => nameHas(p.item, q)));
 	if (!shown.length) return '';
@@ -454,7 +456,7 @@ function questStep(way, n, q) {
 		const choice = x.quest.choice && x.pick !== null ? Object.entries(x.quest.choice[x.pick]) : null;
 		const mine = choice && picks[x.id] === x.pick;
 		const takeChips = choice ? choice.map(([item, qty]) => chip(item, qty, ' take')).join('') : '';
-		const fixedChips = x.pays.filter(p => !choice || !choice.some(([item]) => item === p.item)).map(p => chip(p.item, p.qty)).join('');
+		const fixedChips = x.pays.filter(p => !choice || !choice.some(([item]) => item === p.item)).map(p => chip(p.item, p.gives || p.qty, '', p.qty)).join('');
 		const coins = x.coins ? `<span class="reward coin-chip">${img(CROW_COIN, 'reward-icon')}<b>${F(x.coins)}</b> ${T('Crow Coins')}</span>` : '';
 		const pick = choice && !mine
 			? `<button class="ghost-btn tiny" data-act="get-pick" data-quest="${esc(x.id)}" data-i="${x.pick}" title="${T('Remember it: Claimed on the Quests screen then records this reward in one press')}">${T('make it my pick')}</button>`
