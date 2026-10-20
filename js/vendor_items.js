@@ -20,9 +20,12 @@ export const items = {
 	// The yellow tier all comes off one sea monster. Lyngbakr's drop table
 	// is fourteen items and five of them matter here: these four, and the
 	// Horn below. The rest -- Serni, Zulatia, Margoria and Coral Crystals,
-	// Claws of the Waves, Red Sea Monster Meat, Blue Whale Oil, Sea
-	// Monster's Bizarre Fang and the Moss-Covered Map -- are left out
-	// because nothing here consumes them; a build could never ask for one.
+	// Claws of the Waves, Red Sea Monster Meat, Great Ocean Oil (Blue
+	// Whale Oil until the 2026-09-10 patch), Sea Monster's Bizarre Fang
+	// and the Moss-Covered Map -- are left out because nothing here
+	// consumes them; a build could never ask for one. The Bone, Scale and
+	// Fluid traded for Tidal Black Stone at the Crow Coin Exchange until
+	// that same patch took the three off its list.
 	//
 	// The Horn is the one worth knowing about. One of them buys a whole
 	// part's worth of a yellow material outright, which is the same
@@ -34,9 +37,9 @@ export const items = {
 	"Lyngbakr's Horn": {"Monster Drop": ["Lyngbakr, Lyngbakr Habitat"], "Exchange": [
 		"Choose one: 125x Sturdy Coral Support, 75x Raging Wave Plywood, or 50x Dormant Crimson Coral Adhesive"
 	]},
-	"Lyngbakr's Bone": {"Monster Drop": ["Lyngbakr (one of fourteen things it drops)"], "Exchange": ["Crow Coin Exchange — trades for 8x Tidal Black Stone"]},
-	"Lyngbakr's Scale": {"Monster Drop": ["Lyngbakr (one of fourteen things it drops)"], "Exchange": ["Crow Coin Exchange — trades for 12x Tidal Black Stone"]},
-	"Lyngbakr's Fluid": {"Monster Drop": ["Lyngbakr (one of fourteen things it drops)"], "Exchange": ["Crow Coin Exchange — trades for 20x Tidal Black Stone"]},
+	"Lyngbakr's Bone": {"Monster Drop": ["Lyngbakr (one of fourteen things it drops)"]},
+	"Lyngbakr's Scale": {"Monster Drop": ["Lyngbakr (one of fourteen things it drops)"]},
+	"Lyngbakr's Fluid": {"Monster Drop": ["Lyngbakr (one of fourteen things it drops)"]},
 	"Sunset Coral Essence": {"Monster Drop": ["Lyngbakr (one of fourteen things it drops)"]},
 	"Cron Stone": {"Purchase": ["Pearl Shop, Loyalties, or melting a costume"]},
 	"Epheria Carrack: Advance (Falasi's Cannon)": {"Crafting": ["Ship Part Workshop Lv.2, Iliya Island 3"]},
