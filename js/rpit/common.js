@@ -119,16 +119,10 @@ export function robustEval(I, plan, mu = 0) {
 		const f = I.rules.stock.kind === 'trades' ? r.trades * 1e9 + fill * 1e6 - cost / 1e3 : fill * 1e9 - cost;
 		return { f: f - mu * r.T - over - waste, R: r.R, T: r.T, fill, run: r };
 	}
-	// Between two plans that earn the same, the one that spends less Parley:
-	// an attempt whose good nothing above uses costs the sailor Parley and a
-	// slot for nothing. A thousandth of a silver a Parley -- fifty silver an
-	// exchange -- so it decides nothing a sale decides.
-	const tie = r.P * PARLEY_TIE;
-	return { f: r.R - mu * r.T - over - waste + coins - tie, R: r.R, T: r.T, run: r };
+	return { f: r.R - mu * r.T - over - waste + coins, R: r.R, T: r.T, run: r };
 }
 const OVERTIME = 1e14;
 const WASTE = 1e12;
-const PARLEY_TIE = 1e-3;
 
 /** A visit to the end depot that sells what the run made. */
 export const endVisit = I => ({ at: I.rules.end, sell: 'spare', drop: 'spare' });

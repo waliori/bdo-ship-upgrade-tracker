@@ -148,18 +148,6 @@ export function search(I, { mu = 0, timeMs = 10000, warm = null, seed = 1, most 
 			for (const d of OPS) { if (uses[d]) weights[d] = 0.5 * weights[d] + 0.5 * Math.max(0.1, scores[d] / uses[d]); scores[d] = 0; uses[d] = 0; }
 		}
 	}
-	// Attempts that earn nothing taken off, one at a time from the last
-	// island back: the search raises attempts freely ("thick"), and an
-	// island asked for more than the climb above uses was laid as asked.
-	for (let k = best.seq.length - 1; k >= 0 && k < best.seq.length; k--) {
-		while (best.seq[k] && best.seq[k].a > 1) {
-			const seq = best.seq.map(v => ({ ...v }));
-			seq[k].a--;
-			const cand = judge(seq, best.calls);
-			if (!(cand.f > best.f + 1e-9)) break;
-			best = cand;
-		}
-	}
 	return { ...best, iterations: it };
 }
 
