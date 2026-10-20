@@ -28,6 +28,7 @@ import { chartButton, parleyGuessed, parleyOf, stashAt, ordersNow, payRangeHTML,
 import { docks, supplies, bagNow, stashes, withWaits, withRations, rationsLine, legsOf, questPlan, questsLine, questsPanels, n1, TIER, ledgerOf, runTime, routeEditBar, castOffRow, stopRows, cutsHTML } from './route.js';
 import { sailing, planSeen, castOffCaps, castOffLand, digest } from './sail.js';
 import { SEARCH_BUDGET_MS, presetSearch, proposeAsync, searching, redrawSoon, expectedBest } from './search.js';
+import { noteFound } from './study.js';
 import { loadingNote } from '../loading.js';
 import { coinsOf, coinRange, bonusNote, coinPurseHTML, shortSummary, shortHTML, canAppearHTML } from './short.js';
 import { takenNote } from './today.js';
@@ -239,6 +240,7 @@ export function silverParts(me, b) {
 			// The inputs moved on before the answer came: a newer request
 			// is out for them, and this answer is nobody's.
 			if (V.proposed.key !== pkey) return;
+			noteFound(result, { layout: b.combo.id, day: V.board.day, port: V.port });
 			V.proposed = { ...V.proposed, ...result, working: false };
 			if (V.routesAuto === V.routes.key) {
 				V.routesAuto = '';
@@ -250,7 +252,7 @@ export function silverParts(me, b) {
 		// Until the answer comes the last proposals stand in, when they
 		// belong to this board, under a note that the search is out.
 		const onBoard = new Set(all.map(c => c.id));
-		if (found) rememberFound(found.kept);
+		if (found) { rememberFound(found.kept); noteFound(found, { layout: b.combo.id, day: V.board.day, port: V.port }); }
 		V.proposed = found
 			? { key: pkey, solos, ...found, working: false }
 			: { key: pkey, solos, proposals: V.proposed.proposals.filter(p => p.ids.every(id => onBoard.has(id))), best: V.proposed.key === pkey ? V.proposed.best : null, partial: false, working: true };

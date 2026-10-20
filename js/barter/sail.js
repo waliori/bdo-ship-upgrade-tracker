@@ -16,7 +16,8 @@ import { weightOf } from '../barter-plan.js';
 import { toast } from '../dialogs.js';
 import { cheer } from '../cheer.js';
 import { V } from './state.js';
-import { stopTimer, passedStop } from '../sail-timer.js';
+import { stopTimer, passedStop, timerNow } from '../sail-timer.js';
+import { noteSailed } from './study.js';
 import { boardNow, fromPort, itemNow, noteUsed } from './board.js';
 import { noteMatUsed } from './material.js';
 import { bringUp, stopAt, stopNames, cockpitHTML } from './cockpit.js';
@@ -985,6 +986,9 @@ export function recordTrip(plan, from, on = sailing(), { abandoned = false } = {
 	V.cursor = null;
 	V.skipped = new Set();
 	V.packed = new Set();
+	// The run as it went, under the study of the plan it sailed: what the
+	// plan promised beside what the day gave, stop by stop and by the clock.
+	if (on.study) noteSailed(on.study, { at: Date.now(), abandoned, timer: timerNow(), done: on.done.length, all: plan.stops.length, stops: stopsLog, skipped: [...(V.skipped || [])], silver: trip.silver, spent: trip.spent || 0, trades: Math.round(trip.trades), parley: parleySpent, vouchers: drawnOn, coins: Math.round(trip.delta[COIN] || 0), planned: { net: plan.net, hours: plan.hours, trades: plan.trades, parley: plan.parleyUsed, stops: plan.stops.length } });
 	// The trip is in the book, so the clock that timed it is done.
 	stopTimer();
 	persist();

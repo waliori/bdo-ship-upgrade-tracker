@@ -104,6 +104,7 @@ const SHELL = [
 	'/js/barter/material.js',
 	'/js/barter/packing.js',
 	'/js/barter/parts.js',
+	'/js/barter/study.js',
 	'/js/barter/plan.js',
 	'/js/barter/results.js',
 	'/js/barter/rolls.js',
