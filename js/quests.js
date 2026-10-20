@@ -393,7 +393,7 @@ export const quests = [
 		where: TT('Baori, Iliya Island — hand over a Level 1 trade good'),
 		repeat: 'daily',
 		hands: { level: 1, n: 1 },
-		note: TT('Pays only experience; Claimed asks which Level 1 good you handed over.'),
+		note: TT('Baori is the storage keeper by the Iliya wharf; the quest follows Supplies Delivery (Iliya Island) in the day’s chain. Pays only experience; Claimed asks which Level 1 good you handed over.'),
 		rewards: {}
 	},
 	{
@@ -404,7 +404,10 @@ export const quests = [
 		where: TT('Maonil, Iliya Island — hand over a Level 1 trade good'),
 		repeat: 'daily',
 		hands: { level: 1, n: 1 },
-		note: TT('Pays only experience; Claimed asks which Level 1 good you handed over.'),
+		// Asked about on 2026-10-20: Maonil is easy to miss. He is the
+		// merchant of Iliya's specialities, not a wharf or storage NPC,
+		// and the quest is the second of the day's chain.
+		note: TT('Maonil is the merchant of Iliya’s specialities, east of the wharf and a few steps north of Baori the storage keeper; the quest opens once Barter Goods Support I is handed in. Pays only experience; Claimed asks which Level 1 good you handed over.'),
 		rewards: {}
 	},
 	{
