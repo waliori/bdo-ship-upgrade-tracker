@@ -24,7 +24,7 @@
 
 import { rng } from './simulate.js';
 import { chainsOf, finish, indexOf } from './common.js';
-import { cheapestPos, growByChains, reorder, serial, bare, quick } from './insert.js';
+import { cheapestPos, growByChains, reorder, serial, bare, quick, thinLadder } from './insert.js';
 import { build as greedy, byTrips } from './greedy.js';
 import { maximiseRate } from './ratio.js';
 
@@ -146,6 +146,26 @@ export function search(I, { mu = 0, timeMs = 10000, warm = null, seed = 1, most 
 		temp *= 0.997;
 		if ((it + 1) % 50 === 0) {
 			for (const d of OPS) { if (uses[d]) weights[d] = 0.5 * weights[d] + 0.5 * Math.max(0.1, scores[d] / uses[d]); scores[d] = 0; uses[d] = 0; }
+		}
+	}
+	// A climb thin at its top is thickened whole: the top asked for one
+	// more and the rungs below for what feeds it, as long as the run earns
+	// more. A thin top is a hollow no single move climbs out of: more
+	// attempts at the top alone find no goods and are written off as made,
+	// more at the rung below make goods nothing above takes (Hakoven ×1 and
+	// Olvia ×1 under Padix ×5 on a sailor's board, 2026-10-19).
+	const at = id => best.seq.find(v => v.at === id);
+	for (const c of chains) {
+		if (!c.rungs.every(id => at(id))) continue;
+		for (;;) {
+			const top = at(c.rungs[c.rungs.length - 1]);
+			if (!top || top.a >= station.get(top.at).m) break;
+			const want = thinLadder(I, c.rungs, top.a + 1);
+			const seq = best.seq.map(v => ({ ...v }));
+			for (const [k, id] of c.rungs.entries()) { const v = seq.find(x => x.at === id); v.a = Math.max(v.a, want[k]); }
+			const cand = judge(seq, best.calls);
+			if (!(cand.f > best.f + 1e-6)) break;
+			best = cand;
 		}
 	}
 	return { ...best, iterations: it };

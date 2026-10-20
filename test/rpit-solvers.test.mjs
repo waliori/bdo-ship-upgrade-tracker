@@ -101,6 +101,20 @@ test('greedy climbs the one chain; ALNS keeps it; exact agrees', () => {
 	}
 });
 
+test('a climb thin at its top is thickened whole: the top asked for more, the rungs below for what feeds it', () => {
+	// Handed a plan with the foot asked for all ten and the two rungs above
+	// for one each -- one [Level 3] made, nine [Level 1]s carried for
+	// nothing -- and no steps to search, the search still gives the full
+	// climb back: ten of each. More attempts at the top alone find no
+	// [Level 2]s; more at the middle make [Level 2]s nothing takes; only
+	// both together earn.
+	const I = hand();
+	const warm = { seq: [{ at: 's1', a: 10 }, { at: 's2', a: 1 }, { at: 's3', a: 1 }], calls: [] };
+	const out = alns.search(I, { most: 0, warm, fixed: true, pool: chainsOf(I) });
+	assert.equal(robustEval(I, out.plan).R, 10 * 1000000 - 1000);
+	assert.deepEqual(out.seq.map(v => v.a), [10, 10, 10]);
+});
+
 test('ALNS draws the same way for the same seed, and never falls below greedy', () => {
 	const { instance: I } = setupOf({ layout: '25', start: 'Velia', hold: 20000, pace: 'full' });
 	const a = alns.solve(I, { timeMs: 400, seed: 3 });
