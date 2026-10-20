@@ -26,7 +26,12 @@ import { newPropose } from './barter-solve.js';
 /** The search a request asks for: the classic beam search, or -- `planner:
  *  'new'` -- the new planner over { opts, chains, session }. */
 export function answer({ planner, ...args }) {
-	return planner === 'new' ? newPropose(args.opts, args.chains, { session: args.session || 0 }) : propose(args);
+	if (planner === 'new') return newPropose(args.opts, args.chains, { session: args.session || 0 });
+	// The classic search carries a study of its own -- what it proposed and
+	// how long it took -- so a sailor still on it is in the comparison too.
+	const t0 = performance.now();
+	const out = propose(args);
+	return { ...out, study: { planner: 'classic', session: args.timeCap || 0, proposals: out.proposals.map(p => ({ kind: p.kind, ids: p.ids, value: p.value, hours: p.hours })), ms: performance.now() - t0 } };
 }
 
 export const DEFAULT_BUDGET_MS = 1500;

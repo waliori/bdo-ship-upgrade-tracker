@@ -115,6 +115,24 @@ test('a climb thin at its top is thickened whole: the top asked for more, the ru
 	assert.deepEqual(out.seq.map(v => v.a), [10, 10, 10]);
 });
 
+test('a trace says how the plan was found: the starts, every step, the thickening, the end', () => {
+	const { instance: I } = setupOf({ layout: '25', start: 'Velia', hold: 20000, pace: 'full' });
+	const trace = [];
+	const out = alns.search(I, { mu: 0, timeMs: Infinity, most: 60, seed: 2, trace });
+	const of = k => trace.filter(e => e.k === k);
+	assert.equal(of('start').length, 1);
+	assert.equal(of('step').length, 60);
+	assert.equal(of('weights').length, 1);
+	assert.equal(of('end').length, 1);
+	assert.equal(of('end')[0].f, out.f);
+	// The best never falls, and ends where the search ends.
+	let last = -Infinity;
+	for (const e of of('step')) { assert.ok(e.best >= last - 1e-9); last = e.best; }
+	assert.ok(of('step').every(e => typeof e.op === 'string' && typeof e.rep === 'string' && Number.isFinite(e.f)));
+	// Without a trace asked for, nothing is written and the plan is the same.
+	assert.deepEqual(alns.search(I, { mu: 0, timeMs: Infinity, most: 60, seed: 2 }).plan, out.plan);
+});
+
 test('ALNS draws the same way for the same seed, and never falls below greedy', () => {
 	const { instance: I } = setupOf({ layout: '25', start: 'Velia', hold: 20000, pace: 'full' });
 	const a = alns.solve(I, { timeMs: 400, seed: 3 });
