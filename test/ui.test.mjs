@@ -2609,6 +2609,39 @@ test('a selling call left unticked is said on the results step, with the tick to
 	await context.close();
 });
 
+test('a page opened on the Map keeps the run being sailed: the chart stands at its stop, and the Barter tab still sails it', async () => {
+	const { page, context, errors } = await open('#barter');
+	await page.waitForSelector('.barter-screen', { timeout: 15000 }); await wait(600);
+	await page.evaluate(async () => {
+		const { barterKey } = await import('/js/clock.js');
+		const store = await import('/js/state.js');
+		store.setView('barter', { goal: 'silver', port: 1002, planSec: 'all', advOpen: true, board: { day: barterKey(), answers: [{ npcId: 58948, give: '[Level 6] Top-Quality Coconut Syrup', recv: "[Level 7] Artisan's Seashell Necklace" }, { npcId: 58901, give: 'Vinegar', recv: '[Level 1] Cherry Tree Seed Pouch' }] } });
+		store.setStockAt('[Level 6] Top-Quality Coconut Syrup', "Ship's hold", 5);
+		store.setProfile('barterCount', 1);
+		store.flush();
+	});
+	await page.reload({ waitUntil: 'domcontentloaded' });
+	await page.waitForSelector('.chain', { timeout: 15000 });
+	await page.evaluate(async () => { const store = await import('/js/state.js'); store.addTarget('Carrack (Advance)', 1); store.setProfile('crewShip', 'Carrack (Advance)'); });
+	await page.waitForFunction(() => document.querySelector('[data-act="barter-cast-off"]:not([disabled]), .run-dock'), { timeout: 20000 });
+	await laidOut(page);
+	await page.evaluate(() => document.querySelector('[data-act="barter-cast-off"]').click()); await wait(2500);
+	// The first stop ticked, then the Map, then the page reloaded there:
+	// the chart holds the run at its stop and the tab still sails it.
+	await page.evaluate(() => { const go = document.querySelector('.cockpit-press [data-act="barter-paid"], .cockpit-go[data-act="barter-stop-done"]'); go.click(); }); await wait(1200);
+	await page.evaluate(() => [...document.querySelectorAll('[data-act="view"][data-id="map"]')].find(e => e.getBoundingClientRect().width > 0).click()); await wait(2500);
+	assert.ok(await page.$('.map-run'), 'the chart shows the run');
+	await page.reload({ waitUntil: 'domcontentloaded' });
+	await page.waitForSelector(POUCH_READY, { timeout: 15000 }); await wait(3000);
+	assert.ok(await page.$('.map-run'), 'the chart still shows the run after a reload on it');
+	const step = await page.evaluate(async () => { const { mv } = await import('/js/map/state.js'); return mv.stepIdx; });
+	assert.ok(step > 0, `the chart stands at the stop the cockpit is at, not its first (got ${step})`);
+	await page.evaluate(() => [...document.querySelectorAll('[data-act="view"][data-id="barter"]')].find(e => e.getBoundingClientRect().width > 0).click()); await wait(2000);
+	assert.ok(await page.$('.barter-screen.step-sail .cockpit'), 'the Barter tab still sails the run');
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
 test('a run recorded adds its trades to Total Barters, and says what that opened', async () => {
 	const { page, context, errors } = await open('#barter');
 	await page.waitForSelector('.barter-screen', { timeout: 15000 }); await wait(600);

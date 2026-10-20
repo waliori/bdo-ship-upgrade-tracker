@@ -720,12 +720,18 @@ export function sailedPlan() {
  *  than the profile keeps a string. */
 /** The islands of the run being sailed, in order, as the chart lists a
  *  route: to tell whether the chart holds it. Null when none is. */
+// The chart asks these on its own screen, where the Barter tab's view
+// may not have been read yet -- a page opened on the Map. Read first:
+// drawn from the tab's defaults, the run sheet found a board without a
+// day, set it, and wrote the defaults over the saved view, run and all.
 export function sailIds() {
+	restore();
 	const plan = planOfSail(sailing());
 	return plan ? [...new Set(plan.stops.filter(s => s.npcId).map(s => s.npcId))] : null;
 }
 
 export function sailChart() {
+	restore();
 	const on = sailing();
 	const plan = planOfSail(on);
 	return plan ? chartFragmentOf(chartData(plan.stops, on.item || '')) : null;
@@ -741,6 +747,7 @@ export function sailChart() {
  * a row's head then steps the chart to it.
  */
 export function runSheetHTML(chartIds = []) {
+	restore();
 	const on = sailing();
 	const plan = planOfSail(on);
 	if (!plan) return planSheetHTML(chartIds);
@@ -762,6 +769,7 @@ export function runSheetHTML(chartIds = []) {
  * run is being sailed or every stop is ticked.
  */
 export function sailCurrent() {
+	restore();
 	const on = sailing();
 	const plan = on ? sailedPlan() : null;
 	if (!plan) return null;
@@ -772,6 +780,7 @@ export function sailCurrent() {
  *  the one the cockpit stands at -- for the clock's own next stop, which
  *  runs ahead of the cockpit at the island a run starts from. */
 export function sailStop(at) {
+	restore();
 	const plan = sailing() ? sailedPlan() : null;
 	return plan ? stopRef(plan, at) : null;
 }
@@ -788,6 +797,7 @@ function stopRef(plan, at) {
  * it, and `wharfAt`. Answers whether the cockpit moved.
  */
 export function sailJump({ npcId = null, wharfAt = null, before = -1 } = {}) {
+	restore();
 	const on = sailing();
 	const plan = on ? sailedPlan() : null;
 	if (!plan) return false;

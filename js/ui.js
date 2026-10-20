@@ -529,7 +529,17 @@ function showView(id) {
 	// whatever it held -- the plan's first trip, a route from yesterday --
 	// and so had none of the run's stops to step to. The chart takes the
 	// run being sailed whenever it holds anything else.
-	if (id === 'map') setTimeout(() => {
+	if (id === 'map') chartToRun();
+}
+
+/** The chart brought to the run being sailed, and stepped to the stop
+ *  the cockpit stands at. After the draw, since stepping paints the
+ *  chart it steps. Also once the barter table is in, for a page opened
+ *  on the Map: it was stepped only on a tab press, so a reload on the
+ *  chart came back at the run's first stop. */
+function chartToRun() {
+	setTimeout(() => {
+		if (view !== 'map') return;
 		const ids = sailIds();
 		if (ids && ids.join(',') !== routeIds(marksNow()).join(',')) {
 			const frag = sailChart();
@@ -673,6 +683,7 @@ async function loadBarter() {
 	// the inventory detail draw their buttons from the same data -- so
 	// whichever is up gets the second paint.
 	render();
+	if (view === 'map') chartToRun();
 }
 
 
