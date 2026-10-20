@@ -13,6 +13,7 @@ import { isAdmin, unlinkAll } from './feedback.js';
 import { communityRoutes, ensureOnBoards, leaveBoards } from './community.js';
 import { boardRoutes } from './boards.js';
 import { linkRoutes } from './links.js';
+import { studyRoutes } from './study.js';
 import { readSave, writeSaveFor, forget } from './saves.js';
 import { sessionUser, requireUser, endSession, forgetUser } from './session.js';
 import { perAccount } from './limit.js';
@@ -126,6 +127,8 @@ export function apiRoutes() {
 	router.use(boardRoutes());
 	// A plan, a ship, a drawing or a route kept under a short address.
 	router.use(linkRoutes());
+	// The planners' days, kept for their study.
+	router.use(studyRoutes());
 
 	/** The stored save. `rev` 0 with no data means "nothing synced yet",
 	 *  which the client needs to tell apart from an empty inventory.
