@@ -1838,7 +1838,6 @@
 	"Paying in {n} item": "จ่ายของ {n} รายการ",
 	"Paying in {n} items": "จ่ายของ {n} รายการ",
 	"Paying in…": "จ่ายเป็น…",
-	"Pays only experience; Claimed asks which Level 1 good you handed over.": "ให้แค่ค่าประสบการณ์ รับแล้วจะถามว่าคุณส่งสินค้าระดับ 1 ชิ้นไหน",
 	"Pays something else": "จ่ายอย่างอื่น",
 	"Pays what I need": "จ่ายสิ่งที่ฉันต้องการ",
 	"Pearl Shop": "ร้านเพิร์ล",
@@ -5993,5 +5992,15 @@
 	"What each island pays, read off the barter window": "แต่ละเกาะให้เท่าไร อ่านจากหน้าต่างแลกเปลี่ยน",
 	"<b>Barter screenshots.</b> The figure on each received icon is read — ×2 or ×3, Crow Coins, seals — with its corner shown beside it to check, and an empty box to type the ones not read.": "<b>ภาพหน้าจอแลกเปลี่ยน</b> อ่านตัวเลขบนไอคอนที่ได้รับแต่ละอัน — ×2 หรือ ×3, เหรียญตราอีกาดำ, ตราประทับ — แสดงมุมไว้ข้าง ๆ ให้ตรวจ และช่องว่างให้พิมพ์อันที่อ่านไม่ได้",
 	"<b>Runs.</b> Trade, coin and material runs are laid at the counts read, and the cockpit does not ask them; the rest are asked as before.": "<b>เส้นทาง</b> เส้นทางสินค้า เหรียญ และวัสดุวางตามจำนวนที่อ่านได้ และห้องบังคับไม่ถาม ที่เหลือถามเหมือนเดิม",
-	"<b>On the way.</b> A count said no longer lays the run again: the checklist stays as cast off and the hold counts what was paid.": "<b>ระหว่างทาง</b> จำนวนที่บอกไม่วางเส้นทางใหม่อีก: รายการคงเดิมตั้งแต่ออกเรือ และระวางเรือนับตามที่ได้จริง"
+	"<b>On the way.</b> A count said no longer lays the run again: the checklist stays as cast off and the hold counts what was paid.": "<b>ระหว่างทาง</b> จำนวนที่บอกไม่วางเส้นทางใหม่อีก: รายการคงเดิมตั้งแต่ออกเรือ และระวางเรือนับตามที่ได้จริง",
+	"A study has to name its planner.": "การศึกษาต้องระบุตัววางแผน",
+	"A study needs an id.": "การศึกษาต้องมี id",
+	"Baori is the storage keeper by the Iliya wharf; the quest follows Supplies Delivery (Iliya Island) in the day’s chain. Pays only experience; Claimed asks which Level 1 good you handed over.": "บาโอรีคือผู้ดูแลคลังข้างท่าเรืออิลียา เควสต์นี้มาต่อจาก ส่งเสบียง (เกาะอิลียา) ในสายของวันนั้น ให้แค่ค่าประสบการณ์ รับแล้วจะถามว่าคุณส่งสินค้าระดับ 1 ชิ้นไหน",
+	"Expected a study.": "ต้องมีการศึกษา",
+	"Expected the outcome of a study.": "ต้องมีผลลัพธ์ของการศึกษา",
+	"Maonil is the merchant of Iliya’s specialities, east of the wharf and a few steps north of Baori the storage keeper; the quest opens once Barter Goods Support I is handed in. Pays only experience; Claimed asks which Level 1 good you handed over.": "มาโอนิลคือพ่อค้าของพื้นเมืองอิลียา อยู่ทางตะวันออกของท่าเรือ ถัดจากบาโอรีผู้ดูแลคลังไปทางเหนือไม่กี่ก้าว เควสต์จะเปิดเมื่อส่ง สนับสนุนสินค้าแลกเปลี่ยน I แล้ว ให้แค่ค่าประสบการณ์ รับแล้วจะถามว่าคุณส่งสินค้าระดับ 1 ชิ้นไหน",
+	"No such study.": "ไม่มีการศึกษานั้น",
+	"Sold there — tick it": "ขายที่นั่นแล้ว — ติ๊ก",
+	"{n} goods still aboard: the call at {wharf} that sells them is not ticked.": "สินค้า {n} ชิ้นยังอยู่บนเรือ: การแวะที่ {wharf} ที่ขายมันยังไม่ได้ติ๊ก",
+	"{n} of them needed": "ต้องใช้ {n} ชิ้นในนั้น"
 }

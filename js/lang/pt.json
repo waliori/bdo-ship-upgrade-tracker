@@ -1904,7 +1904,6 @@
 	"Paying in {n} item": "Paga em {n} item",
 	"Paying in {n} items": "Paga em {n} itens",
 	"Paying in…": "Paga em…",
-	"Pays only experience; Claimed asks which Level 1 good you handed over.": "Só dá experiência; Resgatar pergunta qual bem de Nível 1 você entregou.",
 	"Pays something else": "Paga outra coisa",
 	"Pays what I need": "Paga o que eu preciso",
 	"Pearl Shop": "Loja de Pérolas",
@@ -6089,5 +6088,15 @@
 	"What each island pays, read off the barter window": "O que cada ilha paga, lido da janela de troca",
 	"<b>Barter screenshots.</b> The figure on each received icon is read — ×2 or ×3, Crow Coins, seals — with its corner shown beside it to check, and an empty box to type the ones not read.": "<b>Capturas de troca.</b> O número em cada ícone recebido é lido — ×2 ou ×3, Moedas Corvo, selos — com o canto mostrado ao lado para conferir, e uma caixa vazia para digitar os não lidos.",
 	"<b>Runs.</b> Trade, coin and material runs are laid at the counts read, and the cockpit does not ask them; the rest are asked as before.": "<b>Rotas.</b> Rotas de bens, de moedas e de materiais são planejadas com as quantias lidas, e o cockpit não as pergunta; as demais são perguntadas como antes.",
-	"<b>On the way.</b> A count said no longer lays the run again: the checklist stays as cast off and the hold counts what was paid.": "<b>No caminho.</b> Uma quantia dita não replaneja mais a rota: a lista fica como na partida e o porão conta o que foi pago."
+	"<b>On the way.</b> A count said no longer lays the run again: the checklist stays as cast off and the hold counts what was paid.": "<b>No caminho.</b> Uma quantia dita não replaneja mais a rota: a lista fica como na partida e o porão conta o que foi pago.",
+	"A study has to name its planner.": "Um estudo tem de nomear seu planejador.",
+	"A study needs an id.": "Um estudo precisa de um id.",
+	"Baori is the storage keeper by the Iliya wharf; the quest follows Supplies Delivery (Iliya Island) in the day’s chain. Pays only experience; Claimed asks which Level 1 good you handed over.": "Baori é o guarda do armazém junto à doca de Iliya; a missão segue Entrega de Suprimentos (Ilha de Iliya) na cadeia do dia. Só dá experiência; Resgatar pergunta qual bem de Nível 1 você entregou.",
+	"Expected a study.": "Era esperado um estudo.",
+	"Expected the outcome of a study.": "Era esperado o resultado de um estudo.",
+	"Maonil is the merchant of Iliya’s specialities, east of the wharf and a few steps north of Baori the storage keeper; the quest opens once Barter Goods Support I is handed in. Pays only experience; Claimed asks which Level 1 good you handed over.": "Maonil é o mercador das especialidades de Iliya, a leste da doca e alguns passos ao norte de Baori, o guarda do armazém; a missão abre assim que Apoio a Bens de Permuta I for entregue. Só dá experiência; Resgatar pergunta qual bem de Nível 1 você entregou.",
+	"No such study.": "Estudo inexistente.",
+	"Sold there — tick it": "Vendido lá — marque",
+	"{n} goods still aboard: the call at {wharf} that sells them is not ticked.": "{n} bens ainda a bordo: a escala em {wharf} que os vende não está marcada.",
+	"{n} of them needed": "{n} deles necessários"
 }

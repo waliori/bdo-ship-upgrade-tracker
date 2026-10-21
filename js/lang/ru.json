@@ -2123,7 +2123,6 @@
 		"other": "Платят {n} предметами"
 	},
 	"Paying in…": "Платят в…",
-	"Pays only experience; Claimed asks which Level 1 good you handed over.": "Даёт только опыт; при сдаче спросит, какой товар 1 ур. вы отдали.",
 	"Pays something else": "Платит чем-то другим",
 	"Pays what I need": "Платит тем, что мне нужно",
 	"Pearl Shop": "Жемчужный магазин",
@@ -8138,5 +8137,15 @@
 	"What each island pays, read off the barter window": "Сколько платит каждый остров — с окна обмена",
 	"<b>Barter screenshots.</b> The figure on each received icon is read — ×2 or ×3, Crow Coins, seals — with its corner shown beside it to check, and an empty box to type the ones not read.": "<b>Скриншоты обмена.</b> Число на каждом получаемом значке читается — ×2 или ×3, Монеты ворон, печати — рядом показан его угол для проверки, а пустое поле — для непрочитанных.",
 	"<b>Runs.</b> Trade, coin and material runs are laid at the counts read, and the cockpit does not ask them; the rest are asked as before.": "<b>Маршруты.</b> Торговые, монетные и материальные маршруты строятся на прочитанных числах, и кокпит их не спрашивает; остальные спрашиваются как раньше.",
-	"<b>On the way.</b> A count said no longer lays the run again: the checklist stays as cast off and the hold counts what was paid.": "<b>В пути.</b> Названное число больше не перестраивает маршрут: список остаётся как при отплытии, а трюм считает заплаченное."
+	"<b>On the way.</b> A count said no longer lays the run again: the checklist stays as cast off and the hold counts what was paid.": "<b>В пути.</b> Названное число больше не перестраивает маршрут: список остаётся как при отплытии, а трюм считает заплаченное.",
+	"A study has to name its planner.": "Исследование должно назвать свой планировщик.",
+	"A study needs an id.": "Исследованию нужен id.",
+	"Baori is the storage keeper by the Iliya wharf; the quest follows Supplies Delivery (Iliya Island) in the day’s chain. Pays only experience; Claimed asks which Level 1 good you handed over.": "Баори — хранитель склада у причала Илии; задание идёт в цепочке дня после «Доставки припасов (остров Илия)». Даёт только опыт; при сдаче спросит, какой товар 1 ур. вы отдали.",
+	"Expected a study.": "Ожидалось исследование.",
+	"Expected the outcome of a study.": "Ожидался исход исследования.",
+	"Maonil is the merchant of Iliya’s specialities, east of the wharf and a few steps north of Baori the storage keeper; the quest opens once Barter Goods Support I is handed in. Pays only experience; Claimed asks which Level 1 good you handed over.": "Маонил — торговец особыми товарами Илии, восточнее причала и в нескольких шагах к северу от хранителя склада Баори; задание открывается после сдачи «Поддержки бартерных товаров I». Даёт только опыт; при сдаче спросит, какой товар 1 ур. вы отдали.",
+	"No such study.": "Такого исследования нет.",
+	"Sold there — tick it": "Продано там — отметьте",
+	"{n} goods still aboard: the call at {wharf} that sells them is not ticked.": "{n} товаров всё ещё на борту: заход на {wharf}, где они продаются, не отмечен.",
+	"{n} of them needed": "{n} из них нужно"
 }

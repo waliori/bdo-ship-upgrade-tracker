@@ -1910,7 +1910,6 @@
 	"Paying in {n} item": "Paie en {n} objet",
 	"Paying in {n} items": "Paie en {n} objets",
 	"Paying in…": "Paie en…",
-	"Pays only experience; Claimed asks which Level 1 good you handed over.": "Ne rapporte que de l’expérience ; Récupérée demande quelle marchandise de Niveau 1 vous avez remise.",
 	"Pays something else": "Paie autre chose",
 	"Pays what I need": "Paie ce qu'il me faut",
 	"Pearl Shop": "Boutique de perles",
@@ -6116,5 +6115,15 @@
 	"What each island pays, read off the barter window": "Ce que paie chaque île, lu sur la fenêtre de troc",
 	"<b>Barter screenshots.</b> The figure on each received icon is read — ×2 or ×3, Crow Coins, seals — with its corner shown beside it to check, and an empty box to type the ones not read.": "<b>Captures de troc.</b> Le chiffre de chaque icône reçue est lu — ×2 ou ×3, Pièces des corbeaux, sceaux — avec son coin affiché à côté pour vérifier, et une case vide pour saisir ceux non lus.",
 	"<b>Runs.</b> Trade, coin and material runs are laid at the counts read, and the cockpit does not ask them; the rest are asked as before.": "<b>Sorties.</b> Les sorties de marchandises, de pièces et de matériaux sont calculées aux comptes lus, et le cockpit ne les demande pas ; les autres sont demandés comme avant.",
-	"<b>On the way.</b> A count said no longer lays the run again: the checklist stays as cast off and the hold counts what was paid.": "<b>En route.</b> Un compte dit ne recalcule plus la sortie : la liste reste celle du départ et la cale compte ce qui a été payé."
+	"<b>On the way.</b> A count said no longer lays the run again: the checklist stays as cast off and the hold counts what was paid.": "<b>En route.</b> Un compte dit ne recalcule plus la sortie : la liste reste celle du départ et la cale compte ce qui a été payé.",
+	"A study has to name its planner.": "Une étude doit nommer son planificateur.",
+	"A study needs an id.": "Une étude a besoin d’un id.",
+	"Baori is the storage keeper by the Iliya wharf; the quest follows Supplies Delivery (Iliya Island) in the day’s chain. Pays only experience; Claimed asks which Level 1 good you handed over.": "Baori est le gardien de l’entrepôt près du quai d’Iliya ; la quête suit Livraison de fournitures (Île d'Iliya) dans la chaîne du jour. Ne rapporte que de l’expérience ; Récupérée demande quelle marchandise de Niveau 1 vous avez remise.",
+	"Expected a study.": "Une étude était attendue.",
+	"Expected the outcome of a study.": "L’issue d’une étude était attendue.",
+	"Maonil is the merchant of Iliya’s specialities, east of the wharf and a few steps north of Baori the storage keeper; the quest opens once Barter Goods Support I is handed in. Pays only experience; Claimed asks which Level 1 good you handed over.": "Maonil est le marchand des spécialités d’Iliya, à l’est du quai et à quelques pas au nord de Baori, le gardien de l’entrepôt ; la quête s’ouvre une fois Soutien en marchandises de troc I remise. Ne rapporte que de l’expérience ; Récupérée demande quelle marchandise de Niveau 1 vous avez remise.",
+	"No such study.": "Aucune étude de ce nom.",
+	"Sold there — tick it": "Vendu là-bas — cochez-la",
+	"{n} goods still aboard: the call at {wharf} that sells them is not ticked.": "{n} marchandises encore à bord : l’escale à {wharf} qui les vend n’est pas cochée.",
+	"{n} of them needed": "{n} d’entre eux nécessaires"
 }

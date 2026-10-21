@@ -1838,7 +1838,6 @@
 	"Paying in {n} item": "支付 {n} 件物品",
 	"Paying in {n} items": "支付 {n} 件物品",
 	"Paying in…": "支付以下…",
-	"Pays only experience; Claimed asks which Level 1 good you handed over.": "只給經驗；領取時會詢問你交出了哪件 1 級物品。",
 	"Pays something else": "支付別的東西",
 	"Pays what I need": "支付我需要的",
 	"Pearl Shop": "珍珠商店",
@@ -5993,5 +5992,15 @@
 	"What each island pays, read off the barter window": "每座島付多少,從交換視窗讀出",
 	"<b>Barter screenshots.</b> The figure on each received icon is read — ×2 or ×3, Crow Coins, seals — with its corner shown beside it to check, and an empty box to type the ones not read.": "<b>交換截圖。</b>讀出每個所得圖示上的數字 —— ×2 或 ×3、烏鴉硬幣、印章 —— 旁邊顯示其角落供核對,未讀出的留空框供輸入。",
 	"<b>Runs.</b> Trade, coin and material runs are laid at the counts read, and the cockpit does not ask them; the rest are asked as before.": "<b>航程。</b>貿易、硬幣和材料航程都按讀出的數量規劃,駕駛艙不再詢問;其餘照舊詢問。",
-	"<b>On the way.</b> A count said no longer lays the run again: the checklist stays as cast off and the hold counts what was paid.": "<b>途中。</b>說出的數量不再重新規劃路線:清單保持出航時的樣子,貨艙計入實際所付。"
+	"<b>On the way.</b> A count said no longer lays the run again: the checklist stays as cast off and the hold counts what was paid.": "<b>途中。</b>說出的數量不再重新規劃路線:清單保持出航時的樣子,貨艙計入實際所付。",
+	"A study has to name its planner.": "研究必須註明其規劃器。",
+	"A study needs an id.": "研究需要一個 id。",
+	"Baori is the storage keeper by the Iliya wharf; the quest follows Supplies Delivery (Iliya Island) in the day’s chain. Pays only experience; Claimed asks which Level 1 good you handed over.": "巴奧里是伊利亞停泊處旁的倉庫管理員；這個任務在當天的鏈條裡接在「物資運送（伊利亞島）」之後。 只給經驗；領取時會詢問你交出了哪件 1 級物品。",
+	"Expected a study.": "需要一項研究。",
+	"Expected the outcome of a study.": "需要一項研究的結果。",
+	"Maonil is the merchant of Iliya’s specialities, east of the wharf and a few steps north of Baori the storage keeper; the quest opens once Barter Goods Support I is handed in. Pays only experience; Claimed asks which Level 1 good you handed over.": "馬奧尼爾是伊利亞特產商人，在停泊處以東、倉庫管理員巴奧里往北幾步處；交上「物品交換貨物支援 I」後這個任務才會出現。 只給經驗；領取時會詢問你交出了哪件 1 級物品。",
+	"No such study.": "沒有那項研究。",
+	"Sold there — tick it": "已在那裡售出——打勾",
+	"{n} goods still aboard: the call at {wharf} that sells them is not ticked.": "還有 {n} 件貨物在船上：在 {wharf} 賣掉它們的停靠未打勾。",
+	"{n} of them needed": "其中需要 {n} 件"
 }

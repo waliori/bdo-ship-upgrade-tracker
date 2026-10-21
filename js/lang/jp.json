@@ -1838,7 +1838,6 @@
 	"Paying in {n} item": "{n}品で支払う",
 	"Paying in {n} items": "{n}品で支払う",
 	"Paying in…": "報酬に含む品…",
-	"Pays only experience; Claimed asks which Level 1 good you handed over.": "経験値のみ。受け取ると、渡した1段階の品を尋ねます。",
 	"Pays something else": "別のもので支払う",
 	"Pays what I need": "必要なもので支払う",
 	"Pearl Shop": "パールショップ",
@@ -5993,5 +5992,15 @@
 	"What each island pays, read off the barter window": "各島が払う数を、交換ウィンドウから",
 	"<b>Barter screenshots.</b> The figure on each received icon is read — ×2 or ×3, Crow Coins, seals — with its corner shown beside it to check, and an empty box to type the ones not read.": "<b>交換のスクリーンショット。</b>受け取るアイコンの数字を読み取ります —— ×2 か ×3、カラスコイン、印章 —— 確認用に隅を横に表示し、読めなかったものは空欄に入力できます。",
 	"<b>Runs.</b> Trade, coin and material runs are laid at the counts read, and the cockpit does not ask them; the rest are asked as before.": "<b>航路。</b>交易・コイン・素材の航路は読み取った数で組まれ、コックピットは聞きません。残りはこれまでどおり聞かれます。",
-	"<b>On the way.</b> A count said no longer lays the run again: the checklist stays as cast off and the hold counts what was paid.": "<b>途中で。</b>言った数で航路は組み直されません:リストは出航時のまま、船倉は払われた数を数えます。"
+	"<b>On the way.</b> A count said no longer lays the run again: the checklist stays as cast off and the hold counts what was paid.": "<b>途中で。</b>言った数で航路は組み直されません:リストは出航時のまま、船倉は払われた数を数えます。",
+	"A study has to name its planner.": "スタディはプランナーを示す必要があります。",
+	"A study needs an id.": "スタディには id が必要です。",
+	"Baori is the storage keeper by the Iliya wharf; the quest follows Supplies Delivery (Iliya Island) in the day’s chain. Pays only experience; Claimed asks which Level 1 good you handed over.": "バオリはイリヤ船着き場そばの倉庫管理人。この日課は当日の連鎖で「物資配達（イリヤ島）」の次に来ます。 経験値のみ。受け取ると、渡した1段階の品を尋ねます。",
+	"Expected a study.": "スタディが必要です。",
+	"Expected the outcome of a study.": "スタディの結果が必要です。",
+	"Maonil is the merchant of Iliya’s specialities, east of the wharf and a few steps north of Baori the storage keeper; the quest opens once Barter Goods Support I is handed in. Pays only experience; Claimed asks which Level 1 good you handed over.": "マオニルはイリヤ特産品の商人で、船着き場の東、倉庫管理人バオリの数歩北にいます。「物々交換品支援 I」を納めると受けられます。 経験値のみ。受け取ると、渡した1段階の品を尋ねます。",
+	"No such study.": "そのスタディはない。",
+	"Sold there — tick it": "そこで売却済み — チェック",
+	"{n} goods still aboard: the call at {wharf} that sells them is not ticked.": "{n} 個の品がまだ船上：それを売る {wharf} の寄港がチェックされていません。",
+	"{n} of them needed": "うち {n} 個が必要"
 }

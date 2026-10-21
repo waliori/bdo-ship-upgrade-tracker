@@ -1850,7 +1850,6 @@
 	"Paying in {n} item": "Bezahlung in {n} Gegenstand",
 	"Paying in {n} items": "Bezahlung in {n} Gegenständen",
 	"Paying in…": "Bezahlung in …",
-	"Pays only experience; Claimed asks which Level 1 good you handed over.": "Gibt nur Erfahrung; Abgeholt fragt, welche Ware der Stufe 1 du abgegeben hast.",
 	"Pays something else": "Zahlt etwas anderes",
 	"Pays what I need": "Zahlt, was ich brauche",
 	"Pearl Shop": "Perlenshop",
@@ -6032,5 +6031,15 @@
 	"What each island pays, read off the barter window": "Was jede Insel zahlt, vom Tauschfenster gelesen",
 	"<b>Barter screenshots.</b> The figure on each received icon is read — ×2 or ×3, Crow Coins, seals — with its corner shown beside it to check, and an empty box to type the ones not read.": "<b>Tausch-Screenshots.</b> Die Zahl auf jedem erhaltenen Symbol wird gelesen — ×2 oder ×3, Krähenfußmünzen, Siegel — mit ihrer Ecke daneben zum Prüfen und einem leeren Feld für die nicht gelesenen.",
 	"<b>Runs.</b> Trade, coin and material runs are laid at the counts read, and the cockpit does not ask them; the rest are asked as before.": "<b>Fahrten.</b> Handels-, Münz- und Materialfahrten werden mit den gelesenen Zahlen geplant, und das Cockpit fragt sie nicht; die übrigen werden wie bisher abgefragt.",
-	"<b>On the way.</b> A count said no longer lays the run again: the checklist stays as cast off and the hold counts what was paid.": "<b>Unterwegs.</b> Eine genannte Zahl plant die Fahrt nicht mehr neu: Die Liste bleibt wie beim Ablegen, und der Laderaum zählt, was gezahlt wurde."
+	"<b>On the way.</b> A count said no longer lays the run again: the checklist stays as cast off and the hold counts what was paid.": "<b>Unterwegs.</b> Eine genannte Zahl plant die Fahrt nicht mehr neu: Die Liste bleibt wie beim Ablegen, und der Laderaum zählt, was gezahlt wurde.",
+	"A study has to name its planner.": "Eine Studie muss ihren Planer nennen.",
+	"A study needs an id.": "Eine Studie braucht eine Id.",
+	"Baori is the storage keeper by the Iliya wharf; the quest follows Supplies Delivery (Iliya Island) in the day’s chain. Pays only experience; Claimed asks which Level 1 good you handed over.": "Baori ist der Lagerverwalter am Hafen von Iliya; die Quest folgt in der Kette des Tages auf Vorratslieferung (Insel Iliya). Gibt nur Erfahrung; Abgeholt fragt, welche Ware der Stufe 1 du abgegeben hast.",
+	"Expected a study.": "Eine Studie wurde erwartet.",
+	"Expected the outcome of a study.": "Der Ausgang einer Studie wurde erwartet.",
+	"Maonil is the merchant of Iliya’s specialities, east of the wharf and a few steps north of Baori the storage keeper; the quest opens once Barter Goods Support I is handed in. Pays only experience; Claimed asks which Level 1 good you handed over.": "Maonil ist der Händler für Iliyas Spezialitäten, östlich des Hafens und ein paar Schritte nördlich des Lagerverwalters Baori; die Quest öffnet sich, sobald Unterstützung mit Tauschwaren I abgegeben ist. Gibt nur Erfahrung; Abgeholt fragt, welche Ware der Stufe 1 du abgegeben hast.",
+	"No such study.": "Diese Studie gibt es nicht.",
+	"Sold there — tick it": "Dort verkauft — abhaken",
+	"{n} goods still aboard: the call at {wharf} that sells them is not ticked.": "{n} Waren noch an Bord: der Halt in {wharf}, der sie verkauft, ist nicht abgehakt.",
+	"{n} of them needed": "{n} davon gebraucht"
 }
