@@ -2479,8 +2479,11 @@ async function openWhatsNew({ onClose = null, by = null } = {}) {
 	}
 	const { RELEASES } = about;
 	const r = RELEASES[0];
-	const headline = r.sections.filter(s => s.media);
-	const rest = r.sections.filter(s => !s.media);
+	// A release with no picture still opens on its first section: folded
+	// whole under "everything else", the release said nothing at all.
+	const pictured = r.sections.some(s => s.media);
+	const headline = pictured ? r.sections.filter(s => s.media) : r.sections.slice(0, 1);
+	const rest = pictured ? r.sections.filter(s => !s.media) : r.sections.slice(1);
 	const points = list => (list && list.length
 		? `<ul class="news-points">${list.map(p => `<li>${said(p)}</li>`).join('')}</ul>` : '');
 	// A section that says what it was like before shows the two side by
@@ -2510,7 +2513,7 @@ async function openWhatsNew({ onClose = null, by = null } = {}) {
 		<div class="news">
 			${headline.map(s => `<section class="news-item">
 				<h3>${said(s.title)}</h3>
-				<img class="news-shot" src="${esc(s.media)}" alt="${esc(said(s.alt || ''))}" loading="lazy">
+				${s.media ? `<img class="news-shot" src="${esc(s.media)}" alt="${esc(said(s.alt || ''))}" loading="lazy">` : ''}
 				${words(s)}
 				${points(s.points)}
 			</section>`).join('')}

@@ -64,6 +64,73 @@ export const DATA = [
  */
 export const RELEASES = [
 	{
+		id: '1.6.0',
+		name: TT('A new run planner'),
+		date: '2026-10-20',
+		sum: TT('The Barter tab’s runs are laid by a new planner: a search that sails every run it considers by the game’s rules before proposing one. The plans it proposes are kept, with the runs as they went, so the next planner can be measured against this one.'),
+		thanks: {
+			text: TT('The routes you questioned on the server are what the new planner was built against.'),
+			who: [
+				{
+					name: 'nescapo',
+					did: TT('Found a run that loaded less than the hold could take: a [Level 7] left aboard from the last run, which the wharf call that sells it now says, with the tick to hand.')
+				},
+				{
+					name: '.cnt',
+					did: TT('Showed a run carrying goods one stop past where they could have been dropped, and a page refreshed on the Map that forgot its run; the planner weighs what it carries at every leg, and the chart keeps the run.')
+				},
+				{
+					name: 'grieflz',
+					did: TT('Three runs that sailed past the island on the way, took goods out of storage only to put them back, or climbed to Hakoven with two things aboard: the rules every run is now judged by.')
+				},
+				{
+					name: 'kemeren',
+					did: TT('Asked why a run went to Hakoven, back to Iliya and west to Padix to bring five [Level 5] to Arehaza, and whether the tool could keep a stockpile: a run is now judged whole, as sailed, and the floor you keep is what a climb makes first.')
+				},
+				{
+					name: 'Asteli',
+					did: TT('Reported the otter weekly’s reward shown as 31 Seaweed Stalk where the game gives 45: To Get says the reward as given, with the part the plan needs beside it.')
+				}
+			],
+			foot: TT('The box is under <b>Menu \u2192 Feedback</b>. It reaches whoever runs the site.')
+		},
+		blurb: TT('The classic planner built a run chain by chain, each climb judged on its own, and read the board again at every tick. The new one searches: it lays a run trip by trip, then takes islands out and puts them back a thousand ways, sailing every candidate by the game’s rules — the hold’s weight and slots, the seven storages, rations and refills, Parley and vouchers, your own rules — and keeps the run that earns most an hour. It is the planner the Barter tab lays runs with from today.'),
+		sections: [
+			{
+				title: TT('A run searched, not assembled'),
+				before: TT('A climb worth taking only beside another was never begun, since each was judged alone; goods were loaded island by island as the run went; and a run that needed one drop on the way stalled at the hold and was written off.'),
+				text: TT('The search starts from the run laid trip by trip — a climb a trip, in the three orders worth trying — and improves it step by step, each candidate sailed whole: what the wharf loads, what each island takes and gives, what the hold weighs on every leg, the calls that let the ship sail lighter. The search is counted in steps, not seconds, so a board gives the same run on any machine.')
+			},
+			{
+				title: TT('Everything the tab asks for, the planner lays'),
+				points: [
+					TT('<b>Hours under way</b> are its session: the most silver inside the hours you give, or the whole board when you give none.'),
+					TT('<b>Most silver, most coins, stock:</b> a coin outweighs any silver; a stock run is judged on what it fills, each good to its level’s target.'),
+					TT('<b>The bag:</b> a later trip’s goods carried from the start and brought aboard at the wharf nearest the way, where that beats a sail home.'),
+					TT('<b>Your edits</b> are laid as before: islands taken off, trips reordered, stops moved, the chain way.'),
+					TT('<b>A climb cut short</b> — an island dealt short of its top — is proposed as that climb cut there, ticked as a short trip is.'),
+					TT('<b>Refills</b> reckon each leg’s lag and try every wharf when the nearest cannot feed the ship; the cards under <i>How to sail it</i> are laid by the same search under each way’s orders.'),
+					TT('<b>The classic planner</b> stays to fall back on: set <kbd>bdo-tracker/planner</kbd> to <kbd>classic</kbd> in the browser’s storage and the tab lays runs the old way.')
+				]
+			},
+			{
+				title: TT('The runs it proposes are kept'),
+				text: TT('Every plan the tab proposes is sent to the site with the board it was laid on and the steps the search took to find it, and the run as it went when you record it — stops, timer, silver, trades. It is kept, signed in or not, to measure the next planner against this one on the same days; your device’s name goes with it only where sync named it. How a run is judged and found is written up in <i>docs/planner.md</i>.')
+			},
+			{
+				title: TT('Fixes from your reports'),
+				points: [
+					TT('A page refreshed on the Map keeps the run being sailed and stands at its stop; the Barter tab still sails it.'),
+					TT('A wharf call that sells, left unticked, says what is still aboard with the tick to hand, and the next plan no longer sells those goods again at its first call.'),
+					TT('To Get says a quest’s reward as the game gives it, with the part the plan needs beside it.'),
+					TT('The barter reader no longer files a cut name several islands share — <i>Shipwrecked</i> alone — under the wrong wreck.'),
+					TT('Lyngbakr’s Bone, Scale and Fluid are no longer said to trade at the Crow Coin Exchange; the 2026-09-10 patch took them off its list.'),
+					TT('The two Barter Goods Support dailies say where Baori and Maonil stand on Iliya and that the second opens once the first is handed in.')
+				]
+			}
+		]
+	},
+	{
 		id: '1.5.3',
 		name: TT('What each island pays, off the screenshot'),
 		date: '2026-10-06',
@@ -1071,6 +1138,15 @@ export const RELEASES = [
 export const RELEASE = RELEASES[0].id;
 
 export const CHANGES = [
+	{
+		date: '2026-10-20',
+		title: TT('A new run planner, and the runs it proposes kept'),
+		notes: [
+			TT('<b>Barter runs.</b> Laid by a new planner: a search that sails every candidate by the game’s rules — hold, storages, rations, refills, Parley, your rules — and keeps the run earning most an hour, counted in steps so a board gives the same run anywhere. The classic planner stays as a fallback.'),
+			TT('<b>The study.</b> Every plan proposed is kept with its board and search, and the run as it went, to measure the next planner against this one.'),
+			TT('<b>Fixes.</b> A page refreshed on the Map keeps its run; an unticked wharf call says what is still aboard; To Get says a quest’s reward as given; the reader no longer misfiles a cut <i>Shipwrecked</i>; Lyngbakr and Barter Goods Support notes brought up to the game.')
+		]
+	},
 	{
 		date: '2026-10-06',
 		title: TT('What each island pays, read off the barter window'),

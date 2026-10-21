@@ -851,6 +851,9 @@ async function greeting(page) {
 	await new Promise(r => setTimeout(r, 2600));
 	return page.evaluate(() => ({
 		dialog: document.querySelector('#dialog:not([hidden]) h2')?.textContent || null,
+		// A release opens on at least one section in the open, pictured or
+		// not; one folded whole under "everything else" says nothing.
+		open: document.querySelectorAll('#dialog .news .news-item').length,
 		tour: !!document.querySelector('.driver-popover'),
 		release: localStorage.getItem('bdo-tracker/release')
 	}));
@@ -861,6 +864,7 @@ test('a browser that has seen an older version is shown what changed', async () 
 	const got = await greeting(mine.page);
 	assert.equal(got.dialog, "What's new");
 	assert.equal(got.tour, false, 'the tour does not fight the notes');
+	assert.ok(got.open >= 1, 'the release opens on a section, not folded whole');
 	assert.equal(got.release, RELEASE, 'and they are not offered twice');
 	await mine.context.close();
 });
