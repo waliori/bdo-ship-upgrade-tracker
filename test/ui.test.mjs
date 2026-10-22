@@ -2444,6 +2444,36 @@ test('the hold is a line across the Barter tab that opens over the page, and the
 	await context.close();
 });
 
+test('a coin day’s short trip: the trades beside the picked one are laid and say what they add, and a second trade from the same stored good is not written off', async () => {
+	// ledrain, 2026-10-21: two coin islands taking the same stored
+	// [Level 4], the second read "nothing to hand over". The margins are
+	// laid by the tab's own planner now; the page has to draw them.
+	const { page, context, errors } = await open('#barter');
+	await page.waitForSelector('.barter-screen', { timeout: 15000 }); await wait(600);
+	await page.evaluate(async () => {
+		const { barterKey } = await import('/js/clock.js');
+		const store = await import('/js/state.js');
+		for (const g of ['[Level 4] Solidified Lava', "[Level 4] Pirate's Key", '[Level 4] Panacea', '[Level 4] Amethyst Fragment']) store.setStockAt(g, 'Iliya Island', 40, 'ashore');
+		store.setProfile('barterCount', 11881);
+		store.setView('barter', { goal: 'coin', shape: 'short', port: 1002, planSec: 'all', advOpen: true, board: { day: barterKey(), answers: [{ npcId: 58948, give: '[Level 6] Top-Quality Coconut Syrup', recv: "[Level 7] Artisan's Seashell Necklace" }, { npcId: 58901, give: 'Vinegar', recv: '[Level 1] Cherry Tree Seed Pouch' }] } });
+		store.flush();
+	});
+	await page.reload({ waitUntil: 'domcontentloaded' });
+	await page.waitForSelector('.st-row', { timeout: 20000 }); await wait(1500);
+	const live = await page.$$eval('.st-row:not(.off)', els => els.map(e => e.querySelector('.st-figs')?.textContent || ''));
+	assert.ok(live.length >= 2, 'trades to pick from');
+	assert.ok(live.every(f => /min/.test(f)), `every trade says its minutes: ${live.join(' | ')}`);
+	// Pick the first coin trade; the rest are laid beside it.
+	await page.evaluate(() => document.querySelector('.st-row:not(.off)').click()); await wait(2500);
+	await page.waitForSelector('.st-picked', { timeout: 15000 });
+	const after = await page.$$eval('.st-row:not(.off):not(.grows) .st-figs', els => els.map(e => e.textContent));
+	assert.ok(after.length >= 1 && after.every(f => /\+\d+ min/.test(f)), `each says the minutes it adds: ${after.join(' | ')}`);
+	const dead = await page.$$eval('.st-row.off .st-why', els => els.map(e => e.textContent));
+	assert.ok(!dead.some(w => /nothing to hand over/.test(w)), `a trade written off for nothing to hand over: ${dead.join(' | ')}`);
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
 test('a chain card opens its climb step by step: every island in full, what it takes and pays, the card left unticked', async () => {
 	const { page, context, errors } = await open('#barter');
 	await page.waitForSelector('.barter-screen', { timeout: 15000 }); await wait(600);
