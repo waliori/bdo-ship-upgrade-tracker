@@ -20,6 +20,7 @@ The routes you questioned on the server are what the new planner was built again
 - **grieflz** — Three runs that sailed past the island on the way, took goods out of storage only to put them back, or climbed to Hakoven with two things aboard: the rules every run is now judged by.
 - **kemeren** — Asked why a run went to Hakoven, back to Iliya and west to Padix to bring five [Level 5] to Arehaza, and whether the tool could keep a stockpile: a run is now judged whole, as sailed, and the floor you keep is what a climb makes first.
 - **Asteli** — Reported the otter weekly’s reward shown as 31 Seaweed Stalk where the game gives 45: To Get says the reward as given, with the part the plan needs beside it.
+- **ledrain** — A coin day’s short trip wrote off the second island taking his Solidified Lava as having nothing to hand over, beside forty-nine in storage; and asked for the Panokseon’s skin, which the app said did not exist.
 
 The box is under **Menu → Feedback**. It reaches whoever runs the site.
 
@@ -51,6 +52,8 @@ Every plan the tab proposes is sent to the site with the board it was laid on an
 - The barter reader no longer files a cut name several islands share — *Shipwrecked* alone — under the wrong wreck.
 - Lyngbakr’s Bone, Scale and Fluid are no longer said to trade at the Crow Coin Exchange; the 2026-09-10 patch took them off its list.
 - The two Barter Goods Support dailies say where Baori and Maonil stand on Iliya and that the second opens once the first is handed in.
+- Two trades on a short trip that start from the same stored good each load their own: the second counted the first one’s load aboard as its own, loaded nothing, and read *nothing to hand over* beside a storage full of it.
+- The Panokseon has its skin: Dark Bonghwang’s Panokseon Set, in the Pearl Shop since 2026-08-27 — speed +3%, +600 LT, +100,000 durability, turn +5% — ticked per slot on the Ship tab as the Carrack’s overlay is.
 
 ## 1.5.3 — What each island pays, off the screenshot
 

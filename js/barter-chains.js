@@ -354,12 +354,23 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 	const ashore = goodsHeld(dock);
 	const loaded = [];
 	const loadOf = new Map();   // chain -> { item, n } it loaded at the start harbour
+	// What was aboard before any chain loaded, handed out to the chains
+	// in turn: a chain counts against its need only the aboard goods no
+	// chain before it took. Counted against the hold as it filled, two
+	// coin trades starting from the same stored good saw the first one's
+	// load as their own, and the second loaded nothing and sailed to its
+	// island with nothing to hand over, beside a storage full of it.
+	const aboard = new Map(held);
+	const claimed = new Map();
 	for (const c of chosen) {
 		if (c.from === 'land') continue;
 		const have = ashore.get(c.item) || 0;
 		if (!have) continue;
 		const first = c.rungs[0];
-		const most = Math.max(0, first.tries * first.giveN - (held.get(c.item) || 0));
+		const need = first.tries * first.giveN;
+		const mine = Math.min(need, Math.max(0, (aboard.get(c.item) || 0) - (claimed.get(c.item) || 0)));
+		claimed.set(c.item, (claimed.get(c.item) || 0) + mine);
+		const most = Math.max(0, need - mine);
 		// `loadCap` is what an earlier laying of this same run found it
 		// would really hand over (see chainRun below).
 		// What may be spent is spent from the hold first: two of a good

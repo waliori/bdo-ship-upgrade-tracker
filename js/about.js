@@ -90,6 +90,10 @@ export const RELEASES = [
 				{
 					name: 'Asteli',
 					did: TT('Reported the otter weekly’s reward shown as 31 Seaweed Stalk where the game gives 45: To Get says the reward as given, with the part the plan needs beside it.')
+				},
+				{
+					name: 'ledrain',
+					did: TT('A coin day’s short trip wrote off the second island taking his Solidified Lava as having nothing to hand over, beside forty-nine in storage; and asked for the Panokseon’s skin, which the app said did not exist.')
 				}
 			],
 			foot: TT('The box is under <b>Menu \u2192 Feedback</b>. It reaches whoever runs the site.')
@@ -125,7 +129,9 @@ export const RELEASES = [
 					TT('To Get says a quest’s reward as the game gives it, with the part the plan needs beside it.'),
 					TT('The barter reader no longer files a cut name several islands share — <i>Shipwrecked</i> alone — under the wrong wreck.'),
 					TT('Lyngbakr’s Bone, Scale and Fluid are no longer said to trade at the Crow Coin Exchange; the 2026-09-10 patch took them off its list.'),
-					TT('The two Barter Goods Support dailies say where Baori and Maonil stand on Iliya and that the second opens once the first is handed in.')
+					TT('The two Barter Goods Support dailies say where Baori and Maonil stand on Iliya and that the second opens once the first is handed in.'),
+					TT('Two trades on a short trip that start from the same stored good each load their own: the second counted the first one’s load aboard as its own, loaded nothing, and read <i>nothing to hand over</i> beside a storage full of it.'),
+					TT('The Panokseon has its skin: Dark Bonghwang’s Panokseon Set, in the Pearl Shop since 2026-08-27 — speed +3%, +600 LT, +100,000 durability, turn +5% — ticked per slot on the Ship tab as the Carrack’s overlay is.')
 				]
 			}
 		]
@@ -1144,7 +1150,8 @@ export const CHANGES = [
 		notes: [
 			TT('<b>Barter runs.</b> Laid by a new planner: a search that sails every candidate by the game’s rules — hold, storages, rations, refills, Parley, your rules — and keeps the run earning most an hour, counted in steps so a board gives the same run anywhere. The classic planner stays as a fallback.'),
 			TT('<b>The study.</b> Every plan proposed is kept with its board and search, and the run as it went, to measure the next planner against this one.'),
-			TT('<b>Fixes.</b> A page refreshed on the Map keeps its run; an unticked wharf call says what is still aboard; To Get says a quest’s reward as given; the reader no longer misfiles a cut <i>Shipwrecked</i>; Lyngbakr and Barter Goods Support notes brought up to the game.')
+			TT('<b>Fixes.</b> A page refreshed on the Map keeps its run; an unticked wharf call says what is still aboard; To Get says a quest’s reward as given; the reader no longer misfiles a cut <i>Shipwrecked</i>; two short-trip trades from one stored good each load their own; Lyngbakr and Barter Goods Support notes brought up to the game.'),
+			TT('<b>Ship.</b> The Panokseon wears Dark Bonghwang’s set: speed +3%, +600 LT, +100,000 durability, turn +5%, ticked per slot.')
 		]
 	},
 	{

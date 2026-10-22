@@ -91,3 +91,20 @@ test('each trade says what it adds and the minutes, and trades at its own island
 	const firstDead = m.rows.findIndex(r => r.why);
 	if (firstDead >= 0) assert.ok(m.rows.slice(firstDead).every(r => r.why));
 });
+
+test('two trades that start from the same stored good each load their own, and both trade', () => {
+	// ledrain, 2026-10-21: a coin day on layout 24 with 49 Solidified Lava
+	// stored. Crow's Nest and Old Moon Guild's Carrack both take one; the
+	// second read "nothing to hand over", since the start load counted
+	// the first trade's lava aboard as its own and loaded nothing.
+	const lava = '[Level 4] Solidified Lava';
+	const coinAll = chains(data, {}, { ...dock, [lava]: 49 }, 11881, 0, true).filter(c => !c.gate && c.from !== 'land');
+	const copts = { ...opts, dock: { ...dock, [lava]: 49 }, aim: { kind: 'coins' } };
+	const first = shortTrades(coinAll, []).first.filter(c => c.rungs.length === 1 && c.rungs[0].give === lava && c.rungs[0].item === 'Crow Coin');
+	assert.ok(first.length >= 2, 'two coin islands take the lava');
+	const s = shortTrades(coinAll, [first[0].id]);
+	const m = margins({ picked: s.picked, cands: [...s.first, ...s.next], opts: copts, aim: copts.aim, ship, start });
+	const other = m.rows.find(r => r.c.id === first[1].id);
+	assert.equal(other.why, '', 'the second lava trade is not written off');
+	assert.ok(other.own > 0 && other.run.loaded.filter(l => l.item === lava).reduce((a, l) => a + l.n, 0) >= 2, 'both trades load their lava');
+});

@@ -1780,13 +1780,20 @@ test('the appearance set is fitted like a part, and its stats count', async () =
 	assert.equal(part.hold, before.hold, 'taking the plating off left its weight behind');
 	assert.equal(part.speed, after.speed, 'and took the figurehead down with it');
 
-	// A hull with no set in the game is offered none rather than an empty card.
+	// A hull with no set in the game is offered none rather than an empty
+	// card. The Panokseon used to be that hull; it wears Dark Bonghwang's
+	// set since 2026-08-27, so it is offered the card too.
 	await page.evaluate(async () => {
 		(await import('/js/state.js')).setProfile('crewShip', 'Panokseon');
 	});
 	await wait(1400);
+	assert.equal(await page.evaluate(() => !!document.querySelector('.slot-card.skin')), true, 'the Panokseon is offered its set');
+	await page.evaluate(async () => {
+		(await import('/js/state.js')).setProfile('crewShip', 'Epheria Cog');
+	});
+	await wait(1400);
 	assert.equal(await page.evaluate(() => !!document.querySelector('.slot-card.skin')), false,
-		'the Panokseon has no appearance set, so it should be offered none');
+		'the Cog has no appearance set, so it should be offered none');
 	assert.deepEqual(errors, []);
 	await context.close();
 });

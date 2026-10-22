@@ -29,7 +29,12 @@
 //
 // The Byukgye workshop at Nampo Moodle makes Panokseon *gear*, which is
 // ship parts and already lives in part_stats.js, not an appearance set.
-// The Panokseon has no appearance set at all.
+// The Panokseon's appearance set came to the Pearl Shop on 2026-08-27:
+//
+//   Dark Bonghwang's Panokseon Set  621313 (parts 621314-621317)
+//
+// Read off BDOCodex on 2026-10-22, after ledrain asked for it on the
+// Discord: the same four stats as the Carrack overlay, 1,280 pearls.
 
 import { TT } from './i18n.js';
 
@@ -83,10 +88,23 @@ export const shipSkins = {
 			cannon: { codex: 602210, name: 'Carrack Overlay Cannon', stats: { durability: 100000 } },
 			sail: { codex: 602210, name: 'Carrack Overlay Sail', stats: { turn: 5 } }
 		}
+	},
+	"Dark Bonghwang's Panokseon Set": {
+		source: TT('Pearl Shop'),
+		pearls: 1280,
+		codex: 621313,
+		note: TT('Black and gold, in the Panokseon’s own style. BreezySail gets its own effect.'),
+		ships: ['Panokseon'],
+		parts: {
+			figurehead: { codex: 621314, name: "Dark Bonghwang's Figurehead: Panokseon", stats: { speed: 3 } },
+			plating: { codex: 621315, name: "Dark Bonghwang's Plating: Panokseon", stats: { weight: 600 } },
+			cannon: { codex: 621316, name: "Dark Bonghwang's Cannon: Panokseon", stats: { durability: 100000 } },
+			sail: { codex: 621317, name: "Dark Bonghwang's Sail: Panokseon", stats: { turn: 5 } }
+		}
 	}
 };
 
-/** The set a hull can wear, if there is one. The Panokseon has none. */
+/** The set a hull can wear, if there is one. */
 export function skinFor(ship) {
 	for (const [name, skin] of Object.entries(shipSkins)) {
 		if (skin.ships.includes(ship)) return { name, ...skin };
