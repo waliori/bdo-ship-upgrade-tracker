@@ -108,3 +108,23 @@ test('two trades that start from the same stored good each load their own, and b
 	assert.equal(other.why, '', 'the second lava trade is not written off');
 	assert.ok(other.own > 0 && other.run.loaded.filter(l => l.item === lava).reduce((a, l) => a + l.n, 0) >= 2, 'both trades load their lava');
 });
+
+test('the margins are laid by the planner the tab hands over, as the trip is', async () => {
+	// The trip itself was laid by the tab's planner from the day it had
+	// one; the margins beside it stayed on chainRun until 2026-10-22, so
+	// the trades were read off one planner and the trip sailed by another.
+	const { solveRun } = await import('../js/barter-solve.js');
+	let laid = 0;
+	const lay = o => { laid++; return solveRun({ ...o, ship: { speed: 123, cal: 11 } }); };
+	const lava = '[Level 4] Solidified Lava';
+	const coinAll = chains(data, {}, { ...dock, [lava]: 49 }, 11881, 0, true).filter(c => !c.gate && c.from !== 'land');
+	const copts = { ...opts, dock: { ...dock, [lava]: 49 }, aim: { kind: 'coins' } };
+	const first = shortTrades(coinAll, []).first.filter(c => c.rungs.length === 1 && c.rungs[0].give === lava && c.rungs[0].item === 'Crow Coin');
+	const s = shortTrades(coinAll, [first[0].id]);
+	const cands = [...s.first, ...s.next];
+	const m = margins({ picked: s.picked, cands, opts: copts, aim: copts.aim, ship, start, lay });
+	assert.equal(laid, cands.length + 1, 'every candidate and the base laid by the planner handed over');
+	const other = m.rows.find(r => r.c.id === first[1].id);
+	assert.equal(other.why, '');
+	assert.ok(other.run.coins > 0 && other.minutes > 0);
+});

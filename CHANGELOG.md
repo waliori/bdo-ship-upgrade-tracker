@@ -38,6 +38,7 @@ The box is under **Menu → Feedback**. It reaches whoever runs the site.
 - **Your edits** are laid as before: islands taken off, trips reordered, stops moved, the chain way.
 - **A climb cut short** — an island dealt short of its top — is proposed as that climb cut there, ticked as a short trip is.
 - **Refills** reckon each leg’s lag and try every wharf when the nearest cannot feed the ship; the cards under *How to sail it* are laid by the same search under each way’s orders.
+- **The short trip** too: what each trade on the board would add beside the ones picked, and the minutes it costs, is laid by the new planner, as the trip itself is.
 - **The classic planner** stays to fall back on: set `bdo-tracker/planner` to `classic` in the browser’s storage and the tab lays runs the old way.
 
 ### The runs it proposes are kept

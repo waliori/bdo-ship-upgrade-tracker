@@ -114,6 +114,7 @@ export const RELEASES = [
 					TT('<b>Your edits</b> are laid as before: islands taken off, trips reordered, stops moved, the chain way.'),
 					TT('<b>A climb cut short</b> — an island dealt short of its top — is proposed as that climb cut there, ticked as a short trip is.'),
 					TT('<b>Refills</b> reckon each leg’s lag and try every wharf when the nearest cannot feed the ship; the cards under <i>How to sail it</i> are laid by the same search under each way’s orders.'),
+					TT('<b>The short trip</b> too: what each trade on the board would add beside the ones picked, and the minutes it costs, is laid by the new planner, as the trip itself is.'),
 					TT('<b>The classic planner</b> stays to fall back on: set <kbd>bdo-tracker/planner</kbd> to <kbd>classic</kbd> in the browser’s storage and the tab lays runs the old way.')
 				]
 			},
