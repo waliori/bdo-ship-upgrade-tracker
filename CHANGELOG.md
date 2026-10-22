@@ -30,6 +30,8 @@ The box is under **Menu → Feedback**. It reaches whoever runs the site.
 
 **Now:** The search starts from the run laid trip by trip — a climb a trip, in the three orders worth trying — and improves it step by step, each candidate sailed whole: what the wharf loads, what each island takes and gives, what the hold weighs on every leg, the calls that let the ship sail lighter. The search is counted in steps, not seconds, so a board gives the same run on any machine.
 
+- **The method** is adaptive large neighbourhood search — [Ropke and Pisinger, 2006](https://doi.org/10.1287/trsc.1050.0135) — the published method the routing literature settles on for problems of this shape, where goods are picked up, transformed and delivered across many depots and no exact search scales: tear part of the plan down, build it back, keep what is better, and lean on the moves that have been finding better plans. Measured in the real app on three of your boards, 288 runs sailed stop by stop: +40 % silver over the classic planner, 113 wins, 7 losses, 6 ties, no run short of rations, nothing stored twice. How a run is judged and found is written up in *docs/planner.md*.
+
 ### Everything the tab asks for, the planner lays
 
 - **Hours under way** are its session: the most silver inside the hours you give, or the whole board when you give none.

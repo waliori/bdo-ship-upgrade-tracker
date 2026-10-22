@@ -103,7 +103,10 @@ export const RELEASES = [
 			{
 				title: TT('A run searched, not assembled'),
 				before: TT('A climb worth taking only beside another was never begun, since each was judged alone; goods were loaded island by island as the run went; and a run that needed one drop on the way stalled at the hold and was written off.'),
-				text: TT('The search starts from the run laid trip by trip — a climb a trip, in the three orders worth trying — and improves it step by step, each candidate sailed whole: what the wharf loads, what each island takes and gives, what the hold weighs on every leg, the calls that let the ship sail lighter. The search is counted in steps, not seconds, so a board gives the same run on any machine.')
+				text: TT('The search starts from the run laid trip by trip — a climb a trip, in the three orders worth trying — and improves it step by step, each candidate sailed whole: what the wharf loads, what each island takes and gives, what the hold weighs on every leg, the calls that let the ship sail lighter. The search is counted in steps, not seconds, so a board gives the same run on any machine.'),
+				points: [
+					TT('<b>The method</b> is adaptive large neighbourhood search — <a href="https://doi.org/10.1287/trsc.1050.0135" target="_blank" rel="noopener">Ropke and Pisinger, 2006</a> — the published method the routing literature settles on for problems of this shape, where goods are picked up, transformed and delivered across many depots and no exact search scales: tear part of the plan down, build it back, keep what is better, and lean on the moves that have been finding better plans. Measured in the real app on three of your boards, 288 runs sailed stop by stop: +40 % silver over the classic planner, 113 wins, 7 losses, 6 ties, no run short of rations, nothing stored twice. How a run is judged and found is written up in <i>docs/planner.md</i>.')
+				]
 			},
 			{
 				title: TT('Everything the tab asks for, the planner lays'),
@@ -1150,6 +1153,7 @@ export const CHANGES = [
 		title: TT('A new run planner, and the runs it proposes kept'),
 		notes: [
 			TT('<b>Barter runs.</b> Laid by a new planner: a search that sails every candidate by the game’s rules — hold, storages, rations, refills, Parley, your rules — and keeps the run earning most an hour, counted in steps so a board gives the same run anywhere. The classic planner stays as a fallback.'),
+			TT('<b>The method.</b> Adaptive large neighbourhood search (<a href="https://doi.org/10.1287/trsc.1050.0135" target="_blank" rel="noopener">Ropke and Pisinger, 2006</a>), the routing literature’s method for problems of this shape; measured in the real app over 288 runs on three boards: +40 % silver over the classic planner, 113 wins, 7 losses, 6 ties.'),
 			TT('<b>The study.</b> Every plan proposed is kept with its board and search, and the run as it went, to measure the next planner against this one.'),
 			TT('<b>Fixes.</b> A page refreshed on the Map keeps its run; an unticked wharf call says what is still aboard; To Get says a quest’s reward as given; the reader no longer misfiles a cut <i>Shipwrecked</i>; two short-trip trades from one stored good each load their own; Lyngbakr and Barter Goods Support notes brought up to the game.'),
 			TT('<b>Ship.</b> The Panokseon wears Dark Bonghwang’s set: speed +3%, +600 LT, +100,000 durability, turn +5%, ticked per slot.')

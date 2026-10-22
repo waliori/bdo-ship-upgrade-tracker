@@ -26,8 +26,9 @@ const OUT = path.join(root, 'CHANGELOG.md');
 // here, beside the changelog, so it cannot drift from about.js either.
 const TINY = path.join(root, 'js/release.js');
 
-/** `<b>`, `<i>` and `<kbd>` are the only markup the notes use. */
+/** `<b>`, `<i>`, `<kbd>` and a plain `<a href>` are the only markup the notes use. */
 const md = html => html
+	.replace(/<a href="([^"]+)"[^>]*>(.*?)<\/a>/g, '[$2]($1)')
 	.replace(/<\/?b>/g, '**')
 	.replace(/<\/?i>/g, '*')
 	.replace(/<kbd>(.*?)<\/kbd>/g, '`$1`');
