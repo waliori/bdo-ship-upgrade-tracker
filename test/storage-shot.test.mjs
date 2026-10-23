@@ -269,6 +269,33 @@ test('two pictures that are the same picture are an ambiguity, not an answer', (
 	assert.ok(on.second && on.second.startsWith('icon 4'));
 });
 
+test('one drawing at two brightnesses is two icons, told apart by the light', () => {
+	// Tide-Dyed and Deep Tide-Dyed Standardized Timber Square: the same
+	// square, the Deep one a fifth darker. The descriptor drops the light
+	// on purpose, so the two tie; the light of the slot, against the
+	// screenshot's own dimming measured off the slots named without
+	// doubt, is what settles it.
+	const dim = icon(1000 + 4 * 37);
+	for (let i = 0; i < 44 * 44; i++) for (let c = 0; c < 3; c++) dim.rgba[i * 4 + c] = Math.round(dim.rgba[i * 4 + c] * 0.78);
+	icons.push(dim);
+	const twin = [...bank, bankEntry('icon 4, deep', dim.rgba, 44, 44)];
+	const plan = [
+		{ row: 0, col: 0, icon: 0, n: 1 }, { row: 0, col: 1, icon: 1, n: 1 }, { row: 0, col: 2, icon: 2, n: 1 },
+		{ row: 1, col: 0, icon: 3, n: 1 }, { row: 1, col: 1, icon: 5, n: 1 }, { row: 1, col: 2, icon: 6, n: 1 },
+		{ row: 2, col: 3, icon: 4, n: 1 }, { row: 3, col: 1, icon: icons.length - 1, n: 1 }
+	];
+	const s = window_({ plan });
+	const gray = grayscale(s.rgba, s.w, s.h);
+	const grid = gridOf(gray, s.w, s.h);
+	const cal = calibrate(s.rgba, s.w, s.h, grid, twin);
+	const slots = readSlots(s.rgba, s.w, s.h, grid, twin, cal);
+	const bright = slots.find(x => x.row === 2 && x.col === 3), deep = slots.find(x => x.row === 3 && x.col === 1);
+	assert.equal(bright.name, 'icon 4');
+	assert.equal(deep.name, 'icon 4, deep');
+	assert.ok(bright.lit && deep.lit, 'settled by the light, not by the drawing');
+	icons.pop();
+});
+
 test('the runner-up has to be a distance behind', () => {
 	assert.equal(nameOf([{ name: 'a', score: 0.9 }, { name: 'b', score: 0.87 }]), null);
 	assert.equal(nameOf([{ name: 'a', score: 0.55 }, { name: 'b', score: 0.1 }]), null);
