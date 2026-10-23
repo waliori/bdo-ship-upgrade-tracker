@@ -156,10 +156,10 @@ function tradeHeldHTML(c, stocking) {
  * the same list is where the trip starts: what each trade is worth on
  * its own, there and back.
  */
-export function shortHTML({ set, picked, opts, aim, ship, from, stock, plan, pkey, stocking, coining, runFigures, heldNote, shutNote }) {
+export function shortHTML({ set, picked, opts, aim, ship, from, stock, plan, pkey, stocking, coining, runFigures, heldNote, shutNote, lay }) {
 	const cands = [...set.first, ...set.next];
 	const mkey = `${pkey}|${picked.map(c => c.id).join(',')}`;
-	if (V.shortMemo.key !== mkey) V.shortMemo = { key: mkey, res: margins({ picked, cands, opts, aim, ship, start: from }) };
+	if (V.shortMemo.key !== mkey) V.shortMemo = { key: mkey, res: margins({ picked, cands, opts, aim, ship, start: from, lay }) };
 	const { base, rows } = V.shortMemo.res;
 	// What a row says it adds, in the day's own measure.
 	const gainOf = run => (stocking ? stockGains(run, stock).total : coining ? coinsOf(run).min : 0);

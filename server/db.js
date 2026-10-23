@@ -474,11 +474,35 @@ export const MIGRATIONS = [
 			// account to delete.
 			await run('ALTER TABLE feedback ADD COLUMN former INTEGER NOT NULL DEFAULT 0');
 		}
+	},
+	{
+		version: 17,
+		up: async run => {
+			// The study of the planners (server/study.js): a plan the app
+			// proposed, with the day as the planner saw it and how it found
+			// the plan, and -- once the sailor records the run -- what came
+			// of it. The bodies are gzipped JSON in base64: text, so a
+			// backup carries them as it does every other column.
+			await run(`CREATE TABLE IF NOT EXISTS studies (
+				id          TEXT PRIMARY KEY,
+				user_id     TEXT,
+				device      TEXT,
+				planner     TEXT NOT NULL,
+				release     TEXT,
+				layout      TEXT,
+				day         TEXT,
+				created_at  INTEGER NOT NULL,
+				body        TEXT NOT NULL,
+				sailed      TEXT,
+				sailed_at   INTEGER
+			)`);
+			await run('CREATE INDEX IF NOT EXISTS studies_when ON studies (created_at)');
+		}
 	}
 ];
 
 /** The data tables, in the order a restore has to write them (parents first). */
-export const TABLES = ['users', 'saves', 'push_subs', 'push_alerts', 'feedback', 'feedback_files', 'community', 'presence', 'barter_boards', 'barter_board_seen', 'links', 'revoked_sessions', 'presence_swept'];
+export const TABLES = ['users', 'saves', 'push_subs', 'push_alerts', 'feedback', 'feedback_files', 'community', 'presence', 'barter_boards', 'barter_board_seen', 'links', 'revoked_sessions', 'presence_swept', 'studies'];
 
 /**
  * Bring the database up to the newest version. Safe to run any number
@@ -1284,4 +1308,37 @@ export async function trimLinks(userId, keep, bytes = Infinity) {
 		const ids = gone.slice(i, i + 100);
 		await exec({ sql: `DELETE FROM links WHERE id IN (${ids.map(() => '?').join(',')})`, args: ids });
 	}
+}
+
+/* ------------------------------------------------------------------ *
+ * studies: the planners' days, kept for their study (server/study.js)
+ * ------------------------------------------------------------------ */
+
+export async function insertStudy({ id, userId = null, device = null, planner, release = null, layout = null, day = null, body }, at = Date.now()) {
+	await migrate();
+	await exec({
+		sql: 'INSERT OR IGNORE INTO studies (id, user_id, device, planner, release, layout, day, created_at, body) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+		args: [id, userId, device, planner, release, layout, day, at, body]
+	});
+}
+
+/** The outcome written against a study -- the sender's own, which for a
+ *  stranger's is any with no account on it. Whether one was there. */
+export async function markStudySailed(id, userId, body, at = Date.now()) {
+	await migrate();
+	const r = await exec({
+		sql: 'UPDATE studies SET sailed = ?, sailed_at = ? WHERE id = ? AND (user_id = ? OR (user_id IS NULL AND ? IS NULL))',
+		args: [body, at, id, userId ?? null, userId ?? null]
+	});
+	return Number(r.rowsAffected) > 0;
+}
+
+/** The studies since a moment, oldest first, bodies as stored. */
+export async function listStudies(since = 0, limit = 500) {
+	await migrate();
+	const { rows } = await exec({
+		sql: 'SELECT id, user_id, device, planner, release, layout, day, created_at, body, sailed, sailed_at FROM studies WHERE created_at > ? ORDER BY created_at LIMIT ?',
+		args: [since, limit]
+	});
+	return rows.map(r => ({ id: r.id, userId: r.user_id, device: r.device, planner: r.planner, release: r.release, layout: r.layout, day: r.day, createdAt: Number(r.created_at), body: r.body, sailed: r.sailed, sailedAt: r.sailed_at === null || r.sailed_at === undefined ? null : Number(r.sailed_at) }));
 }

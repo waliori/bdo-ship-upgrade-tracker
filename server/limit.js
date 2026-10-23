@@ -34,10 +34,13 @@ export function perAccount(max, message = 'That is a lot of saving. Your data is
 
 	return (req, res, next) => {
 		const now = Date.now();
-		let bucket = seen.get(req.userId);
+		// A route open to a stranger -- a study sent before signing in --
+		// counts by address instead.
+		const key = req.userId ?? req.ip;
+		let bucket = seen.get(key);
 		if (!bucket || bucket.until <= now) {
 			bucket = { count: 0, until: now + WINDOW_MS };
-			seen.set(req.userId, bucket);
+			seen.set(key, bucket);
 		}
 		if (++bucket.count > max) {
 			const retry = Math.ceil((bucket.until - now) / 1000);

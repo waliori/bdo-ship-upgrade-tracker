@@ -21,6 +21,18 @@
 // exported so a test can call it without a Worker.
 
 import { propose } from './barter-optimizer.js';
+import { newPropose } from './barter-solve.js';
+
+/** The search a request asks for: the classic beam search, or -- `planner:
+ *  'new'` -- the new planner over { opts, chains, session }. */
+export function answer({ planner, ...args }) {
+	if (planner === 'new') return newPropose(args.opts, args.chains, { session: args.session || 0 });
+	// The classic search carries a study of its own -- what it proposed and
+	// how long it took -- so a sailor still on it is in the comparison too.
+	const t0 = performance.now();
+	const out = propose(args);
+	return { ...out, study: { planner: 'classic', session: args.timeCap || 0, proposals: out.proposals.map(p => ({ kind: p.kind, ids: p.ids, value: p.value, hours: p.hours })), ms: performance.now() - t0 } };
+}
 
 export const DEFAULT_BUDGET_MS = 1500;
 
@@ -28,7 +40,7 @@ export const DEFAULT_BUDGET_MS = 1500;
 export function handleRequest(msg) {
 	const { id = null, budgetMs = DEFAULT_BUDGET_MS, ...args } = msg || {};
 	try {
-		return { id, result: propose({ ...args, budgetMs }) };
+		return { id, result: answer({ ...args, budgetMs }) };
 	} catch (err) {
 		return { id, error: String(err && err.message || err) };
 	}

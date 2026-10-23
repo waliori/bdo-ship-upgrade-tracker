@@ -6,7 +6,8 @@ import { T, said, gameName } from '../i18n.js';
 import * as store from '../state.js';
 import { img } from '../ui-bits.js';
 import { barterProfile, snapshot } from '../ui-state.js';
-import { shownHold, shownSlots, aboardWhat, rationDrain } from '../ship.js';
+import { shownHold, shownSlots, aboardWhat, rationDrain, currentShip } from '../ship.js';
+import { drainRate } from '../rations.js';
 import { npcById, ports, isleOf, isleShort } from '../barter_npcs.js';
 import { fmtRange, fmtDistance } from '../sailing.js';
 import { PARLEY_UNIT, NOTHING, SAIL_PRESETS, sailPresetOf, stockOrders, yardsticks } from '../barter-orders.js';
@@ -14,18 +15,20 @@ import { landPrices } from '../land-cost.js';
 import { marketStatus } from '../market.js';
 import { PARLEY, COIN, COIN_LEVEL, levelOf } from '../barter.js';
 import { exchanges, landHeld } from '../barter-plan.js';
-import { chains, chainRun, tailOf } from '../barter-chains.js';
-import { shortTrades } from '../barter-short.js';
+import { chains, chainRun as classicRun, tailOf } from '../barter-chains.js';
+import { solveRun, unsupported, rememberFound } from '../barter-solve.js';
+import { shortTrades, cutOf, cutAt } from '../barter-short.js';
 import { V } from './state.js';
-import { fromPort, layCal, spendUsed, continueHTML, keepRoute, boardPaid } from './board.js';
+import { fromPort, layCal, sailLag, spendUsed, continueHTML, keepRoute, boardPaid } from './board.js';
 import { narrow, lvTag } from './cockpit.js';
 import { aboardStock, everythingHeld, floorsShut, cashFloorNow, dockStock } from './hold.js';
 import { heldOf } from './material.js';
 import { packedNow, sparesOf, packingOf, packingLT, packingSlots, packingCount, tripsOf, stagedRun, tripsHTML, leaveHomeHTML, packingHTML, afterShelfHTML } from './packing.js';
 import { chartButton, parleyGuessed, parleyOf, stashAt, ordersNow, payRangeHTML, perUnitText, perHourText, stockGains, aheadHTML, goalLine, ladderHTML, howLine, howHTML, parleyLine, parleyHTML, marketDead, chainRow, soloRun } from './plan.js';
-import { docks, bagNow, stashes, withWaits, withRations, rationsLine, legsOf, questPlan, questsLine, questsPanels, n1, TIER, ledgerOf, runTime, routeEditBar, castOffRow, stopRows, cutsHTML } from './route.js';
+import { docks, supplies, bagNow, stashes, withWaits, withRations, rationsLine, legsOf, questPlan, questsLine, questsPanels, n1, TIER, ledgerOf, runTime, routeEditBar, castOffRow, stopRows, cutsHTML } from './route.js';
 import { sailing, planSeen, castOffCaps, castOffLand, digest } from './sail.js';
 import { SEARCH_BUDGET_MS, presetSearch, proposeAsync, searching, redrawSoon, expectedBest } from './search.js';
+import { noteFound } from './study.js';
 import { loadingNote } from '../loading.js';
 import { coinsOf, coinRange, bonusNote, coinPurseHTML, shortSummary, shortHTML, canAppearHTML } from './short.js';
 import { takenNote } from './today.js';
@@ -46,6 +49,24 @@ function laidOnce(key, lay) {
 	const run = laidBy.get(key);
 	return { ...run, stops: run.stops.map(x => ({ ...x })) };
 }
+
+// The planner: the new one (barter-solve.js), unless this browser's storage
+// says 'classic' -- chainRun and the beam search, kept to fall back on and
+// to compare against. `planner-hours` is the comparison harness's session.
+const sessionHours = () => { try { return Number(localStorage.getItem('bdo-tracker/planner-hours')) || 0; } catch { return 0; } };
+const newPlanner = () => { try { return localStorage.getItem('bdo-tracker/planner') !== 'classic'; } catch { return true; } };
+// A run laid by the new planner, by chainRun where it cannot lay it.
+// The ship's rations ride along, so its refills are laid with the run.
+const withShip = o => {
+	const me = currentShip(), d = rationDrain(me);
+	return { ...o, rations: me.rations > 0 ? { full: me.rations, perMinute: drainRate(d), perMinuteOver: drainRate(d, { overweight: true }) } : null, supplies, session: sessionHours() || (o.orders && o.orders.hours) || 0 };
+};
+const chainRun = o => {
+	if (!newPlanner()) return classicRun(o);
+	const w = withShip(o);
+	if (unsupported(w).length) return classicRun(o);
+	return solveRun(w);
+};
 
 export function silverParts(me, b) {
 	const from = fromPort();
@@ -168,7 +189,7 @@ export function silverParts(me, b) {
 	const owned = Object.fromEntries(everythingHeld());
 	// The ship's pace rides along: a run laid more than one way is kept
 	// by what it is worth an hour, and the hour is the ship's.
-	const opts = { stock, dock, hold: me.hold, parley: parleyOf(prof), npcById, start: from, stashes, prefer: stashAt(), pace, orders: o, prices, seen, keep: V.reach ? [V.reach] : [], land, owned, ship: { speed: me.speed.sea, cal: layCal() }, bag: bagNow(), docks };
+	const opts = { stock, dock, hold: me.hold, parley: parleyOf(prof), npcById, start: from, stashes, prefer: stashAt(), pace, orders: o, prices, seen, keep: V.reach ? [V.reach] : [], land, owned, ship: { speed: me.speed.sea, cal: layCal(), lag: sailLag() }, bag: bagNow(), docks };
 	// Each chain on its own, for its row: the list is sorted by the
 	// yardstick, silver a Parley unit, the guide's measure of a chain,
 	// so the best use of the day's Parley is at the top of its group.
@@ -209,10 +230,17 @@ export function silverParts(me, b) {
 			const base = chainRun({ ...opts, chosen: [] });
 			solos = new Map(all.map(c => [c.id, soloRun(c, opts, from, base)]));
 		}
-		const found = proposeAsync(search, pkey, result => {
+		// The new planner, under test, searches in the worker as the classic
+		// search does, its runs in propose()'s shape; what it cannot lay yet
+		// is searched as before. The plan it found comes back with them.
+		const ship = withShip(opts);
+		const asked = newPlanner() && !unsupported({ ...ship, chosen: all }).length ? { planner: 'new', opts: ship, chains: all, session: ship.session } : search;
+		const found = proposeAsync(asked, pkey, result => {
+			rememberFound(result.kept);
 			// The inputs moved on before the answer came: a newer request
 			// is out for them, and this answer is nobody's.
 			if (V.proposed.key !== pkey) return;
+			noteFound(result, { layout: b.combo.id, day: V.board.day, port: V.port });
 			V.proposed = { ...V.proposed, ...result, working: false };
 			if (V.routesAuto === V.routes.key) {
 				V.routesAuto = '';
@@ -224,6 +252,7 @@ export function silverParts(me, b) {
 		// Until the answer comes the last proposals stand in, when they
 		// belong to this board, under a note that the search is out.
 		const onBoard = new Set(all.map(c => c.id));
+		if (found) { rememberFound(found.kept); noteFound(found, { layout: b.combo.id, day: V.board.day, port: V.port }); }
 		V.proposed = found
 			? { key: pkey, solos, ...found, working: false }
 			: { key: pkey, solos, proposals: V.proposed.proposals.filter(p => p.ids.every(id => onBoard.has(id))), best: V.proposed.key === pkey ? V.proposed.best : null, partial: false, working: true };
@@ -252,7 +281,12 @@ export function silverParts(me, b) {
 		const oo = { ...o, ...p.orders };
 		const coveredBy = c => c.from !== 'land' || oo.landFrom !== 'stock' || (land.get(c.item) || 0) >= c.rungs[0].giveN;
 		const list = reachCut(everything.filter(c => (oo.buy || c.from !== 'land') && !c.gate && coveredBy(c)));
-		return { id: p.id, args: { chains: list, opts: { ...opts, pace: oo.pace, orders: oo, prices: presetPrices, seen: presetSeen }, ship, timeCap: oo.hours, aim } };
+		const oopts = { ...opts, pace: oo.pace, orders: oo, prices: presetPrices, seen: presetSeen };
+		// Each card is laid by the planner the main search uses: the new
+		// one, under that way's own orders and hours, where it can lay it.
+		const w = withShip(oopts);
+		const asked = newPlanner() && !unsupported({ ...w, chosen: list }).length ? { planner: 'new', opts: w, chains: list, session: w.session } : { chains: list, opts: oopts, ship, timeCap: oo.hours, aim };
+		return { id: p.id, args: asked };
 	}));
 	// Ticks left to the search -- a new board, or a way of sailing just
 	// changed under ticks that were the search's own -- take its answer
@@ -288,7 +322,10 @@ export function silverParts(me, b) {
 		V.routesAuto = '';
 		persist();
 	}
-	const chosen = short ? shortSet.picked : all.filter(c => V.routes.ids.includes(c.id));
+	// A climb the new planner proposed cut short -- climbed only as far as it
+	// pays -- is ticked by its cut id, as a short trip's are.
+	const cuts = V.routes.ids.map(cutOf).filter(x => x.k >= 0).map(x => { const c = all.find(y => y.id === x.base); return c ? cutAt(c, x.k) : null; }).filter(Boolean);
+	const chosen = short ? shortSet.picked : [...all.filter(c => V.routes.ids.includes(c.id)), ...cuts];
 	const sameSet = (x, y) => x.length === y.length && x.slice().sort().join('|') === y.slice().sort().join('|');
 	const cards = V.proposed.proposals.map(p => {
 		const isl = p.run.stops.filter(s => s.npcId).length;
@@ -761,7 +798,7 @@ export function silverParts(me, b) {
 			['parley', T('Before you sail'), esc(parleyLine(prof)), parleyHTML(prof)],
 			['ladder', T('Where today ends'), esc(goalLine(o)), ladderHTML(o, { fits: all.length, tickedN: chosen.length })],
 			...(short
-				? [['chains', T('Your short trip'), esc(shortSummary(chosen, worthSaid, plan)), shortHTML({ set: shortSet, picked: chosen, opts, aim, ship, from, stock, plan, pkey, stocking, coining, runFigures, heldNote, shutNote })]]
+				? [['chains', T('Your short trip'), esc(shortSummary(chosen, worthSaid, plan)), shortHTML({ set: shortSet, picked: chosen, opts, aim, ship, from, stock, plan, pkey, stocking, coining, runFigures, heldNote, shutNote, lay: chainRun })]]
 				: [['how', T('How to sail it'), esc(howLine(o)), howHTML(o, presetFigs)],
 					['chains', T('Chains on offer'), esc(chainsSummary), `${chainsBody}${chosen.length ? runFigures : ''}`]])
 		],

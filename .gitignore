@@ -29,6 +29,10 @@ tools/capture/voice/
 .claude-flow/
 .hive-mind/
 
-tools/rpit/
 # A chapter's .srt: written beside the .vtt by mix.mjs, read by nothing.
 docs/media/**/*.srt
+# The RPIT bench: generated instances and results.
+tools/rpit/instances/
+tools/rpit/results/
+tools/rpit/data/fleet-ratios.json
+tools/rpit/instances-tiny/

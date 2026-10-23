@@ -128,7 +128,9 @@ export function withRations(stops, weightStart = 0) {
 	const weightInto = (list, k) => (k > 0 ? Number(list[k - 1].weightAfter) || 0 : weightStart);
 	// A plan kept between redraws comes back with the calls put in last
 	// time: laid again from without them.
-	let out = stops.filter(s => !s.refill);
+	// A refill the planner laid itself (`fixed`, the new planner's) is kept
+	// as laid; only the ones laid here are laid again.
+	let out = stops.filter(s => !s.refill || s.fixed);
 	if (!out.length) return out;
 	for (let round = 0; ; round++) {
 		const legs = legsOf(out);

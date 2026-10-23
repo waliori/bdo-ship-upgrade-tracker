@@ -924,9 +924,16 @@ chime that cannot come. One press switches it off again.
 
 The route is searched rather than fallen into: distances by water from
 a baked table of every island, harbour and wharf
-(`tools/build-sea-dist.mjs`), islands near one another put on the same
-trip, and a run that calls at wharves laid several ways and kept by
-what it is worth an hour. The details — the material run, the paces, the
+(`tools/build-sea-dist.mjs`), and a search over which climbs to sail, in
+what order, with which wharf calls, refills and loads. It plays by the
+game's rules and the sailor's: the hold's weight and slots, the ration
+pool topped up before it runs dry, vouchers drawn two hours apart,
+nothing carried to the storage twice, nothing taken out of it only to go
+back. A session — the hours under way the orders give — is filled with
+the most it can hold; with none, the run takes the most the board gives.
+The same board gives the same run every time. How it works is in
+[`docs/planner.md`](docs/planner.md); the old planner is kept a setting
+away for comparison. The details — the material run, the paces, the
 quests that come along, the wharf calls — are under
 [What's covered](#whats-covered).
 
@@ -1442,6 +1449,12 @@ and beside it the Parley bar counts down from what it holds now, priced
 at your barter level, a Crow's Trade Voucher drawn on where the bar
 cannot pay and its two-hour cooldown allows.
 
+The rest of this section — the lots, the route through a lot, the
+wharf calls laid several ways — is how the classic planner lays a run,
+and still how it does when the setting asks for it. The planner the tab
+uses now searches the same choices as one problem; it is described in
+[`docs/planner.md`](docs/planner.md).
+
 The silver run has a way round among its orders. The shortest way
 climbs every chain ticked at once: one route through every rung, each
 still after the rung beneath it in its own chain, so the ship deals
@@ -1912,8 +1925,21 @@ js/
   barter-chains.js    the runs a board allows, chain by chain, laid in trips,
                       with the bag as a second hold
   barter-route.js     the shortest order through a run's stops, by water
-  barter-optimizer.js the runs worth sailing today, found rather than ticked
-  barter-worker.js    the run search, off the main thread
+  barter-solve.js     the run planner: the tab's options as an instance, the
+                      search, and its plan written back in chainRun's shape
+                      (docs/planner.md)
+  rpit/               the planner's parts -- pure:
+    simulate.js       a plan sailed exactly, step by step: silver, hours,
+                      rations, Parley and vouchers, the bag, what went wrong
+    common.js         how a plan is judged, made sailable (calls, loads,
+                      refills) and fed
+    greedy.js         the starts: climbs inserted greedily, and trip by trip
+    insert.js         where an island or a climb goes in a route
+    alns.js           the search: tear part of a plan down, build it back
+    ratio.js          the best an hour, by Dinkelbach's method
+  barter-optimizer.js the classic planner's search, kept to compare against
+                      and for the How to sail it cards
+  barter-worker.js    the run search, off the main thread -- either planner
   barter-short.js     a short trip: one trade chosen, and what fits round it
   barter-material.js  the run for a material
   barter-shot.js      the barter window read out of a screenshot -- pure
@@ -1979,6 +2005,8 @@ tools/build-lang.mjs  reads every T() call into js/lang/en.json, and checks
 tools/lang-todo.mjs   what each pack still lacks
 tools/fetch-names.mjs the game's own names per language, from BDOCodex
 tools/build-sea-dist.mjs  the distances by water between every island and wharf
+tools/rpit/           the planner's bench: instances from the game's layouts,
+                      every solver and the classic planner run over them
 tools/bake-barter.mjs npm run bake:barter -- the game client's barter tables
                       into js/barter_game.js (tools/barter-bake/ holds its parts)
 tools/build-barter.mjs    js/all_barter.json from a BDOCodex pull, and from it

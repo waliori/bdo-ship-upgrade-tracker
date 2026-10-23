@@ -36,9 +36,11 @@ test('every hull that can wear a set is a hull the app knows', () => {
 	}
 });
 
-test('no hull can wear two sets, and the Panokseon wears none', () => {
-	// Benelois covers the Bartali/Epheria line and the overlays the four
-	// Carracks; nothing is in both lists, so skinFor is unambiguous.
+test('no hull can wear two sets, and the Panokseon wears Dark Bonghwang’s', () => {
+	// Benelois covers the Bartali/Epheria line, the overlays the four
+	// Carracks and Dark Bonghwang's set the Panokseon (Pearl Shop since
+	// 2026-08-27, codex 621313); nothing is in two lists, so skinFor is
+	// unambiguous.
 	const seen = new Set();
 	for (const skin of Object.values(shipSkins)) {
 		for (const ship of skin.ships) {
@@ -46,7 +48,9 @@ test('no hull can wear two sets, and the Panokseon wears none', () => {
 			seen.add(ship);
 		}
 	}
-	assert.equal(skinFor('Panokseon'), null, 'the Panokseon has no appearance set in the game');
+	assert.equal(skinFor('Panokseon').name, "Dark Bonghwang's Panokseon Set");
+	const pan = skinStats('Panokseon', { figurehead: 1, plating: 1, cannon: 1, sail: 1 });
+	assert.deepEqual([pan.speed, pan.weight, pan.durability, pan.turn], [3, 600, 100000, 5]);
 	assert.equal(skinFor('Rowboat'), null);
 	assert.equal(skinFor('Carrack (Valor)').name, 'Oquilla Carrack Overlay');
 	assert.equal(skinFor('Epheria Caravel').name, 'Benelois Ship Parts');
@@ -63,6 +67,6 @@ test('a set worn a piece at a time counts only the pieces', () => {
 	assert.equal(skinComplete('Carrack (Valor)', { figurehead: 1, sail: 1 }), false);
 	assert.equal(skinComplete('Carrack (Valor)', { figurehead: 1, plating: 1, cannon: 1, sail: 1 }), true);
 	// And a hull with no set is all zeroes rather than an error.
-	assert.deepEqual(skinStats('Panokseon', { figurehead: 1 }),
+	assert.deepEqual(skinStats('Rowboat', { figurehead: 1 }),
 		{ speed: 0, accel: 0, turn: 0, brake: 0, weight: 0, durability: 0 });
 });

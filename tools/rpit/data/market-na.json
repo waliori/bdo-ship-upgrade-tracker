@@ -1,0 +1,448 @@
+{
+ "region": "na",
+ "at": "2026-09-26T19:08:32.853Z",
+ "source": "api.arsha.io via server/market.js",
+ "failed": 0,
+ "fellBack": false,
+ "missing": [
+  "Island Tree Coated Plywood",
+  "Rock Salt Ingot"
+ ],
+ "goods": {
+  "Aloe": {
+   "price": 5450,
+   "stock": 15693,
+   "stale": false
+  },
+  "Beer": {
+   "price": 3270,
+   "stock": 36007,
+   "stale": false
+  },
+  "Birch Plywood": {
+   "price": 51500,
+   "stock": 24820,
+   "stale": false
+  },
+  "Bloody Tree Knot": {
+   "price": 6750,
+   "stock": 22680,
+   "stale": false
+  },
+  "Brass Ingot": {
+   "price": 95500,
+   "stock": 9125,
+   "stale": false
+  },
+  "Bronze Ingot": {
+   "price": 89000,
+   "stock": 14184,
+   "stale": false
+  },
+  "Cactus Rind": {
+   "price": 426,
+   "stock": 75097,
+   "stale": false
+  },
+  "Cactus Thorn": {
+   "price": 4480,
+   "stock": 0,
+   "stale": false
+  },
+  "Caphras Tree Plywood": {
+   "price": 101000,
+   "stock": 0,
+   "stale": false
+  },
+  "Cedar Plywood": {
+   "price": 51500,
+   "stock": 44449,
+   "stale": false
+  },
+  "Chicken Meat": {
+   "price": 8350,
+   "stock": 92058,
+   "stale": false
+  },
+  "Cinnamon": {
+   "price": 5500,
+   "stock": 31803,
+   "stale": false
+  },
+  "Clear Liquid Reagent": {
+   "price": 12500,
+   "stock": 41202,
+   "stale": false
+  },
+  "Clown's Blood": {
+   "price": 21000,
+   "stock": 731,
+   "stale": false
+  },
+  "Coconut": {
+   "price": 5400,
+   "stock": 0,
+   "stale": false
+  },
+  "Cooking Honey": {
+   "price": 2920,
+   "stock": 89760,
+   "stale": false
+  },
+  "Copper Ingot": {
+   "price": 82500,
+   "stock": 45953,
+   "stale": false
+  },
+  "Cotton Fabric": {
+   "price": 98500,
+   "stock": 36400,
+   "stale": false
+  },
+  "Date Palm": {
+   "price": 2880,
+   "stock": 277706,
+   "stale": false
+  },
+  "Elder Tree Plywood": {
+   "price": 33500,
+   "stock": 109563,
+   "stale": false
+  },
+  "Essence of Liquor": {
+   "price": 3090,
+   "stock": 32663,
+   "stale": false
+  },
+  "Fancy Feather": {
+   "price": 41500,
+   "stock": 0,
+   "stale": false
+  },
+  "Fig": {
+   "price": 2510,
+   "stock": 20000,
+   "stale": false
+  },
+  "Fine Fancy Feather": {
+   "price": 102000,
+   "stock": 0,
+   "stale": false
+  },
+  "Fine Hard Hide": {
+   "price": 97000,
+   "stock": 7164,
+   "stale": false
+  },
+  "Fine Lightweight Plume": {
+   "price": 75000,
+   "stock": 44313,
+   "stale": false
+  },
+  "Fine Soft Hide": {
+   "price": 45400,
+   "stock": 0,
+   "stale": false
+  },
+  "Fine Thick Fur": {
+   "price": 66500,
+   "stock": 6123,
+   "stale": false
+  },
+  "Fine Tough Hide": {
+   "price": 102000,
+   "stock": 20001,
+   "stale": false
+  },
+  "Fir Plywood": {
+   "price": 79500,
+   "stock": 67605,
+   "stale": false
+  },
+  "Fire Horn": {
+   "price": 36900,
+   "stock": 984,
+   "stale": false
+  },
+  "Flax Fabric": {
+   "price": 10200,
+   "stock": 116718,
+   "stale": false
+  },
+  "Flax Thread": {
+   "price": 10200,
+   "stock": 4900,
+   "stale": false
+  },
+  "Fleece": {
+   "price": 5850,
+   "stock": 77754,
+   "stale": false
+  },
+  "Freekeh": {
+   "price": 1840,
+   "stock": 156767,
+   "stale": false
+  },
+  "Grilled Bird Meat": {
+   "price": 6900,
+   "stock": 14754,
+   "stale": false
+  },
+  "Ground Bird Meat": {
+   "price": 12700,
+   "stock": 0,
+   "stale": false
+  },
+  "Hard Hide": {
+   "price": 27700,
+   "stock": 47891,
+   "stale": false
+  },
+  "Iron Ingot": {
+   "price": 85000,
+   "stock": 5198,
+   "stale": false
+  },
+  "Knitting Yarn": {
+   "price": 22400,
+   "stock": 8018,
+   "stale": false
+  },
+  "Lead Ingot": {
+   "price": 79500,
+   "stock": 15935,
+   "stale": false
+  },
+  "Legendary Beast's Blood": {
+   "price": 155000,
+   "stock": 28503,
+   "stale": false
+  },
+  "Lightweight Plume": {
+   "price": 19600,
+   "stock": 71084,
+   "stale": false
+  },
+  "Loopy Tree Plywood": {
+   "price": 46400,
+   "stock": 55060,
+   "stale": false
+  },
+  "Maple Plywood": {
+   "price": 49200,
+   "stock": 77017,
+   "stale": false
+  },
+  "Moss Tree Plywood": {
+   "price": 35500,
+   "stock": 41293,
+   "stale": false
+  },
+  "Mysterious Powder": {
+   "price": 1420,
+   "stock": 29539,
+   "stale": false
+  },
+  "Noc Ingot": {
+   "price": 99000,
+   "stock": 0,
+   "stale": false
+  },
+  "Nutmeg": {
+   "price": 3050,
+   "stock": 107458,
+   "stale": false
+  },
+  "Old Tree Bark": {
+   "price": 1800,
+   "stock": 119089,
+   "stale": false
+  },
+  "Palm Plywood": {
+   "price": 29900,
+   "stock": 56050,
+   "stale": false
+  },
+  "Pine Plywood": {
+   "price": 45800,
+   "stock": 18284,
+   "stale": false
+  },
+  "Pistachio": {
+   "price": 350,
+   "stock": 275553,
+   "stale": false
+  },
+  "Powder of Darkness": {
+   "price": 8650,
+   "stock": 68669,
+   "stale": false
+  },
+  "Powder of Earth": {
+   "price": 15500,
+   "stock": 89629,
+   "stale": false
+  },
+  "Powder of Flame": {
+   "price": 7750,
+   "stock": 76948,
+   "stale": false
+  },
+  "Powder of Rifts": {
+   "price": 2690,
+   "stock": 38844,
+   "stale": false
+  },
+  "Powder of Time": {
+   "price": 13000,
+   "stock": 117804,
+   "stale": false
+  },
+  "Processed Coal": {
+   "price": 17200,
+   "stock": 13985,
+   "stale": false
+  },
+  "Pumpkin": {
+   "price": 2120,
+   "stock": 6,
+   "stale": false
+  },
+  "Pure Powder Reagent": {
+   "price": 14900,
+   "stock": 0,
+   "stale": false
+  },
+  "Red Tree Lump": {
+   "price": 7600,
+   "stock": 39977,
+   "stale": false
+  },
+  "Resplendent Jade": {
+   "price": 65000,
+   "stock": 38403,
+   "stale": false
+  },
+  "Resplendent Obsidian": {
+   "price": 129000,
+   "stock": 28195,
+   "stale": false
+  },
+  "Rough Jade": {
+   "price": 15300,
+   "stock": 136513,
+   "stale": false
+  },
+  "Shining Powder": {
+   "price": 223000,
+   "stock": 72,
+   "stale": false
+  },
+  "Silk": {
+   "price": 60000,
+   "stock": 38851,
+   "stale": false
+  },
+  "Silk Thread": {
+   "price": 21800,
+   "stock": 74560,
+   "stale": false
+  },
+  "Sinner's Blood": {
+   "price": 43100,
+   "stock": 62907,
+   "stale": false
+  },
+  "Snowfield Cedar Plywood": {
+   "price": 101000,
+   "stock": 0,
+   "stale": false
+  },
+  "Soft Hide": {
+   "price": 12600,
+   "stock": 350,
+   "stale": false
+  },
+  "Spirit's Leaf": {
+   "price": 7550,
+   "stock": 43058,
+   "stale": false
+  },
+  "Star Anise": {
+   "price": 3980,
+   "stock": 69088,
+   "stale": false
+  },
+  "Supreme Bear Hide": {
+   "price": 500000,
+   "stock": 0,
+   "stale": false
+  },
+  "Supreme Boar Hide": {
+   "price": 242000,
+   "stock": 234,
+   "stale": false
+  },
+  "Thick Fur": {
+   "price": 10900,
+   "stock": 25601,
+   "stale": false
+  },
+  "Thornwood Plywood": {
+   "price": 74000,
+   "stock": 206,
+   "stale": false
+  },
+  "Thuja Plywood": {
+   "price": 33800,
+   "stock": 21841,
+   "stale": false
+  },
+  "Tiger Meat": {
+   "price": 19800,
+   "stock": 0,
+   "stale": false
+  },
+  "Tin Ingot": {
+   "price": 184000,
+   "stock": 57950,
+   "stale": false
+  },
+  "Tough Hide": {
+   "price": 31900,
+   "stock": 35470,
+   "stale": false
+  },
+  "Vinegar": {
+   "price": 1490,
+   "stock": 116245,
+   "stale": false
+  },
+  "White Cedar Plywood": {
+   "price": 76500,
+   "stock": 53118,
+   "stale": false
+  },
+  "Wise Man's Blood": {
+   "price": 145000,
+   "stock": 0,
+   "stale": false
+  },
+  "Wool": {
+   "price": 102000,
+   "stock": 9300,
+   "stale": false
+  },
+  "Zinc Ingot": {
+   "price": 149000,
+   "stock": 44492,
+   "stale": false
+  },
+  "Gold Bar 100G": {
+   "price": 10000000,
+   "stock": null,
+   "fixed": true
+  }
+ }
+}

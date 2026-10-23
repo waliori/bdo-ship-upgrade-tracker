@@ -230,6 +230,12 @@ export const config = {
 	// points -- with room to spare, well under a save.
 	maxLinksPerMinute: num('MAX_LINKS_PER_MINUTE', 20),
 	maxLinkBytes: num('MAX_LINK_BYTES', 256 * 1024),
+	// A study of a plan (server/study.js): the day as the planner saw it
+	// and every step of its search, a few tens of kilobytes gzipped. The
+	// app sends one a search, a few an hour at most, so this only bites a
+	// script.
+	maxStudiesPerMinute: num('MAX_STUDIES_PER_MINUTE', 30),
+	maxStudyBytes: num('MAX_STUDY_BYTES', 2 * 1024 * 1024),
 	// How many links an account keeps. Past this the oldest go, so a
 	// player who shares a route every day for years never fills a
 	// table -- and never notices, since a link that old is a message

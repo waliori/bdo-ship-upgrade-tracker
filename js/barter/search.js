@@ -10,6 +10,7 @@ import { boardData, gatedOffers } from '../barter-board.js';
 import { npcById } from '../barter_npcs.js';
 import { fmtRange } from '../sailing.js';
 import { propose } from '../barter-optimizer.js';
+import { answer } from '../barter-worker.js';
 import { coins as coinShop } from '../sea_coins.js';
 import { landPrices } from '../land-cost.js';
 import { marketSilver, marketStatus } from '../market.js';
@@ -129,12 +130,12 @@ function presetNext() {
 	st.busy = true;
 	searchLight();
 	const w = presetWorkerOf();
-	if (!w) { setTimeout(() => done(propose({ ...job.args, budgetMs: 150 })), 0); return; }
+	if (!w) { setTimeout(() => done(answer({ ...job.args, budgetMs: 150 })), 0); return; }
 	w.onmessage = evt => done(evt.data && evt.data.result);
 	// A worker that fails mid-job leaves the job to this thread, and the
 	// cards after it too: the cards never filled when it went.
-	w.onerror = () => { V.presetWorker = null; V.presetLost = true; setTimeout(() => done(propose({ ...job.args, budgetMs: 150 })), 0); };
-	try { w.postMessage({ id: job.id, ...job.args, budgetMs: PRESET_BUDGET_MS }); } catch { done(propose({ ...job.args, budgetMs: 150 })); }
+	w.onerror = () => { V.presetWorker = null; V.presetLost = true; setTimeout(() => done(answer({ ...job.args, budgetMs: 150 })), 0); };
+	try { w.postMessage({ id: job.id, ...job.args, budgetMs: PRESET_BUDGET_MS }); } catch { done(answer({ ...job.args, budgetMs: 150 })); }
 }
 export function presetSearch(key, jobs) {
 	if (V.presetState.key === key) { presetNext(); return; }
@@ -146,7 +147,7 @@ export function presetSearch(key, jobs) {
 
 /** A request answered on this thread after all. */
 function answerHere(req) {
-	req.then(propose(req.args));
+	req.then(answer(req.args));
 }
 
 /**
@@ -174,7 +175,7 @@ export function proposeAsync(args, tag, then) {
 		V.presetState.job = null;
 	}
 	const w = workerOf();
-	if (!w) return propose(args);
+	if (!w) return answer(args);
 	const id = ++V.reqSeq;
 	const timer = setTimeout(() => {
 		// Nothing back long past the budget: the worker is stuck. This
@@ -190,7 +191,7 @@ export function proposeAsync(args, tag, then) {
 	} catch {
 		// Something in the arguments would not clone: this thread instead.
 		settle();
-		return propose(args);
+		return answer(args);
 	}
 	return null;
 }

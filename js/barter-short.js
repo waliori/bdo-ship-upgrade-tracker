@@ -92,7 +92,7 @@ export function shortTrades(all, ids = []) {
  * further deals at the first island only what the next one takes. Sorted best first: what it adds a minute, the trades that add
  * nothing last.
  */
-export function margins({ picked, cands, opts, aim = null, ship, start = null }) {
+export function margins({ picked, cands, opts, aim = null, ship, start = null, lay: layWith = null }) {
 	// Silver alone says nothing of a trade that makes a [Level 2]: what
 	// it is worth kept is what a floor day counts it at.
 	const score = aim ? scoreFor(aim, opts.stock || {}) : run => valueOf(run, { ...opts.orders, preset: 'floor' });
@@ -104,7 +104,13 @@ export function margins({ picked, cands, opts, aim = null, ship, start = null })
 		const isles = run.stops.filter(s => s.npcId).length, calls = run.stops.length - isles;
 		return hoursOf(run, { start, npcById: opts.npcById, speed: ship.speed, cal: ship.cal }) + (isles * (pause.isle || 0) + calls * (pause.call || 0)) / 3600;
 	};
-	const lay = list => chainRun({ ...opts, chosen: list, effort: 1, aim });
+	// Laid by what the tab lays runs with -- the new planner, with the
+	// ship's rations and refills -- when it hands one over; by chainRun
+	// alone otherwise. The trip was laid by the tab's planner from the
+	// day it had one, and the margins beside it stayed on the classic
+	// until 2026-10-22: the trades read off one planner, the trip sailed
+	// by another.
+	const lay = list => (layWith || chainRun)({ ...opts, chosen: list, effort: 1, aim });
 	const base = picked.length ? lay(picked) : null;
 	const v0 = base ? score(base) : 0, h0 = base ? hours(base) : 0, t0 = base ? base.trades : 0;
 	const rows = cands.map(c => {
