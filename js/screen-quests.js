@@ -115,7 +115,8 @@ function questRow(q, short, wanted, isDone) {
 	const buttons = isDone
 		? `<span class="quest-done-tag">✓ ${doneWord(q)}</span>
 			<button class="link-btn" data-act="quest-undone" data-quest="${esc(q.id)}" title="${T('Take the tick off without touching your stock')}">${T('not done')}</button>`
-		: claim;
+		: `${claim}
+			<button class="link-btn" data-act="quest-done-only" data-quest="${esc(q.id)}" title="${T('Tick it without adding the reward: for a quest claimed in the game before the storage was read, so the goods are counted already')}">${T('reward counted already')}</button>`;
 	const fav = favs().includes(q.id);
 	const url = codexURL(q);
 	const name = url
@@ -187,6 +188,7 @@ function bulkBar(isDone) {
 	const asking = ids.filter(id => questById[id].choice && !recalled(questById[id])).length;
 	return `<div class="quest-bulk">${T('<b>{n}</b> ticked', { n: ids.length })}
 		<button class="act go small" data-act="quest-finish" title="${T('Record every ticked quest as done, rewards into stock, in one undoable change')}">${T('Finish {n}', { n: ids.length })}</button>
+		<button class="act small" data-act="quest-finish-only" title="${T('Record every ticked quest as done and add nothing: the rewards are in the storage count already')}">${T('Finish {n}, rewards counted already', { n: ids.length })}</button>
 		${asking ? `<span class="row-sub">${T('{n} of them will ask which reward you took', { n: asking })}</span>
 		<button class="link-btn" data-act="quest-pick-all" title="${T('Answer each one now — Finish then runs in one go')}">${T('choose now…')}</button>` : ''}
 		<span class="panel-spacer"></span>
@@ -538,6 +540,16 @@ export function questAction(act, el) {
 		finishSelected();
 		return true;
 	}
+	if (act === 'quest-finish-only') {
+		const done = store.getProfile('questsDone', {}) || {};
+		const entries = [...selected].map(id => questById[id]).filter(q => q && !questDone(q, done)).map(q => ({ id: q.id, key: periodKey(cadenceOf(q)), delta: {} }));
+		if (!entries.length) return true;
+		store.claimQuests(entries, entries.length === 1 ? T('Finished {n} quest, reward counted already', { n: entries.length }) : T('Finished {n} quests, rewards counted already', { n: entries.length }));
+		for (const e of entries) selected.delete(e.id);
+		toast(entries.length === 1 ? T('Recorded {n} quest — nothing added to the stock', { n: entries.length }) : T('Recorded {n} quests — nothing added to the stock', { n: entries.length }), true);
+		document.dispatchEvent(new CustomEvent('quests-refilter'));
+		return true;
+	}
 	if (act === 'quest-pick-set') {
 		const q = questById[el.dataset.quest];
 		if (q && q.choice) choosePick(q);
@@ -560,6 +572,17 @@ export function questAction(act, el) {
 		if (q.hands) askGood(q).then(good => { if (good !== null) claim(q, null, good); });
 		else if (q.choice && !last) askChoice(q, needMap()).then(i => { if (i !== null) claim(q, i); });
 		else claim(q, last ? last.i : null);
+		return true;
+	}
+	if (act === 'quest-done-only') {
+		// Claimed in the game, and the storage read since: the goods are
+		// in the count already, so the tick goes on and nothing is added.
+		const q = questById[el.dataset.quest];
+		if (!q) return true;
+		store.claimQuest(q.id, {}, periodKey(cadenceOf(q)), T('{name} — done, reward counted already', { name: gameName(q.name) }));
+		selected.delete(q.id);
+		toast(T('Ticked {name} — nothing added to the stock', { name: gameName(q.name) }), true);
+		document.dispatchEvent(new CustomEvent('quests-refilter'));
 		return true;
 	}
 	if (act === 'quest-undone') {

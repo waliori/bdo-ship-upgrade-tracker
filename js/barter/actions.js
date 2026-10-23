@@ -12,7 +12,7 @@ import { npcById, ports, isleShort } from '../barter_npcs.js';
 import { noteLeg, LEARN_AT, timingLegs, setTimingLegs } from '../ship-pace.js';
 import { cadenceOf } from '../quests.js';
 import { questDone, rewardOf } from '../screen-quests.js';
-import { QUEST_CHOICES, PAUSE_MAX, AIM_CHOICES, STOCK_LEVELS, SAIL_PRESETS, sailPresetOf } from '../barter-orders.js';
+import { QUEST_CHOICES, PAUSE_MAX, AIM_CHOICES, ORDER_CHOICES, STOCK_LEVELS, SAIL_PRESETS, sailPresetOf } from '../barter-orders.js';
 import { PARLEY, COIN_LEVEL, levelOf } from '../barter.js';
 import { pickShots } from '../barter-import.js';
 import { pageName as matPageName } from '../material-book-view.js';
@@ -154,6 +154,7 @@ export function barterAction(act, el, redraw) {
 		case 'barter-saved': applySaved(el.dataset.name); return true;
 		case 'barter-saved-drop': dropSaved(el.dataset.name); return true;
 		case 'barter-aim': V.stockGoal = { ...V.stockGoal, aim: AIM_CHOICES.some(([a]) => a === el.dataset.id) ? el.dataset.id : 'fill' }; persist(); return true;
+		case 'barter-fill-from': V.stockGoal = { ...V.stockGoal, order: ORDER_CHOICES.some(([a]) => a === el.dataset.id) ? el.dataset.id : 'up' }; persist(); return true;
 		// A sailing preset lays over the orders rather than replacing
 		// them: what the ladder set stays exactly as the ladder left it.
 		case 'barter-sail-preset': {

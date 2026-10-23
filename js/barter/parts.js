@@ -24,7 +24,7 @@ import { narrow, lvTag } from './cockpit.js';
 import { aboardStock, everythingHeld, floorsShut, cashFloorNow, dockStock } from './hold.js';
 import { heldOf } from './material.js';
 import { packedNow, sparesOf, packingOf, packingLT, packingSlots, packingCount, tripsOf, stagedRun, tripsHTML, leaveHomeHTML, packingHTML, afterShelfHTML } from './packing.js';
-import { chartButton, parleyGuessed, parleyOf, stashAt, ordersNow, payRangeHTML, perUnitText, perHourText, stockGains, aheadHTML, goalLine, ladderHTML, howLine, howHTML, parleyLine, parleyHTML, marketDead, chainRow, soloRun } from './plan.js';
+import { chartButton, parleyGuessed, parleyOf, stashAt, ordersNow, levelFull, payRangeHTML, perUnitText, perHourText, stockGains, aheadHTML, goalLine, ladderHTML, howLine, howHTML, parleyLine, parleyHTML, marketDead, chainRow, soloRun } from './plan.js';
 import { docks, supplies, bagNow, stashes, withWaits, withRations, rationsLine, legsOf, questPlan, questsLine, questsPanels, n1, TIER, ledgerOf, runTime, routeEditBar, castOffRow, stopRows, cutsHTML } from './route.js';
 import { sailing, planSeen, castOffCaps, castOffLand, digest } from './sail.js';
 import { SEARCH_BUDGET_MS, presetSearch, proposeAsync, searching, redrawSoon, expectedBest } from './search.js';
@@ -97,7 +97,7 @@ export function silverParts(me, b) {
 			<p class="panel-sub barter-caveat">${T('One look at an island names the layout, and the chains and the runs worth sailing follow. The value counts silver net of land goods and the goods kept.')}</p>
 		</div>` : '';
 		const reachNote = V.reach ? `<div class="reach-bar"><span>${T('Reaching <b>{name}</b> for the material run. Look at one island first: the chains that pass it follow from the board.', { name: esc(gameName(V.reach)) })}</span><button class="chip tiny" data-act="barter-goal" data-id="material">← ${T('the material run')}</button><button class="chip tiny" data-act="barter-reach-clear">${T('clear')}</button></div>` : '';
-		const oNow = stocking ? stockOrders(ordersNow(), V.stockGoal) : ordersNow();
+		const oNow = stocking ? stockOrders(ordersNow(), V.stockGoal, levelFull) : ordersNow();
 		return {
 			secs: [
 				['parley', T('Before you sail'), esc(parleyLine(prof)), parleyHTML(prof)],
@@ -115,7 +115,7 @@ export function silverParts(me, b) {
 	}
 	// A short trip stays under the hold's limit and sails the shortest
 	// way: how long it is, is what the sailor adds to it.
-	const o = (base => (short ? { ...base, pace: 'fast', hours: 0, way: 'sea' } : base))(stocking ? stockOrders(ordersNow(), V.stockGoal) : ordersNow());
+	const o = (base => (short ? { ...base, pace: 'fast', hours: 0, way: 'sea' } : base))(stocking ? stockOrders(ordersNow(), V.stockGoal, levelFull) : ordersNow());
 	const ceilingNow = stocking ? V.stockGoal.ceiling : coining ? COIN_LEVEL : V.climb;
 	const pace = o.pace;
 	const stock = aboardStock(), dock = dockStock();

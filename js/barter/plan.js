@@ -10,7 +10,7 @@ import { currentShip } from '../ship.js';
 import { BREEZY_EVERY } from '../rations.js';
 import { npcById, ports, isleOf, isleShort } from '../barter_npcs.js';
 import { sailSeconds, METRES_PER_PX } from '../sailing.js';
-import { WAY_CHOICES, QUEST_CHOICES, SELL_CHOICES, LAND_CHOICES, VOUCHER_CHOICES, HOUR_CHOICES, AIM_CHOICES, NOTHING, STOCK_LEVELS, SAIL_PRESETS, sailPresetOf, readOrders, readStock, yardsticks } from '../barter-orders.js';
+import { WAY_CHOICES, QUEST_CHOICES, SELL_CHOICES, LAND_CHOICES, VOUCHER_CHOICES, HOUR_CHOICES, AIM_CHOICES, ORDER_CHOICES, NOTHING, STOCK_LEVELS, SAIL_PRESETS, sailPresetOf, readOrders, readStock, yardsticks } from '../barter-orders.js';
 import { PARLEY, COIN, COIN_LEVEL, dailyCapacity, parleyPerTrade, parleyRate, levelOf } from '../barter.js';
 import { goodsHeld, landHeld } from '../barter-plan.js';
 import { pickShots } from '../barter-import.js';
@@ -313,6 +313,17 @@ function gatesOf(lv, count) {
 	return all ? { all, open, count } : null;
 }
 
+/** Whether every good at a level stands at its target: the stock's own
+ *  measure of a level, the one the ladder's note counts. */
+export function levelFull(lv) {
+	const want = V.stockGoal.targets[lv] || 0;
+	if (!want) return true;
+	const of = kindsPerLevel().get(lv) || 0;
+	let done = 0;
+	for (const [name, k] of everythingHeld()) if (levelOf(name) === lv) done += Math.min(k, want);
+	return done >= want * of;
+}
+
 function kindsPerLevel() {
 	if (V.kindsMemo && V.kindsMemo.of === barterData) return V.kindsMemo.at;
 	const sets = new Map();
@@ -536,7 +547,8 @@ export function ladderHTML(o, { fits = null, tickedN = 0 } = {}) {
 	const sold = stocking || coining ? [] : soldLevelsOf(o, top);
 	const floorsSaid = Object.entries(stocking ? {} : o.floors).filter(([, n]) => n > 0).map(([lv, n]) => T('{n} of each Level {lv} good', { n: F(n), lv })).join(', ');
 	const tile = (k, v, sub, cls = '') => `<div><div class="summary-k">${k}</div><div class="summary-v${cls ? ` ${cls}` : ''}">${v}</div><div class="summary-sub">${sub}</div></div>`;
-	const aims = stocking ? `<div class="ladder-aim"><span class="run-pick-k">${T('the day is for')}</span><span class="segs" role="group" aria-label="${T('What the stock run is for')}">${AIM_CHOICES.map(([id, label, title]) => `<button class="seg${V.stockGoal.aim === id ? ' on' : ''}" aria-pressed="${V.stockGoal.aim === id ? 'true' : 'false'}" data-act="barter-aim" data-id="${id}" title="${esc(said(title))}">${esc(said(label))}</button>`).join('')}</span><span class="orders-sub">${esc(said((AIM_CHOICES.find(([a]) => a === V.stockGoal.aim) || AIM_CHOICES[0])[2]))}</span></div>` : '';
+	const aims = stocking ? `<div class="ladder-aim"><span class="run-pick-k">${T('the day is for')}</span><span class="segs" role="group" aria-label="${T('What the stock run is for')}">${AIM_CHOICES.map(([id, label, title]) => `<button class="seg${V.stockGoal.aim === id ? ' on' : ''}" aria-pressed="${V.stockGoal.aim === id ? 'true' : 'false'}" data-act="barter-aim" data-id="${id}" title="${esc(said(title))}">${esc(said(label))}</button>`).join('')}</span><span class="orders-sub">${esc(said((AIM_CHOICES.find(([a]) => a === V.stockGoal.aim) || AIM_CHOICES[0])[2]))}</span></div>
+	<div class="ladder-aim"><span class="run-pick-k">${T('filled')}</span><span class="segs" role="group" aria-label="${T('Which end the stock is filled from')}">${ORDER_CHOICES.map(([id, label, title]) => `<button class="seg${(V.stockGoal.order || 'up') === id ? ' on' : ''}" aria-pressed="${(V.stockGoal.order || 'up') === id ? 'true' : 'false'}" data-act="barter-fill-from" data-id="${id}" title="${esc(said(title))}">${esc(said(label))}</button>`).join('')}</span><span class="orders-sub">${esc(said((ORDER_CHOICES.find(([a]) => a === (V.stockGoal.order || 'up')) || ORDER_CHOICES[0])[2]))}</span></div>` : '';
 	return `<div class="ladder-head"><span class="panel-spacer"></span><button class="linky" data-act="barter-hold-open" title="${T('Open the hold: every good aboard and ashore, with its count')}">${T('Open the hold')} ›</button><button class="linky" data-act="barter-add" title="${T('Record a good that is aboard')}">＋ ${T('A good')}</button></div>
 		<p class="ladder-copy">${stocking ? T('Click the level where the stock ends. Under each level: what you hold, and what to keep of every good there.') : T('Click the level where today’s climb ends. Under each level: what you hold, what happens to it, and how many to keep back.')}</p>
 		<div class="ladder" role="group" aria-label="${T('The level the climbs stop at')}">${rungs}</div>
