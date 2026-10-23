@@ -24,7 +24,8 @@ const browserGlobals = {
 	CompressionStream: 'readonly', DecompressionStream: 'readonly',
 	Notification: 'readonly', Intl: 'readonly',
 	createImageBitmap: 'readonly', FileReader: 'readonly', File: 'readonly',
-	FormData: 'readonly', Request: 'readonly', ReadableStream: 'readonly'
+	FormData: 'readonly', Request: 'readonly', ReadableStream: 'readonly',
+	crypto: 'readonly', requestIdleCallback: 'readonly', structuredClone: 'readonly'
 };
 
 export default [
@@ -34,7 +35,9 @@ export default [
 		// And what is kept in the folder without being the app: the design
 		// sync's local folders and the capture audits' scratch.
 		ignores: ['node_modules/**', 'js/driver.iife.js', 'js/all_barter.json', 'reader/**',
-			'design-system/**', 'ds-bundle/**', '.ds-sync/**', '.design-sync/**', 'tools/capture/scratch/**']
+			'design-system/**', 'ds-bundle/**', '.ds-sync/**', '.design-sync/**', 'tools/capture/scratch/**',
+			// The planner studies' result folders: data, and the one-off scripts that read them.
+			'tools/rpit/results/**']
 	},
 	js.configs.recommended,
 	{
