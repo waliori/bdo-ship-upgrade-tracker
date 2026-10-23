@@ -178,12 +178,16 @@ function allocate(H, facts, sources, state, orders) {
 	}
 	const sched = new Map();   // id -> { q, completions, picks: {i: n}, pays: {item: n}, coins }
 	const take = (q, pick, over = null) => {
-		const s = sched.get(q.id) || { q, completions: 0, picks: {}, pays: {}, coins: 0, forCoins: false, over: null };
+		const s = sched.get(q.id) || { q, completions: 0, picks: {}, pays: {}, gives: {}, coins: 0, forCoins: false, over: null };
 		s.completions += 1;
 		for (const { item, n } of fixed(q)) {
 			if (item === COIN) { s.coins += n; continue; }
 			const left = short.get(item);
 			if (left > 0) {
+				// The whole reward is kept beside the part the plan counts:
+				// a quest paying 45 toward 31 short is said as 45, 31 of them
+				// needed -- said as 31 it read as the game's reward, wrong.
+				s.gives[item] = (s.gives[item] || 0) + n;
 				const got = Math.min(left, n);
 				short.set(item, left - got);
 				s.pays[item] = (s.pays[item] || 0) + got;
@@ -195,6 +199,7 @@ function allocate(H, facts, sources, state, orders) {
 			for (const { item, n } of options(q)[pick]) {
 				const left = short.get(item);
 				if (left > 0) {
+					s.gives[item] = (s.gives[item] || 0) + n;
 					const got = Math.min(left, n);
 					short.set(item, left - got);
 					s.pays[item] = (s.pays[item] || 0) + got;
@@ -262,19 +267,20 @@ function allocate(H, facts, sources, state, orders) {
 			// strung together with dots they read as one long one.
 			lines: from.slice(0, 5).map(s => {
 				const c = cadenceOf(s.q);
-				const each = s.pays[item] / s.completions;
+				const each = (s.gives[item] || s.pays[item]) / s.completions;
 				const per = c === 'daily' ? T('{n} a day', { n: fmt(each) }) : c === 'weekly' ? T('{n} a week', { n: fmt(each) }) : T('{n} once', { n: fmt(each) });
 				const pick = Object.keys(s.picks).length
 					? T('{per} from {quest} (take it)', { per, quest: gameName(shortName(s.q)) })
 					: T('{per} from {quest}', { per, quest: gameName(shortName(s.q)) });
 				// The count only earns its place when several quests are
-				// paying into the same material and the shares differ.
-				const share = from.length > 1 ? `${T('{n} of them', { n: fmt(s.pays[item]) })} · ` : '';
+				// paying into the same material and the shares differ, or
+				// when the plan needs less than the quest gives.
+				const share = from.length > 1 || s.pays[item] < (s.gives[item] || 0) ? `${T('{n} of them', { n: fmt(s.pays[item]) })} · ` : '';
 				return `${share}${pick}`;
 			}).concat(from.length > 5 ? [andMoreQuests(from.length - 5)] : []),
 			why: from.slice(0, 4).map(s => {
 				const c = cadenceOf(s.q);
-				const each = s.pays[item] / s.completions;
+				const each = (s.gives[item] || s.pays[item]) / s.completions;
 				const per = c === 'daily' ? T('{n} a day', { n: fmt(each) }) : c === 'weekly' ? T('{n} a week', { n: fmt(each) }) : T('{n} once', { n: fmt(each) });
 				return Object.keys(s.picks).length
 					? T('{per} from {quest} (take it)', { per, quest: gameName(shortName(s.q)) })
@@ -564,7 +570,7 @@ export function wayToGet({ missing = {}, sources = {}, state = {}, orders = {} }
 	const quests = [...result.sched.values()].map(s => ({
 		id: s.q.id, quest: s.q, name: shortName(s.q), cadence: cadenceOf(s.q), completions: s.completions,
 		pick: Object.keys(s.picks).length ? Number(Object.keys(s.picks).sort((a, b) => s.picks[b] - s.picks[a])[0]) : null,
-		pays: Object.entries(s.pays).map(([it, n]) => ({ item: it, qty: n })),
+		pays: Object.entries(s.pays).map(([it, n]) => ({ item: it, qty: n, gives: s.gives[it] || n })),
 		// What the reward it takes was chosen over, when the other side
 		// of the choice was also something the plan wants. Without this
 		// the pick reads as arbitrary, which is exactly how it read.

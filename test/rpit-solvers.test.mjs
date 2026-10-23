@@ -69,6 +69,22 @@ test('a thin ladder feeds the top and no more', () => {
 	assert.deepEqual(thinLadder(I, ['s1', 's2', 's3']), [4, 4, 4]);
 });
 
+test('a thin ladder under a floor: the shortfall made before the rung above spends, so the climb is not starved', () => {
+	// Four [Level 3]s take eight [Level 2]s; a floor of five [Level 2]s
+	// with none owned is filled first: thirteen, seven attempts paying two.
+	const I = hand();
+	I.stations[2].m = 4;
+	I.initial.floors = { L2: 5 };
+	assert.deepEqual(thinLadder(I, ['s1', 's2', 's3']), [7, 7, 4]);
+	const laid = finish(I, ['s1', 's2', 's3'].map((at, k) => ({ at, a: [7, 7, 4][k] })), 0);
+	const r = simulate(I, planPolicy(laid.plan), { mode: 'robust' });
+	assert.equal(r.deviations.starved || 0, 0);
+	assert.equal(r.log.filter(e => e.kind === 'station' && e.at === 's3').reduce((a, e) => a + e.a, 0), 4);
+	// Three in the storage: only the two short are made on top.
+	I.depots[0].storage = { L2: 3 };
+	assert.deepEqual(thinLadder(I, ['s1', 's2', 's3']), [5, 5, 4]);
+});
+
 test('finish buys what the islands take, and writes the attempts made', () => {
 	const out = finish(hand(), [{ at: 's1' }, { at: 's2' }, { at: 's3' }]);
 	assert.deepEqual(out.plan.buy, { Land: 100 });
@@ -83,6 +99,24 @@ test('greedy climbs the one chain; ALNS keeps it; exact agrees', () => {
 		assert.deepEqual(validatePlan(plan, hand()), []);
 		assert.equal(robustEval(hand(), plan).R, 10 * 1000000 - 1000);
 	}
+});
+
+test('a trace says how the plan was found: the starts, every step, the weights, the end', () => {
+	const { instance: I } = setupOf({ layout: '25', start: 'Velia', hold: 20000, pace: 'full' });
+	const trace = [];
+	const out = alns.search(I, { mu: 0, timeMs: Infinity, most: 60, seed: 2, trace });
+	const of = k => trace.filter(e => e.k === k);
+	assert.equal(of('start').length, 1);
+	assert.equal(of('step').length, 60);
+	assert.equal(of('weights').length, 1);
+	assert.equal(of('end').length, 1);
+	assert.equal(of('end')[0].f, out.f);
+	// The best never falls, and ends where the search ends.
+	let last = -Infinity;
+	for (const e of of('step')) { assert.ok(e.best >= last - 1e-9); last = e.best; }
+	assert.ok(of('step').every(e => typeof e.op === 'string' && typeof e.rep === 'string' && Number.isFinite(e.f)));
+	// Without a trace asked for, nothing is written and the plan is the same.
+	assert.deepEqual(alns.search(I, { mu: 0, timeMs: Infinity, most: 60, seed: 2 }).plan, out.plan);
 });
 
 test('ALNS draws the same way for the same seed, and never falls below greedy', () => {

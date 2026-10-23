@@ -135,6 +135,24 @@ test('the marks the arrow button leaves before a name are not part of it', () =>
 	assert.equal(isleAt(line, npcs, { left: 200 }).isle.at, 'Baeza Island');
 });
 
+test('a cut name that several islands share names none of them; the next word decides', () => {
+	// Five wrecks begin "Shipwrecked": the word alone used to name the one
+	// with the shortest name, and the Ancient Relic wreck's row went under
+	// Rickun's, where its offer fit nothing and the layout was lost.
+	const alone = linesOf([{ text: 'Shipwrecked', x0: 10, y0: 0, x1: 110, y1: 20 }])[0];
+	assert.equal(isleAt(alone, npcs, { left: 200 }), null);
+	const cut = linesOf([
+		{ text: 'Shipwrecked', x0: 10, y0: 0, x1: 110, y1: 20 },
+		{ text: 'Ancie...', x0: 114, y0: 0, x1: 170, y1: 20 }
+	])[0];
+	assert.equal(isleAt(cut, npcs, { left: 200 }).isle.at, 'Shipwrecked Ancient Relic Cargo Ship');
+	const other = linesOf([
+		{ text: 'Shipwrecked', x0: 10, y0: 0, x1: 110, y1: 20 },
+		{ text: "Rickun's", x0: 114, y0: 0, x1: 170, y1: 20 }
+	])[0];
+	assert.equal(isleAt(other, npcs, { left: 200 }).isle.at, "Shipwrecked Rickun's Ship");
+});
+
 test('a line of furniture is not an island', () => {
 	const line = linesOf([
 		{ text: 'Exchanges', x0: 10, y0: 0, x1: 90, y1: 20 },

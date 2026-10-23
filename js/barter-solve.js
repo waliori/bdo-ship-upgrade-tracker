@@ -447,6 +447,10 @@ export function newPropose(opts0, all0, { seed = 1, session = 0, engine = 'alns'
 	if (missing.length || !all.length) return { proposals: [], best: null, partial: false };
 	const { I, rowOf, supplyWharfs } = instanceOf({ ...opts, chosen: all });
 	indexOf(I);
+	// How the plan is found, written down for the study of the planners
+	// (js/barter/study.js): the day as the search saw it and every step.
+	const t0 = performance.now();
+	const trace = [];
 	// The most silver inside the session, time priced at nothing; with none
 	// set, the most the board gives. Searched from the best an hour too:
 	// with time free the search lays every climb at once and sits there,
@@ -456,12 +460,14 @@ export function newPropose(opts0, all0, { seed = 1, session = 0, engine = 'alns'
 	const pool = chainsOf(I);
 	// The trip planner (js/rpit/method.js), or the ALNS: two rounds of the
 	// price of time -- a third found nothing more on the real boards and
-	// cost as much again -- then the session.
+	// cost as much again -- then the session. Either way the trace of how
+	// the plan was found goes into the study.
+	let rate = { mu: null };
 	const best = engine === 'trips'
-		? solveTrips(I, { session: I.rules.hours, seed, pool })
+		? solveTrips(I, { session: I.rules.hours, seed, pool, trace })
 		: (() => {
-			const rate = maximiseRate(I, (inst, o) => search(inst, { ...o, timeMs: Infinity, most: Math.ceil(WORK / 4), pool }), { timeMs: Infinity, rounds: 2, seed });
-			return search(I, { mu: 0, timeMs: Infinity, most: WORK, seed, pool, warm: { seq: rate.seq, calls: rate.calls } });
+			rate = maximiseRate(I, (inst, o) => search(inst, { ...o, timeMs: Infinity, most: Math.ceil(WORK / 4), pool }), { timeMs: Infinity, rounds: 2, seed, trace });
+			return search(I, { mu: 0, timeMs: Infinity, most: WORK, seed, pool, warm: { seq: rate.seq, calls: rate.calls }, trace });
 		})();
 	const plan = best.plan;
 	const r = simulate(I, planPolicy(plan), { mode: 'robust' });
@@ -509,7 +515,10 @@ export function newPropose(opts0, all0, { seed = 1, session = 0, engine = 'alns'
 	const proposal = { kind: coined ? 'coins' : stocked ? 'stock' : 'hour', label: coined ? 'The most coins' : stocked ? 'The fullest stock' : session > 0 ? `The most in ${session} h` : 'The most the board gives', ids: picked.map(c => c.id), run, value, hours, yard: { perUnit: run.parleyUsed > 0 ? value / (run.parleyUsed / PARLEY.perGreatOceanTrade) : 0, perHour: hours > 0 ? value / hours : 0 } };
 	// The plan found goes back with the answer: searched in a worker, it is
 	// the page's solveRun that has to know it, to lay the run proposed.
-	return { proposals: [proposal], best: proposal, partial: false, kept: memo };
+	// With it the study: the instance whole, so any planner can be run on
+	// the same day again, and the trace of how this one found its plan.
+	const study = { planner: 'new', engine, seed, session, hours: I.rules.hours, orders: opts.orders || PLAIN_ORDERS, instance: JSON.parse(JSON.stringify(I)), chains: pool.length, trace, plan, f: best.f, R: best.R, T: best.T, mu: rate.mu, ids: proposal.ids, value, hours_: hours, ms: performance.now() - t0 };
+	return { proposals: [proposal], best: proposal, partial: false, kept: memo, study };
 }
 
 /** A plan found elsewhere -- in the worker -- remembered here, so the run

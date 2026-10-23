@@ -28,6 +28,7 @@ import { chartButton, parleyGuessed, parleyOf, stashAt, ordersNow, payRangeHTML,
 import { docks, supplies, bagNow, stashes, withWaits, withRations, rationsLine, legsOf, questPlan, questsLine, questsPanels, n1, TIER, ledgerOf, runTime, routeEditBar, castOffRow, stopRows, cutsHTML } from './route.js';
 import { sailing, planSeen, castOffCaps, castOffLand, digest } from './sail.js';
 import { SEARCH_BUDGET_MS, presetSearch, proposeAsync, searching, redrawSoon, expectedBest } from './search.js';
+import { noteFound } from './study.js';
 import { loadingNote } from '../loading.js';
 import { coinsOf, coinRange, bonusNote, coinPurseHTML, shortSummary, shortHTML, canAppearHTML } from './short.js';
 import { takenNote } from './today.js';
@@ -241,6 +242,7 @@ export function silverParts(me, b) {
 			// The inputs moved on before the answer came: a newer request
 			// is out for them, and this answer is nobody's.
 			if (V.proposed.key !== pkey) return;
+			noteFound(result, { layout: b.combo.id, day: V.board.day, port: V.port });
 			V.proposed = { ...V.proposed, ...result, working: false };
 			if (V.routesAuto === V.routes.key) {
 				V.routesAuto = '';
@@ -252,7 +254,7 @@ export function silverParts(me, b) {
 		// Until the answer comes the last proposals stand in, when they
 		// belong to this board, under a note that the search is out.
 		const onBoard = new Set(all.map(c => c.id));
-		if (found) rememberFound(found.kept);
+		if (found) { rememberFound(found.kept); noteFound(found, { layout: b.combo.id, day: V.board.day, port: V.port }); }
 		V.proposed = found
 			? { key: pkey, solos, ...found, working: false }
 			: { key: pkey, solos, proposals: V.proposed.proposals.filter(p => p.ids.every(id => onBoard.has(id))), best: V.proposed.key === pkey ? V.proposed.best : null, partial: false, working: true };
@@ -281,7 +283,12 @@ export function silverParts(me, b) {
 		const oo = { ...o, ...p.orders };
 		const coveredBy = c => c.from !== 'land' || oo.landFrom !== 'stock' || (land.get(c.item) || 0) >= c.rungs[0].giveN;
 		const list = reachCut(everything.filter(c => (oo.buy || c.from !== 'land') && !c.gate && coveredBy(c)));
-		return { id: p.id, args: { chains: list, opts: { ...opts, pace: oo.pace, orders: oo, prices: presetPrices, seen: presetSeen }, ship, timeCap: oo.hours, aim } };
+		const oopts = { ...opts, pace: oo.pace, orders: oo, prices: presetPrices, seen: presetSeen };
+		// Each card is laid by the planner the main search uses: the new
+		// one, under that way's own orders and hours, where it can lay it.
+		const w = withShip(oopts);
+		const asked = newPlanner() && !unsupported({ ...w, chosen: list }).length ? { planner: 'new', opts: w, chains: list, session: w.session } : { chains: list, opts: oopts, ship, timeCap: oo.hours, aim };
+		return { id: p.id, args: asked };
 	}));
 	// Ticks left to the search -- a new board, or a way of sailing just
 	// changed under ticks that were the search's own -- take its answer
@@ -793,7 +800,7 @@ export function silverParts(me, b) {
 			['parley', T('Before you sail'), esc(parleyLine(prof)), parleyHTML(prof)],
 			['ladder', T('Where today ends'), esc(goalLine(o)), ladderHTML(o, { fits: all.length, tickedN: chosen.length })],
 			...(short
-				? [['chains', T('Your short trip'), esc(shortSummary(chosen, worthSaid, plan)), shortHTML({ set: shortSet, picked: chosen, opts, aim, ship, from, stock, plan, pkey, stocking, coining, runFigures, heldNote, shutNote })]]
+				? [['chains', T('Your short trip'), esc(shortSummary(chosen, worthSaid, plan)), shortHTML({ set: shortSet, picked: chosen, opts, aim, ship, from, stock, plan, pkey, stocking, coining, runFigures, heldNote, shutNote, lay: chainRun })]]
 				: [['how', T('How to sail it'), esc(howLine(o)), howHTML(o, presetFigs)],
 					['chains', T('Chains on offer'), esc(chainsSummary), `${chainsBody}${chosen.length ? runFigures : ''}`]])
 		],

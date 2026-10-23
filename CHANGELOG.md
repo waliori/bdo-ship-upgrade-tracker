@@ -5,6 +5,59 @@ someone who has been away. The same notes are in the app itself, under
 **Menu → What's new** — this file is generated from them by
 `node tools/build-changelog.mjs`, so the two cannot drift apart.
 
+## 1.6.0 — A new run planner
+
+*2026-10-20*
+
+The classic planner built a run chain by chain, each climb judged on its own, and read the board again at every tick. The new one searches: it lays a run trip by trip, then takes islands out and puts them back a thousand ways, sailing every candidate by the game’s rules — the hold’s weight and slots, the seven storages, rations and refills, Parley and vouchers, your own rules — and keeps the run that earns most an hour. It is the planner the Barter tab lays runs with from today.
+
+### Asked for by you
+
+The routes you questioned on the server are what the new planner was built against.
+
+- **nescapo** — Found a run that loaded less than the hold could take: a [Level 7] left aboard from the last run, which the wharf call that sells it now says, with the tick to hand.
+- **.cnt** — Showed a run carrying goods one stop past where they could have been dropped, and a page refreshed on the Map that forgot its run; the planner weighs what it carries at every leg, and the chart keeps the run.
+- **grieflz** — Three runs that sailed past the island on the way, took goods out of storage only to put them back, or climbed to Hakoven with two things aboard: the rules every run is now judged by.
+- **kemeren** — Asked why a run went to Hakoven, back to Iliya and west to Padix to bring five [Level 5] to Arehaza, and whether the tool could keep a stockpile: a run is now judged whole, as sailed, and the floor you keep is what a climb makes first.
+- **Asteli** — Reported the otter weekly’s reward shown as 31 Seaweed Stalk where the game gives 45: To Get says the reward as given, with the part the plan needs beside it.
+- **ledrain** — A coin day’s short trip wrote off the second island taking his Solidified Lava as having nothing to hand over, beside forty-nine in storage; and asked for the Panokseon’s skin, which the app said did not exist.
+
+The box is under **Menu → Feedback**. It reaches whoever runs the site.
+
+### A run searched, not assembled
+
+**Before:** A climb worth taking only beside another was never begun, since each was judged alone; goods were loaded island by island as the run went; and a run that needed one drop on the way stalled at the hold and was written off.
+
+**Now:** The search starts from the run laid trip by trip — a climb a trip, in the three orders worth trying — and improves it step by step, each candidate sailed whole: what the wharf loads, what each island takes and gives, what the hold weighs on every leg, the calls that let the ship sail lighter. The search is counted in steps, not seconds, so a board gives the same run on any machine.
+
+- **The method** is adaptive large neighbourhood search — [Ropke and Pisinger, 2006](https://doi.org/10.1287/trsc.1050.0135) — the published method the routing literature settles on for problems of this shape, where goods are picked up, transformed and delivered across many depots and no exact search scales: tear part of the plan down, build it back, keep what is better, and lean on the moves that have been finding better plans. Measured in the real app on three of your boards, 288 runs sailed stop by stop: +40 % silver over the classic planner, 113 wins, 7 losses, 6 ties, no run short of rations, nothing stored twice. How a run is judged and found is written up in *docs/planner.md*.
+
+### Everything the tab asks for, the planner lays
+
+- **Hours under way** are its session: the most silver inside the hours you give, or the whole board when you give none.
+- **Most silver, most coins, stock:** a coin outweighs any silver; a stock run is judged on what it fills, each good to its level’s target.
+- **The bag:** a later trip’s goods carried from the start and brought aboard at the wharf nearest the way, where that beats a sail home.
+- **Your edits** are laid as before: islands taken off, trips reordered, stops moved, the chain way.
+- **A climb cut short** — an island dealt short of its top — is proposed as that climb cut there, ticked as a short trip is.
+- **Refills** reckon each leg’s lag and try every wharf when the nearest cannot feed the ship; the cards under *How to sail it* are laid by the same search under each way’s orders.
+- **The short trip** too: what each trade on the board would add beside the ones picked, and the minutes it costs, is laid by the new planner, as the trip itself is.
+- **The classic planner** stays to fall back on: set `bdo-tracker/planner` to `classic` in the browser’s storage and the tab lays runs the old way.
+
+### The runs it proposes are kept
+
+Every plan the tab proposes is sent to the site with the board it was laid on and the steps the search took to find it, and the run as it went when you record it — stops, timer, silver, trades. It is kept, signed in or not, to measure the next planner against this one on the same days; your device’s name goes with it only where sync named it. How a run is judged and found is written up in *docs/planner.md*.
+
+### Fixes from your reports
+
+- A page refreshed on the Map keeps the run being sailed and stands at its stop; the Barter tab still sails it.
+- A wharf call that sells, left unticked, says what is still aboard with the tick to hand, and the next plan no longer sells those goods again at its first call.
+- To Get says a quest’s reward as the game gives it, with the part the plan needs beside it.
+- The barter reader no longer files a cut name several islands share — *Shipwrecked* alone — under the wrong wreck.
+- Lyngbakr’s Bone, Scale and Fluid are no longer said to trade at the Crow Coin Exchange; the 2026-09-10 patch took them off its list.
+- The two Barter Goods Support dailies say where Baori and Maonil stand on Iliya and that the second opens once the first is handed in.
+- Two trades on a short trip that start from the same stored good each load their own: the second counted the first one’s load aboard as its own, loaded nothing, and read *nothing to hand over* beside a storage full of it.
+- The Panokseon has its skin: Dark Bonghwang’s Panokseon Set, in the Pearl Shop since 2026-08-27 — speed +3%, +600 LT, +100,000 durability, turn +5% — ticked per slot on the Ship tab as the Carrack’s overlay is.
+
 ## 1.5.3 — What each island pays, off the screenshot
 
 *2026-10-06*

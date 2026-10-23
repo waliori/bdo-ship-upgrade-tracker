@@ -529,7 +529,17 @@ function showView(id) {
 	// whatever it held -- the plan's first trip, a route from yesterday --
 	// and so had none of the run's stops to step to. The chart takes the
 	// run being sailed whenever it holds anything else.
-	if (id === 'map') setTimeout(() => {
+	if (id === 'map') chartToRun();
+}
+
+/** The chart brought to the run being sailed, and stepped to the stop
+ *  the cockpit stands at. After the draw, since stepping paints the
+ *  chart it steps. Also once the barter table is in, for a page opened
+ *  on the Map: it was stepped only on a tab press, so a reload on the
+ *  chart came back at the run's first stop. */
+function chartToRun() {
+	setTimeout(() => {
+		if (view !== 'map') return;
 		const ids = sailIds();
 		if (ids && ids.join(',') !== routeIds(marksNow()).join(',')) {
 			const frag = sailChart();
@@ -673,6 +683,7 @@ async function loadBarter() {
 	// the inventory detail draw their buttons from the same data -- so
 	// whichever is up gets the second paint.
 	render();
+	if (view === 'map') chartToRun();
 }
 
 
@@ -2468,8 +2479,11 @@ async function openWhatsNew({ onClose = null, by = null } = {}) {
 	}
 	const { RELEASES } = about;
 	const r = RELEASES[0];
-	const headline = r.sections.filter(s => s.media);
-	const rest = r.sections.filter(s => !s.media);
+	// A release with no picture still opens on its first section: folded
+	// whole under "everything else", the release said nothing at all.
+	const pictured = r.sections.some(s => s.media);
+	const headline = pictured ? r.sections.filter(s => s.media) : r.sections.slice(0, 1);
+	const rest = pictured ? r.sections.filter(s => !s.media) : r.sections.slice(1);
 	const points = list => (list && list.length
 		? `<ul class="news-points">${list.map(p => `<li>${said(p)}</li>`).join('')}</ul>` : '');
 	// A section that says what it was like before shows the two side by
@@ -2499,7 +2513,7 @@ async function openWhatsNew({ onClose = null, by = null } = {}) {
 		<div class="news">
 			${headline.map(s => `<section class="news-item">
 				<h3>${said(s.title)}</h3>
-				<img class="news-shot" src="${esc(s.media)}" alt="${esc(said(s.alt || ''))}" loading="lazy">
+				${s.media ? `<img class="news-shot" src="${esc(s.media)}" alt="${esc(said(s.alt || ''))}" loading="lazy">` : ''}
 				${words(s)}
 				${points(s.points)}
 			</section>`).join('')}

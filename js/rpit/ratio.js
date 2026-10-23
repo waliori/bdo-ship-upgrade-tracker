@@ -17,15 +17,16 @@
 // time. With four rounds the search stopped at a three-hour plan while
 // a one-hour plan earning half as much again was one step away.
 
-export function maximiseRate(I, inner, { timeMs = 10000, mu = null, rounds = 8, seed = 1 } = {}) {
+export function maximiseRate(I, inner, { timeMs = 10000, mu = null, rounds = 8, seed = 1, trace = null } = {}) {
 	const t0 = performance.now();
 	const left = () => Math.max(0, timeMs - (performance.now() - t0));
-	if (mu !== null) return { ...inner(I, { mu, timeMs, seed }), mu };
+	if (mu !== null) return { ...inner(I, { mu, timeMs, seed, trace }), mu };
 	let cur = null, best = null, m = 0;
 	for (let k = 0; k < rounds; k++) {
 		const share = k === rounds - 1 ? left() : left() / (rounds - k);
-		cur = inner(I, { mu: m, timeMs: share, warm: cur, seed: seed + k });
+		cur = inner(I, { mu: m, timeMs: share, warm: cur, seed: seed + k, trace });
 		const rate = cur.T > 0 ? cur.R / cur.T : 0;
+		if (trace) trace.push({ k: 'round', round: k, mu: m, f: cur.f, R: cur.R, T: cur.T, rate });
 		if (!best || rate > best.rate) best = { ...cur, rate, mu: m };
 		// Settled: the price of time the plan was found at is its own rate.
 		if (Math.abs(rate - m) <= 0.005 * Math.max(rate, 1)) break;

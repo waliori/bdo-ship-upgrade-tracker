@@ -286,3 +286,22 @@ test('a real shortfall is accounted for to the unit, and nothing is promised twi
 	// quests pay.
 	assert.ok(way.coins.spend <= way.coins.purse + way.coins.income);
 });
+
+test('a quest is said at the reward the game gives, with the part the plan needs beside it', () => {
+	// The otter weekly pays 45 Seaweed Stalk; 31 short, the plan counts
+	// 31 of them -- and says 45 a week, 31 of them, not "31 a week",
+	// which read as the game's reward and was reported as wrong.
+	const way = wayToGet({
+		missing: { S: 31 },
+		sources: { quests: [weekly('otters', undefined, { S: 45 })] },
+		state: { purse: { coins: 0 }, capacity }
+	});
+	assert.deepEqual(way.quests[0].pays, [{ item: 'S', qty: 31, gives: 45 }]);
+	const line = legsOf(way, 'S')[0].lines[0];
+	assert.match(line, /31 of them/);
+	assert.match(line, /45 a week/);
+	// Needing all of it, the count is not said twice.
+	const whole = wayToGet({ missing: { S: 45 }, sources: { quests: [weekly('otters', undefined, { S: 45 })] }, state: { purse: { coins: 0 }, capacity } });
+	assert.deepEqual(whole.quests[0].pays, [{ item: 'S', qty: 45, gives: 45 }]);
+	assert.doesNotMatch(legsOf(whole, 'S')[0].lines[0], /of them/);
+});

@@ -1780,13 +1780,20 @@ test('the appearance set is fitted like a part, and its stats count', async () =
 	assert.equal(part.hold, before.hold, 'taking the plating off left its weight behind');
 	assert.equal(part.speed, after.speed, 'and took the figurehead down with it');
 
-	// A hull with no set in the game is offered none rather than an empty card.
+	// A hull with no set in the game is offered none rather than an empty
+	// card. The Panokseon used to be that hull; it wears Dark Bonghwang's
+	// set since 2026-08-27, so it is offered the card too.
 	await page.evaluate(async () => {
 		(await import('/js/state.js')).setProfile('crewShip', 'Panokseon');
 	});
 	await wait(1400);
+	assert.equal(await page.evaluate(() => !!document.querySelector('.slot-card.skin')), true, 'the Panokseon is offered its set');
+	await page.evaluate(async () => {
+		(await import('/js/state.js')).setProfile('crewShip', 'Epheria Cog');
+	});
+	await wait(1400);
 	assert.equal(await page.evaluate(() => !!document.querySelector('.slot-card.skin')), false,
-		'the Panokseon has no appearance set, so it should be offered none');
+		'the Cog has no appearance set, so it should be offered none');
 	assert.deepEqual(errors, []);
 	await context.close();
 });
@@ -2437,6 +2444,36 @@ test('the hold is a line across the Barter tab that opens over the page, and the
 	await context.close();
 });
 
+test('a coin day’s short trip: the trades beside the picked one are laid and say what they add, and a second trade from the same stored good is not written off', async () => {
+	// ledrain, 2026-10-21: two coin islands taking the same stored
+	// [Level 4], the second read "nothing to hand over". The margins are
+	// laid by the tab's own planner now; the page has to draw them.
+	const { page, context, errors } = await open('#barter');
+	await page.waitForSelector('.barter-screen', { timeout: 15000 }); await wait(600);
+	await page.evaluate(async () => {
+		const { barterKey } = await import('/js/clock.js');
+		const store = await import('/js/state.js');
+		for (const g of ['[Level 4] Solidified Lava', "[Level 4] Pirate's Key", '[Level 4] Panacea', '[Level 4] Amethyst Fragment']) store.setStockAt(g, 'Iliya Island', 40, 'ashore');
+		store.setProfile('barterCount', 11881);
+		store.setView('barter', { goal: 'coin', shape: 'short', port: 1002, planSec: 'all', advOpen: true, board: { day: barterKey(), answers: [{ npcId: 58948, give: '[Level 6] Top-Quality Coconut Syrup', recv: "[Level 7] Artisan's Seashell Necklace" }, { npcId: 58901, give: 'Vinegar', recv: '[Level 1] Cherry Tree Seed Pouch' }] } });
+		store.flush();
+	});
+	await page.reload({ waitUntil: 'domcontentloaded' });
+	await page.waitForSelector('.st-row', { timeout: 20000 }); await wait(1500);
+	const live = await page.$$eval('.st-row:not(.off)', els => els.map(e => e.querySelector('.st-figs')?.textContent || ''));
+	assert.ok(live.length >= 2, 'trades to pick from');
+	assert.ok(live.every(f => /min/.test(f)), `every trade says its minutes: ${live.join(' | ')}`);
+	// Pick the first coin trade; the rest are laid beside it.
+	await page.evaluate(() => document.querySelector('.st-row:not(.off)').click()); await wait(2500);
+	await page.waitForSelector('.st-picked', { timeout: 15000 });
+	const after = await page.$$eval('.st-row:not(.off):not(.grows) .st-figs', els => els.map(e => e.textContent));
+	assert.ok(after.length >= 1 && after.every(f => /\+\d+ min/.test(f)), `each says the minutes it adds: ${after.join(' | ')}`);
+	const dead = await page.$$eval('.st-row.off .st-why', els => els.map(e => e.textContent));
+	assert.ok(!dead.some(w => /nothing to hand over/.test(w)), `a trade written off for nothing to hand over: ${dead.join(' | ')}`);
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
 test('a chain card opens its climb step by step: every island in full, what it takes and pays, the card left unticked', async () => {
 	const { page, context, errors } = await open('#barter');
 	await page.waitForSelector('.barter-screen', { timeout: 15000 }); await wait(600);
@@ -2572,6 +2609,72 @@ test('two chains on one pile: the second start says none are left, asks before i
 	assert.equal(last.find(x => x.id === other.id).on, true);
 	assert.equal(last.find(x => x.id === before[0].id).on, false);
 	assert.equal(await page.evaluate(() => document.getElementById('dialog').hidden), true);
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
+test('a selling call left unticked is said on the results step, with the tick to hand', async () => {
+	const { page, context, errors } = await open('#barter');
+	await page.waitForSelector('.barter-screen', { timeout: 15000 }); await wait(600);
+	await page.evaluate(async () => {
+		const { barterKey } = await import('/js/clock.js');
+		const store = await import('/js/state.js');
+		store.setView('barter', { goal: 'silver', port: 1002, planSec: 'all', advOpen: true, board: { day: barterKey(), answers: [{ npcId: 58948, give: '[Level 6] Top-Quality Coconut Syrup', recv: "[Level 7] Artisan's Seashell Necklace" }, { npcId: 58901, give: 'Vinegar', recv: '[Level 1] Cherry Tree Seed Pouch' }] } });
+		// Five [Level 6]s aboard: the run climbs them to the top and sells at the wharf.
+		store.setStockAt('[Level 6] Top-Quality Coconut Syrup', "Ship's hold", 5);
+		store.setProfile('barterCount', 1);
+		store.flush();
+	});
+	await page.reload({ waitUntil: 'domcontentloaded' });
+	await page.waitForSelector('.chain', { timeout: 15000 });
+	await page.evaluate(async () => { const store = await import('/js/state.js'); store.addTarget('Carrack (Advance)', 1); store.setProfile('crewShip', 'Carrack (Advance)'); });
+	await page.waitForFunction(() => document.querySelector('[data-act="barter-cast-off"]:not([disabled]), .run-dock'), { timeout: 20000 });
+	await laidOut(page);
+	await page.evaluate(() => document.querySelector('[data-act="barter-cast-off"]').click()); await wait(2500);
+	// Straight to the results with nothing ticked: the call that sells is
+	// named, and the goods it sells are still aboard.
+	await page.evaluate(() => [...document.querySelectorAll('[data-act="barter-step"][data-id="results"]')].find(e => e.getBoundingClientRect().width > 0).click()); await wait(1500);
+	const note = await text(page, '.receipt-acts');
+	assert.match(note, /still aboard: the call at .+ that sells them is not ticked/);
+	const tick = await page.$('.receipt-acts [data-act="barter-stop-done"]');
+	assert.ok(tick, 'the tick is to hand');
+	await tick.evaluate(e => e.click()); await wait(1200);
+	const after = await text(page, '.receipt-acts');
+	assert.doesNotMatch(after, /still aboard/);
+	assert.match(await text(page, '.run-tiles'), /sold at the wharf call/);
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
+test('a page opened on the Map keeps the run being sailed: the chart stands at its stop, and the Barter tab still sails it', async () => {
+	const { page, context, errors } = await open('#barter');
+	await page.waitForSelector('.barter-screen', { timeout: 15000 }); await wait(600);
+	await page.evaluate(async () => {
+		const { barterKey } = await import('/js/clock.js');
+		const store = await import('/js/state.js');
+		store.setView('barter', { goal: 'silver', port: 1002, planSec: 'all', advOpen: true, board: { day: barterKey(), answers: [{ npcId: 58948, give: '[Level 6] Top-Quality Coconut Syrup', recv: "[Level 7] Artisan's Seashell Necklace" }, { npcId: 58901, give: 'Vinegar', recv: '[Level 1] Cherry Tree Seed Pouch' }] } });
+		store.setStockAt('[Level 6] Top-Quality Coconut Syrup', "Ship's hold", 5);
+		store.setProfile('barterCount', 1);
+		store.flush();
+	});
+	await page.reload({ waitUntil: 'domcontentloaded' });
+	await page.waitForSelector('.chain', { timeout: 15000 });
+	await page.evaluate(async () => { const store = await import('/js/state.js'); store.addTarget('Carrack (Advance)', 1); store.setProfile('crewShip', 'Carrack (Advance)'); });
+	await page.waitForFunction(() => document.querySelector('[data-act="barter-cast-off"]:not([disabled]), .run-dock'), { timeout: 20000 });
+	await laidOut(page);
+	await page.evaluate(() => document.querySelector('[data-act="barter-cast-off"]').click()); await wait(2500);
+	// The first stop ticked, then the Map, then the page reloaded there:
+	// the chart holds the run at its stop and the tab still sails it.
+	await page.evaluate(() => { const go = document.querySelector('.cockpit-press [data-act="barter-paid"], .cockpit-go[data-act="barter-stop-done"]'); go.click(); }); await wait(1200);
+	await page.evaluate(() => [...document.querySelectorAll('[data-act="view"][data-id="map"]')].find(e => e.getBoundingClientRect().width > 0).click()); await wait(2500);
+	assert.ok(await page.$('.map-run'), 'the chart shows the run');
+	await page.reload({ waitUntil: 'domcontentloaded' });
+	await page.waitForSelector(POUCH_READY, { timeout: 15000 }); await wait(3000);
+	assert.ok(await page.$('.map-run'), 'the chart still shows the run after a reload on it');
+	const step = await page.evaluate(async () => { const { mv } = await import('/js/map/state.js'); return mv.stepIdx; });
+	assert.ok(step > 0, `the chart stands at the stop the cockpit is at, not its first (got ${step})`);
+	await page.evaluate(() => [...document.querySelectorAll('[data-act="view"][data-id="barter"]')].find(e => e.getBoundingClientRect().width > 0).click()); await wait(2000);
+	assert.ok(await page.$('.barter-screen.step-sail .cockpit'), 'the Barter tab still sails the run');
 	assert.deepEqual(errors, []);
 	await context.close();
 });

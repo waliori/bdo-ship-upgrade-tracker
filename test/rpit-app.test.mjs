@@ -124,6 +124,12 @@ test('the stock goal: the run proposed fills the stock -- each good to its level
 	const aim = { kind: 'fill', targets, held };
 	const found = newPropose({ ...base, aim }, all);
 	assert.equal(found.best.kind, 'stock');
+	// The study goes back with the answer: the day whole, and the trace.
+	assert.equal(found.study.planner, 'new');
+	assert.ok(found.study.instance.stations.length > 0 && found.study.instance.travel.matrix.length > 0);
+	assert.ok(found.study.trace.some(e => e.k === 'round') && found.study.trace.some(e => e.k === 'step'));
+	assert.deepEqual(found.study.ids, found.best.ids);
+	JSON.stringify(found.study);
 	assert.ok(found.best.value > 0, 'something filled');
 	// The app's own count of the same run agrees.
 	const app = fillOf(found.best.run, { targetOf: g => targets[levelOf(g)] || 0, held: new Map(held), stock });

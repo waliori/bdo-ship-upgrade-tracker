@@ -27,9 +27,12 @@ import { newPropose } from './barter-solve.js';
  *  'new'` -- the new planner over { opts, chains, session }; `'trips'` asks it
  *  for its trip planner. */
 export function answer({ planner, ...args }) {
-	return planner === 'new' || planner === 'trips'
-		? newPropose(args.opts, args.chains, { session: args.session || 0, engine: planner === 'trips' ? 'trips' : 'alns' })
-		: propose(args);
+	if (planner === 'new' || planner === 'trips') return newPropose(args.opts, args.chains, { session: args.session || 0, engine: planner === 'trips' ? 'trips' : 'alns' });
+	// The classic search carries a study of its own -- what it proposed and
+	// how long it took -- so a sailor still on it is in the comparison too.
+	const t0 = performance.now();
+	const out = propose(args);
+	return { ...out, study: { planner: 'classic', session: args.timeCap || 0, proposals: out.proposals.map(p => ({ kind: p.kind, ids: p.ids, value: p.value, hours: p.hours })), ms: performance.now() - t0 } };
 }
 
 export const DEFAULT_BUDGET_MS = 1500;

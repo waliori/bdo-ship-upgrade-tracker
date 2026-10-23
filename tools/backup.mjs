@@ -90,7 +90,8 @@ const KEYS = {
 	barter_board_seen: ['board_id', 'user_id'],
 	links: ['id'],
 	revoked_sessions: ['sid'],
-	presence_swept: ['id']
+	presence_swept: ['id'],
+	studies: ['id']
 };
 
 // One statement per row, each an upsert on the table's key, in the order

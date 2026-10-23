@@ -34,7 +34,10 @@ const DESTROY = ['random', 'related', 'chain', 'thin', 'thick', 'reorder', 'seri
 // on the way is ever seen to pay.
 const REPAIR = ['bare', 'careful'];
 
-export function search(I, { mu = 0, timeMs = 10000, warm = null, seed = 1, most = 20000, pool = null, fixed = false } = {}) {
+// `trace`, an array when given, is written as the search goes -- the
+// starts, every step, the operator weights, the end -- for the study of
+// how a plan was found (js/barter/study.js).
+export function search(I, { mu = 0, timeMs = 10000, warm = null, seed = 1, most = 20000, pool = null, fixed = false, trace = null } = {}) {
 	// Fixed climbs must reach their tops.
 	const must = fixed && pool ? pool.map(c => c.rungs[c.rungs.length - 1]) : null;
 	const t0 = performance.now();
@@ -50,6 +53,7 @@ export function search(I, { mu = 0, timeMs = 10000, warm = null, seed = 1, most 
 		return { seq: out.visits, calls: out.calls, f: out.f, R: out.R, T: out.T, plan: out.plan };
 	};
 	let cur = warm && warm.seq ? judge(warm.seq, warm.calls || []) : null;
+	const starts = cur ? { warm: cur.f } : {};
 	// `fixed`: the climbs are the sailor's and all of them are sailed -- the
 	// search lays them, it does not choose among them. Greedy, which would
 	// start from the few that pay best, is not asked.
@@ -62,8 +66,10 @@ export function search(I, { mu = 0, timeMs = 10000, warm = null, seed = 1, most 
 		const t = byTrips(I, { mu, pool: chains });
 		const trips = judge(t.seq, t.calls || []);
 		for (const c of [fromGreedy, plainGreedy, trips]) if (!cur || c.f > cur.f) cur = c;
+		Object.assign(starts, { greedy: fromGreedy.f, plain: plainGreedy.f, trips: trips.f });
 	}
 	let best = cur;
+	if (trace) trace.push({ k: 'start', ...starts, f: cur.f, R: cur.R, T: cur.T, ms: performance.now() - t0 });
 
 	const OPS = [...DESTROY, ...REPAIR];
 	const weights = Object.fromEntries(OPS.map(d => [d, 1]));
@@ -143,11 +149,19 @@ export function search(I, { mu = 0, timeMs = 10000, warm = null, seed = 1, most 
 		if (cand.f > cur.f + 1e-6) { cur = cand; score = Math.max(score, 1); }
 		else if (rand() < Math.exp((cand.f - cur.f) / Math.max(temp, 1e-9))) cur = cand;
 		scores[op] += score; scores[rep] += score;
+		if (trace) trace.push({ k: 'step', it, op, rep, f: cand.f, acc: cur === cand ? 1 : 0, cur: cur.f, best: best.f, ok: score, temp });
 		temp *= 0.997;
 		if ((it + 1) % 50 === 0) {
 			for (const d of OPS) { if (uses[d]) weights[d] = 0.5 * weights[d] + 0.5 * Math.max(0.1, scores[d] / uses[d]); scores[d] = 0; uses[d] = 0; }
+			if (trace) trace.push({ k: 'weights', it: it + 1, w: { ...weights } });
 		}
 	}
+	// The plan is returned as the search left it: a plan that sits in a
+	// hollow -- a climb asked for one at its top under a foot asked for
+	// five -- is what this search finds, and the study keeps it so. What
+	// the search does is written in docs/planner.md; a step past it is a
+	// method of its own, not this one.
+	if (trace) trace.push({ k: 'end', it, f: best.f, R: best.R, T: best.T, ms: performance.now() - t0 });
 	return { ...best, iterations: it };
 }
 

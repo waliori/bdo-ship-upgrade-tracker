@@ -38,6 +38,7 @@ if (!dry && (!HOOK || (announce && !ANNOUNCE))) {
 }
 
 const md = html => String(html)
+	.replace(/<a href="([^"]+)"[^>]*>(.*?)<\/a>/g, '[$2]($1)')
 	.replace(/<\/?b>/g, '**')
 	.replace(/<\/?i>/g, '*')
 	.replace(/<\/?(kbd|code)>/g, '`')

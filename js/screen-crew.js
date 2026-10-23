@@ -567,7 +567,7 @@ function slotCard(ship, x, chosenByHand) {
  * because the slots are separate items even though the set is bought
  * whole.
  *
- * A hull with no set -- the Panokseon has none -- gets no card rather
+ * A hull with no set -- a Rowboat has none -- gets no card rather
  * than an empty one.
  */
 function skinCard(ship) {

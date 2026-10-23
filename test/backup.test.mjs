@@ -61,6 +61,7 @@ test('every table survives a backup and a restore, and so do the pictures', asyn
 	const board = await db.insertSighting('7001', { day: '2026-10-01', layout: '4', offers: [[1, 'a', '1', 'b']] });
 	await db.confirmSighting(board, '7002');
 	await db.insertLink({ id: 'shortlink1', userId: '7001', kind: 'plan', payload: '{}' });
+	await db.insertStudy({ id: '0f6b2c1e-8d7a-4b3c-9e1f-2a3b4c5d6e7f', userId: '7001', planner: 'new', layout: '4', body: 'H4sIAAAAAAAAA6tWSkksSVSyUlAqS8wpTlWqBQBxbWGaDgAAAA==' });
 	await db.revokeSession('sid-gone', Date.now() + 86_400_000);
 
 	const want = await everything(from);

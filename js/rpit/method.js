@@ -95,7 +95,7 @@ function dayOf(I, trips) {
 	return { plan, f: e.f, R: e.R, T: e.T, run: e.run };
 }
 
-export function solve(I, { session = 0, seed = 1, most = 400, grow = 60, near = 8, pool = null } = {}) {
+export function solve(I, { session = 0, seed = 1, most = 400, grow = 60, near = 8, pool = null, trace = null } = {}) {
 	void seed;
 	const t0 = performance.now();
 	const H = session > 0 ? session : CLEAR;
@@ -140,11 +140,12 @@ export function solve(I, { session = 0, seed = 1, most = 400, grow = 60, near = 
 		}
 	}
 	const plan = best.plan;
-	return {
-		plan, seq: stationsOf(I, plan), calls: callsOf(I, plan), f: best.f, R: best.R, T: best.T,
-		info: {
-			R: best.R, T: best.T, bound: Math.max(best.bound, best.R), gap: best.bound > 0 ? Math.max(0, best.bound - best.R) / best.bound : 0,
-			trips: best.trips.map(t => ({ id: t.id, from: t.from, to: t.to, R: t.R, T: t.T })), nodes: best.nodes, exact: best.exact, catalogue: trips.length, ms: performance.now() - t0
-		}
+	const info = {
+		R: best.R, T: best.T, bound: Math.max(best.bound, best.R), gap: best.bound > 0 ? Math.max(0, best.bound - best.R) / best.bound : 0,
+		trips: best.trips.map(t => ({ id: t.id, from: t.from, to: t.to, R: t.R, T: t.T })), nodes: best.nodes, exact: best.exact, catalogue: trips.length, ms: performance.now() - t0
 	};
+	// The study's trace, as the ALNS writes one: this search has no steps,
+	// so one line says what it picked from and how exact the pick was.
+	if (trace) trace.push({ k: 'end', ...info, f: best.f });
+	return { plan, seq: stationsOf(I, plan), calls: callsOf(I, plan), f: best.f, R: best.R, T: best.T, info };
 }
