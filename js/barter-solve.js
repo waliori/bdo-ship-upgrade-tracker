@@ -289,10 +289,9 @@ export function runOf(I, plan, { chosen, rowOf, stashes, parley, prices = {}, or
 		bagLoaded: Object.entries(start.bagged || {}).map(([item, n]) => ({ item, n })), bagFromHold: [], bagShort: false,
 		bag: I.vehicle.bag ? { free: I.vehicle.bag.free, slots: Number.isFinite(I.vehicle.bag.slots) ? I.vehicle.bag.slots : null } : null,
 		landLoaded: Object.entries(start.bought || {}).map(([item, n]) => ({ item, n })),
-		bagLoaded: [], bagFromHold: [], bagPeak: 0, bagShort: false, bag: null,
+		bagPeak: 0,
 		cut, skippedWhole: [],
 		bought: boughtRows, taken: takenRows,
-		coins: 0, coinsMax: 0,
 		cost, net: silver - cost, silver,
 		keptWorth: kept.reduce((a, s) => a + s.total, 0) + stashed.reduce((a, s) => a + s.total, 0),
 		trades: r.trades, parleyUsed: r.P, parleyBar: parley.bar,
@@ -444,7 +443,7 @@ export function newPropose(opts0, all0, { seed = 1, session = 0 } = {}) {
 	const all = opts.chosen;
 	const missing = unsupported({ ...opts, chosen: all });
 	if (missing.length || !all.length) return { proposals: [], best: null, partial: false };
-	const { I, rowOf, supplyWharfs } = instanceOf({ ...opts, chosen: all });
+	const { I } = instanceOf({ ...opts, chosen: all });
 	indexOf(I);
 	// How the plan is found, written down for the study of the planners
 	// (js/barter/study.js): the day as the search saw it and every step.
