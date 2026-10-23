@@ -376,7 +376,14 @@ export function offerOf(row, deals, { floor = 0.5, margin = 0.12 } = {}) {
 		if (first) return { ...row, offer: first.deal, score: first.score, near: scored.slice(0, 3) };
 	}
 	if (next && best.score - next.score < margin) {
-		return { ...row, offer: null, near: scored.slice(0, 3), why: T('two of its exchanges fit that equally well') };
+		// Said with the two names, since what collides is usually a
+		// letter apart -- Supreme Bear Hide, Supreme Boar Hide -- and a
+		// row that only says "two fit" reads as the same line twice.
+		const twice = best.deal.item === next.deal.item;
+		const why = twice
+			? T('could not tell {a} from {b} apart — pick the one the island shows, or none of these', { a: best.deal.give, b: next.deal.give })
+			: T('could not tell {a} from {b} apart — pick the one the island shows, or none of these', { a: `${best.deal.give} → ${best.deal.item}`, b: `${next.deal.give} → ${next.deal.item}` });
+		return { ...row, offer: null, near: scored.slice(0, 3), why };
 	}
 	return { ...row, offer: best.deal, score: best.score, near: scored.slice(0, 3) };
 }

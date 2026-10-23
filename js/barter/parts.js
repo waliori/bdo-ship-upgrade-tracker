@@ -104,9 +104,11 @@ export function silverParts(me, b) {
 				['ladder', T('Where today ends'), esc(goalLine(oNow)), ladderHTML(oNow)],
 				...(short ? [['chains', T('Your short trip'), T('the board is not read yet'), canAppearHTML(b, prof, oNow)]] : []),
 				...(short ? [] : [['how', T('How to sail it'), esc(howLine(oNow)), howHTML(oNow)]]),
-				...(short ? [] : [['chains', T('Chains on offer'), T('the board is not read yet'), `${reachNote}<div class="chains-wait"><p>${V.board.answers.length
-					? T('Nearly there: one more island settles which board this is, and the chains follow.')
-					: T('The chains follow the board: look at one island in the game and tap what it shows.')}</p><button class="chip primary" data-act="barter-board-island">${T('Tell it what an island shows')} ›</button>${prof.barterCount ? '' : `<p class="chains-wait-note">${T('Your Total Barters read nought, which leaves almost every island shut. Set them in the bar at the top of the page — the number is in the game’s Barter Information window.')}</p>`}</div>${evHTML}`]])
+				...(short ? [] : [['chains', T('Chains on offer'), T('the board is not read yet'), `${reachNote}<div class="chains-wait">${V.board.answers.length && !b.standing.length
+					? `<p>${T('No layout in the book shows what was read, so there is no island left to ask about. Sail what you saw: the run is planned on the islands you answered, and nothing else.')}</p><button class="chip primary" data-act="barter-own-board">⚑ ${T('Sail what you saw')}</button>`
+					: `<p>${V.board.answers.length
+						? T('Nearly there: one more island settles which board this is, and the chains follow.')
+						: T('The chains follow the board: look at one island in the game and tap what it shows.')}</p><button class="chip primary" data-act="barter-board-island">${T('Tell it what an island shows')} ›</button>`}${prof.barterCount ? '' : `<p class="chains-wait-note">${T('Your Total Barters read nought, which leaves almost every island shut. Set them in the bar at the top of the page — the number is in the game’s Barter Information window.')}</p>`}</div>${evHTML}`]])
 			],
 			load: '', dock: '', things: { all: 0, done: 0 }, stops: 0, time: ''
 		};

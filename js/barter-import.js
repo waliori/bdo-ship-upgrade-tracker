@@ -137,7 +137,7 @@ export function openBarterImport({ files, deals, onAnswers = () => {} } = {}) {
 				<option value="">${T('— none of these')}</option>
 			</select>`
 		: `<span class="quiet">${T('nothing the codex lists fits that row')}</span>`}</td>
-			<td class="shot-note">${paysRange(r) ? paidBox(r, i) : r.offer ? `<span class="quiet">${T('read')}</span>` : `<span class="shot-warn" title="${esc(said(r.why) || '')}">⚠ ${esc(said(r.why) || T('unsure'))}</span>`}</td>
+			<td class="shot-note">${paysRange(r) ? paidBox(r, i) : r.offer ? `<span class="quiet">${T('read')}</span>` : r.picked ? `<span class="quiet">${T('yours')}</span>` : `<span class="shot-warn" title="${esc(said(r.why) || '')}">⚠ ${esc(said(r.why) || T('unsure'))}</span>`}</td>
 		</tr>`;
 	};
 
@@ -268,8 +268,17 @@ export function openBarterImport({ files, deals, onAnswers = () => {} } = {}) {
 					// a count it could not make out -- a row cut by the
 					// shot's edge -- over one an earlier shot read whole.
 					const was = seen.get(row.isle.id);
+					// Two rows of one picture cannot be one island: a name cut
+					// short by the column was read as a neighbour's -- the
+					// wrecks all begin "Shipwrecked" -- and fed as that island's
+					// second offer, no layout fits. Kept apart, unticked, so the
+					// player sees the clash instead of a board that fits nothing.
+					if (was && was.shot === i && was.offer && row.offer && (was.offer.give !== row.offer.give || was.offer.item !== row.offer.item)) {
+						seen.set(`${row.isle.id}#${seen.size}`, { ...row, keep: null, paid: 0, icon: '', shot: i, why: T('read as {isle} too, but another row of this picture already is: one of the two is some other island', { isle: isleOf(row.isle) }) });
+						continue;
+					}
 					const kept = !(got && got.n) && was && was.paid > 0 && row.offer && was.keep && was.keep.give === row.offer.give && was.keep.item === row.offer.item;
-					seen.set(row.isle.id, kept ? was : { ...row, keep: row.offer || null, paid: got ? got.n : 0, icon: got ? iconOf(got.icon) : '' });
+					seen.set(row.isle.id, kept ? was : { ...row, keep: row.offer || null, paid: got ? got.n : 0, icon: got ? iconOf(got.icon) : '', shot: i });
 				}
 			} catch (err) {
 				skipped.push({ name: take[i].name, why: err && err.message ? err.message : T('could not be read') });
@@ -325,6 +334,8 @@ export function openBarterImport({ files, deals, onAnswers = () => {} } = {}) {
 			const r = rows[Number(e.target.dataset.offer)];
 			const pick = choices(r);
 			r.keep = e.target.value === '' ? null : pick[Number(e.target.value)] || null;
+			// Chosen by hand: the reader's doubt is settled, and the row says so.
+			r.picked = true;
 			draw(reviewView());
 		});
 	}

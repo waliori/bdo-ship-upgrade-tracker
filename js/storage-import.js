@@ -292,7 +292,10 @@ export function openStorageImport(after = () => {}, handOff = null) {
 		// Read more adds: the shots so far and the new ones are read again
 		// together, so a row two of them share is still counted once, and
 		// what was typed over or unticked in the table is kept.
-		const more = adding && rows.length;
+		// Anything read while a table stands is more of the same storage
+		// -- a paste as much as "Read more": Kemeren pasted his second
+		// screenshot and it replaced the first.
+		const more = rows.length > 0;
 		adding = false;
 		const edits = more ? new Map(rows.map(r => [r.item, { take: r.take, n: r.n, typed: r.typed }])) : new Map();
 		taken = more ? [...taken, ...take] : take;
