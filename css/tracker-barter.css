@@ -741,6 +741,12 @@ ul.lb-readers.flat { margin: 0 0 12px; }
 .day-step-sub { font-size: 12px; color: var(--ink-mute); }
 .day-step .linky { font-size: 12px; }
 .goal-cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.goal-which { margin: 8px 0 0; font-size: 11.5px; color: var(--ink-faint); }
+.goal-which summary { cursor: pointer; }
+.goal-table { margin: 6px 0 0; border-collapse: collapse; width: 100%; }
+.goal-table th, .goal-table td { padding: 3px 8px 3px 0; text-align: left; vertical-align: top; font-weight: normal; border-top: 1px solid var(--line-soft); }
+.goal-table tr:first-child th { border-top: 0; color: var(--ink); font-weight: 600; }
+.goal-table tr > th:first-child { color: var(--ink); white-space: nowrap; }
 .goal-card { display: flex; flex-direction: column; gap: 4px; min-width: 0; padding: 10px 12px; text-align: left; font: inherit; color: var(--ink); cursor: pointer; background: var(--panel-strong); border: 1px solid var(--line); border-radius: var(--r-tile); transition: border-color 0.12s, background 0.12s; }
 .goal-card:hover { border-color: var(--line-btn-hi); }
 .goal-card.on { border-color: var(--teal-edge); background: var(--teal-glow); }
