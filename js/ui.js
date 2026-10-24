@@ -37,6 +37,7 @@ import { kindOf } from './kinds.js';
 import { toast, hideToast, openDialog, closeDialog, dismissDialog, holdScreen, whenScreenFree } from './dialogs.js';
 import { allItems, img } from './ui-bits.js';
 import { T, TT, said, gameName, LANGS, langById, langFlag, setLang, startingLang, lang as currentLang } from './i18n.js';
+import { imagesOn } from './shot-reader.js';
 import { encodeShare, decodeShare, decodeAny, shareLink, shareSize, shortLinkId, plainSearch, isPlan, slimShape, SLIM_DROP } from './share.js';
 import { buildLink, copyLink } from './links.js';
 import { massProcess } from './vendor_items.js';
@@ -1802,6 +1803,25 @@ function wire() {
 	wirePeek();
 	wireGuide();
 	wireMap();
+
+	// A screenshot pasted at the tab itself, with no dialog open, opens
+	// the tab's own reader with the picture in hand: the storage reader
+	// on the Inventory, the sailor reader on the Ship. The Barter tab
+	// takes its own paste the same way (barter/view.js). A paste into a
+	// field is left alone, and so is one while a dialog is up -- a
+	// reader's dialog takes a paste itself.
+	document.addEventListener('paste', evt => {
+		const open = {
+			inventory: files => import('./storage-import.js').then(m => m.openStorageImport(render, null, files)),
+			crew: files => import('./sailor-import.js').then(m => m.openSailorImport(undefined, files))
+		}[view];
+		if (!open || !document.getElementById('dialog').hidden) return;
+		if (evt.target.closest && evt.target.closest('input, textarea, select, [contenteditable]')) return;
+		const files = imagesOn(evt.clipboardData);
+		if (!files.length) return;
+		evt.preventDefault();
+		lazyOpen(() => open(files));
+	});
 
 	document.addEventListener('keydown', evt => {
 		const dialog = document.getElementById('dialog');

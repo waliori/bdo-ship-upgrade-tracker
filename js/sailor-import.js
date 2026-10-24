@@ -43,7 +43,7 @@ const TYPE_OPTIONS = [...pool.map(t => t.type).sort(), ...mateTypes.map(t => t.t
  * the dialog
  * ------------------------------------------------------------------ */
 
-export function openSailorImport(after = () => {}) {
+export function openSailorImport(after = () => {}, files = null) {
 	let stop = null;          // an AbortController while a batch is being read
 	let rows = [];            // what was read, as the review table has it
 	let skipped = [];         // files that were not read, and why
@@ -246,5 +246,6 @@ export function openSailorImport(after = () => {}) {
 		});
 	}
 
-	draw(pickView());
+	if (files && files.length) run(files);
+	else draw(pickView());
 }

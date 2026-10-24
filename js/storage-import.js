@@ -121,7 +121,7 @@ export function gather(results, known) {
  * onRows }` -- what the button says, what the head says, and where the
  * rows go instead of into the Inventory.
  */
-export function openStorageImport(after = () => {}, handOff = null) {
+export function openStorageImport(after = () => {}, handOff = null, files = null) {
 	let stop = null;            // an AbortController while a batch is being read
 	let rows = [];              // the gathered reading, as the table has it
 	let skipped = [];           // files that were not read, and why
@@ -422,5 +422,8 @@ export function openStorageImport(after = () => {}, handOff = null) {
 		});
 	}
 
-	draw(pickView());
+	// Opened on pictures already in hand -- a paste at the tab -- the
+	// reading starts on them.
+	if (files && files.length) run(files);
+	else draw(pickView());
 }
