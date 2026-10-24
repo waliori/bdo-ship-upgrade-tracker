@@ -94,6 +94,10 @@ export const RELEASES = [
 				{
 					name: 'ledrain',
 					did: TT('A coin day’s short trip wrote off the second island taking his Solidified Lava as having nothing to hand over, beside forty-nine in storage; and asked for the Panokseon’s skin, which the app said did not exist.')
+				},
+				{
+					name: 'Nerlion',
+					did: TT('Asked for a stock filled from the end: the high targets met first, and the low stock what is left below once they are.')
 				}
 			],
 			foot: TT('The box is under <b>Menu \u2192 Feedback</b>. It reaches whoever runs the site.')
@@ -136,6 +140,18 @@ export const RELEASES = [
 					TT('The two Barter Goods Support dailies say where Baori and Maonil stand on Iliya and that the second opens once the first is handed in.'),
 					TT('Two trades on a short trip that start from the same stored good each load their own: the second counted the first one’s load aboard as its own, loaded nothing, and read <i>nothing to hand over</i> beside a storage full of it.'),
 					TT('The Panokseon has its skin: Dark Bonghwang’s Panokseon Set, in the Pearl Shop since 2026-08-27 — speed +3%, +600 LT, +100,000 durability, turn +5% — ticked per slot on the Ship tab as the Carrack’s overlay is.')
+				]
+			},
+			{
+				title: TT('After the release, from your reports'),
+				text: TT('Four days of questions on the server — Kemeren’s screenshots and his reading of the goal step, Nerlion’s stock — and what they changed.'),
+				points: [
+					TT('<b>The goal step says what each day does with the stock.</b> The silver card keeps and fills a floor of each level, the stock card fills a target of every good and sells nothing, and a <i>Which day is which?</i> table under the cards puts the three side by side. A floor reads <i>keep 10 each</i> and <i>10 of each [Level 1] good</i>, since <i>keeping 10 of Level 1</i> read as a total. Under a floored level, how many goods sit under the floor and how many stand above it; under a stock level, how many of the exchanges paying it your barter count opens.'),
+					TT('<b>A stock filled from the top.</b> Beside the stock run’s aim, <i>from the bottom</i> or <i>from the top</i>. From the top, a lower level’s target holds as a floor only once every targeted level above it is full, so its goods climb freely until then: with the 1:2 and 1:3 rolls, the order that fills [Level 4] and [Level 5] first.'),
+					TT('<b>A quest finished whose reward is in the storage already:</b> <i>reward counted already</i>, on the row and on the batch, ticks the quest and adds nothing to the stock.'),
+					TT('<b>The barter window reader</b> says which two names it could not tell apart — Supreme Bear Hide from Supreme Boar Hide — and the warning gives way to <i>yours</i> once you have picked; a row read as an island another row of the same picture already is stays apart and unticked; and when no layout in the book fits what was read, the chains step offers <i>Sail what you saw</i>.'),
+					TT('<b>The storage reader</b> tells one drawing in two lights apart — Tide-Dyed and Deep Tide-Dyed Standardized Timber Square, Cobalt and Jade Coral Ingot, Island Tree Coated Plywood plain and Enhanced — by the square’s light against the screenshot’s own dimming, where it threw the three away as ties; and a second storage screenshot pasted adds to the first instead of starting over.'),
+					TT('<b>The bag.</b> A run laid by the new planner said nothing went into the bag, whatever it carried; what goes into the bag is said again.')
 				]
 			}
 		]
@@ -1148,6 +1164,16 @@ export const RELEASES = [
 export const RELEASE = RELEASES[0].id;
 
 export const CHANGES = [
+	{
+		date: '2026-10-24',
+		title: TT('After 1.6.0: the goal step in plain words, a stock filled from the top, the readers'),
+		notes: [
+			TT('<b>The goal step.</b> Each card says what it does with the stock; a <i>Which day is which?</i> table puts the three days side by side; a floor reads <i>keep 10 each</i>; under a level, how many goods sit under its floor, or how many of its exchanges your barter count opens.'),
+			TT('<b>Stock.</b> Filled from the top, when you say so: a lower target holds only once every target above it is full. A quest whose reward is in the storage already is ticked without adding it.'),
+			TT('<b>Readers.</b> The barter window reader names the two it could not tell apart and keeps a doubled island apart; the storage reader tells one drawing in two lights apart; a second storage screenshot adds to the first; with no layout to fit, <i>Sail what you saw</i>.'),
+			TT('<b>Fixes.</b> A run laid by the new planner said nothing went into the bag.')
+		]
+	},
 	{
 		date: '2026-10-20',
 		title: TT('A new run planner, and the runs it proposes kept'),

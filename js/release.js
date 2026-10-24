@@ -8,5 +8,5 @@
 export const RELEASE = "1.6.0";
 
 /** The newest diary entry, as the "seen" key and as its title. */
-export const LATEST = "2026-10-20:A new run planner, and the runs it proposes kept";
-export const LATEST_TITLE = "A new run planner, and the runs it proposes kept";
+export const LATEST = "2026-10-24:After 1.6.0: the goal step in plain words, a stock filled from the top, the readers";
+export const LATEST_TITLE = "After 1.6.0: the goal step in plain words, a stock filled from the top, the readers";
