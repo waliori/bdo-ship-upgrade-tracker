@@ -6094,5 +6094,7 @@
 	"<b>Stock.</b> Filled from the top, when you say so: a lower target holds only once every target above it is full. A quest whose reward is in the storage already is ticked without adding it.": "<b>存貨。</b>你指定時從頂部填滿：低的目標要等它上面每個目標都填滿才生效。獎勵已在倉庫裡的任務可以勾掉而不加入。",
 	"<b>Readers.</b> The barter window reader names the two it could not tell apart and keeps a doubled island apart; the storage reader tells one drawing in two lights apart; a second storage screenshot adds to the first; with no layout to fit, <i>Sail what you saw</i>.": "<b>讀取器。</b>物品交換視窗讀取器說出它分不清的兩個，並把重複的島單獨留著；倉庫讀取器分辨同一張圖的兩種明暗；第二張倉庫截圖加到第一張上；沒有布局符合時，<i>按你看到的航行</i>。",
 	"<b>Fixes.</b> A run laid by the new planner said nothing went into the bag.": "<b>修正。</b>新規劃器排出的航次說沒有東西放進背包。",
-	"A screenshot pasted at the Inventory or the Ship tab, with no dialog open, opens its reader with the picture in hand, as a paste at the Barter tab does: several pictures at once, for the readers that take them.": "在沒有對話框打開時，貼到庫存頁或船隻頁的截圖會帶著圖片直接打開該頁的讀取器，就像在物品交換頁貼上一樣：接受多張的讀取器可以一次貼多張。"
+	"A screenshot pasted at the Inventory or the Ship tab, with no dialog open, opens its reader with the picture in hand, as a paste at the Barter tab does: several pictures at once, for the readers that take them.": "在沒有對話框打開時，貼到庫存頁或船隻頁的截圖會帶著圖片直接打開該頁的讀取器，就像在物品交換頁貼上一樣：接受多張的讀取器可以一次貼多張。",
+	"Pasted while reading: read after this one": "讀取時貼上：在這張之後讀取",
+	"A screenshot pasted while another is being read is read after it, in every reader: a second paste a moment after the first cut the first one’s reading short, and only the last paste was in the table.": "在讀取另一張時貼上的截圖會在它之後讀取，所有讀取器都是如此：以前在第一張之後片刻貼上第二張會打斷第一張的讀取，表裡只剩最後貼上的那張。"
 }

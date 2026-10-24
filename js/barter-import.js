@@ -21,7 +21,7 @@
 import { esc, F } from './fmt.js';
 import { T, said, gameName, gameNamesFor } from './i18n.js';
 import { openDialog, closeDialog, toast } from './dialogs.js';
-import { triage, readWords, wireShotIntake, close as closeReader, shotLang } from './shot-reader.js';
+import { triage, readWords, wireShotIntake, close as closeReader, shotLang, queuedNote } from './shot-reader.js';
 import { npcs, isleOf, whoOf } from './barter_npcs.js';
 import { img } from './ui-bits.js';
 import * as store from './state.js';
@@ -199,10 +199,20 @@ export function openBarterImport({ files, deals, onAnswers = () => {} } = {}) {
 	};
 
 	/* --- doing it ---------------------------------------------------- */
+	let pending = [];        // pasted while a batch was being read: read after it
+	let adding = false;      // this batch follows one already in the table
+	// A paste while a batch is being read is read after it, not instead
+	// of it: a second screenshot pasted a moment after the first cut the
+	// first one's reading short, and only the last paste was in the table.
 	async function run(files) {
-		if (stop) stop.abort();
+		if (stop) { pending.push(...files); queuedNote(host()); return; }
+		await read(files);
+		if (pending.length && !host().hidden) { const more = pending; pending = []; adding = true; try { await run(more); } finally { adding = false; } }
+		else pending = [];
+	}
+	async function read(files) {
 		const { take, skipped: out } = await triage([...files]);
-		skipped = out.map(x => ({ name: x.file.name, why: x.why }));
+		skipped = [...(adding ? skipped : []), ...out.map(x => ({ name: x.file.name, why: x.why }))];
 		if (!take.length) { rows = [...seen.values()]; draw(reviewView()); return; }
 		const me = stop = new AbortController();
 		draw(readingView(0, T('Fetching the reader…')));

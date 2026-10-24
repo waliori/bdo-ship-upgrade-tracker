@@ -223,6 +223,12 @@ export function imagesOn(data, from = 1) {
 	return out;
 }
 
+/** Said in a reader's dialog when a paste lands while a batch is being read. */
+export function queuedNote(box) {
+	const note = box && box.querySelector('.dialog-note');
+	if (note) note.textContent = T('Pasted while reading: read after this one');
+}
+
 /** The paste listener in hand, so a second dialog -- or a redraw of
  *  this one -- never leaves the first one listening. */
 let pasteOff = null;

@@ -25,7 +25,7 @@ import { esc, F } from './fmt.js';
 import { T, said, gameName } from './i18n.js';
 import * as store from './state.js';
 import { openDialog, closeDialog, toast } from './dialogs.js';
-import { LIMITS, triage, readStorageShots, wireShotIntake, close as closeReader } from './shot-reader.js';
+import { LIMITS, triage, readStorageShots, wireShotIntake, close as closeReader, queuedNote } from './shot-reader.js';
 import { allItems, img } from './ui-bits.js';
 import { isLandGood } from './land_goods.js';
 import { TOWNS } from './screen-inventory.js';
@@ -287,7 +287,17 @@ export function openStorageImport(after = () => {}, handOff = null, files = null
 	};
 
 	/* --- doing it ---------------------------------------------------- */
+	let pending = [];        // pasted while a batch was being read: read after it, as Read more adds
+	// A paste while a batch is being read is read after it, not instead
+	// of it: a second screenshot pasted a moment after the first cut the
+	// first one's reading short, and only the last paste was in the table.
 	async function run(files) {
+		if (stop) { pending.push(...files); queuedNote(host()); return; }
+		await read(files);
+		if (pending.length && !host().hidden) { const more = pending; pending = []; await run(more); }
+		else pending = [];
+	}
+	async function read(files) {
 		const { take, skipped: out } = await triage([...files]);
 		// Read more adds: the shots so far and the new ones are read again
 		// together, so a row two of them share is still counted once, and

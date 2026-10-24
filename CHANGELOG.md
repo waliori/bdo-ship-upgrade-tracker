@@ -70,6 +70,7 @@ Four days of questions on the server — Kemeren’s screenshots and his reading
 - **The storage reader** tells one drawing in two lights apart — Tide-Dyed and Deep Tide-Dyed Standardized Timber Square, Cobalt and Jade Coral Ingot, Island Tree Coated Plywood plain and Enhanced — by the square’s light against the screenshot’s own dimming, where it threw the three away as ties; and a second storage screenshot pasted adds to the first instead of starting over.
 - **The bag.** A run laid by the new planner said nothing went into the bag, whatever it carried; what goes into the bag is said again.
 - A screenshot pasted at the Inventory or the Ship tab, with no dialog open, opens its reader with the picture in hand, as a paste at the Barter tab does: several pictures at once, for the readers that take them.
+- A screenshot pasted while another is being read is read after it, in every reader: a second paste a moment after the first cut the first one’s reading short, and only the last paste was in the table.
 
 ## 1.5.3 — What each island pays, off the screenshot
 

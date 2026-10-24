@@ -20,7 +20,7 @@ import { T, said } from './i18n.js';
 import * as store from './state.js';
 import { openDialog, closeDialog, toast } from './dialogs.js';
 import { anyType, pool, mateTypes, SAILOR_CAP, logLevel, STAT_NAMES, statBand } from './sailors.js';
-import { LIMITS, triage, readShots, wireShotIntake, close as closeReader, shotLang, shotLangNote } from './shot-reader.js';
+import { LIMITS, triage, readShots, wireShotIntake, close as closeReader, shotLang, shotLangNote, queuedNote } from './shot-reader.js';
 
 const MOVES = ['speed', 'accel', 'turn', 'brake'];
 const CANNON = ['patience', 'force', 'focus', 'vision'];
@@ -148,10 +148,21 @@ export function openSailorImport(after = () => {}, files = null) {
 	};
 
 	/* --- doing it ---------------------------------------------------- */
+	let pending = [];        // pasted while a batch was being read: read after it
+	let adding = false;      // this batch follows one already in the table
+	// A paste while a batch is being read is read after it, not instead
+	// of it: a second screenshot pasted a moment after the first cut the
+	// first one's reading short, and only the last paste was in the table.
 	async function run(files) {
+		if (stop) { pending.push(...files); queuedNote(host()); return; }
+		await read(files);
+		if (pending.length && !host().hidden) { const more = pending; pending = []; adding = true; try { await run(more); } finally { adding = false; } }
+		else pending = [];
+	}
+	async function read(files) {
 		const { take, skipped: out } = await triage([...files]);
-		skipped = out.map(s => ({ name: s.file.name, why: s.why }));
-		if (!take.length) { rows = []; draw(reviewView()); return; }
+		skipped = [...(adding ? skipped : []), ...out.map(s => ({ name: s.file.name, why: s.why }))];
+		if (!take.length) { if (!adding) rows = []; draw(reviewView()); return; }
 		stop = new AbortController();
 		draw(readingView(0, T('Fetching the reader…')));
 		const onProgress = p => {
@@ -175,7 +186,7 @@ export function openSailorImport(after = () => {}, files = null) {
 			stop = null;
 		}
 		const list = roster();
-		rows = [];
+		if (!adding) rows = [];
 		for (const r of results) {
 			if (!r.sailor) { skipped.push({ name: r.file, why: r.why }); continue; }
 			const s = r.sailor;
