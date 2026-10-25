@@ -78,8 +78,7 @@ async function barterDay(page, url, state, { goal = 'silver' } = {}) {
 	await tab(page, 'barter');
 	await wait(1200);
 	if (goal !== 'silver') {
-		await page.evaluate(g => document.querySelector(`[data-act="barter-goal"][data-id="${g}"]`).click(), goal);
-		await wait(1200);
+		await click(page, `[data-act="barter-goal"][data-id="${goal}"]`, { after: 1200 });
 	}
 	await nameTheBoard(page);
 	// The runs worth sailing come back from a worker; the best one is

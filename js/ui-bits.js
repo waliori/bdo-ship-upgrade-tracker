@@ -333,7 +333,7 @@ export function peekHTML(item) {
 		+ inBulk
 		+ does
 		+ (foot ? `<div class="peek-foot">${esc(foot)}</div>` : '')
-		+ `<button class="peek-open" data-act="open-item" data-item="${esc(item)}">${T('Open in Inventory →')}</button>`;
+		+ `<button class="peek-open" data-act="open-item" data-item="${esc(item)}">${T('Open in Inventory')}</button>`;
 }
 
 /** A trade good's name in its level's colour, the barter window's own:

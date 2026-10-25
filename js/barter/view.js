@@ -62,7 +62,7 @@ export function restore() {
 	V.goal = 'silver'; V.climb = 0; V.item = null; V.qty = 1; V.wants = {};
 	V.stockGoal = { ...DEFAULT_STOCK, targets: { ...DEFAULT_STOCK.targets } };
 	V.matOrders = { reach: 'want', calls: true, pace: 'full', quests: 'near' };
-	V.port = 0; V.routes = { key: '', ids: [] }; V.shape = 'full'; V.routesOther = { key: '', ids: [] }; V.stash = ''; V.sail = null; V.reach = ''; V.planSec = 'ladder'; V.ownWay = false;
+	V.port = 0; V.routes = { key: '', ids: [] }; V.shape = 'full'; V.routesOther = { key: '', ids: [] }; V.stash = ''; V.sail = null; V.reach = ''; V.planSec = 'none'; V.planDone = { day: '', board: '', ids: [] }; V.ownWay = false;
 	V.board = { day: '', answers: [], own: false }; V.matBoard = { day: '', answers: [], on: [] };
 	V.questSkip = { day: '', ids: [] }; V.questPull = { day: '', ids: [] }; V.routeEdit = { key: '', skip: [], nudge: {}, trips: [] }; V.advOpen = false; V.packed = new Set(); V.packLog = { delta: {}, moves: [] };
 	if (!s) return;
@@ -70,7 +70,8 @@ export function restore() {
 		if (['material', 'stock', 'coin'].includes(s.goal)) V.goal = s.goal;
 		if (s.stock) V.stockGoal = readStock(s.stock);
 		if (STOCK_LEVELS.includes(Number(s.climb)) && Number(s.climb) < 7) V.climb = Number(s.climb);
-		if (['parley', 'ladder', 'how', 'chains', 'all', 'none'].includes(s.planSec)) V.planSec = s.planSec;
+		if (['goal', 'shape', 'board', 'parley', 'ladder', 'how', 'shut', 'all', 'none'].includes(s.planSec)) V.planSec = s.planSec;
+		if (s.planDone && s.planDone.day === barterKey() && Array.isArray(s.planDone.ids)) V.planDone = { day: s.planDone.day, board: typeof s.planDone.board === 'string' ? s.planDone.board : '', ids: s.planDone.ids.filter(x => typeof x === 'string').slice(0, 8) };
 		V.ownWay = s.ownWay === true;
 		if (Array.isArray(s.packed)) V.packed = new Set(s.packed.filter(k => typeof k === 'string' && k.startsWith('g|')));
 		if (s.packLog) V.packLog = cleanApplied(s.packLog);
@@ -256,7 +257,7 @@ function logBoard() {
 /** The view as memory holds it, for a write. The bag's packing marks
  *  ride with it: a reload before casting off kept every hold row's tick
  *  (they read the hold) and lost the bag's. */
-export const viewNow = () => ({ goal: V.goal, climb: V.climb, planSec: V.planSec, ownWay: V.ownWay, routeEdit: V.routeEdit, stock: V.stockGoal, item: V.item, qty: V.qty, wants: V.wants, matOrders: V.matOrders, port: V.port, routes: V.routes, shape: V.shape, routesOther: V.routesOther, stash: V.stash, board: V.board, matBoard: V.matBoard, matAt: V.matAt, sail: V.sail, reach: V.reach, questSkip: V.questSkip, questPull: V.questPull, packed: [...V.packed].slice(0, 60), packLog: V.packLog });
+export const viewNow = () => ({ goal: V.goal, climb: V.climb, planSec: V.planSec, planDone: V.planDone, ownWay: V.ownWay, routeEdit: V.routeEdit, stock: V.stockGoal, item: V.item, qty: V.qty, wants: V.wants, matOrders: V.matOrders, port: V.port, routes: V.routes, shape: V.shape, routesOther: V.routesOther, stash: V.stash, board: V.board, matBoard: V.matBoard, matAt: V.matAt, sail: V.sail, reach: V.reach, questSkip: V.questSkip, questPull: V.questPull, packed: [...V.packed].slice(0, 60), packLog: V.packLog });
 
 /**
  * The view written now, as a change Undo can take back: an edit to the

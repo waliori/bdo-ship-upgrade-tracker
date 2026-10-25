@@ -177,6 +177,12 @@ export function linesOf(words, lh = lineHeight(words)) {
 export function isleAt(line, isles, { left = Infinity } = {}) {
 	if (!line.words.length || line.words[0].x0 > left) return null;
 	let best = null;
+	// A cut that several islands share -- "Shipwrecked" opens five
+	// wrecks' names -- names none of them, but it is a row all the same:
+	// kept as one, with the islands it could be, for the exchange to
+	// settle. Folded into the row above, its goods were read as that
+	// island's and the layout was lost.
+	let shared = null;
 	// The arrow button left of the name comes back as a mark or two --
 	// "4", a quote, "wa" -- that is no part of it: the name may start
 	// after up to three of them.
@@ -199,7 +205,9 @@ export function isleAt(line, isles, { left = Infinity } = {}) {
 				const least = dense(want) ? 3 : 6;
 				// "Shipwrecked" alone opens five wrecks' names: a cut that two
 				// islands share names neither, and the next word decides.
-				const cut = seen.length >= least && want.startsWith(seen) && isles.filter(o => plain(o.at).startsWith(seen)).length === 1 ? seen.length / want.length : 0;
+				const alike = seen.length >= least && want.startsWith(seen) ? isles.filter(o => plain(o.at).startsWith(seen)) : [];
+				const cut = alike.length === 1 ? seen.length / want.length : 0;
+				if (alike.length > 1 && !shared) shared = { isle: null, among: alike, score: 0.5, words: i + 1, right: line.words[i].x1 };
 				// A name the engine misread rather than cut short. The cap has
 				// to be above the threshold or every long name is "close":
 				// editDistance stops counting at its cap and answers with it.
@@ -208,12 +216,16 @@ export function isleAt(line, isles, { left = Infinity } = {}) {
 					&& editDistance(seen, want, slack + 1) <= slack ? 0.8 : 0;
 				const score = Math.max(whole, cut, near);
 				if (score > 0.42 && (!best || score > best.score)) {
-					best = { isle, score, words: i + 1, right: line.words[i].x1 };
+					// A name read only nearly is the reader's guess, not the
+					// window's word: offered to the player, never settled.
+					best = !whole && !cut
+						? { isle: null, among: [isle], score, words: i + 1, right: line.words[i].x1 }
+						: { isle, score, words: i + 1, right: line.words[i].x1 };
 				}
 			}
 		}
 	}
-	return best;
+	return best || shared;
 }
 
 /**
@@ -329,7 +341,7 @@ export function rowsOf(all, isles) {
 			// neither is what the game prints under it.
 			.filter(w => w.x1 > head.right + 2)
 			.sort((a, b) => ((a.y0 + a.y1) / 2 - (b.y0 + b.y1) / 2) > lh * 0.6 ? 1 : ((b.y0 + b.y1) / 2 - (a.y0 + a.y1) / 2) > lh * 0.6 ? -1 : a.x0 - b.x0);
-		return { isle: head.isle, score: head.score, words: said, text: plain(said.map(w => w.text).join(' ')), tiers: said.map(w => tierIn(w.text)).filter(t => t !== null) };
+		return { isle: head.isle, among: head.among, score: head.score, words: said, text: plain(said.map(w => w.text).join(' ')), tiers: said.map(w => tierIn(w.text)).filter(t => t !== null) };
 	});
 }
 
@@ -348,6 +360,16 @@ export function rowsOf(all, isles) {
  * the player is asked rather than told.
  */
 export function offerOf(row, deals, { floor = 0.5, margin = 0.12 } = {}) {
+	// A row the reader could not name for sure is never settled by it:
+	// the exchange is read for each island it could be, and the player
+	// picks. A name several islands begin with asks which; a name read
+	// only nearly -- a letter off -- is shown as that island and left
+	// unticked until the player confirms it.
+	if (!row.isle) {
+		const fits = (row.among || []).map(isle => offerOf({ ...row, isle }, deals, { floor, margin }));
+		if (fits.length === 1) return { ...fits[0], guessed: true, why: T('read only nearly as {isle} — tick it if the window shows it', { isle: fits[0].isle.at }) };
+		return { ...row, among: undefined, offer: null, fits, why: T('a name several islands begin with — pick which') };
+	}
 	const here = deals.filter(d => d.npcId === row.isle.id);
 	if (!here.length) return { ...row, offer: null, why: T('nothing known at this island') };
 	const scored = here.map(d => {
@@ -376,7 +398,14 @@ export function offerOf(row, deals, { floor = 0.5, margin = 0.12 } = {}) {
 		if (first) return { ...row, offer: first.deal, score: first.score, near: scored.slice(0, 3) };
 	}
 	if (next && best.score - next.score < margin) {
-		return { ...row, offer: null, near: scored.slice(0, 3), why: T('two of its exchanges fit that equally well') };
+		// Said with the two names, since what collides is usually a
+		// letter apart -- Supreme Bear Hide, Supreme Boar Hide -- and a
+		// row that only says "two fit" reads as the same line twice.
+		const twice = best.deal.item === next.deal.item;
+		const why = twice
+			? T('could not tell {a} from {b} apart — pick the one the island shows, or none of these', { a: best.deal.give, b: next.deal.give })
+			: T('could not tell {a} from {b} apart — pick the one the island shows, or none of these', { a: `${best.deal.give} → ${best.deal.item}`, b: `${next.deal.give} → ${next.deal.item}` });
+		return { ...row, offer: null, near: scored.slice(0, 3), why };
 	}
 	return { ...row, offer: best.deal, score: best.score, near: scored.slice(0, 3) };
 }
@@ -529,7 +558,8 @@ export function inEnglish(row) {
 		...row,
 		isle: back(row.isle),
 		offer: back(row.offer),
-		near: (row.near || []).map(n => ({ ...n, deal: back(n.deal) }))
+		near: (row.near || []).map(n => ({ ...n, deal: back(n.deal) })),
+		...(row.fits ? { fits: row.fits.map(inEnglish) } : {})
 	};
 }
 

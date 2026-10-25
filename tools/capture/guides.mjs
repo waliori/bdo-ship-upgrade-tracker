@@ -83,7 +83,7 @@ const CHAPTERS = {
 			cards: 'Each build is a card: how far along it is, and what is still to get, in coins, silver and goods.',
 			order: 'Order matters. When stock runs short, the build at the top gets it first. Move the sail up.',
 			pause: 'The Caravel can wait. Pause it, and it stops claiming stock until you start it again.',
-			blockers: 'Under the queue are the biggest blockers: the missing things holding the most up. A count can be typed right on the row.',
+			blockers: 'Under the queue, how much is still missing, and the way to To Get, where each of those is listed with the way to get it.',
 
 			/* --- the plan --- */
 			plan: 'The Plan tab is everything the active builds need, in one list.',
@@ -180,10 +180,7 @@ const CHAPTERS = {
 			// The sail is the second card; its up arrow is the second one.
 			await doing(page, s.order, () => click(page, '.build ~ .build [data-act="move"][data-dir="-1"]', { after: 900 }));
 			await doing(page, s.pause, () => click(page, '.build ~ .build [data-act="pause"]', { after: 1000 }));
-			await pointAt(page, '.panel:has(.panel-title.amber)', s.blockers, {
-				pad: 4,
-				act: () => typeInto(page, '.panel:has(.panel-title.amber) [data-act="own-set"]', '40', { after: 500 })
-			});
+			await pointAt(page, '.builds-short', s.blockers, { pad: 4 });
 			await hush(page);
 
 			/* --- the plan ---------------------------------------------- */

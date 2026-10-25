@@ -42,9 +42,7 @@
 }
 
 .peek-label {
-  font-size: 10px;
-  letter-spacing: 0.11em;
-  text-transform: uppercase;
+  font-size: 12px;
   color: var(--ink-mute);
   margin-bottom: 6px;
 }
@@ -135,16 +133,16 @@
 .toast .toast-text small { font-size: 12px; color: var(--ink-mute); }
 .toast .toast-acts { display: flex; align-items: center; gap: 4px; margin-left: auto; }
 .toast .toast-acts button { padding: 6px 8px; border-radius: var(--r-sm); }
-.toast .toast-go { color: var(--teal-hi); background: rgba(78, 201, 174, 0.16); }
-.toast .toast-go:hover { background: rgba(78, 201, 174, 0.28); }
+.toast .toast-go { color: var(--teal-hi); background: rgba(var(--teal-rgb), 0.16); }
+.toast .toast-go:hover { background: rgba(var(--teal-rgb), 0.28); }
 .toast .toast-undo { color: var(--ink-mute); font-weight: 600; }
 
 /* The made thing on its way to the Builds tab, and the tab taking it. */
 .fly-ghost { position: fixed; z-index: 1001; pointer-events: none; object-fit: contain; filter: drop-shadow(0 4px 10px rgba(var(--shade-rgb), 0.6)); }
 @keyframes tabTick {
-  0% { box-shadow: 0 0 0 0 rgba(78, 201, 174, 0.7); }
+  0% { box-shadow: 0 0 0 0 rgba(var(--teal-rgb), 0.7); }
   30% { transform: scale(1.12); }
-  100% { box-shadow: 0 0 0 12px rgba(78, 201, 174, 0); transform: scale(1); }
+  100% { box-shadow: 0 0 0 12px rgba(var(--teal-rgb), 0); transform: scale(1); }
 }
 .tab-tick { animation: tabTick 0.8s ease-out; }
 
@@ -181,8 +179,6 @@
   font-family: var(--font-display);
   font-size: 16px;
   font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
   color: var(--ink-hi);
 }
 
@@ -217,7 +213,7 @@
    which is why this is sized to hold two and not one. */
 .lang-flag {
   flex: none;
-  font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', 'Twemoji Mozilla', sans-serif;
+  font-family: var(--font-emoji);
   font-size: 15px;
   line-height: 1;
   letter-spacing: 0;
@@ -281,14 +277,12 @@
 .picker-group-n { color: var(--ink-faint); font-weight: 400; letter-spacing: 0; margin-left: 4px; }
 .build-kinds { margin: 0 0 10px; }
 .picker-row:hover:not(:disabled) { background: rgba(var(--blue-rgb), 0.08); color: var(--ink-hi); }
-.picker-row:disabled { opacity: 0.45; cursor: default; }
+.picker-row:disabled { opacity: 0.6; color: var(--ink-faint); background: none; cursor: not-allowed; }
 .picker-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .picker-tag {
   font-family: var(--font-display);
-  font-size: 10.5px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: 12px;
   color: var(--ink-faint);
 }
 
@@ -387,8 +381,6 @@
   font-family: var(--font-display);
   font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
   color: var(--blue);
   white-space: nowrap;
 }
@@ -401,10 +393,10 @@
 .pouch {
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 14px;
   flex-wrap: wrap;
-  margin: 0 0 22px;
-  padding: 11px 18px;
+  margin: 0 0 14px;
+  padding: 8px 14px;
   border-radius: var(--r-panel);
   border: 1px solid var(--line);
   background: rgba(var(--deep-rgb), 0.86);
@@ -415,10 +407,8 @@
 
 .pouch-title {
   font-family: var(--font-display);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
   color: var(--ink-mute);
   white-space: nowrap;
 }
@@ -434,8 +424,8 @@
 .pouch-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 6px 12px 6px 8px;
+  gap: 9px;
+  padding: 4px 12px 4px 6px;
   border-radius: var(--r-btn);
   border: 1px solid transparent;
   background: rgba(var(--shade-rgb), 0.2);
@@ -443,8 +433,8 @@
 }
 
 .pouch-item:hover { border-color: rgba(var(--line-rgb), 0.22); }
-.pouch-item.short { border-color: rgba(232, 122, 109, 0.3); }
-.pouch-item.ok { border-color: rgba(78, 201, 174, 0.26); }
+.pouch-item.short { border-color: rgba(var(--red-rgb), 0.3); }
+.pouch-item.ok { border-color: rgba(var(--teal-rgb), 0.26); }
 
 .pouch-icon,
 .pouch-glyph {
@@ -460,16 +450,14 @@
   align-items: center;
   justify-content: center;
   font-size: 17px;
-  color: #b9c9dc;
-  background: rgba(120, 160, 200, 0.12);
+  color: var(--ink-mid);
+  background: rgba(var(--line-rgb), 0.12);
 }
 
 .pouch-body { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 
 .pouch-k {
-  font-size: 10px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font-size: 12px;
   color: var(--ink-mute);
   white-space: nowrap;
 }
@@ -516,10 +504,8 @@
   margin-left: 2px;
   border-left: 1px solid var(--line);
   font-family: var(--font-display);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
   color: var(--ink-faint);
   white-space: nowrap;
 }
@@ -529,7 +515,7 @@
   width: 22px;
   height: 22px;
   font-size: 14px;
-  background: rgba(120, 160, 200, 0.09);
+  background: rgba(var(--line-rgb), 0.09);
 }
 .pouch-item.sail .pouch-input { width: 104px; font-size: 15px; }
 .pouch-item.sail.parley .pouch-input { width: 118px; }
@@ -555,7 +541,7 @@
 .pouch-item.sail.summary:hover { border-color: rgba(var(--line-rgb), 0.28); }
 /* Nought barters is a real answer and an unanswered question at once,
    so the chip asks until it is told. */
-.pouch-item.sail.summary.asking { border-color: rgba(232, 182, 97, 0.45); }
+.pouch-item.sail.summary.asking { border-color: rgba(var(--amber-rgb), 0.45); }
 .pouch-item.sail.summary.asking .pouch-need { color: var(--amber); }
 
 /* The table of thresholds, from the bar's ? and from the Barter tab. */
@@ -666,12 +652,12 @@ button.pouch-group i { font-style: normal; font-size: 9px; }
 
 .pet-pip.t0 i { display: none; }
 .pet-pip.t1, .pet-cell.t1 { --tier: rgba(var(--line-rgb), 0.85); }
-.pet-pip.t2, .pet-cell.t2 { --tier: #6fce72; }
-.pet-pip.t3, .pet-cell.t3 { --tier: #5aa9e6; }
-.pet-pip.t4, .pet-cell.t4 { --tier: #f0c04a; }
-.pet-pip.t5, .pet-cell.t5 { --tier: #e2622c; }
-.pet-pip.t2 i, .pet-pip.t3 i, .pet-pip.t4 i { color: #0b1a2c; }
-.pet-pip.t5 i { color: #fff1e8; }
+.pet-pip.t2, .pet-cell.t2 { --tier: var(--pet-tier-2); }
+.pet-pip.t3, .pet-cell.t3 { --tier: var(--pet-tier-3); }
+.pet-pip.t4, .pet-cell.t4 { --tier: var(--pet-tier-4); }
+.pet-pip.t5, .pet-cell.t5 { --tier: var(--pet-tier-5); }
+.pet-pip.t2 i, .pet-pip.t3 i, .pet-pip.t4 i { color: var(--tier-ink); }
+.pet-pip.t5 i { color: var(--tier-ink-hot); }
 
 /* The chip is a way in, like the folded sailor line, so it wears that
    one's manners rather than a text field's. */
@@ -716,9 +702,7 @@ button.pouch-item.sail.pets:focus-visible { outline: 2px solid var(--focus); out
    told apart by its words and not by being drawn differently. */
 .pet-row.head .pet-row-k {
   font-family: var(--font-display);
-  font-size: 10px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font-size: 12px;
   color: var(--ink-faint);
   justify-content: flex-end;
   padding-right: 2px;
@@ -747,8 +731,8 @@ button.pouch-item.sail.pets:focus-visible { outline: 2px solid var(--focus); out
    that slot is framed in -- the two halves of the dialog say the same
    thing the same way. */
 .pet-cell.on { background: var(--tier); border-color: var(--tier); color: var(--on-tint); }
-.pet-cell.t2.on, .pet-cell.t3.on, .pet-cell.t4.on { color: #0b1a2c; }
-.pet-cell.t5.on { color: #fff1e8; }
+.pet-cell.t2.on, .pet-cell.t3.on, .pet-cell.t4.on { color: var(--tier-ink); }
+.pet-cell.t5.on { color: var(--tier-ink-hot); }
 .pet-cell.t0.on { background: rgba(var(--line-rgb), 0.14); border-color: rgba(var(--line-rgb), 0.3); color: var(--ink-mid); }
 
 .pet-alpha-row {
@@ -908,12 +892,12 @@ button.pouch-item.sail.pets:focus-visible { outline: 2px solid var(--focus); out
   justify-content: center;
   font-size: 13px;
   color: var(--ink-mute);
-  background: rgba(120, 160, 200, 0.09);
+  background: var(--peek-wash);
 }
 /* The stones and the Sangpyeong: counted here, read in the sheet. */
 .peek-bit.more {
   padding: 1px 7px;
-  border-radius: 999px;
+  border-radius: var(--r-sm);
   border: 1px solid rgba(var(--line-rgb), 0.35);
   font-size: 11px;
   color: var(--ink-faint);
@@ -1023,9 +1007,7 @@ button.pouch-item.sail.pets:focus-visible { outline: 2px solid var(--focus); out
 .route-name { font-weight: 600; font-size: 12.5px; }
 
 .route-have {
-  font-size: 10px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-size: 12px;
   color: var(--teal);
   border: 1px solid var(--teal-edge);
   border-radius: 8px;
@@ -1200,7 +1182,7 @@ button.pouch-item.sail.pets:focus-visible { outline: 2px solid var(--focus); out
   margin: 4px 0 14px;
   border-radius: var(--r-panel);
   border: 1px solid rgba(var(--line-rgb), 0.2);
-  background: #06111e;
+  background: var(--film-bg);
 }
 
 @media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
@@ -1257,7 +1239,7 @@ a.codex {
 a.codex:hover,
 a.codex:focus-visible {
   color: var(--blue-hi);
-  border-bottom-color: rgba(124, 195, 238, 0.45);
+  border-bottom-color: var(--codex-edge);
 }
 
 .codex-mark {
@@ -1311,7 +1293,7 @@ h2 .copy-name { font-size: 14px; min-width: 24px; height: 24px; vertical-align: 
   padding: 8px 10px;
   border-radius: var(--r-btn);
   border: 1px solid rgba(var(--line-rgb), 0.14);
-  background: rgba(255, 255, 255, 0.015);
+  background: rgba(var(--white-rgb), 0.015);
 }
 
 .way + .way { margin-top: 6px; }
@@ -1363,7 +1345,9 @@ h2 .copy-name { font-size: 14px; min-width: 24px; height: 24px; vertical-align: 
 .row-sea-why { color: var(--ink-faint); }
 .row-sea-why::before { content: "· "; }
 
-/* A tick that reads as part of the sentence it interrupts. */
+/* A tick that reads as part of the sentence it interrupts. Under a
+   craft card's buttons it stands alone, at the card's own small size. */
+.craft-card .inline-check { margin-top: 8px; font-size: 12.5px; color: var(--ink-mute); }
 .inline-check {
   display: inline-flex;
   align-items: center;
@@ -1396,9 +1380,9 @@ select.purse-inline { width: auto; cursor: pointer; }
 /* A sailing log as the game draws it: one picture for all three, the
    grade's frame round it and the enhancement on its corner. */
 .log-icon { position: relative; display: inline-grid; flex: none; border-radius: 6px; border: 2px solid var(--log-grade, var(--line-btn)); box-shadow: 0 0 6px color-mix(in srgb, var(--log-grade, transparent) 45%, transparent); line-height: 0; }
-.log-icon.grade-1 { --log-grade: #6fcf4a; }
-.log-icon.grade-2 { --log-grade: #3d8fe0; }
-.log-icon.grade-3 { --log-grade: #f2c13a; }
-.log-icon.grade-4 { --log-grade: #f07b2a; }
+.log-icon.grade-1 { --log-grade: var(--log-grade-1); }
+.log-icon.grade-2 { --log-grade: var(--log-grade-2); }
+.log-icon.grade-3 { --log-grade: var(--log-grade-3); }
+.log-icon.grade-4 { --log-grade: var(--log-grade-4); }
 .log-icon .pouch-icon { border-radius: 4px; }
-.log-icon i { position: absolute; left: -3px; top: -6px; font-style: normal; font-family: var(--font-display); font-size: 9.5px; font-weight: 800; line-height: 1; letter-spacing: .02em; color: #fff; padding: 1px 3px; border-radius: 3px; background: rgba(0, 0, 0, .75); text-shadow: 0 0 2px #000; }
+.log-icon i { position: absolute; left: -3px; top: -6px; font-style: normal; font-family: var(--font-display); font-size: 9.5px; font-weight: 800; line-height: 1; letter-spacing: .02em; color: var(--white); padding: 1px 3px; border-radius: 3px; background: rgba(var(--black-rgb), .75); text-shadow: 0 0 2px var(--black); }

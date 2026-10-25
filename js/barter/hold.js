@@ -19,6 +19,7 @@ import { fromPort } from './board.js';
 import { parleyOf, ordersNow } from './plan.js';
 import { STASHES, storeOf, TIER } from './route.js';
 
+import { ico } from '../icons.js';
 /* ------------------------------------------------------------------ *
  * the hold
  * ------------------------------------------------------------------ */
@@ -189,10 +190,10 @@ export function holdBarHTML(me, tickedLT = 0, slotsUsed = null) {
 		<div class="hold-cols">
 			<section class="hold-col hold-col-ship">
 				<div class="hold-col-head">
-					<span class="hold-bar-k">⚓ ${T('The hold')}</span>
+					<span class="hold-bar-k">${ico('anchor')} ${T('The hold')}</span>
 					<span class="hold-bar-ship">${esc(gameName(me.name))}</span>
 					<span class="panel-spacer"></span>
-					<button class="ghost-btn sm" data-act="barter-hold-open" title="${T('Open the hold: every good aboard and ashore, with its count')}">${T('Open the hold')} ›</button>
+					<button class="ghost-btn sm" data-act="barter-hold-open" title="${T('Open the hold: every good aboard and ashore, with its count')}">${T('Open the hold')}</button>
 				</div>
 				<div class="hold-gauge"><span class="map-load-bar"><i class="${state}" style="width:${pct.toFixed(1)}%"></i><s style="left:${mark.toFixed(1)}%"></s></span><b class="${state ? 'warn' : ''}">${weightText}</b></div>
 				<div class="hold-goods">${levels || `<span class="faint">${T('no trade goods aboard')}</span>`}</div>
@@ -223,15 +224,33 @@ export function holdBarHTML(me, tickedLT = 0, slotsUsed = null) {
  * in the run -- redraws it in place, the caret kept where it was.
  */
 const SHEETS = {
-	hold: { cls: 'hold-dialog', box: 'wide', html: () => holdHTML(currentShip()) }
+	hold: { cls: 'hold-dialog', box: 'wide', html: () => holdHTML(currentShip()) },
+	// The chains, over the plan: drawn by the last render of the tab, so a
+	// chain ticked inside it is in the sheet as soon as the tab has redrawn.
+	chains: { cls: 'chains-dialog', box: 'xwide', html: () => V.chainsSheet || '' }
 };
 
 export function openSheet(id) {
 	const sheet = SHEETS[id];
 	V.sheetOpen = id;
-	const host = openDialog(`<div class="${sheet.cls}">${sheet.html()}<div class="dialog-actions"><button class="ghost-btn" data-close>${T('Close')}</button></div></div>`, { onDismiss: () => { if (V.sheetOpen === id) V.sheetOpen = null; } });
+	// A dialog opened from inside the sheet (a chain step by step) takes
+	// its place; the sheet comes back when that one is closed.
+	const replaced = () => !document.getElementById('dialog').hidden;
+	const host = openDialog(`<div class="${sheet.cls}">${sheet.html()}<div class="dialog-actions"><button class="ghost-btn" data-close>${T('Close')}</button></div></div>`, { onDismiss: () => {
+		if (V.sheetOpen === id) V.sheetOpen = null;
+		if (replaced()) sheetBack = id;
+	} });
 	host.firstElementChild.classList.add(...sheet.box.split(' '));
 }
+
+let sheetBack = null;
+// (No page, no dialogs: the modules are also loaded by the tests in Node.)
+globalThis.document?.addEventListener('dialog-toggle', evt => {
+	if (evt.detail.open || !sheetBack) return;
+	const id = sheetBack;
+	sheetBack = null;
+	setTimeout(() => openSheet(id), 0);
+});
 
 /** The open sheet redrawn after a change, the caret kept where it was. */
 export function refreshSheet() {

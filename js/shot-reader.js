@@ -223,6 +223,33 @@ export function imagesOn(data, from = 1) {
 	return out;
 }
 
+/** Said in a reader's dialog when a paste lands while a batch is being read. */
+/**
+ * How many screenshots one paste carries depends on the browser, and
+ * the zones show it as marks rather than words: Chrome, Edge, Opera and
+ * the other Chromium browsers hand over every file copied in a file
+ * manager; Firefox hands over one a paste, whatever was copied, and the
+ * rest are dropped or chosen. The browser the page is in is the bold one.
+ */
+const MARK = {
+	chrome: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12L2.47 6.5A11 11 0 0 1 21.53 6.5Z" fill="#db4437"/><path d="M12 12L21.53 6.5A11 11 0 0 1 12 23Z" fill="#f4b400"/><path d="M12 12L12 23A11 11 0 0 1 2.47 6.5Z" fill="#0f9d58"/><circle cx="12" cy="12" r="5.6" fill="#fff"/><circle cx="12" cy="12" r="4.3" fill="#4285f4"/></svg>',
+	edge: '<svg viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="pb-edge" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#0c59a4"/><stop offset="1" stop-color="#3ec1a3"/></linearGradient></defs><circle cx="12" cy="12" r="11" fill="url(#pb-edge)"/><text x="12" y="17" text-anchor="middle" font-size="15" font-weight="700" fill="#fff" font-family="Arial, sans-serif">e</text></svg>',
+	opera: '<svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="12" rx="10" ry="11" fill="#ff1b2d"/><ellipse cx="12" cy="12" rx="4.4" ry="6.6" fill="#fff"/></svg>',
+	firefox: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#ff9500"/><path d="M3.2 8.5C4.6 4 8.5 1.6 13 2.2c-3 1-4.8 3-5.3 5.5z" fill="#ff5a1f"/><circle cx="13" cy="13" r="7.6" fill="#2a3e8f"/><circle cx="14.5" cy="14.5" r="4.6" fill="#5a2ea6" opacity="0.6"/></svg>'
+};
+export function pasteManyNote() {
+	const ua = navigator.userAgent || '';
+	const ff = /Firefox\//.test(ua);
+	const here = ff ? 'firefox' : /Edg\//.test(ua) ? 'edge' : /OPR\//.test(ua) ? 'opera' : /Chrom(e|ium)\//.test(ua) ? 'chrome' : '';
+	const chip = (k, name, ok) => `<span class="pb ${ok ? 'ok' : 'no'}${here === k ? ' here' : ''}" title="${ok ? T('pastes several screenshots at once') : T('pastes one screenshot at a time')}">${MARK[k]}${name}</span>`;
+	return `<span class="paste-browsers">${chip('chrome', 'Chrome', true)}${chip('edge', 'Edge', true)}${chip('opera', 'Opera', true)}${chip('firefox', 'Firefox', false)}<span class="pb-note">${ff ? T('One at a time here — drop or choose the files') : T('Several at once with Ctrl+V')}</span></span>`;
+}
+
+export function queuedNote(box) {
+	const note = box && box.querySelector('.dialog-note');
+	if (note) note.textContent = T('Pasted while reading: read after this one');
+}
+
 /** The paste listener in hand, so a second dialog -- or a redraw of
  *  this one -- never leaves the first one listening. */
 let pasteOff = null;

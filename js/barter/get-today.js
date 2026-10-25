@@ -208,6 +208,7 @@ export function sailToday(list) {
 		V.tickSide = true;
 	}
 	V.step = 'plan';
-	V.planSec = 'chains';
+	V.planSec = 'none';
+	V.sheetAfter = 'chains';
 	persist();
 }

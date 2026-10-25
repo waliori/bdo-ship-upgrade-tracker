@@ -18,6 +18,7 @@ import { img } from './ui-bits.js';
 import { openDialog, closeDialog, toast } from './dialogs.js';
 import { withOver } from './hold-room.js';
 import * as store from './state.js';
+import { ico } from './icons.js';
 import {
 	listFleet, listSetups, setupSummary, loadSetup, deleteSetup, activeSetupId, hullOfRow, shipName, OWNED_PREFIX
 } from './ship.js';
@@ -99,7 +100,7 @@ function rowHTML(s, active, here) {
 	return `<div class="fleet-row${on ? ' on' : ' can'}${s.owned ? ' bare' : ''}" data-id="${esc(s.id)}">
 		${on ? '' : `<button class="fleet-hit" data-act="fleet-sail" data-id="${esc(s.id)}" title="${T('Sail {name} — the Map times its routes at this ship', { name: esc(gameName(s.name)) })}" aria-label="${T('Sail {name}', { name: esc(gameName(s.name)) })}"></button>`}
 		${img(s.ship, 'fleet-icon')}
-		<span class="fleet-name">${on ? '<span class="setup-flag">⚓</span>' : ''}${esc(gameName(s.name))}
+		<span class="fleet-name">${on ? `<span class="setup-flag">${ico('anchor')}</span>` : ''}${esc(gameName(s.name))}
 			<small>${s.owned ? T('in your inventory · no setup kept') : esc(gameName(s.ship))}</small></span>
 		<span class="fleet-figs">
 			<span class="setup-fig">${T('speed')} <b>${s.sum.speed}%</b>${on ? '' : diff(s.sum, here, 'speed', '%')}</span>
@@ -109,7 +110,7 @@ function rowHTML(s, active, here) {
 			${s.sum.skinned ? `<span class="setup-fig">${T('skin')} <b>${s.sum.skinned}/4</b></span>` : ''}
 		</span>
 		<span class="fleet-acts">
-			${on ? `<span class="setup-sailing">${T('sailing')}</span>` : `<span class="fleet-go" aria-hidden="true">${T('sail ⛵')}</span>`}
+			${on ? `<span class="setup-sailing">${T('sailing')}</span>` : `<span class="fleet-go" aria-hidden="true">${T('sail')} ${ico('sail')}</span>`}
 			<button class="map-x" data-act="fleet-del" data-id="${esc(s.id)}" aria-label="${esc(drop)}">×</button>
 		</span>
 	</div>`;
@@ -177,9 +178,9 @@ function paint(host) {
 			? slice.map(s => rowHTML(s, active, here)).join('')
 			: `<p class="empty">${T('No ship by that name.')}</p>`}</div>
 		${pages > 1 ? `<div class="fleet-pager">
-			<button class="ghost-btn" data-act="fleet-page" data-to="${page - 1}"${page === 0 ? ' disabled' : ''}>${T('← Back')}</button>
+			<button class="ghost-btn" data-act="fleet-page" data-to="${page - 1}"${page === 0 ? ' disabled' : ''}>${T('Back')}</button>
 			<span>${T('{from}–{to} of {total}', { from: page * PAGE + 1, to: Math.min(rows.length, (page + 1) * PAGE), total: rows.length })}</span>
-			<button class="ghost-btn" data-act="fleet-page" data-to="${page + 1}"${page >= pages - 1 ? ' disabled' : ''}>${T('Next →')}</button>
+			<button class="ghost-btn" data-act="fleet-page" data-to="${page + 1}"${page >= pages - 1 ? ' disabled' : ''}>${T('Next')}</button>
 		</div>` : ''}
 		<div class="dialog-actions"><button class="ghost-btn" data-close>${T('Close')}</button></div>`;
 

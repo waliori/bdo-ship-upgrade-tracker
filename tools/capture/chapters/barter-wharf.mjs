@@ -126,6 +126,7 @@ export default {
 		await spot(page, '.run-stop:not(.start):not(.wharf)', s.stop, { pad: 4 });
 		await point(page, '.run-stop:not(.start):not(.wharf) .run-rations', s.bars, { pad: 30 });
 		await point(page, '.run-stop:has(.run-parley.voucher)', s.voucher, { pad: 4 });
+		await page.evaluate(() => { const f = document.querySelector('.run-stop .leg-fold'); if (f) f.open = true; }); await wait(600);
 		await point(page, '.run-stop .leg-snap', s.leg, { pad: 4 });
 		await point(page, '.run-stop.wharf', s.wharf, { pad: 4 });
 		await doing(page, s.skip, () => click(page, '.run-stop:not(.start):not(.wharf) [data-act="barter-route-skip"]', { after: 2200 }));

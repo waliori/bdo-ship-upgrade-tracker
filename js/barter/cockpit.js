@@ -25,6 +25,7 @@ import { fmtRations, RATION_RESERVE } from '../rations.js';
 import { sailing, stopKey, ticked, runLabel, runMarks, PAID_CHIPS, owesCount, rangeOf, paidAsk, knownPaid, unsaid, sailedPlan, aboardNow, stopEffects } from './sail.js';
 import { VOUCHER } from './view.js';
 
+import { ico } from '../icons.js';
 /* ------------------------------------------------------------------ *
  * the four steps
  * ------------------------------------------------------------------ */
@@ -103,6 +104,13 @@ export const sailLocked = stops => (stops
 	? T('Nothing is under way yet: cast off from the Load step and the cockpit opens here')
 	: T('Tick a chain in Plan first: there is nothing to sail yet'));
 
+/** The day's two forks in a few words, for the Plan step: the goal,
+ *  and the shape when the goal has one. */
+function forkSaid() {
+	const goal = { stock: T('A stock'), coin: T('Crow Coins'), material: T('A material') }[V.goal] || T('Silver');
+	return V.goal === 'material' || V.reach ? goal : `${goal}, ${V.shape === 'short' ? T('Short trip') : T('Full run')}`;
+}
+
 /** The four steps across the head of the page, each saying where it is. */
 export function stepperHTML(parts, now) {
 	const on = sailing();
@@ -119,7 +127,7 @@ export function stepperHTML(parts, now) {
 	const cell = (id, n, k, title, sub, locked = '') => `<button class="step${now === id ? ' on' : ''}${order.indexOf(id) < order.indexOf(now) ? ' past' : ''}${locked && now !== id ? ' locked' : ''}" data-act="barter-step" data-id="${id}" aria-current="${now === id ? 'step' : 'false'}"${locked ? ` title="${esc(locked)}"` : ''}><span class="step-k"><i>${n}</i><em>${k}</em></span><b>${title}</b><span class="step-sub">${sub}</span></button>`;
 	const sailLock = plan ? '' : sailLocked(parts.stops);
 	return `<nav class="steps" aria-label="${T('The steps of a run')}">
-		${cell('plan', 1, T('Plan'), T('What is today for?'), parts.secs[0][2])}
+		${cell('plan', 1, T('Plan'), T('Plan the run'), forkSaid())}
 		${cell('load', 2, T('Load'), T('Pack at the wharf'), parts.stops ? (parts.things.later ? T('{n} to have aboard now · {m} picked up on the way', { n: parts.things.all, m: parts.things.later }) : parts.things.all === 1 ? T('{n} thing to have aboard', { n: parts.things.all }) : T('{n} things to have aboard', { n: parts.things.all })) : T('tick a chain first'), parts.stops || plan ? '' : T('Tick a chain in Plan first: there is nothing to pack yet'))}
 		${cell('sail', 3, T('step|Sail'), T('One stop at a time'), plan ? (at >= 0 ? T('stop {n} of {of}', { n: at + 1, of: plan.stops.length }) : T('every stop ticked')) : parts.stops ? `${parts.stops === 1 ? T('{n} stop', { n: parts.stops }) : T('{n} stops', { n: parts.stops })}${parts.time ? ` · ≈ ${esc(parts.time)}` : ''}` : T('nothing planned yet'), sailLock)}
 		${cell('results', 4, T('Results'), T('What the run did'), plan ? T('{n} of {of} stops done', { n: doneN, of: plan.stops.length }) : V.lastTrip ? T('recorded') : T('past runs'))}
@@ -135,7 +143,7 @@ export function underWayHTML(now) {
 	// The clock rides along: away from the cockpit it is the one figure
 	// about a run under way that changes on its own.
 	const t = timerState();
-	return `<button class="under-way" data-act="barter-step" data-id="sail"><i></i><b>${T('Run in progress')}</b><span>${at >= 0 ? T('stop {n} of {of}', { n: at + 1, of: plan.stops.length }) : T('every stop ticked')}</span>${t ? `<span class="under-way-clock">⏱ ${esc(spanText(t.ran))}</span>` : ''}<span class="amber">${T('not recorded')}</span><span class="panel-spacer"></span><span class="linky">${T('Back to the run')} ›</span></button>`;
+	return `<button class="under-way" data-act="barter-step" data-id="sail"><i></i><b>${T('Run in progress')}</b><span>${at >= 0 ? T('stop {n} of {of}', { n: at + 1, of: plan.stops.length }) : T('every stop ticked')}</span>${t ? `<span class="under-way-clock">⏱ ${esc(spanText(t.ran))}</span>` : ''}<span class="amber">${T('not recorded')}</span><span class="panel-spacer"></span><span class="linky">${T('Back to the run')}</span></button>`;
 }
 
 /** What the last Record did, until the next run is cast off. */
@@ -297,8 +305,8 @@ function arrivedHTML(on, s, key, at, legs) {
 	const m = legs.from ? legs.legs[at] : at > 0 ? legs.legs[at - 1] : null;
 	if (!(m > 0) || ticked(on.done, s, at, sailedPlan().stops)) return '';
 	const got = (on.arrived || {})[key];
-	if (got) return `<span class="arrived-said" title="${T('This leg is timed; the speed is learned from it')}">⚓ ${T('arrived in {t}', { t: esc(spanText(got)) })}</span>`;
-	return `<button class="chip tiny arrived-btn" data-act="barter-arrived" data-k="${esc(key)}" data-at="${at}" title="${T('Press as the ship reaches the island, before trading: the leg is timed, and the chart learns how fast your ship really sails')}">⚓ ${T('Arrived')}</button>`;
+	if (got) return `<span class="arrived-said" title="${T('This leg is timed; the speed is learned from it')}">${ico('anchor')} ${T('arrived in {t}', { t: esc(spanText(got)) })}</span>`;
+	return `<button class="chip tiny arrived-btn" data-act="barter-arrived" data-k="${esc(key)}" data-at="${at}" title="${T('Press as the ship reaches the island, before trading: the leg is timed, and the chart learns how fast your ship really sails')}">${ico('anchor')} ${T('Arrived')}</button>`;
 }
 
 /**
@@ -381,17 +389,17 @@ export function cockpitHTML({ map = false } = {}) {
 		<span class="sail-n">${T('<b>{n}</b> of {of} stops done', { n: doneN, of: stops.length })}${questsLeft ? ` · ${questsLeft === 1 ? T('{n} quest open', { n: questsLeft }) : T('{n} quests open', { n: questsLeft })}` : ''}</span>
 		${guessed ? `<span class="sail-guess" title="${T('Press the count an island paid on its stop, and the trip is recorded at that instead')}">${guessed === 1 ? T('{n} island’s pay not said', { n: guessed }) : T('{n} islands’ pay not said', { n: guessed })} — ${T('recorded at the middle of the range')}</span>` : ''}
 		<span class="panel-spacer"></span>
-		${map ? '' : `<button class="ghost-btn sm" data-act="barter-sail-chart" title="${T('The route on the Map, with the same checklist beside it')}">🗺 ${T('On the chart')}</button>`}
+		${map ? '' : `<button class="ghost-btn sm" data-act="barter-sail-chart" title="${T('The route on the Map, with the same checklist beside it')}">${ico('map')} ${T('On the chart')}</button>`}
 		<button class="ghost-btn sm danger" data-act="barter-sail-drop" title="${T('Drop the checklist; nothing is recorded')}">${T('Abandon')}</button>
 		${V.sailAll.open ? '' : `<button class="ghost-btn sm" data-act="barter-sail-all" title="${T('Tick every stop and every quest off at once')}">${T('All done…')}</button>`}
-		<button class="act" data-act="barter-step" data-id="results">${T('See the results')} ›</button>
+		<button class="act" data-act="barter-step" data-id="results">${T('See the results')}</button>
 		${allAsk}
 	</div>`;
 	// On the chart the rest of the run is folded under the stop: the
 	// panel is a strip down one side, and the stop is what it is for.
 	const fold = inner => (map ? `<details class="map-run-fold rest-fold"><summary>${T('Every stop')} · ${T('{n} of {of} done', { n: doneN, of: stops.length })}</summary>${inner}</details>` : inner);
 	if (at < 0) {
-		return `<div class="all-ticked"><i>✓</i><span><b>${T('Every stop is ticked.')}</b> ${T('The results step shows what the run did and records it.')}</span><button class="act" data-act="barter-step" data-id="results">${T('See the results')} ›</button></div>${fold(restHTML(plan, on, book, legOf, -1, along))}${foot}`;
+		return `<div class="all-ticked"><i>✓</i><span><b>${T('Every stop is ticked.')}</b> ${T('The results step shows what the run did and records it.')}</span><button class="act" data-act="barter-step" data-id="results">${T('See the results')}</button></div>${fold(restHTML(plan, on, book, legOf, -1, along))}${foot}`;
 	}
 	const s = stops[at], key = stopKey(s, at, stops), names = stopNames(s);
 	const done = ticked(on.done, s, at, stops);
@@ -575,7 +583,7 @@ function restHTML(plan, on, book, legOf, at, along) {
 	// is scrolled away, or another stop is open.
 	const back = due >= 0 ? `<button class="rest-back" data-act="barter-sail-due"${at === due ? ' hidden' : ''}>${T('Back to stop {n}, where the run is', { n: due + 1 })}</button>` : '';
 	setTimeout(settleRest, 0);
-	return `<section class="panel rest-panel"><div class="panel-head"><h2 class="panel-title">${T('The rest of the run')}</h2><span class="panel-sub">${T('{n} of {of} done', { n: doneN, of: stops.length })} · ${T('tap a stop to jump to it')}</span>${(on.told || []).length ? `<span class="panel-spacer"></span><button class="linky" data-act="barter-step" data-id="load">${T('what the wharf step said')} ›</button>` : ''}</div><div class="rest-rows">${rows}</div>${back}</section>`;
+	return `<section class="panel rest-panel"><div class="panel-head"><h2 class="panel-title">${T('The rest of the run')}</h2><span class="panel-sub">${T('{n} of {of} done', { n: doneN, of: stops.length })} · ${T('tap a stop to jump to it')}</span>${(on.told || []).length ? `<span class="panel-spacer"></span><button class="linky" data-act="barter-step" data-id="load">${T('what the wharf step said')}</button>` : ''}</div><div class="rest-rows">${rows}</div>${back}</section>`;
 }
 
 // The list's own scroll, kept across redraws: a redraw lays a new box,

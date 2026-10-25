@@ -5,8 +5,10 @@
 // any screen reads it (see tour-leftovers.js).
 import './tour-leftovers.js';
 import { init } from './ui.js';
+import './sep.js';     // the dots between facts, drawn as hairlines
 import './cheer.js';   // the burst of light for a thing done, listening from the start
 
+document.documentElement.classList.add('js');
 init();
 
 // The offline half of local-first: a service worker that keeps the last

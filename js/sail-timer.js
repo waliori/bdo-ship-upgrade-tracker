@@ -24,6 +24,7 @@ import { toast } from './dialogs.js';
 import { T, TT, said } from './i18n.js';
 import { mountScene } from './sail-scene.js';
 
+import { ico } from './icons.js';
 const NS = 'timer';
 
 /**
@@ -763,7 +764,7 @@ export function timerHTML({ suggest = 0, label = '', marks = [], ship = '', of =
 	// The bell says what this browser is actually going to do: ask,
 	// explain why it cannot, or nothing at all once it has said yes.
 	const support = notifySupport();
-	const bellText = { default: T('🔔 notify me too'), denied: T('🔔 blocked'), install: T('🔔 on the Home Screen'), insecure: T('🔔 needs https'), none: '' };
+	const bellText = { default: T('notify me too'), denied: T('blocked'), install: T('on the Home Screen'), insecure: T('needs https'), none: '' };
 	const bellWhy = {
 		default: T('Ask the browser for a notification as well, so a chime lands with the tab in the background'),
 		denied: T('This site is blocked from showing notifications — press to see where to change it'),
@@ -772,21 +773,21 @@ export function timerHTML({ suggest = 0, label = '', marks = [], ship = '', of =
 		none: ''
 	};
 	const bell = support === 'granted' || support === 'none' ? ''
-		: `<button class="chip tiny${support === 'denied' || support === 'insecure' ? ' warn' : ''}" data-act="barter-timer-notify" title="${esc(bellWhy[support])}">${bellText[support]}</button>`;
+		: `<button class="chip tiny${support === 'denied' || support === 'insecure' ? ' warn' : ''}" data-act="barter-timer-notify" title="${esc(bellWhy[support])}">${ico('bell')} ${bellText[support]}</button>`;
 	// What it sounds like, and what it sounds like right now: a press
 	// moves to the next sound and plays it, so a sailor can settle on
 	// one in three presses rather than starting a run to find out.
 	const sound = soundKind();
 	const soundName = (SOUND_CHOICES.find(([id]) => id === sound) || SOUND_CHOICES[0])[1];
 	const soundWhy = (SOUND_CHOICES.find(([id]) => id === sound) || SOUND_CHOICES[0])[2];
-	const ear = `<button class="chip tiny sail-sound${sound === 'off' ? ' off' : ''}" data-act="barter-timer-sound" title="${T('{why} — press to hear the next one', { why: esc(said(soundWhy)) })}">${sound === 'off' ? '🔇' : '🔔'} ${esc(said(soundName))}</button>`;
+	const ear = `<button class="chip tiny sail-sound${sound === 'off' ? ' off' : ''}" data-act="barter-timer-sound" title="${T('{why} — press to hear the next one', { why: esc(said(soundWhy)) })}">${ico(sound === 'off' ? 'bell-off' : 'bell')} ${esc(said(soundName))}</button>`;
 	// Signed in, the chimes can be said again on every device the
 	// account has -- the phone in a pocket while the game has the screen.
 	const devices = canPush()
-		? `<button class="chip tiny${pushOn() ? ' active' : ''}" data-act="barter-timer-devices" title="${pushOn() ? T('Chiming on every device signed in to this account; press to keep it to this one') : T('Chime on every device signed in to this account — the phone in your pocket as well as this tab')}">📱 ${pushOn() ? T('every device') : T('my devices too')}</button>`
+		? `<button class="chip tiny${pushOn() ? ' active' : ''}" data-act="barter-timer-devices" title="${pushOn() ? T('Chiming on every device signed in to this account; press to keep it to this one') : T('Chime on every device signed in to this account — the phone in your pocket as well as this tab')}">${ico('device')} ${pushOn() ? T('every device') : T('my devices too')}</button>`
 		: '';
 	const discord = canPush() && discordDm() && discordDm().available
-		? `<button class="chip tiny${discordOn() ? ' active' : ''}" data-act="barter-timer-discord" title="${discordOn() ? T('Each chime is also a Discord message from the bot; press to stop them') : T('Have the bot message you on Discord at every chime — you will need to be in the community server')}">💬 ${discordOn() ? T('on Discord') : T('Discord too')}</button>`
+		? `<button class="chip tiny${discordOn() ? ' active' : ''}" data-act="barter-timer-discord" title="${discordOn() ? T('Each chime is also a Discord message from the bot; press to stop them') : T('Have the bot message you on Discord at every chime — you will need to be in the community server')}">${ico('chat')} ${discordOn() ? T('on Discord') : T('Discord too')}</button>`
 		: '';
 	// Which stops make a sound. Offered wherever a run is in hand, and
 	// beside a running clock that has stops of its own.

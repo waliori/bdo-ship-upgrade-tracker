@@ -34,6 +34,7 @@ import { sailCal, fromPort } from './barter/board.js';
 import { toldOf } from './barter/packing.js';
 import { legsOf } from './barter/route.js';
 
+import { ico } from './icons.js';
 const DONE_KEY = 'bdo_ship_upgrade-tour_completed';
 
 /** True when the browser has asked for less movement. */
@@ -551,7 +552,7 @@ class GuidedTour {
 		// of them a hundred and twenty words, and most people closed it at
 		// "1 of 23"; what it leaves out is one press away on each screen.
 		add('welcome', {
-			title: () => T('⚓ Parts, quests, routes and the map'),
+			title: () => T('Parts, quests, routes and the map'),
 			text: () => T('One record of what you own, and every build draws from it — the same 100 planks are never promised twice.<br><br><b>The next screens use an example; your own data comes back when the tour ends.</b>'),
 			align: 'center',
 			before: () => goToTab('plan')
@@ -586,7 +587,7 @@ class GuidedTour {
 		add('inventory', {
 			find: () => shown('#screen [data-act="inv-shot"]', '#screen .inv-left .controls'),
 			title: () => T('What you actually own'),
-			text: () => T('Type a count on any tile, or <b>📷 Read a storage</b> off screenshots of the game’s window — read in this browser, nothing uploaded. The Ship tab reads Manage Sailors and the Barter tab the barter window the same way.'),
+			text: () => T('Type a count on any tile, or <b>{camera} Read a storage</b> off screenshots of the game’s window — read in this browser, nothing uploaded. The Ship tab reads Manage Sailors and the Barter tab the barter window the same way.', { camera: ico('camera') }),
 			side: 'bottom',
 			before: () => goToTab('inventory')
 		});

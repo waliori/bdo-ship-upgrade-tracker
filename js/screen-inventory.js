@@ -24,6 +24,7 @@ import { stacks, slotsHeld, slotsFor } from './barter-plan.js';
 import { maxCraftable, enhanceStep, parseEnhanced, enhancedName, waysToGet, routeOf } from './planner.js';
 
 
+import { ico } from './icons.js';
 /**
  * A ship part and its ten enhancement levels are one thing you own, not
  * eleven. These roll them up: the grid shows one tile per part, and the
@@ -215,7 +216,7 @@ export function renderInventory() {
 				<div class="chips inv-ladder">${ladder}</div>
 				${sortSelect()}
 				<button class="chip inv-select ${invPicking ? 'active' : ''}" data-act="inv-select" aria-pressed="${invPicking}" title="${T('Tick several tiles and move them to a storage together')}">${invPicking ? T('✓ Selecting') : T('☐ Select')}</button>
-				<button class="chip" data-act="inv-shot" title="${T("Read a storage off screenshots of the game's own window — in this browser; nothing is uploaded")}">📷 ${T('Read a storage')}</button>
+				<button class="chip" data-act="inv-shot" title="${T("Read a storage off screenshots of the game's own window — in this browser; nothing is uploaded")}">${ico('camera')} ${T('Read a storage')}</button>
 			</div>
 			${homesHTML()}
 			${storeSlotsHTML(stock, stashAll)}

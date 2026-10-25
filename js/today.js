@@ -17,6 +17,7 @@ import { paceText } from './pace.js';
 import { currentShip } from './ship.js';
 import { REGIONS, DEFAULT_REGION } from './market.js';
 
+import { ico } from './icons.js';
 const zoneShort = zone => T('{zone} time', { zone: zone.split('/').pop().replace(/_/g, ' ') });
 
 /**
@@ -110,12 +111,12 @@ export function statusLine() {
 	const targets = (snapshot.targets || []).filter(t => t.missingUnits > 0);
 	const paced = targets.map(t => ({ t, text: paceText(t) })).find(x => x.text);
 	const bits = [
-		`<button class="status-bit" data-act="view" data-id="crew" title="${T('Your ship — hull, parts, crew and setups, on the Ship tab')}">⚓ <b>${esc(gameName(me.name))}</b> ${FD(me.speed.total, 1)}% · ${T('{lt} LT', { lt: F(me.hold.limit) })}</button>`,
+		`<button class="status-bit" data-act="view" data-id="crew" title="${T('Your ship — hull, parts, crew and setups, on the Ship tab')}">${ico('anchor')} <b>${esc(gameName(me.name))}</b> ${FD(me.speed.total, 1)}% · ${T('{lt} LT', { lt: F(me.hold.limit) })}</button>`,
 		`<button class="status-bit" data-act="view" data-id="quests" title="${wanted.length ? T('Quests still to do this period; {n} of them pay in what your plan still wants — short of, or still to craft or buy', { n: left }) : T('Quests still to do this period')}">✦ ${leftAll === 1 ? T('<b>{n}</b> quest left', { n: leftAll }) : T('<b>{n}</b> quests left', { n: leftAll })}${wanted.length ? ` · ${T('<b>{n}</b> for your list', { n: left })}` : ''}</button>`,
 		`<span class="status-bit" title="${esc(resetTitle())}">${T('dailies')} <b data-until="daily"></b> · ${T('barter')} <b data-until="barter"></b></span>`,
 		paced ? `<button class="status-bit" data-act="view" data-id="builds" title="${esc(paced.text)}">${esc(gameName(paced.t.item))}: <b>${esc(paced.text.replace(/ at the last.*$/, ''))}</b></button>` : ''
 	].filter(Boolean);
-	return bits.join('<span class="status-sep">·</span>');
+	return bits.join(' <span class="sep status-sep">·</span> ');
 }
 
 /**

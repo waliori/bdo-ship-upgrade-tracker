@@ -25,7 +25,7 @@ import { esc, F } from './fmt.js';
 import { T, said, gameName } from './i18n.js';
 import * as store from './state.js';
 import { openDialog, closeDialog, toast } from './dialogs.js';
-import { LIMITS, triage, readStorageShots, wireShotIntake, close as closeReader } from './shot-reader.js';
+import { LIMITS, triage, readStorageShots, wireShotIntake, close as closeReader, queuedNote, pasteManyNote } from './shot-reader.js';
 import { allItems, img } from './ui-bits.js';
 import { isLandGood } from './land_goods.js';
 import { TOWNS } from './screen-inventory.js';
@@ -34,6 +34,7 @@ import { levelOf } from './barter.js';
 import { holdGoods, hullSlots, inHoldAt } from './hold-room.js';
 import { currentShip, shownSlots } from './ship.js';
 
+import { ico } from './icons.js';
 /** Where a reading is written by default, remembered between goes: a
  *  player reads the same storage every week. */
 const lastPlace = () => store.getSetting('shotStore', '');
@@ -121,7 +122,7 @@ export function gather(results, known) {
  * onRows }` -- what the button says, what the head says, and where the
  * rows go instead of into the Inventory.
  */
-export function openStorageImport(after = () => {}, handOff = null) {
+export function openStorageImport(after = () => {}, handOff = null, files = null) {
 	let stop = null;            // an AbortController while a batch is being read
 	let rows = [];              // the gathered reading, as the table has it
 	let skipped = [];           // files that were not read, and why
@@ -171,10 +172,11 @@ export function openStorageImport(after = () => {}, handOff = null) {
 		${adding && rows.length ? `<p class="dialog-note shot-adding">${T('Adding to the {n} lines read so far: the new screenshots are read together with the ones before, and nothing is written until you say so.', { n: rows.length })}</p>` : ''}
 		${handOff ? '' : placePicker()}
 		<div class="shot-drop" data-drop tabindex="0" role="button" aria-label="${T('Choose screenshots to read')}">
-			<div class="shot-drop-mark">🏰</div>
+			<div class="shot-drop-mark">${ico('keep')}</div>
 			<div><b>${T('Drop screenshots here, or paste one')}</b></div>
 			<div class="row-sub">${T('{paste}, or {link}', { paste: `<b>${T('Ctrl+V')}</b>`, link: `<button class="link-btn" data-choose>${T('choose files')}</button>` })}</div>
 			<div class="row-sub quiet">${T('A shot taken with Shift+Win+S goes to the clipboard — paste it straight in, no file to save first.')}</div>
+			<div class="row-sub quiet">${pasteManyNote()}</div>
 			<input type="file" accept="image/png,image/jpeg,image/webp" multiple hidden data-files>
 		</div>
 		<details class="help-more shot-how">
@@ -189,7 +191,7 @@ export function openStorageImport(after = () => {}, handOff = null) {
 			<p class="dialog-note quiet">${T('Up to {files} at a time, {mb} MB each, PNG, JPEG or WebP.', { files: LIMITS.files, mb: Math.round(LIMITS.bytes / 1024 / 1024) })}
 				${T('They are read in this browser and never uploaded, and a storage needs no reader fetched for it: the pictures and the figures are both read off the pixels.')}</p>
 		</details>
-		<div class="dialog-actions">${adding && rows.length ? `<button class="act quiet" data-back>‹ ${T('Back to the table')}</button>` : ''}<button class="act quiet" data-close>${T('Close')}</button></div>`;
+		<div class="dialog-actions">${adding && rows.length ? `<button class="act quiet" data-back>${T('Back to the table')}</button>` : ''}<button class="act quiet" data-close>${T('Close')}</button></div>`;
 
 	/* --- reading ----------------------------------------------------- */
 	const readingView = (at, text) => `
@@ -287,12 +289,25 @@ export function openStorageImport(after = () => {}, handOff = null) {
 	};
 
 	/* --- doing it ---------------------------------------------------- */
+	let pending = [];        // pasted while a batch was being read: read after it, as Read more adds
+	// A paste while a batch is being read is read after it, not instead
+	// of it: a second screenshot pasted a moment after the first cut the
+	// first one's reading short, and only the last paste was in the table.
 	async function run(files) {
+		if (stop) { pending.push(...files); queuedNote(host()); return; }
+		await read(files);
+		if (pending.length && !host().hidden) { const more = pending; pending = []; await run(more); }
+		else pending = [];
+	}
+	async function read(files) {
 		const { take, skipped: out } = await triage([...files]);
 		// Read more adds: the shots so far and the new ones are read again
 		// together, so a row two of them share is still counted once, and
 		// what was typed over or unticked in the table is kept.
-		const more = adding && rows.length;
+		// Anything read while a table stands is more of the same storage
+		// -- a paste as much as "Read more": Kemeren pasted his second
+		// screenshot and it replaced the first.
+		const more = rows.length > 0;
 		adding = false;
 		const edits = more ? new Map(rows.map(r => [r.item, { take: r.take, n: r.n, typed: r.typed }])) : new Map();
 		taken = more ? [...taken, ...take] : take;
@@ -419,5 +434,8 @@ export function openStorageImport(after = () => {}, handOff = null) {
 		});
 	}
 
-	draw(pickView());
+	// Opened on pictures already in hand -- a paste at the tab -- the
+	// reading starts on them.
+	if (files && files.length) run(files);
+	else draw(pickView());
 }

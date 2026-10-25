@@ -17,6 +17,7 @@ import { refreshSide } from './render.js';
 import { routeSpeed, sailCal, sailLag } from './route.js';
 import { atSea, toggleMeasure, hostSize, inBox } from './view.js';
 
+import { ico } from '../icons.js';
 /* ------------------------------------------------------------------ *
  * a route traced by hand
  *
@@ -289,7 +290,7 @@ function traceCard(r, i) {
 			</span>
 			<span class="trace-card-btns">
 				<button class="ghost-btn tiny" data-act="trace-load" data-i="${i}" title="${T('Open it to draw on')}">${T('Open')}</button>
-				<button class="ghost-btn tiny${r.lane ? ' on' : ''}" data-act="trace-lane" data-i="${i}" aria-pressed="${!!r.lane}" title="${r.lane ? T('A lane the game sails: every route near it is drawn along it. Press to make it a plain trace again') : T('Mark it as a lane the game sails, so every route near it is drawn along it and timed as the game would sail it')}" aria-label="${r.lane ? T('Stop treating {name} as a lane the game sails', { name: esc(r.name || T('this trace')) }) : T('Treat {name} as a lane the game sails', { name: esc(r.name || T('this trace')) })}">⚓</button>
+				<button class="ghost-btn tiny${r.lane ? ' on' : ''}" data-act="trace-lane" data-i="${i}" aria-pressed="${!!r.lane}" title="${r.lane ? T('A lane the game sails: every route near it is drawn along it. Press to make it a plain trace again') : T('Mark it as a lane the game sails, so every route near it is drawn along it and timed as the game would sail it')}" aria-label="${r.lane ? T('Stop treating {name} as a lane the game sails', { name: esc(r.name || T('this trace')) }) : T('Treat {name} as a lane the game sails', { name: esc(r.name || T('this trace')) })}">${ico('anchor')}</button>
 				<button class="ghost-btn tiny" data-act="trace-rename" data-i="${i}" title="${T('Rename it')}" aria-label="${T('Rename {name}', { name: esc(r.name || T('this trace')) })}">✎</button>
 				<button class="ghost-btn tiny" data-act="trace-share" data-i="${i}" title="${T('Copy a link to it')}" aria-label="${T('Copy a link to {name}', { name: esc(r.name || T('this trace')) })}">↗</button>
 				<button class="map-x" data-act="trace-del" data-i="${i}" aria-label="${T('Forget {name}', { name: esc(r.name || T('this trace')) })}">×</button>
@@ -369,7 +370,7 @@ export function traceHTML() {
 			<button class="ghost-btn" data-act="trace-undo" ${has ? '' : 'disabled'} title="${T('Take back the last mark, whatever kind it was')}">↶ ${T('Undo')}</button>
 			<button class="ghost-btn danger" data-act="trace-clear" ${has ? '' : 'disabled'}>${T('Clear')}</button>
 			<button class="ghost-btn${mv.tracesOn ? ' on' : ''}" data-act="map-traces" aria-pressed="${mv.tracesOn}" title="${T('Show or hide everything traced, without losing any of it')}">${mv.tracesOn ? `◉ ${T('Shown')}` : `○ ${T('Hidden')}`}</button>
-			<button class="ghost-btn${mv.hugWater ? ' on' : ''}" data-act="trace-hug" aria-pressed="${mv.hugWater}" title="${T('Bend each leg round the land between its stops, the way the barter route is drawn')}">${mv.hugWater ? `⛵ ${T('Round the land')}` : `↗ ${T('Straight legs')}`}</button>
+			<button class="ghost-btn${mv.hugWater ? ' on' : ''}" data-act="trace-hug" aria-pressed="${mv.hugWater}" title="${T('Bend each leg round the land between its stops, the way the barter route is drawn')}">${mv.hugWater ? `${ico('sail')} ${T('Round the land')}` : `↗ ${T('Straight legs')}`}</button>
 		</div>
 	</div>
 	<div class="map-courses">
@@ -859,7 +860,7 @@ export function openTraceLibrary() {
 	mv.libOpen = true;
 	const host = openDialog(`
 		<h2>${T('The traces you have kept')}</h2>
-		<p class="dialog-copy">${T('{n} of {max} on this browser. Open one to draw on it, or open its eye to lay it over the chart beside whatever else you are drawing. Trace the way the game’s auto-path really sails a passage and press ⚓ to make it a lane: every route drawn near it follows it from then on, and is timed as the game sails it.', { n: mv.traces.length, max: TRACES_MAX })}</p>
+		<p class="dialog-copy">${T('{n} of {max} on this browser. Open one to draw on it, or open its eye to lay it over the chart beside whatever else you are drawing. Trace the way the game’s auto-path really sails a passage and press {anchor} to make it a lane: every route drawn near it follows it from then on, and is timed as the game sails it.', { anchor: ico('anchor'), n: mv.traces.length, max: TRACES_MAX })}</p>
 		<div data-trace-lib>${libraryHTML()}</div>
 		<div class="dialog-actions">
 			${mv.traces.some(r => r.shown) ? `<button class="ghost-btn" data-act="trace-eye-none">${T('Clear the chart')}</button>` : ''}
