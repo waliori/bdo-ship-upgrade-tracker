@@ -154,7 +154,7 @@ export const RELEASES = [
 					TT('<b>The bag.</b> A run laid by the new planner said nothing went into the bag, whatever it carried; what goes into the bag is said again.'),
 					TT('A screenshot pasted at the Inventory or the Ship tab, with no dialog open, opens its reader with the picture in hand, as a paste at the Barter tab does: several pictures at once, for the readers that take them.'),
 					TT('A screenshot pasted while another is being read is read after it, in every reader: a second paste a moment after the first cut the first one’s reading short, and only the last paste was in the table.'),
-					TT('A row whose name the column cut to a word several islands share — <i>Shipwrecked</i> opens five wrecks — is a row of its own: named by its exchange when only one of those islands deals it, listed as not read with the names it could be when several do. It went under the row above, whose offer it muddled.')
+					TT('A row whose name the column cut to a word several islands share — <i>Shipwrecked</i> opens five wrecks — went under the row above, whose offer it muddled. It is a row of its own now, and it asks: which island, from the ones that begin so. A name read only nearly — a letter off — is shown as read but left unticked until you confirm it. The reader guesses no island.')
 				]
 			}
 		]

@@ -216,7 +216,11 @@ export function isleAt(line, isles, { left = Infinity } = {}) {
 					&& editDistance(seen, want, slack + 1) <= slack ? 0.8 : 0;
 				const score = Math.max(whole, cut, near);
 				if (score > 0.42 && (!best || score > best.score)) {
-					best = { isle, score, words: i + 1, right: line.words[i].x1 };
+					// A name read only nearly is the reader's guess, not the
+					// window's word: offered to the player, never settled.
+					best = !whole && !cut
+						? { isle: null, among: [isle], score, words: i + 1, right: line.words[i].x1 }
+						: { isle, score, words: i + 1, right: line.words[i].x1 };
 				}
 			}
 		}
@@ -356,17 +360,15 @@ export function rowsOf(all, isles) {
  * the player is asked rather than told.
  */
 export function offerOf(row, deals, { floor = 0.5, margin = 0.12 } = {}) {
-	// A row whose name several islands share: the one whose exchange
-	// fits the row clearly best is the island. The wrecks deal most of
-	// their coin exchanges alike, so a row that fits two of them as well
-	// stays unnamed, and says which it could be.
+	// A row the reader could not name for sure is never settled by it:
+	// the exchange is read for each island it could be, and the player
+	// picks. A name several islands begin with asks which; a name read
+	// only nearly -- a letter off -- is shown as that island and left
+	// unticked until the player confirms it.
 	if (!row.isle) {
-		const tries = (row.among || []).map(isle => offerOf({ ...row, isle }, deals, { floor, margin }))
-			.map(r => ({ r, score: r.near && r.near[0] ? r.near[0].score : 0 }))
-			.sort((a, b) => b.score - a.score);
-		const top = tries[0];
-		if (top && top.r.offer && (!tries[1] || top.score - tries[1].score >= margin)) return top.r;
-		return { ...row, offer: null, why: T('a row that could be {names}: its exchange fits none of them clearly', { names: (row.among || []).map(x => x.at).join(', ') }) };
+		const fits = (row.among || []).map(isle => offerOf({ ...row, isle }, deals, { floor, margin }));
+		if (fits.length === 1) return { ...fits[0], guessed: true, why: T('read only nearly as {isle} — tick it if the window shows it', { isle: fits[0].isle.at }) };
+		return { ...row, among: undefined, offer: null, fits, why: T('a name several islands begin with — pick which') };
 	}
 	const here = deals.filter(d => d.npcId === row.isle.id);
 	if (!here.length) return { ...row, offer: null, why: T('nothing known at this island') };
@@ -556,7 +558,8 @@ export function inEnglish(row) {
 		...row,
 		isle: back(row.isle),
 		offer: back(row.offer),
-		near: (row.near || []).map(n => ({ ...n, deal: back(n.deal) }))
+		near: (row.near || []).map(n => ({ ...n, deal: back(n.deal) })),
+		...(row.fits ? { fits: row.fits.map(inEnglish) } : {})
 	};
 }
 
