@@ -14,6 +14,7 @@ import { paceNow } from '../ship-pace.js';
 import { PARLEY, COIN, nextGateAbove, levelOf, npcGate, npcOpen } from '../barter.js';
 import { exchanges } from '../barter-plan.js';
 import { openBarterImport } from '../barter-import.js';
+import { pasteManyNote } from '../shot-reader.js';
 import { whileLoading } from '../loading.js';
 import { driftOf } from '../layout-book.js';
 import { coinSides, listSides } from '../barter-layouts.js';
@@ -161,7 +162,7 @@ export function boardHTML(b) {
 		: `<section class="panel board-ask${cls ? ` ${cls}` : ''}">
 			<div class="panel-head"><h2 class="panel-title">${T('Today’s board')}</h2><span class="panel-sub board-ask-lead">${lead}</span></div>
 			<div class="panel-body">
-				${acts ? `<button class="board-drop" data-act="barter-shot"><b class="by-key">${T('Paste your barter window here')}</b><b class="by-touch">${T('Add a screenshot of your barter window')}</b><span class="by-key">${T('Open the barter window in game, take a screenshot, press <kbd>Ctrl</kbd> <kbd>V</kbd>. The layout, your Parley and your barter count are read from it. Nothing is uploaded.')}</span><span class="by-touch">${T('Tap to choose the picture. The layout, your Parley and your barter count are read from it, on this device — nothing is uploaded.')}</span></button>` : ''}
+				${acts ? `<button class="board-drop" data-act="barter-shot"><b class="by-key">${T('Paste your barter window here')}</b><b class="by-touch">${T('Add a screenshot of your barter window')}</b><span class="by-key">${T('Open the barter window in game, take a screenshot, press <kbd>Ctrl</kbd> <kbd>V</kbd>. The layout, your Parley and your barter count are read from it. Nothing is uploaded.')}</span><span class="by-key">${pasteManyNote()}</span><span class="by-touch">${T('Tap to choose the picture. The layout, your Parley and your barter count are read from it, on this device — nothing is uploaded.')}</span></button>` : ''}
 				${acts ? tradeShotHelp() : ''}
 				${acts ? `<div class="board-ask-acts"><span class="board-ask-or">${T('or')}</span>${acts}</div>` : ''}
 				${seen ? `<div class="barter-bar-seen"><span class="barter-bar-k">${T('looked at')}</span><span class="chips">${seen}</span></div>` : ''}

@@ -224,6 +224,19 @@ export function imagesOn(data, from = 1) {
 }
 
 /** Said in a reader's dialog when a paste lands while a batch is being read. */
+/**
+ * How many screenshots one paste carries depends on the browser, and
+ * the zones say so: Chrome, Edge, Opera and the other Chromium browsers
+ * hand over every file copied in a file manager; Firefox hands over one
+ * a paste, whatever was copied, and the rest are dropped or chosen.
+ */
+export function pasteManyNote() {
+	const ua = navigator.userAgent || '';
+	if (/Firefox\//.test(ua)) return T('<b>Firefox</b> hands over one screenshot a paste. For several at once, drop them on the zone or choose the files — Chrome, Edge and Opera paste them all.');
+	if (/Chrom(e|ium)\//.test(ua)) return T('Several at once: copy the screenshots in your file manager and press Ctrl+V. Chrome, Edge, Opera and the other Chromium browsers hand them all over.');
+	return T('Several at once by Ctrl+V is known to work in Chrome, Edge and Opera, and not in Firefox. If only one arrives here, drop them on the zone or choose the files.');
+}
+
 export function queuedNote(box) {
 	const note = box && box.querySelector('.dialog-note');
 	if (note) note.textContent = T('Pasted while reading: read after this one');

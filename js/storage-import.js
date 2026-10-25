@@ -25,7 +25,7 @@ import { esc, F } from './fmt.js';
 import { T, said, gameName } from './i18n.js';
 import * as store from './state.js';
 import { openDialog, closeDialog, toast } from './dialogs.js';
-import { LIMITS, triage, readStorageShots, wireShotIntake, close as closeReader, queuedNote } from './shot-reader.js';
+import { LIMITS, triage, readStorageShots, wireShotIntake, close as closeReader, queuedNote, pasteManyNote } from './shot-reader.js';
 import { allItems, img } from './ui-bits.js';
 import { isLandGood } from './land_goods.js';
 import { TOWNS } from './screen-inventory.js';
@@ -175,6 +175,7 @@ export function openStorageImport(after = () => {}, handOff = null, files = null
 			<div><b>${T('Drop screenshots here, or paste one')}</b></div>
 			<div class="row-sub">${T('{paste}, or {link}', { paste: `<b>${T('Ctrl+V')}</b>`, link: `<button class="link-btn" data-choose>${T('choose files')}</button>` })}</div>
 			<div class="row-sub quiet">${T('A shot taken with Shift+Win+S goes to the clipboard — paste it straight in, no file to save first.')}</div>
+			<div class="row-sub quiet">${pasteManyNote()}</div>
 			<input type="file" accept="image/png,image/jpeg,image/webp" multiple hidden data-files>
 		</div>
 		<details class="help-more shot-how">

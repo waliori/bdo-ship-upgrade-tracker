@@ -20,7 +20,7 @@ import { T, said } from './i18n.js';
 import * as store from './state.js';
 import { openDialog, closeDialog, toast } from './dialogs.js';
 import { anyType, pool, mateTypes, SAILOR_CAP, logLevel, STAT_NAMES, statBand } from './sailors.js';
-import { LIMITS, triage, readShots, wireShotIntake, close as closeReader, shotLang, shotLangNote, queuedNote } from './shot-reader.js';
+import { LIMITS, triage, readShots, wireShotIntake, close as closeReader, shotLang, shotLangNote, queuedNote, pasteManyNote } from './shot-reader.js';
 
 const MOVES = ['speed', 'accel', 'turn', 'brake'];
 const CANNON = ['patience', 'force', 'focus', 'vision'];
@@ -87,6 +87,7 @@ export function openSailorImport(after = () => {}, files = null) {
 			<div><b>${T('Drop screenshots here, or paste one')}</b></div>
 			<div class="row-sub">${T('{paste}, or {link}', { paste: `<b>${T('Ctrl+V')}</b>`, link: `<button class="link-btn" data-choose>${T('choose files')}</button>` })}</div>
 			<div class="row-sub quiet">${T('A shot taken with Shift+Win+S goes to the clipboard — paste it straight in, no file to save first.')}</div>
+			<div class="row-sub quiet">${pasteManyNote()}</div>
 			<input type="file" accept="image/png,image/jpeg,image/webp" multiple hidden data-files>
 		</div>
 		<p class="dialog-note quiet">${T('Up to {files} at a time, {mb} MB each, PNG, JPEG or WebP.', { files: LIMITS.files, mb: Math.round(LIMITS.bytes / 1024 / 1024) })}
