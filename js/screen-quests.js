@@ -300,7 +300,7 @@ export function renderQuests() {
 		: filter === 'fav' ? T('No favourites yet — star a quest and it lands here.')
 		: T('Nothing pays in what you are short of right now.');
 
-	return `${clocks}<div class="controls">
+	return `${clocks}<div class="controls quests-controls">
 		<input class="field" type="search" placeholder="${T('Search quests, places and rewards…')}" value="${esc(query)}" data-act="query" aria-label="${T('Search quests, places and rewards')}">
 		<div class="chips">${chips}</div>
 		<div class="pay-row">${payControl()}</div>
