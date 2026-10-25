@@ -850,12 +850,18 @@ export function parleyHTML(prof) {
 	</div>`;
 }
 
-/** The chains: the plan's answer, under the card. Folded to its head
- *  line while a step of the card is open, in full once none is. */
-function planSection(id, title, summary, body, open = true) {
-	return `<section class="panel plan-sec${open ? ' open' : ''}" data-sec="${id}">
-		<button class="plan-sec-head" data-act="barter-sec" data-id="${id}" aria-expanded="${open}"><b>${title}</b><span>${summary}</span></button>
-		${open ? `<div class="plan-sec-body">${body}</div>` : ''}
+/** The chains: the plan's answer, a line under the card that opens them
+ *  over the page, so the card and the step it stands on stay in sight.
+ *  With every part asked open they are drawn in place instead. */
+function planSection(id, title, summary, body, open = false) {
+	if (open) {
+		return `<section class="panel plan-sec open" data-sec="${id}">
+		<button class="plan-sec-head" data-act="barter-chains" aria-haspopup="dialog"><b>${title}</b><span>${summary}</span></button>
+		<div class="plan-sec-body">${body}</div>
+	</section>`;
+	}
+	return `<section class="panel plan-sec chains-bar" data-sec="${id}">
+		<button class="plan-sec-head" data-act="barter-chains" aria-haspopup="dialog"><b>${title}</b><span>${summary}</span><em class="chains-bar-open">${T('Open')}</em></button>
 	</section>`;
 }
 
@@ -881,7 +887,9 @@ export function dayCardHTML(cells, chains, boardRead) {
 	const said = new Set(planSettled());
 	const settled = id => (id === 'board' ? boardRead : said.has(id));
 	const now = (cells.find(([id]) => !settled(id)) || [])[0] || '';
-	const openId = V.planSec === 'none' ? now || 'chains' : V.planSec;
+	// What Next still has to go through: with none left, Next opens the chains.
+	V.planLeft = cells.map(([id]) => id).filter(id => !settled(id));
+	const openId = V.planSec === 'none' ? now : V.planSec;
 	const next = id => (id === 'board' && !boardRead ? ''
 		: `<div class="plan-next"><span class="panel-spacer"></span><button class="act" data-act="barter-next" data-id="${id}">${T('Next')}</button></div>`);
 	const cell = ([id, title, line, body]) => {
@@ -892,8 +900,7 @@ export function dayCardHTML(cells, chains, boardRead) {
 		${open ? `<div class="panel plan-sec-body">${body}${NEXT_HERE.includes(id) ? next(id) : ''}</div>` : ''}
 	</section>`;
 	};
-	const full = V.planSec === 'all' || openId === 'chains';
-	return `<div class="day-card" style="--n: ${cells.length}">${cells.map(cell).join('')}</div>${chains ? planSection(...chains, full) : ''}`;
+	return `<div class="day-card" style="--n: ${cells.length}">${cells.map(cell).join('')}</div>${chains ? planSection(...chains, V.planSec === 'all') : ''}`;
 }
 
 /** A chain the Market stops before its first trade: the cut that says

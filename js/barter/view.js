@@ -70,7 +70,7 @@ export function restore() {
 		if (['material', 'stock', 'coin'].includes(s.goal)) V.goal = s.goal;
 		if (s.stock) V.stockGoal = readStock(s.stock);
 		if (STOCK_LEVELS.includes(Number(s.climb)) && Number(s.climb) < 7) V.climb = Number(s.climb);
-		if (['goal', 'shape', 'board', 'parley', 'ladder', 'how', 'chains', 'all', 'none'].includes(s.planSec)) V.planSec = s.planSec;
+		if (['goal', 'shape', 'board', 'parley', 'ladder', 'how', 'shut', 'all', 'none'].includes(s.planSec)) V.planSec = s.planSec;
 		if (s.planDone && s.planDone.day === barterKey() && Array.isArray(s.planDone.ids)) V.planDone = { day: s.planDone.day, ids: s.planDone.ids.filter(x => typeof x === 'string').slice(0, 8) };
 		V.ownWay = s.ownWay === true;
 		if (Array.isArray(s.packed)) V.packed = new Set(s.packed.filter(k => typeof k === 'string' && k.startsWith('g|')));

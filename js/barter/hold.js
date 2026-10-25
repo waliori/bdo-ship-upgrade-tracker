@@ -224,15 +224,33 @@ export function holdBarHTML(me, tickedLT = 0, slotsUsed = null) {
  * in the run -- redraws it in place, the caret kept where it was.
  */
 const SHEETS = {
-	hold: { cls: 'hold-dialog', box: 'wide', html: () => holdHTML(currentShip()) }
+	hold: { cls: 'hold-dialog', box: 'wide', html: () => holdHTML(currentShip()) },
+	// The chains, over the plan: drawn by the last render of the tab, so a
+	// chain ticked inside it is in the sheet as soon as the tab has redrawn.
+	chains: { cls: 'chains-dialog', box: 'wide', html: () => V.chainsSheet || '' }
 };
 
 export function openSheet(id) {
 	const sheet = SHEETS[id];
 	V.sheetOpen = id;
-	const host = openDialog(`<div class="${sheet.cls}">${sheet.html()}<div class="dialog-actions"><button class="ghost-btn" data-close>${T('Close')}</button></div></div>`, { onDismiss: () => { if (V.sheetOpen === id) V.sheetOpen = null; } });
+	// A dialog opened from inside the sheet (a chain step by step) takes
+	// its place; the sheet comes back when that one is closed.
+	const replaced = () => !document.getElementById('dialog').hidden;
+	const host = openDialog(`<div class="${sheet.cls}">${sheet.html()}<div class="dialog-actions"><button class="ghost-btn" data-close>${T('Close')}</button></div></div>`, { onDismiss: () => {
+		if (V.sheetOpen === id) V.sheetOpen = null;
+		if (replaced()) sheetBack = id;
+	} });
 	host.firstElementChild.classList.add(...sheet.box.split(' '));
 }
+
+let sheetBack = null;
+// (No page, no dialogs: the modules are also loaded by the tests in Node.)
+globalThis.document?.addEventListener('dialog-toggle', evt => {
+	if (evt.detail.open || !sheetBack) return;
+	const id = sheetBack;
+	sheetBack = null;
+	setTimeout(() => openSheet(id), 0);
+});
 
 /** The open sheet redrawn after a change, the caret kept where it was. */
 export function refreshSheet() {

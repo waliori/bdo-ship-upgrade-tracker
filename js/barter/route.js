@@ -712,7 +712,7 @@ function legSnap(from, to) {
 /** A leg's still, folded under its stop: the route reads as a list,
  *  and the picture is there for the stop it is wanted on. The tiles
  *  are lazy, so a fold never opened fetches nothing. */
-const legFold = snap => (snap ? `<details class="leg-fold"><summary>${T('On the chart')}</summary>${snap}</details>` : '');
+const legFold = snap => (snap ? `<details class="leg-fold" open><summary>${T('On the chart')}</summary>${snap}</details>` : '');
 
 export function stopRows(stops, legs, { k0 = 0, board = false, sailing = null, tag = null, notes = null, ledger = null, map = false, edit = false, snap = edit, trip = null, before = null } = {}) {
 	const wanted = notes ? questWanted() : new Set();

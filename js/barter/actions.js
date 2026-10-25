@@ -79,28 +79,32 @@ export function barterAction(act, el, redraw) {
 				bringUp('.barter-screen .steps');
 				return true;
 			}
+			if (V.sheetOpen === 'chains') { closeDialog(); V.sheetOpen = null; }
 			setStep(STEPS.includes(el.dataset.id) ? el.dataset.id : 'plan');
 			bringUp('.barter-screen .steps');
 			return true;
 		}
 		// Which part of the plan is open. Pressing the open one shuts it.
 		// A cell of the day card, opened ahead of its turn or back to one
-		// settled; pressed again, the card shuts and the run is in full.
+		// settled; pressed again, it shuts. The chains open over the page.
 		case 'barter-sec': {
 			const id = el.dataset.id;
+			if (id === 'chains') { V.sheetAfter = 'chains'; V.planSec = V.planSec === 'all' ? 'all' : 'none'; persist(); return true; }
 			const open = el.getAttribute('aria-expanded') === 'true';
-			V.planSec = id === 'all' || id === 'none' ? id : open || id === 'chains' ? 'chains' : id;
+			V.planSec = id === 'all' || id === 'none' ? id : open ? 'shut' : id;
 			if (V.planSec === id && id !== 'all' && id !== 'none') bringUp(`.barter-screen [data-sec="${id}"]`);
 			persist();
 			return true;
 		}
-		// A step settled: the card moves on to the first one still to do,
-		// or, with every one done, shuts on the run.
+		case 'barter-chains': openSheet('chains'); return false;
+		// A step settled: the card moves on to the first one still to do;
+		// with every one done, the chains open to be picked.
 		case 'barter-next': {
 			const day = barterKey();
 			const ids = V.planDone.day === day ? V.planDone.ids : [];
 			V.planDone = { day, ids: [...new Set([...ids, el.dataset.id])] };
 			V.planSec = 'none';
+			if (!(V.planLeft || []).some(x => x !== el.dataset.id)) V.sheetAfter = 'chains';
 			persist();
 			bringUp('.barter-screen .day-card');
 			return true;
