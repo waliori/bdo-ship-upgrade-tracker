@@ -1164,6 +1164,15 @@ button.status-bit:hover { background: rgba(var(--blue-rgb), 0.12); color: var(--
 .shot-drop { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 26px 16px; margin: 4px 0 10px; border-radius: 12px; border: 1.5px dashed var(--line-btn-hi); background: rgba(var(--deep-rgb), 0.35); cursor: pointer; text-align: center; }
 .shot-drop:hover, .shot-drop:focus-visible, .shot-drop.over { border-color: var(--teal); background: rgba(78, 201, 174, 0.09); }
 .shot-drop-mark { font-size: 26px; line-height: 1; opacity: 0.8; }
+/* Which browsers paste several screenshots at once: marks, a tick or a cross, the one you are in bold. */
+.paste-browsers { display: inline-flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px 12px; font-size: 12px; }
+.paste-browsers .pb { display: inline-flex; align-items: center; gap: 4px; opacity: 0.7; white-space: nowrap; }
+.paste-browsers .pb svg { width: 16px; height: 16px; flex: none; }
+.paste-browsers .pb.ok::after { content: '✓'; color: var(--teal); font-weight: 700; }
+.paste-browsers .pb.no::after { content: '✗'; color: var(--red); font-weight: 700; }
+.paste-browsers .pb.here { opacity: 1; font-weight: 700; }
+.paste-browsers .pb-note { flex-basis: 100%; }
+.board-drop .paste-browsers { max-width: none; margin-top: 2px; }
 .shot-drop .row-sub { white-space: normal; }
 .shot-bar { height: 8px; border-radius: 4px; background: rgba(var(--deep-rgb), 0.7); border: 1px solid var(--line-btn); overflow: hidden; margin: 10px 0 4px; }
 .shot-bar i { display: block; height: 100%; background: var(--teal); transition: width 0.2s ease; }

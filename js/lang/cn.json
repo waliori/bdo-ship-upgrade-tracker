@@ -6102,8 +6102,9 @@
 	"— which island?": "— 哪座岛？",
 	"Which island this row is": "此行是哪座岛",
 	"A row whose name the column cut to a word several islands share — <i>Shipwrecked</i> opens five wrecks — went under the row above, whose offer it muddled. It is a row of its own now, and it asks: which island, from the ones that begin so. A name read only nearly — a letter off — is shown as read but left unticked until you confirm it. The reader guesses no island.": "名称被列宽截成多座岛屿共有的一个词的行 — <i>Shipwrecked</i> 对应五艘沉船 — 以前会并入上一行，搅乱上一行的报价。现在它是独立的一行，并会询问：在以此开头的岛屿中是哪一座。只差一个字母、仅大致读出的名称会显示为已读，但在你确认前保持不勾选。读取器不猜测任何岛屿。",
-	"<b>Firefox</b> hands over one screenshot a paste. For several at once, drop them on the zone or choose the files — Chrome, Edge and Opera paste them all.": "<b>Firefox</b> 每次粘贴只交出一张截图。要一次多张，请拖放到此区域或选择文件 — Chrome、Edge 和 Opera 会全部粘贴。",
-	"Several at once: copy the screenshots in your file manager and press Ctrl+V. Chrome, Edge, Opera and the other Chromium browsers hand them all over.": "一次多张：在文件管理器里复制截图，然后按 Ctrl+V。Chrome、Edge、Opera 及其他 Chromium 内核浏览器会全部交出。",
-	"Several at once by Ctrl+V is known to work in Chrome, Edge and Opera, and not in Firefox. If only one arrives here, drop them on the zone or choose the files.": "已知 Ctrl+V 一次多张在 Chrome、Edge 和 Opera 中可用，在 Firefox 中不可用。如果这里只收到一张，请拖放到此区域或选择文件。",
-	"The paste zones say which browsers paste several screenshots at once: Chrome, Edge, Opera and the other Chromium browsers hand over every file copied, Firefox one a paste — drop or choose the files there.": "粘贴区域会说明哪些浏览器能一次粘贴多张截图：Chrome、Edge、Opera 及其他 Chromium 内核浏览器交出复制的每个文件，Firefox 每次粘贴只交一张 — 在那里请拖放或选择文件。"
+	"The paste zones say which browsers paste several screenshots at once: Chrome, Edge, Opera and the other Chromium browsers hand over every file copied, Firefox one a paste — drop or choose the files there.": "粘贴区域会说明哪些浏览器能一次粘贴多张截图：Chrome、Edge、Opera 及其他 Chromium 内核浏览器交出复制的每个文件，Firefox 每次粘贴只交一张 — 在那里请拖放或选择文件。",
+	"pastes several screenshots at once": "可一次粘贴多张截图",
+	"pastes one screenshot at a time": "一次只粘贴一张截图",
+	"One at a time here — drop or choose the files": "此处一次一张 — 请拖放或选择文件",
+	"Several at once with Ctrl+V": "Ctrl+V 一次多张"
 }
