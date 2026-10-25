@@ -2146,6 +2146,12 @@ async function laidOut(page) {
 	await wait(200);
 }
 
+/** One cell of the Barter plan's day card opened, if it is shut. */
+async function openCell(page, id) {
+	await page.evaluate(i => { const c = document.querySelector(`.day-cell[data-sec="${i}"]:not(.open) > [data-act="barter-sec"]`); if (c) c.click(); }, id);
+	await wait(600);
+}
+
 /** Back to the plan. The tests seed `planSec: 'all'`, so all four of
  *  its parts are open and every control is on the page at once. */
 async function toPlan(page) {
@@ -2222,6 +2228,7 @@ test('the material book is the game’s own layouts, every one, and a page read 
 		takeRead([[58904, '[Level 4] Green Salt Lump'], [58901, '[Level 2] Urchin Spine'], [58903, '[Level 4] Opulent Thread Spool'], [58902, '[Level 3] Scout Binoculars'], [58964, '[Level 2] Pirate Gold Coin'], [58963, '[Level 2] Monster Tentacle']].map(([npcId, give]) => ({ npcId, give, recv: 'Crow Coin' })));
 		ui.render();
 	}); await wait(800);
+	await openCell(page, 'board');
 	assert.match(await text(page, '.mat-say'), /layout M11/, 'the coin rows found their material layout');
 	assert.equal(await count(page, '.mat-steps, [data-act="barter-mat-tell"], [data-act="barter-mat-fleet-take"]'), 0, 'no steps to share it by');
 	// The islands M11 fills at random are asked about as it is found:
@@ -2421,6 +2428,7 @@ test('the hold is a line across the Barter tab that opens over the page, and the
 	assert.equal(await count(page, '.barter-screen > .barter-hold'), 0, 'the full hold is not on the page');
 	// The plan says what is held rung by rung, so the ladder carries the
 	// counts; the weight is the wharf's question, and the bar is there.
+	await openCell(page, 'ladder');
 	assert.match(await text(page, '.ladder'), /L(evel )?7[\s\S]*2 held/i);
 	await laidOut(page);
 	// Waited for rather than slept on: the tab redraws when the stock
@@ -2634,12 +2642,12 @@ test('a selling call left unticked is said on the results step, with the tick to
 	// Straight to the results with nothing ticked: the call that sells is
 	// named, and the goods it sells are still aboard.
 	await page.evaluate(() => [...document.querySelectorAll('[data-act="barter-step"][data-id="results"]')].find(e => e.getBoundingClientRect().width > 0).click()); await wait(1500);
-	const note = await text(page, '.receipt-acts');
+	const note = await text(page, '.receipt-owed');
 	assert.match(note, /still aboard: the call at .+ that sells them is not ticked/);
-	const tick = await page.$('.receipt-acts [data-act="barter-stop-done"]');
+	const tick = await page.$('.receipt-owed [data-act="barter-stop-done"]');
 	assert.ok(tick, 'the tick is to hand');
 	await tick.evaluate(e => e.click()); await wait(1200);
-	const after = await text(page, '.receipt-acts');
+	const after = await page.evaluate(() => document.querySelector('.receipt-owed')?.innerText || '');
 	assert.doesNotMatch(after, /still aboard/);
 	assert.match(await text(page, '.run-tiles'), /sold at the wharf call/);
 	assert.deepEqual(errors, []);

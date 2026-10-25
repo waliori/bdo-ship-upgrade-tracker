@@ -13,6 +13,7 @@
 // material layouts, as the trade board is one of its forty.
 
 import { T } from './i18n.js';
+import { esc } from './fmt.js';
 import { loadingNote } from './loading.js';
 import * as store from './state.js';
 import { img } from './ui-bits.js';
@@ -22,9 +23,9 @@ import { V } from './barter/state.js';
 import { boardNow, boardHTML, pinnedHTML, rolledHTML } from './barter/board.js';
 import { stepNow, stepperHTML, underWayHTML, recordedHTML, sailHTML } from './barter/cockpit.js';
 import { holdBarHTML, refreshSheet } from './barter/hold.js';
-import { materialParts } from './barter/material.js';
+import { materialParts, matBoardNow, matPageNow } from './barter/material.js';
 import { silverParts } from './barter/parts.js';
-import { dayStep, goalCardsHTML, planSectionsHTML } from './barter/plan.js';
+import { dayCardHTML, goalCardsHTML, goalSaid } from './barter/plan.js';
 import { resultsHTML } from './barter/results.js';
 import { sailing, strandedHTML } from './barter/sail.js';
 import { shapeBarHTML } from './barter/short.js';
@@ -59,16 +60,26 @@ export function renderBarter() {
 	setTimeout(refreshSheet, 0);
 	const now = stepNow();
 	const on = sailing();
-	const secs = planSectionsHTML(parts.secs);
-	// The day's two forks first, together -- what it is for, and how
-	// much of the board -- since the rest follows from them: which list
-	// of the barter window is read, then the run. No numbers here: the
-	// steps across the top are the page's one count.
-	const planStep = `${goalCardsHTML(shapeBarHTML())}
-		${dayStep(V.goal === 'material' ? T('Read today’s material list') : T('Read today’s board'), V.goal === 'material' ? T('A screenshot of the barter window: its rows paying ship materials are read') : T('A screenshot of the barter window: the layout is found from a few islands'))}
-		${rolledHTML()}${pinnedHTML(b)}${boardHTML(b)}${parts.cont || ''}
-		${dayStep(T('Plan the run'), '', `<button class="linky" data-act="barter-sec" data-id="all">${T('show all')}</button><button class="linky" data-act="barter-sec" data-id="none">${T('collapse all')}</button>`)}
-		${secs}${parts.dock || ''}`;
+	// The day card: every choice the run is laid from, in one place --
+	// what the day is for, how much of the board, the board, and the
+	// orders -- each cell saying what it is set to, one editor open
+	// beneath. Until the board is read, the board is what is open: it is
+	// the next thing to do. The steps across the top are the only count.
+	const material = V.goal === 'material';
+	const matPage = material ? matPageNow() : null;
+	const boardRead = material ? matBoardNow().answers.length > 0 : Boolean(b.combo);
+	const boardSaid = material
+		? (matPage ? T('Material layout {id}', { id: esc(matPage.id) }) : boardRead ? T('looked at') : T('the board is not read yet'))
+		: b.combo ? T('Layout {id}', { id: esc(b.combo.id) }) : T('the board is not read yet');
+	const openId = !boardRead && ['none', 'chains'].includes(V.planSec) ? 'board' : V.planSec;
+	const cells = [
+		['goal', T('What is today for?'), goalSaid(), goalCardsHTML()],
+		...(material || V.reach ? [] : [['shape', T('How much of the board'), V.shape === 'short' ? T('Short trip') : T('Full run'), shapeBarHTML()]]),
+		['board', material ? T('Today’s material list') : T('Today’s board'), boardSaid, `${pinnedHTML(b)}${boardHTML(b)}`, !boardRead],
+		...parts.secs.filter(([id]) => id !== 'chains')
+	];
+	const planStep = `${rolledHTML()}${parts.cont || ''}
+		${dayCardHTML(cells, parts.secs.filter(([id]) => id === 'chains'), openId)}${parts.dock || ''}`;
 	const loadFoot = `<div class="load-dock"><button class="linky" data-act="barter-step" data-id="plan">‹ ${T('Back to the plan')}</button><span class="run-dock-figs"><span>${parts.things.all ? (parts.things.later ? T('Trip 1: {n} of {of} aboard', { n: parts.things.done, of: parts.things.all }) : T('{n} of {of} aboard', { n: parts.things.done, of: parts.things.all })) : ''}</span>${parts.things.later ? `<span>${T('{n} picked up on the way', { n: parts.things.later })}</span>` : ''}</span>${on ? `<button class="act" data-act="barter-step" data-id="sail">${T('Back to the run')} ›</button>` : `<button class="act" data-act="barter-cast-off"${V.shownPlan && V.shownPlan.stops && V.shownPlan.stops.length ? '' : ' disabled'} title="${T('Each stop goes into the hold as you tick it; at the end the run is recorded')}">${img(currentShip().name, 'ship-ico')} ${T('Cast off')}</button>`}</div>`;
 	// While a run is under way the step leads with what it said at the
 	// wharf, kept with the run: the live list below is laid again from

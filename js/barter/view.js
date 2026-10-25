@@ -62,7 +62,7 @@ export function restore() {
 	V.goal = 'silver'; V.climb = 0; V.item = null; V.qty = 1; V.wants = {};
 	V.stockGoal = { ...DEFAULT_STOCK, targets: { ...DEFAULT_STOCK.targets } };
 	V.matOrders = { reach: 'want', calls: true, pace: 'full', quests: 'near' };
-	V.port = 0; V.routes = { key: '', ids: [] }; V.shape = 'full'; V.routesOther = { key: '', ids: [] }; V.stash = ''; V.sail = null; V.reach = ''; V.planSec = 'ladder'; V.ownWay = false;
+	V.port = 0; V.routes = { key: '', ids: [] }; V.shape = 'full'; V.routesOther = { key: '', ids: [] }; V.stash = ''; V.sail = null; V.reach = ''; V.planSec = 'none'; V.ownWay = false;
 	V.board = { day: '', answers: [], own: false }; V.matBoard = { day: '', answers: [], on: [] };
 	V.questSkip = { day: '', ids: [] }; V.questPull = { day: '', ids: [] }; V.routeEdit = { key: '', skip: [], nudge: {}, trips: [] }; V.advOpen = false; V.packed = new Set(); V.packLog = { delta: {}, moves: [] };
 	if (!s) return;
@@ -70,7 +70,7 @@ export function restore() {
 		if (['material', 'stock', 'coin'].includes(s.goal)) V.goal = s.goal;
 		if (s.stock) V.stockGoal = readStock(s.stock);
 		if (STOCK_LEVELS.includes(Number(s.climb)) && Number(s.climb) < 7) V.climb = Number(s.climb);
-		if (['parley', 'ladder', 'how', 'chains', 'all', 'none'].includes(s.planSec)) V.planSec = s.planSec;
+		if (['goal', 'shape', 'board', 'parley', 'ladder', 'how', 'chains', 'all', 'none'].includes(s.planSec)) V.planSec = s.planSec;
 		V.ownWay = s.ownWay === true;
 		if (Array.isArray(s.packed)) V.packed = new Set(s.packed.filter(k => typeof k === 'string' && k.startsWith('g|')));
 		if (s.packLog) V.packLog = cleanApplied(s.packLog);

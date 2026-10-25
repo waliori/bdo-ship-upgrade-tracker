@@ -633,7 +633,7 @@ body[data-view="map"] .status-bar { display: none; }
 .run-rations.low .run-bar.rations i { background: var(--red); }
 .run-supply { margin-top: 7px; display: inline-flex; align-items: center; gap: 7px; background: var(--panel-inset); border: 1px solid var(--line); border-radius: 7px; padding: 4px 11px; font-size: 12px; font-weight: 600; }
 .run-rations-line { margin: 4px 0 8px; font-size: 12.5px; }
-.cockpit-fig.rations .est { font-style: normal; font-size: 9.5px; text-transform: none; color: var(--ink-faint); margin-left: 4px; }
+.cockpit-fig.rations .est { font-style: normal; font-size: 11px; text-transform: none; color: var(--ink-faint); margin-left: 4px; }
 .mini-bar.rations small { font-size: 10px; color: var(--teal); margin-left: 4px; }
 .run-bar.rations.low i, .mini-bar.rations.low .run-bar.rations i { background: var(--red); }
 .run-rations-line.warn { color: var(--red); }

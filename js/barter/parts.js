@@ -802,7 +802,7 @@ export function silverParts(me, b) {
 			...(short
 				? [['chains', T('Your short trip'), esc(shortSummary(chosen, worthSaid, plan)), shortHTML({ set: shortSet, picked: chosen, opts, aim, ship, from, stock, plan, pkey, stocking, coining, runFigures, heldNote, shutNote, lay: chainRun })]]
 				: [['how', T('How to sail it'), esc(howLine(o)), howHTML(o, presetFigs)],
-					['chains', T('Chains on offer'), esc(chainsSummary), `${chainsBody}${chosen.length ? runFigures : ''}`]])
+					['chains', T('Chains on offer'), esc(chainsSummary), `${chosen.length ? runFigures : ''}${chainsBody}`]])
 		],
 		cont: continueHTML(fullAll, b),
 		load, dock: foot, packLT: packingLT(plan, from, chosen), packSlots: packingSlots(plan, from, chosen), things: { ...packingCount(plan, from, chosen), later: staged ? tripsOf(plan).slice(1).reduce((a, t) => a + t.loads.length, 0) : 0, trips: tripsN }, stops: plan.stops.length, time: runTime(legs, book) || ''

@@ -215,8 +215,33 @@ export async function seed(page, url, state) {
  * ambiguous, and aiming at the hidden one clicks nothing at all, so the
  * clip comes out showing a dead press.
  */
+/**
+ * The Barter plan's day card keeps each choice's controls in a cell that
+ * is shut until pressed: the goals, the shape, the board. A beat that
+ * asks for one of those controls gets its cell opened first, as a sailor
+ * would, so no beat has to know which cell holds what.
+ */
+const CELL_OF = [
+	[/barter-goal|goal-cards|goal-which/, 'goal'],
+	[/barter-shape|plan-shape/, 'shape'],
+	[/barter-board-ask|barter-shot|board-drop|board-strip|board-pill|barter-board-island|barter-layouts|barter-refreshed/, 'board']
+];
+async function openCellFor(page, sel) {
+	const hit = CELL_OF.find(([re]) => re.test(sel));
+	if (!hit) return;
+	const opened = await page.evaluate((sel, id) => {
+		if ([...document.querySelectorAll(sel)].some(e => e.getBoundingClientRect().width > 0)) return false;
+		const cell = document.querySelector(`.day-cell[data-sec="${id}"]:not(.open) > [data-act="barter-sec"]`);
+		if (!cell) return false;
+		cell.click();
+		return true;
+	}, sel, hit[1]).catch(() => false);
+	if (opened) await wait(700);
+}
+
 async function pick(page, sel, { upTo = 2500 } = {}) {
 	if (typeof sel !== 'string') return sel;
+	await openCellFor(page, sel);
 	const end = Date.now() + upTo;
 	for (;;) {
 		const els = await page.$$(sel);

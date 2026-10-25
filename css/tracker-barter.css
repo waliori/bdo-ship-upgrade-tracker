@@ -734,23 +734,14 @@ ul.lb-readers.flat { margin: 0 0 12px; }
 .lb-readers b { color: var(--ink-hi); }
 .lb-readers .linky { font-size: 12px; margin-left: 6px; }
 
-/* The plan: the day's two forks in one panel, then the board, then
-   the run. The steps across the top are the only numbers on the page. */
-.day-step { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; margin: 6px 2px -4px; }
-.day-step > b { font-family: var(--font-display); font-size: 17px; font-weight: 600; color: var(--ink-hi); }
-.day-step-sub { font-size: 12.5px; color: var(--ink-mute); }
-.day-step .linky { font-size: 12px; }
-/* Each fork is a row: the question, its switch, and what the answer
-   means. The two rows share their columns, so the switches line up. */
-.day-fork { padding: 2px 18px; }
-.fork-row { display: grid; grid-template-columns: 12rem auto minmax(0, 1fr); align-items: center; gap: 8px 18px; padding: 12px 0; }
-.fork-row + .fork-row { border-top: 1px solid var(--line); }
-.fork-k { font-size: 14px; font-weight: 600; color: var(--ink-hi); }
+/* A choice's editor: the switch, and what the answer means. */
+.fork-row { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 8px 18px; }
+.fork-row + .fork-row { margin-top: 12px; }
 .fork-say { min-width: 0; font-size: 12.5px; line-height: 1.45; color: var(--ink-dim); }
 .fork-reads { display: block; color: var(--ink-faint); }
 .goal-seg { display: inline-flex; align-items: center; gap: 6px; }
 .goal-seg .goal-icon { width: 18px; height: 18px; margin: 0; vertical-align: 0; }
-.goal-which { margin: 0 0 12px; font-size: 12px; color: var(--ink-faint); }
+.goal-which { margin: 12px 0 0; font-size: 12px; color: var(--ink-faint); }
 .goal-which summary { cursor: pointer; }
 .goal-table { margin: 6px 0 0; border-collapse: collapse; width: 100%; }
 .goal-table th, .goal-table td { padding: 3px 8px 3px 0; text-align: left; vertical-align: top; font-weight: normal; border-top: 1px solid var(--line-soft); }
@@ -760,10 +751,8 @@ ul.lb-readers.flat { margin: 0 0 12px; }
   .fork-row { grid-template-columns: minmax(0, 1fr); gap: 8px; }
 }
 @media (max-width: 720px) {
-  .day-fork { padding: 2px 12px; }
   .goal-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .goal-seg { justify-content: flex-start; }
-  .day-step-sub { flex: 1 0 100%; margin-top: -4px; }
 }
 
 /* the material list as three steps: one page, which board, share */
@@ -897,32 +886,48 @@ ul.lb-readers.flat { margin: 0 0 12px; }
 .plan-sec-head > span { flex: 1; min-width: 0; font-size: 12.5px; color: var(--ink-mute); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .plan-sec-head > em { flex: none; font-style: normal; color: var(--ink-faint); }
 .plan-sec-body { padding: 4px 18px 18px; }
-/* The orders as tabs: every head in one row, saying what it is set
-   to, and the open part's body across the row's width beneath. The
-   sections step aside (display: contents) so the heads and bodies can
-   share one grid; the chains below are a panel of their own. */
-.plan-orders { display: grid; grid-template-columns: repeat(var(--n, 3), minmax(0, 1fr)); gap: 8px; }
-.plan-orders > .plan-sec { display: contents; }
-.plan-orders .plan-sec-head { grid-row: 1; flex-wrap: wrap; align-content: flex-start; gap: 2px 10px; padding: 11px 14px; border-radius: var(--r-tile); border: 1px solid var(--line); background: var(--panel-strong); transition: border-color 0.12s, background-color 0.12s; }
-.plan-orders .plan-sec-head:hover { border-color: var(--line-btn-hi); }
-.plan-orders .plan-sec-head > b { flex: 1 1 auto; }
-.plan-orders .plan-sec-head > span { order: 3; flex: 1 0 100%; white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; }
-.plan-orders .plan-sec.open .plan-sec-head { border-color: var(--teal-edge); background: var(--teal-glow); }
-.plan-orders .plan-sec.open .plan-sec-head > b { color: var(--teal-hi); }
-.plan-orders .plan-sec-body { grid-column: 1 / -1; padding: 16px 18px 18px; }
+/* The day card: a cell a choice, each saying what it is set to, and
+   the open cell's editor across the card beneath them. The cells step
+   aside (display: contents) so heads and editors share one grid; the
+   heads are placed first (order), so however many rows they take, the
+   editor comes after them all. */
+.day-card { display: grid; grid-template-columns: repeat(var(--n, 6), minmax(0, 1fr)); gap: 8px; }
+.day-card > .day-cell { display: contents; }
+.day-card .plan-sec-head { order: 0; flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 3px; min-height: 64px; padding: 10px 14px; border-radius: var(--r-tile); border: 1px solid var(--line); background: var(--panel-strong); transition: border-color 0.12s, background-color 0.12s; }
+.day-card .plan-sec-head:hover { border-color: var(--line-btn-hi); }
+.day-card .plan-sec-head > b { font-family: var(--font-body); font-size: 12px; font-weight: 600; color: var(--ink-faint); white-space: normal; }
+.day-card .plan-sec-head > span { flex: none; width: 100%; font-family: var(--font-display); font-size: 15px; font-weight: 600; color: var(--ink-hi); white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; }
+.day-card .plan-sec-head .goal-icon { width: 17px; height: 17px; margin: 0 6px 0 0; vertical-align: -3px; }
+.day-card .day-cell.open > .plan-sec-head { border-color: var(--teal-edge); background: var(--teal-glow); }
+.day-card .day-cell.open > .plan-sec-head > b { color: var(--teal); }
+/* The board not read yet: the one cell still to answer. */
+.day-card .day-cell.todo > .plan-sec-head { border-style: dashed; border-color: var(--amber); }
+.day-card .day-cell.todo > .plan-sec-head > span { color: var(--amber); }
+.day-card .plan-sec-body { order: 1; grid-column: 1 / -1; min-width: 0; padding: 16px 18px 18px; }
+/* The board brings its own panel; in the card it stands bare. */
+.day-card .day-cell[data-sec="board"] > .plan-sec-body { padding: 0; background: none; border: 0; box-shadow: none; }
 .plan-sec[data-sec="chains"] > .plan-sec-head { cursor: default; }
 @media (prefers-reduced-motion: reduce) {
-  .plan-orders .plan-sec-head { transition: none; }
+  .day-card .plan-sec-head { transition: none; }
+}
+@media (max-width: 1100px) {
+  .day-card { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 @media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
-  /* A phone keeps them in their order, each body under its own head. */
-  .plan-orders { grid-template-columns: minmax(0, 1fr); }
-  .plan-orders .plan-sec-head { grid-row: auto; }
-  .plan-orders .plan-sec-body { padding: 12px; }
+  /* A phone keeps them in their order, each editor under its own cell. */
+  .day-card { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .day-card .plan-sec-head { order: 0; min-height: 0; flex-direction: row; align-items: baseline; flex-wrap: wrap; gap: 2px 10px; }
+  .day-card .plan-sec-head > span { width: auto; flex: 1 1 auto; font-size: 14px; }
+  .day-card .plan-sec-body { order: 0; padding: 12px; }
 }
 .plan-next { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
 .plan-next .panel-sub { flex: 1 1 200px; min-width: 0; }
 .plan-sub-head { display: flex; flex-direction: column; gap: 2px; margin: 16px 0 10px; padding-top: 14px; border-top: 1px solid var(--line); }
+/* The run as ticked leads the chains: the answer first, then the ways
+   to change it. */
+.run-as-ticked { margin-bottom: 18px; padding-bottom: 18px; border-bottom: 1px solid var(--line); }
+.run-as-ticked > .plan-sub-head:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+.run-as-ticked > .plan-sub-head > b { font-size: 19px; }
 .plan-sub-head > b { font-family: var(--font-display); font-size: 15px; color: var(--ink-hi); }
 .plan-sub-head > span { font-size: 12px; color: var(--ink-mute); }
 @media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
@@ -1128,10 +1133,12 @@ button.rung-held:hover { color: var(--ink-hi); text-decoration: underline; }
 .cockpit-figs { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
 .cockpit-fig { padding: 11px 14px; border-radius: var(--r-tile); background: var(--panel-inset); }
 .cockpit-fig-k { display: flex; justify-content: space-between; gap: 8px; font-family: var(--font-display); font-size: 12px; font-weight: 700; color: var(--ink-faint); }
-.cockpit-fig-v { display: flex; align-items: baseline; gap: 7px; margin: 4px 0 7px; font-family: var(--font-display); }
+.cockpit-fig-v { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 7px; margin: 4px 0 7px; font-family: var(--font-display); }
 .cockpit-fig-v > span { font-size: 16px; color: var(--ink-mute); }
 .cockpit-fig-v > i { font-style: normal; color: var(--ink-faint); }
-.cockpit-fig-v > b { font-size: 24px; color: var(--ink-hi); }
+/* A figure is never broken across lines; what it came from wraps
+   above it instead. */
+.cockpit-fig-v > b { font-size: 24px; color: var(--ink-hi); white-space: nowrap; }
 .cockpit-fig-v > b.warn { color: var(--red); }
 .cockpit-fig-v > b.amber { color: var(--amber); }
 /* The hold's slots under its LT: the second figure, smaller. */
@@ -1294,6 +1301,7 @@ button.rung-held:hover { color: var(--ink-hi); text-decoration: underline; }
 .receipt-net { display: flex; justify-content: space-between; gap: 8px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); font-family: var(--font-display); }
 .receipt-net > b { font-size: 19px; color: var(--amber); }
 .receipt-net > b.warn { color: var(--red); }
+.receipt-owed { display: grid; gap: 6px; margin: 14px 0 0; padding: 0; list-style: none; font-size: 12.5px; }
 .receipt-acts { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
 .receipt-acts .panel-sub { flex: 1 1 180px; }
 
@@ -1424,9 +1432,21 @@ body.sail-scene-hold .sail-scene canvas { visibility: hidden; }
 .ship-ico { width: 20px; height: 20px; object-fit: contain; vertical-align: -5px; }
 
 /* The route on the wharf: every stop its own card, with sooner / later / skip on the islands. */
-.route-fold .run-stops > .run-stop { margin: 6px 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-tile); background: rgba(var(--deep-rgb), 0.35); }
-.route-fold .run-stops > .run-stop:hover { border-color: rgba(var(--blue-rgb), 0.45); }
-.route-fold .run-stops > .run-stop.wharf { border-style: dashed; border-color: rgba(var(--amber-rgb), 0.35); }
+.route-fold .run-stops > .run-stop { margin: 0; padding: 4px 8px; border-radius: var(--r-btn); }
+.route-fold .run-stops > .run-stop:hover { background: rgba(var(--blue-rgb), 0.06); }
+.route-fold .run-stops > .run-stop + .run-stop { border-top: 1px solid var(--line-soft); }
+/* The leg's still, folded: one quiet line until it is opened. */
+.leg-fold { margin-top: 6px; font-size: 12px; color: var(--ink-faint); }
+/* On the wharf the stop's tools and its fold share a line. */
+.route-fold .route-edit { display: inline-flex; vertical-align: middle; }
+.route-fold .route-edit + .leg-fold { display: inline-block; margin-left: 12px; vertical-align: middle; }
+.route-fold .leg-fold[open] { display: block; margin-left: 0; }
+/* ...and the bars beside it stand close, one hairline apart. */
+.route-fold .run-hold { padding-top: 6px; }
+.route-fold .run-parley, .route-fold .run-rations { margin-top: 5px; padding-top: 4px; border-top-style: solid; border-top-color: var(--line-soft); }
+.route-fold .run-bar { margin-top: 3px; height: 4px; }
+.leg-fold > summary { cursor: pointer; width: fit-content; }
+.leg-fold > summary:hover { color: var(--link-hi); }
 .route-fold .run-stops > .run-stop.start { border-color: var(--teal-edge); }
 .route-edit { display: flex; gap: 4px; margin-top: 6px; }
 .route-edit .chip.tiny { min-width: 28px; }
@@ -1507,6 +1527,14 @@ body.sail-scene-hold .sail-scene canvas { visibility: hidden; }
 .trip-card { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px 8px; background: rgba(var(--black-rgb), .12); }
 .trip-card.now { border-color: color-mix(in srgb, var(--teal) 45%, transparent); }
 .trip-card.later { opacity: .82; }
+/* Inside a trip the groups are columns of one card, not cards of
+   their own: hairlines between them, no boxes. */
+.trip-card .pack-groups { gap: 0; align-items: stretch; }
+.trip-card .pack-group { background: none; border: 0; border-radius: 0; box-shadow: none; backdrop-filter: none; }
+.trip-card .pack-group + .pack-group { border-left: 1px solid var(--line); }
+@media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
+  .trip-card .pack-group + .pack-group { border-left: 0; border-top: 1px solid var(--line); }
+}
 .trip-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; margin-bottom: 8px; }
 .trip-k { font-size: 12px; color: var(--teal); font-weight: 700; }
 .trip-card.later .trip-k { color: var(--ink-faint); }
