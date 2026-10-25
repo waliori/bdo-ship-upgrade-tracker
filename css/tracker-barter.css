@@ -934,6 +934,27 @@ button.rung-fate { cursor: pointer; }
 .rung-keep .purse-inline { width: 42px; text-align: center; }
 .rung-keep.set { color: var(--amber); }
 .rung-keep.none { height: 22px; }
+button.rung-held { background: none; border: 0; padding: 0; cursor: pointer; color: var(--ink-mute); font: inherit; font-size: 11.5px; }
+button.rung-held:hover { color: var(--ink-hi); text-decoration: underline; }
+/* A level, good by good: icon, count, a bar to the keep, and what is short. */
+.lvg-head { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
+.lvg-chip { font-size: 12.5px; padding: 3px 10px; border-radius: 999px; background: var(--panel-inset); border: 1px solid var(--line-btn); }
+.lvg-chip.short { color: var(--red); border-color: var(--red-edge); }
+.lvg-chip.met { color: var(--teal); border-color: var(--teal-edge); }
+.lvg-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; max-height: 60vh; overflow-y: auto; }
+.lvg-tile { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 6px; border-radius: 10px; background: var(--panel-inset); border: 1px solid var(--line-btn); min-width: 0; }
+.lvg-tile.none:not(.is-short) { opacity: 0.55; }
+.lvg-tile.is-short { border-color: var(--red-edge); }
+.lvg-icon { width: 40px; height: 40px; border-radius: 6px; }
+.lvg-n { font-size: 16px; color: var(--ink-hi); line-height: 1; }
+.lvg-bar { width: 80%; height: 4px; border-radius: 2px; background: var(--line-btn); overflow: hidden; }
+.lvg-bar i { display: block; height: 100%; background: var(--teal); }
+.lvg-tile.is-short .lvg-bar i { background: var(--red); }
+.lvg-mark { font-size: 12px; font-weight: 700; }
+.lvg-mark.short { color: var(--red); }
+.lvg-mark.met { color: var(--teal); }
+.lvg-mark.spare { color: var(--ink-mute); }
+.lvg-name { font-size: 10.5px; color: var(--ink-mute); text-align: center; line-height: 1.2; overflow-wrap: anywhere; }
 .rung-note { font-size: 11px; color: var(--ink-faint); text-align: center; }
 .rung-note.full { color: var(--teal); }
 .rung-coin-line { width: 2px; height: 14px; background: var(--amber); opacity: 0.6; }

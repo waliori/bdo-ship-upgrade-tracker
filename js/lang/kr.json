@@ -6106,5 +6106,15 @@
 	"pastes several screenshots at once": "스크린샷 여러 장을 한꺼번에 붙여넣습니다",
 	"pastes one screenshot at a time": "스크린샷을 한 번에 한 장씩 붙여넣습니다",
 	"One at a time here — drop or choose the files": "여기서는 한 장씩 — 파일을 끌어다 놓거나 고르세요",
-	"Several at once with Ctrl+V": "Ctrl+V로 여러 장 한꺼번에"
+	"Several at once with Ctrl+V": "Ctrl+V로 여러 장 한꺼번에",
+	"See every good at this level: what you hold, and how many short": "이 단계의 모든 물품 보기: 보유 수와 부족 수",
+	"short of the keep": "보관 수보다 부족",
+	"above the keep, free to climb": "보관 수 초과, 위로 교환 가능",
+	"at the keep": "보관 수와 같음",
+	"What you hold at Level {lv}": "{lv}단계 보유 물품",
+	"{n} held in all": "총 {n}개",
+	"keep {n} of each": "각 {n}개 보관",
+	"{n} short across {k} goods": "{k}개 물품에서 {n}개 부족",
+	"every good at its keep": "모든 물품이 보관 수 도달",
+	"Under each level of the ladder, the count held opens every good of that level: its icon, how many you hold, a bar to the keep number, and how many are short or spare.": "사다리의 각 단계 아래 보유 수를 누르면 그 단계의 모든 물품이 열립니다: 아이콘, 보유 수, 보관 수까지의 막대, 부족하거나 남는 수."
 }

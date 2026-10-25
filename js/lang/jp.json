@@ -6106,5 +6106,15 @@
 	"pastes several screenshots at once": "スクリーンショットをまとめて貼り付けられます",
 	"pastes one screenshot at a time": "スクリーンショットを一枚ずつしか貼り付けられません",
 	"One at a time here — drop or choose the files": "ここでは一枚ずつ — ファイルをドロップするか選んでください",
-	"Several at once with Ctrl+V": "Ctrl+V でまとめて"
+	"Several at once with Ctrl+V": "Ctrl+V でまとめて",
+	"See every good at this level: what you hold, and how many short": "この段階の全品を見る: 所持数と不足数",
+	"short of the keep": "保持数に足りない",
+	"above the keep, free to climb": "保持数を超過、上へ交換可能",
+	"at the keep": "保持数ちょうど",
+	"What you hold at Level {lv}": "{lv}段階の所持品",
+	"{n} held in all": "合計 {n}",
+	"keep {n} of each": "各 {n} 個保持",
+	"{n} short across {k} goods": "{k} 品で {n} 個不足",
+	"every good at its keep": "全品が保持数に到達",
+	"Under each level of the ladder, the count held opens every good of that level: its icon, how many you hold, a bar to the keep number, and how many are short or spare.": "はしごの各段階の下にある所持数を押すと、その段階の全品が開きます: アイコン、所持数、保持数までのバー、不足数または余剰数。"
 }

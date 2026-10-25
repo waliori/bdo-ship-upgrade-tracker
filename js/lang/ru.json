@@ -8271,5 +8271,15 @@
 	"pastes several screenshots at once": "вставляет несколько скриншотов сразу",
 	"pastes one screenshot at a time": "вставляет по одному скриншоту",
 	"One at a time here — drop or choose the files": "Здесь по одному — перетащите или выберите файлы",
-	"Several at once with Ctrl+V": "Несколько сразу с Ctrl+V"
+	"Several at once with Ctrl+V": "Несколько сразу с Ctrl+V",
+	"See every good at this level: what you hold, and how many short": "Каждый товар этого уровня: сколько есть и сколько не хватает",
+	"short of the keep": "ниже нормы",
+	"above the keep, free to climb": "выше нормы, может идти дальше",
+	"at the keep": "ровно по норме",
+	"What you hold at Level {lv}": "Что у вас на уровне {lv}",
+	"{n} held in all": "всего {n}",
+	"keep {n} of each": "хранить по {n} каждого",
+	"{n} short across {k} goods": "не хватает {n} по {k} товарам",
+	"every good at its keep": "каждый товар по норме",
+	"Under each level of the ladder, the count held opens every good of that level: its icon, how many you hold, a bar to the keep number, and how many are short or spare.": "Под каждым уровнем лестницы число в наличии открывает все товары этого уровня: значок, сколько у вас есть, полоску до нормы и сколько не хватает или лишних."
 }

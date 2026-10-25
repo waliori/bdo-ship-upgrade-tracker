@@ -6106,5 +6106,15 @@
 	"pastes several screenshots at once": "birkaç ekran görüntüsünü birden yapıştırır",
 	"pastes one screenshot at a time": "ekran görüntülerini teker teker yapıştırır",
 	"One at a time here — drop or choose the files": "Burada teker teker — dosyaları bırakın ya da seçin",
-	"Several at once with Ctrl+V": "Ctrl+V ile birkaçı birden"
+	"Several at once with Ctrl+V": "Ctrl+V ile birkaçı birden",
+	"See every good at this level: what you hold, and how many short": "Bu seviyedeki her malı gör: elinizde olan ve eksik olan",
+	"short of the keep": "saklanacak miktarın altında",
+	"above the keep, free to climb": "saklanacak miktarın üstünde, tırmanmaya serbest",
+	"at the keep": "saklanacak miktarda",
+	"What you hold at Level {lv}": "{lv}. seviyede elinizde olan",
+	"{n} held in all": "toplam {n}",
+	"keep {n} of each": "her birinden {n} sakla",
+	"{n} short across {k} goods": "{k} malda {n} eksik",
+	"every good at its keep": "her mal saklanacak miktarda",
+	"Under each level of the ladder, the count held opens every good of that level: its icon, how many you hold, a bar to the keep number, and how many are short or spare.": "Merdivendeki her seviyenin altında, eldeki sayı o seviyedeki her malı açar: simgesi, elinizde kaç tane olduğu, saklanacak miktara kadar bir çubuk ve kaç eksik ya da fazla olduğu."
 }

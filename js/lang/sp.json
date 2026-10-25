@@ -6124,5 +6124,15 @@
 	"pastes several screenshots at once": "pega varias capturas a la vez",
 	"pastes one screenshot at a time": "pega una captura a la vez",
 	"One at a time here — drop or choose the files": "Acá de a una: suelta o elige los archivos",
-	"Several at once with Ctrl+V": "Varias a la vez con Ctrl+V"
+	"Several at once with Ctrl+V": "Varias a la vez con Ctrl+V",
+	"See every good at this level: what you hold, and how many short": "Ver cada bien de este nivel: lo que tienes y cuántos faltan",
+	"short of the keep": "por debajo de lo que se guarda",
+	"above the keep, free to climb": "por encima de lo que se guarda, libre para subir",
+	"at the keep": "justo en lo que se guarda",
+	"What you hold at Level {lv}": "Lo que tienes en el nivel {lv}",
+	"{n} held in all": "{n} en total",
+	"keep {n} of each": "guardar {n} de cada uno",
+	"{n} short across {k} goods": "faltan {n} en {k} bienes",
+	"every good at its keep": "cada bien en lo que se guarda",
+	"Under each level of the ladder, the count held opens every good of that level: its icon, how many you hold, a bar to the keep number, and how many are short or spare.": "Bajo cada nivel de la escalera, la cifra que tienes abre cada bien de ese nivel: su ícono, cuántos tienes, una barra hasta lo que se guarda y cuántos faltan o sobran."
 }

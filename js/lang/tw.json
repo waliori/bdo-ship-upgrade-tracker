@@ -6106,5 +6106,15 @@
 	"pastes several screenshots at once": "可一次貼上多張截圖",
 	"pastes one screenshot at a time": "一次只貼上一張截圖",
 	"One at a time here — drop or choose the files": "此處一次一張 — 請拖放或選擇檔案",
-	"Several at once with Ctrl+V": "Ctrl+V 一次多張"
+	"Several at once with Ctrl+V": "Ctrl+V 一次多張",
+	"See every good at this level: what you hold, and how many short": "查看此階段的每種物品：持有多少、還差多少",
+	"short of the keep": "低於保留數",
+	"above the keep, free to climb": "高於保留數，可繼續往上換",
+	"at the keep": "正好達到保留數",
+	"What you hold at Level {lv}": "{lv}階段持有",
+	"{n} held in all": "共 {n}",
+	"keep {n} of each": "每種保留 {n}",
+	"{n} short across {k} goods": "{k} 種物品共差 {n}",
+	"every good at its keep": "每種物品都達到保留數",
+	"Under each level of the ladder, the count held opens every good of that level: its icon, how many you hold, a bar to the keep number, and how many are short or spare.": "階梯每個階段下方的持有數可以打開該階段的每種物品：圖示、持有多少、到保留數的進度條，以及還差或多出多少。"
 }

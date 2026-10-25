@@ -6106,5 +6106,15 @@
 	"pastes several screenshots at once": "วางภาพหน้าจอได้หลายภาพพร้อมกัน",
 	"pastes one screenshot at a time": "วางภาพหน้าจอได้ครั้งละหนึ่งภาพ",
 	"One at a time here — drop or choose the files": "ที่นี่ครั้งละหนึ่งภาพ — ลากมาวางหรือเลือกไฟล์",
-	"Several at once with Ctrl+V": "หลายภาพพร้อมกันด้วย Ctrl+V"
+	"Several at once with Ctrl+V": "หลายภาพพร้อมกันด้วย Ctrl+V",
+	"See every good at this level: what you hold, and how many short": "ดูสินค้าทุกชิ้นในระดับนี้: มีเท่าไร และขาดเท่าไร",
+	"short of the keep": "ต่ำกว่าจำนวนที่เก็บไว้",
+	"above the keep, free to climb": "เกินจำนวนที่เก็บไว้ แลกขึ้นต่อได้",
+	"at the keep": "เท่ากับจำนวนที่เก็บไว้",
+	"What you hold at Level {lv}": "สิ่งที่มีในระดับ {lv}",
+	"{n} held in all": "รวม {n}",
+	"keep {n} of each": "เก็บไว้อย่างละ {n}",
+	"{n} short across {k} goods": "ขาด {n} ใน {k} รายการ",
+	"every good at its keep": "สินค้าทุกชิ้นครบจำนวนที่เก็บ",
+	"Under each level of the ladder, the count held opens every good of that level: its icon, how many you hold, a bar to the keep number, and how many are short or spare.": "ใต้แต่ละระดับของบันได จำนวนที่มีจะเปิดสินค้าทุกชิ้นในระดับนั้น: ไอคอน มีอยู่เท่าไร แถบไปถึงจำนวนที่เก็บไว้ และขาดหรือเหลือเท่าไร"
 }

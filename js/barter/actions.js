@@ -32,7 +32,7 @@ import { aboardStock, unloadTo, held, openSheet, shoreAboard } from './hold.js';
 import { fitAboard, refusedSaid, inHoldAt } from '../hold-room.js';
 import { matBoardNow, matFitNow, takeMatOffers, openMatBook, openMatRolls, pickGood, pickMaterial, matOn, openMatIsles, pickShipAt } from './material.js';
 import { packedNow, unloadMoves, packApply, toldOf } from './packing.js';
-import { parleyRefilled, retickIfAuto, ordersNow, setOrders, applySaved, dropSaved, askSaveOrders, sellFrom, keepFrom, readBagShot, chainStepsDialog, chainClaimDialog } from './plan.js';
+import { levelGoodsDialog, parleyRefilled, retickIfAuto, ordersNow, setOrders, applySaved, dropSaved, askSaveOrders, sellFrom, keepFrom, readBagShot, chainStepsDialog, chainClaimDialog } from './plan.js';
 import { STASHES, bagSet, legsOf, skippedToday, pulledToday, ledgerOf } from './route.js';
 import { sailKey, sailing, stopKey, ticked, runLabel, runMarks, owesCount, rangeOf, unsyncHold, abandonRun, markDone, sailRecord, planOfSail, stranded, sailedPlan, recordTrip } from './sail.js';
 import { proposeAsync, redrawSoon } from './search.js';
@@ -109,6 +109,7 @@ export function barterAction(act, el, redraw) {
 			persist();
 			return true;
 		}
+		case 'barter-level-goods': levelGoodsDialog(Number(el.dataset.lv)); return false;
 		case 'barter-coin-node': V.goal = V.goal === 'coin' ? 'silver' : 'coin'; persist(); return true;
 		// Sold or kept, flipped on the rung itself.
 		case 'barter-fate': {

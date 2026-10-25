@@ -6145,5 +6145,15 @@
 	"pastes several screenshots at once": "fügt mehrere Bildschirmfotos auf einmal ein",
 	"pastes one screenshot at a time": "fügt ein Bildschirmfoto nach dem anderen ein",
 	"One at a time here — drop or choose the files": "Hier eines nach dem anderen — Dateien ablegen oder wählen",
-	"Several at once with Ctrl+V": "Mehrere auf einmal mit Strg+V"
+	"Several at once with Ctrl+V": "Mehrere auf einmal mit Strg+V",
+	"See every good at this level: what you hold, and how many short": "Jede Ware dieser Stufe sehen: was du hast und wie viele fehlen",
+	"short of the keep": "unter dem Behalten-Wert",
+	"above the keep, free to climb": "über dem Behalten-Wert, frei zum Aufsteigen",
+	"at the keep": "genau beim Behalten-Wert",
+	"What you hold at Level {lv}": "Was du auf Stufe {lv} hast",
+	"{n} held in all": "{n} insgesamt",
+	"keep {n} of each": "{n} von jeder behalten",
+	"{n} short across {k} goods": "{n} fehlen bei {k} Waren",
+	"every good at its keep": "jede Ware auf ihrem Behalten-Wert",
+	"Under each level of the ladder, the count held opens every good of that level: its icon, how many you hold, a bar to the keep number, and how many are short or spare.": "Unter jeder Stufe der Leiter öffnet die gehaltene Zahl jede Ware dieser Stufe: ihr Symbol, wie viele du hast, einen Balken bis zum Behalten-Wert und wie viele fehlen oder übrig sind."
 }

@@ -324,6 +324,51 @@ export function levelFull(lv) {
 	return done >= want * of;
 }
 
+/**
+ * Every good of a level at a glance: its icon, how many are held, and
+ * against the keep number of the day -- a floor, or a stock target --
+ * how many are short, met, or spare to climb. The ladder says it in a
+ * line; this says it good by good, the short ones first.
+ */
+export function levelGoodsDialog(lv) {
+	const o = ordersNow();
+	const stocking = V.goal === 'stock';
+	const want = stocking ? V.stockGoal.targets[lv] || 0 : o.floors[lv] || 0;
+	const names = new Set();
+	for (const it of barterData || []) {
+		if (levelOf(it.name) === lv) names.add(it.name);
+		for (const x of it.sources || []) if (x.give && levelOf(x.give.name) === lv) names.add(x.give.name);
+	}
+	const held = new Map();
+	for (const [name, k] of everythingHeld()) if (levelOf(name) === lv) { names.add(name); held.set(name, k); }
+	const rows = [...names].map(name => { const k = held.get(name) || 0; return { name, k, short: want ? Math.max(0, want - k) : 0, spare: want ? Math.max(0, k - want) : k }; })
+		.sort((a, b) => (b.short - a.short) || (b.k - a.k) || gameName(a.name).localeCompare(gameName(b.name)));
+	const total = rows.reduce((a, r) => a + r.k, 0);
+	const short = rows.reduce((a, r) => a + r.short, 0);
+	const shortOf = rows.filter(r => r.short).length;
+	const tileOf = r => {
+		const mark = !want ? '' : r.short
+			? `<span class="lvg-mark short" title="${T('short of the keep')}">−${F(r.short)}</span>`
+			: r.spare ? `<span class="lvg-mark spare" title="${T('above the keep, free to climb')}">+${F(r.spare)}</span>`
+				: `<span class="lvg-mark met" title="${T('at the keep')}">✓</span>`;
+		const bar = want ? `<span class="lvg-bar"><i style="width:${Math.round(Math.min(1, r.k / want) * 100)}%"></i></span>` : '';
+		return `<div class="lvg-tile${r.k ? '' : ' none'}${want && r.short ? ' is-short' : ''}" title="${esc(gameName(r.name))}">
+			${img(r.name, 'lvg-icon')}<b class="lvg-n">${F(r.k)}</b>${bar}${mark}
+			<span class="lvg-name">${esc(gameName(r.name).replace(/^\[[^\]]*\]\s*/, ''))}</span>
+		</div>`;
+	};
+	const chip = (cls, text) => `<span class="lvg-chip ${cls}">${text}</span>`;
+	openDialog(`<h2>${T('What you hold at Level {lv}', { lv })}</h2>
+		<div class="lvg-head">
+			${chip('', T('{n} held in all', { n: `<b>${F(total)}</b>` }))}
+			${want ? chip('', T('keep {n} of each', { n: `<b>${F(want)}</b>` })) : ''}
+			${want ? (short ? chip('short', T('{n} short across {k} goods', { n: `<b>${F(short)}</b>`, k: F(shortOf) })) : chip('met', T('every good at its keep'))) : ''}
+		</div>
+		<div class="lvg-grid">${rows.map(tileOf).join('')}</div>
+		<div class="dialog-actions"><button class="act" data-close>${T('Close')}</button></div>`)
+		.querySelector('[data-close]').addEventListener('click', closeDialog);
+}
+
 function kindsPerLevel() {
 	if (V.kindsMemo && V.kindsMemo.of === barterData) return V.kindsMemo.at;
 	const sets = new Map();
@@ -540,7 +585,7 @@ export function ladderHTML(o, { fits = null, tickedN = 0 } = {}) {
 		return `<div class="rung${reached ? '' : ' dim'}${lv === top && !coining ? ' top' : ''}" style="--tier:${TIER(lv)}">
 			<button class="rung-node" data-act="barter-rung" data-lv="${lv}" title="${T('End the climb at Level {lv}', { lv })}"${coining ? '' : ` aria-pressed="${lv === top}"`}>${lv}</button>
 			<span class="rung-name">${T('Level {lv}', { lv })}</span>
-			<span class="rung-held">${heldAt.get(lv) ? T('{n} held', { n: F(heldAt.get(lv)) }) : T('none held')}</span>
+			<button class="rung-held linky" data-act="barter-level-goods" data-lv="${lv}" title="${T('See every good at this level: what you hold, and how many short')}">${heldAt.get(lv) ? T('{n} held', { n: F(heldAt.get(lv)) }) : T('none held')} <span aria-hidden="true">▦</span></button>
 			${fateHTML}${keep}${note}${coinNode}
 		</div>`;
 	}).join('');

@@ -72,6 +72,7 @@ Four days of questions on the server — Kemeren’s screenshots and his reading
 - A screenshot pasted at the Inventory or the Ship tab, with no dialog open, opens its reader with the picture in hand, as a paste at the Barter tab does: several pictures at once, for the readers that take them.
 - A screenshot pasted while another is being read is read after it, in every reader: a second paste a moment after the first cut the first one’s reading short, and only the last paste was in the table.
 - The paste zones say which browsers paste several screenshots at once: Chrome, Edge, Opera and the other Chromium browsers hand over every file copied, Firefox one a paste — drop or choose the files there.
+- Under each level of the ladder, the count held opens every good of that level: its icon, how many you hold, a bar to the keep number, and how many are short or spare.
 - A row whose name the column cut to a word several islands share — *Shipwrecked* opens five wrecks — went under the row above, whose offer it muddled. It is a row of its own now, and it asks: which island, from the ones that begin so. A name read only nearly — a letter off — is shown as read but left unticked until you confirm it. The reader guesses no island.
 
 ## 1.5.3 — What each island pays, off the screenshot
