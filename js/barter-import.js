@@ -250,7 +250,11 @@ export function openBarterImport({ files, deals, onAnswers = () => {} } = {}) {
 				const head = figuresFrom(words);
 				if (head.parley > 0) figures.parley = head.parley;
 				if (head.barters > 0) figures.barters = head.barters;
-				const reads = offersFrom(words, tables);
+				const all = offersFrom(words, tables);
+				// A row named by a cut that several islands share, and whose
+				// exchange settles none of them: not read, and said so.
+				for (const r of all) if (!r.isle) skipped.push({ name: take[i].name, why: r.why });
+				const reads = all.filter(r => r.isle);
 				// What the range islands pay, off their icons -- and with it
 				// which of an island's look-alike exchanges the row is.
 				const paid = image ? paidFrom(image, words, reads, scale, tables.deals) : new Map();

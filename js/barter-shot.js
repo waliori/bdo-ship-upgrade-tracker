@@ -177,6 +177,12 @@ export function linesOf(words, lh = lineHeight(words)) {
 export function isleAt(line, isles, { left = Infinity } = {}) {
 	if (!line.words.length || line.words[0].x0 > left) return null;
 	let best = null;
+	// A cut that several islands share -- "Shipwrecked" opens five
+	// wrecks' names -- names none of them, but it is a row all the same:
+	// kept as one, with the islands it could be, for the exchange to
+	// settle. Folded into the row above, its goods were read as that
+	// island's and the layout was lost.
+	let shared = null;
 	// The arrow button left of the name comes back as a mark or two --
 	// "4", a quote, "wa" -- that is no part of it: the name may start
 	// after up to three of them.
@@ -199,7 +205,9 @@ export function isleAt(line, isles, { left = Infinity } = {}) {
 				const least = dense(want) ? 3 : 6;
 				// "Shipwrecked" alone opens five wrecks' names: a cut that two
 				// islands share names neither, and the next word decides.
-				const cut = seen.length >= least && want.startsWith(seen) && isles.filter(o => plain(o.at).startsWith(seen)).length === 1 ? seen.length / want.length : 0;
+				const alike = seen.length >= least && want.startsWith(seen) ? isles.filter(o => plain(o.at).startsWith(seen)) : [];
+				const cut = alike.length === 1 ? seen.length / want.length : 0;
+				if (alike.length > 1 && !shared) shared = { isle: null, among: alike, score: 0.5, words: i + 1, right: line.words[i].x1 };
 				// A name the engine misread rather than cut short. The cap has
 				// to be above the threshold or every long name is "close":
 				// editDistance stops counting at its cap and answers with it.
@@ -213,7 +221,7 @@ export function isleAt(line, isles, { left = Infinity } = {}) {
 			}
 		}
 	}
-	return best;
+	return best || shared;
 }
 
 /**
@@ -329,7 +337,7 @@ export function rowsOf(all, isles) {
 			// neither is what the game prints under it.
 			.filter(w => w.x1 > head.right + 2)
 			.sort((a, b) => ((a.y0 + a.y1) / 2 - (b.y0 + b.y1) / 2) > lh * 0.6 ? 1 : ((b.y0 + b.y1) / 2 - (a.y0 + a.y1) / 2) > lh * 0.6 ? -1 : a.x0 - b.x0);
-		return { isle: head.isle, score: head.score, words: said, text: plain(said.map(w => w.text).join(' ')), tiers: said.map(w => tierIn(w.text)).filter(t => t !== null) };
+		return { isle: head.isle, among: head.among, score: head.score, words: said, text: plain(said.map(w => w.text).join(' ')), tiers: said.map(w => tierIn(w.text)).filter(t => t !== null) };
 	});
 }
 
@@ -348,6 +356,18 @@ export function rowsOf(all, isles) {
  * the player is asked rather than told.
  */
 export function offerOf(row, deals, { floor = 0.5, margin = 0.12 } = {}) {
+	// A row whose name several islands share: the one whose exchange
+	// fits the row clearly best is the island. The wrecks deal most of
+	// their coin exchanges alike, so a row that fits two of them as well
+	// stays unnamed, and says which it could be.
+	if (!row.isle) {
+		const tries = (row.among || []).map(isle => offerOf({ ...row, isle }, deals, { floor, margin }))
+			.map(r => ({ r, score: r.near && r.near[0] ? r.near[0].score : 0 }))
+			.sort((a, b) => b.score - a.score);
+		const top = tries[0];
+		if (top && top.r.offer && (!tries[1] || top.score - tries[1].score >= margin)) return top.r;
+		return { ...row, offer: null, why: T('a row that could be {names}: its exchange fits none of them clearly', { names: (row.among || []).map(x => x.at).join(', ') }) };
+	}
 	const here = deals.filter(d => d.npcId === row.isle.id);
 	if (!here.length) return { ...row, offer: null, why: T('nothing known at this island') };
 	const scored = here.map(d => {

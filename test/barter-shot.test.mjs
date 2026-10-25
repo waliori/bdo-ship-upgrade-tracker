@@ -140,7 +140,9 @@ test('a cut name that several islands share names none of them; the next word de
 	// with the shortest name, and the Ancient Relic wreck's row went under
 	// Rickun's, where its offer fit nothing and the layout was lost.
 	const alone = linesOf([{ text: 'Shipwrecked', x0: 10, y0: 0, x1: 110, y1: 20 }])[0];
-	assert.equal(isleAt(alone, npcs, { left: 200 }), null);
+	const open = isleAt(alone, npcs, { left: 200 });
+	assert.equal(open.isle, null);
+	assert.equal(open.among.length, 5);
 	const cut = linesOf([
 		{ text: 'Shipwrecked', x0: 10, y0: 0, x1: 110, y1: 20 },
 		{ text: 'Ancie...', x0: 114, y0: 0, x1: 170, y1: 20 }
@@ -151,6 +153,40 @@ test('a cut name that several islands share names none of them; the next word de
 		{ text: "Rickun's", x0: 114, y0: 0, x1: 170, y1: 20 }
 	])[0];
 	assert.equal(isleAt(other, npcs, { left: 200 }).isle.at, "Shipwrecked Rickun's Ship");
+});
+
+test('a cut name several islands share is settled by the exchange, or left unnamed', () => {
+	// The column had room for "Shipwrecked" alone. Only the Ancient
+	// Relic wreck pays Crow Coins for Ancient Orders, so the row is its;
+	// a Bronze Candlestick every wreck takes names no wreck, and the row
+	// says which it could be instead of going under the row above.
+	const page = (give, item) => [
+		{ text: 'Shipwrecked', x0: 10, y0: 0, x1: 110, y1: 20 },
+		{ text: give, x0: 300, y0: 0, x1: 420, y1: 20 },
+		{ text: '>', x0: 430, y0: 0, x1: 440, y1: 20 },
+		{ text: item, x0: 450, y0: 0, x1: 520, y1: 20 },
+		{ text: '50', x0: 700, y0: 0, x1: 720, y1: 20 },
+		{ text: 'Exchanges', x0: 10, y0: 30, x1: 90, y1: 50 },
+		{ text: 'Left:', x0: 92, y0: 30, x1: 120, y1: 50 },
+		{ text: '2', x0: 122, y0: 30, x1: 140, y1: 50 }
+	];
+	const settled = offersFrom(page('[Level 3] Ancient Orders', 'Crow Coin'), { isles: npcs, deals });
+	assert.equal(settled.length, 1);
+	assert.equal(settled[0].isle.at, 'Shipwrecked Ancient Relic Cargo Ship');
+	assert.equal(settled[0].offer.give, '[Level 3] Ancient Orders');
+	const open = offersFrom(page('[Level 4] Bronze Candlestick', 'Crow Coin'), { isles: npcs, deals });
+	assert.equal(open.length, 1);
+	assert.equal(open[0].isle, null);
+	assert.equal(open[0].offer, null);
+	assert.match(open[0].why, /Shipwrecked Rickun/);
+	// And a row read whole after it is its own, not the wreck's.
+	const two = [...page('[Level 4] Bronze Candlestick', 'Crow Coin'), ...page('[Level 1] Dried Blue Rose', 'Crow Coin').map(w => ({ ...w, y0: w.y0 + 60, y1: w.y1 + 60 }))];
+	two[8].text = 'Iliya'; two[8].x1 = 60; two.splice(9, 0, { text: 'Island', x0: 64, y0: 60, x1: 110, y1: 80 });
+	const rows = rowsOf(two, npcs);
+	assert.equal(rows.length, 2);
+	assert.equal(rows[0].isle, null);
+	assert.equal(rows[1].isle.at, 'Iliya Island');
+	assert.doesNotMatch(rows[1].text, /candlestick/);
 });
 
 test('a line of furniture is not an island', () => {
