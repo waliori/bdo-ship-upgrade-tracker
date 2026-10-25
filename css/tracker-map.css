@@ -46,7 +46,7 @@
   z-index: 40;
   pointer-events: none;
   opacity: 0;
-  background: linear-gradient(90deg, transparent 0%, rgba(125, 200, 255, 0.85) 45%, rgba(125, 200, 255, 0.85) 55%, transparent 100%);
+  background: linear-gradient(90deg, transparent 0%, rgba(var(--sky-rgb), 0.85) 45%, rgba(var(--sky-rgb), 0.85) 55%, transparent 100%);
   background-size: 40% 100%;
   background-repeat: no-repeat;
   transition: opacity 0.25s;
@@ -60,7 +60,7 @@
   to { background-position: 140% 0; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .map.is-loading::after { animation: none; background: rgba(125, 200, 255, 0.5); }
+  .map.is-loading::after { animation: none; background: rgba(var(--sky-rgb), 0.5); }
 }
 
 /* The chart is dark in either theme -- the tiles are the game's own
@@ -119,7 +119,6 @@
 .map-tilt-btn {
   font: inherit;
   font-size: 11.5px;
-  letter-spacing: 0.04em;
   color: var(--ink-dim);
   background: transparent;
   border: 1px solid transparent;
@@ -189,7 +188,7 @@
 .map-route-next { fill: none; stroke: var(--amber); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; opacity: 0; }
 .map-route.next-only .map-route-glow { opacity: 0.05; }
 .map-route.next-only .map-route-dash { opacity: 0.22; animation: none; }
-.map-route.next-only .map-route-next { opacity: 0.95; filter: drop-shadow(0 0 6px rgba(232, 182, 97, 0.7)); }
+.map-route.next-only .map-route-next { opacity: 0.95; filter: drop-shadow(0 0 6px rgba(var(--amber-rgb), 0.7)); }
 
 /* One dash-plus-gap per cycle, so the loop point is invisible. */
 @keyframes map-dash { to { stroke-dashoffset: -22; } }
@@ -340,8 +339,8 @@
   font-weight: 700;
   display: none;
   place-items: center;
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(var(--white-rgb), 0.25);
+  box-shadow: 0 2px 6px rgba(var(--black-rgb), 0.5);
 }
 .map-pin-badge:not(:empty) { display: grid; }
 .map-pin-badge.is-done { background: var(--done-bg); color: var(--done-ink); border-color: var(--done-edge); }
@@ -352,7 +351,7 @@
    3D lean and the offline keep -- carry a word beside their mark. */
 .map-zoom { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; min-width: 0; }
 .map-zoom .ghost-btn { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-width: 34px; font-size: 15px; line-height: 1; }
-.map-zoom .btn-label { font-size: 12px; font-family: var(--font-display); letter-spacing: 0.04em; }
+.map-zoom .btn-label { font-size: 12px; font-family: var(--font-display); }
 .ico { flex: none; vertical-align: middle; }
 
 /* ------------------------------------------------------------------ *
@@ -388,8 +387,6 @@
   padding: 10px 12px 6px;
   font-family: var(--font-display);
   font-size: 12px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
   color: var(--ink-soft);
 }
 
@@ -417,8 +414,6 @@
   color: var(--ink-mute);
   font-family: var(--font-display);
   font-size: 12px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
   white-space: nowrap;
   cursor: pointer;
 }
@@ -794,7 +789,7 @@
   border-radius: 2px;
   background: var(--blue-bar);
   border: 1.5px solid rgba(240, 250, 255, 0.7);
-  box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 0 8px rgba(var(--black-rgb), 0.5);
 }
 .map-port:hover .map-port-name { color: var(--ink-hi); }
 .map-port.start { color: var(--amber); }
@@ -802,7 +797,7 @@
 
 /* The stop the step player is on: a gold ring no sea swallows. */
 .map-pin.current .map-pin-dot {
-  box-shadow: 0 0 0 3px rgba(232, 182, 97, 0.9), 0 0 16px var(--amber);
+  box-shadow: 0 0 0 3px rgba(var(--amber-rgb), 0.9), 0 0 16px var(--amber);
 }
 
 /* The step player: the route as chips, walked or flown. */
@@ -908,9 +903,7 @@
 
 .map-step-follow {
   font-family: var(--font-display);
-  font-size: 10px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font-size: 12px;
   padding: 4px 9px;
   border-radius: 999px;
   background: none;
@@ -922,8 +915,8 @@
 }
 .map-step-follow.on {
   color: var(--amber);
-  border-color: rgba(232, 182, 97, 0.5);
-  background: rgba(232, 182, 97, 0.08);
+  border-color: rgba(var(--amber-rgb), 0.5);
+  background: rgba(var(--amber-rgb), 0.08);
 }
 
 .map-startrow { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; }
@@ -980,7 +973,6 @@
   color: var(--teal);
   margin-bottom: 6px;
   font-family: var(--font-display);
-  letter-spacing: 0.04em;
 }
 
 .guide-card img {
@@ -1013,15 +1005,13 @@
   margin-left: 4px;
   padding: 0 4px;
   border-radius: 4px;
-  font-size: 8.5px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-size: 12px;
   border: 1px solid var(--line-btn);
   color: var(--ink-mute);
 }
 .map-kind-tag.material { color: var(--teal); border-color: var(--teal-edge); }
 .map-kind-tag.trade { color: var(--blue); border-color: var(--blue-edge); }
-.map-kind-tag.coin { color: var(--amber); border-color: rgba(232, 182, 97, 0.4); }
+.map-kind-tag.coin { color: var(--amber); border-color: rgba(var(--amber-rgb), 0.4); }
 
 /* The tree's jump to the chart, one glyph wide. */
 .tmap {
@@ -1068,7 +1058,7 @@
 .map-run { display: flex; flex-direction: column; gap: 10px; }
 .map-run-head { display: flex; flex-direction: column; gap: 6px; }
 .map-run-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
-.map-run-title > b { font-family: var(--font-display); font-size: 13.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--blue); }
+.map-run-title > b { font-family: var(--font-display); font-size: 13.5px; color: var(--blue); }
 .map-run-title span { font-size: 12px; color: var(--ink-faint); }
 .map-run-fold { border: 1px solid var(--line); border-radius: var(--r-btn); padding: 6px 10px; font-size: 12px; color: var(--ink-mid); }
 .map-run-fold > summary { cursor: pointer; font-weight: 600; color: var(--ink-mid); }

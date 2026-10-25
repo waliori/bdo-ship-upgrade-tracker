@@ -42,9 +42,7 @@
 }
 
 .peek-label {
-  font-size: 10px;
-  letter-spacing: 0.11em;
-  text-transform: uppercase;
+  font-size: 12px;
   color: var(--ink-mute);
   margin-bottom: 6px;
 }
@@ -135,16 +133,16 @@
 .toast .toast-text small { font-size: 12px; color: var(--ink-mute); }
 .toast .toast-acts { display: flex; align-items: center; gap: 4px; margin-left: auto; }
 .toast .toast-acts button { padding: 6px 8px; border-radius: var(--r-sm); }
-.toast .toast-go { color: var(--teal-hi); background: rgba(78, 201, 174, 0.16); }
-.toast .toast-go:hover { background: rgba(78, 201, 174, 0.28); }
+.toast .toast-go { color: var(--teal-hi); background: rgba(var(--teal-rgb), 0.16); }
+.toast .toast-go:hover { background: rgba(var(--teal-rgb), 0.28); }
 .toast .toast-undo { color: var(--ink-mute); font-weight: 600; }
 
 /* The made thing on its way to the Builds tab, and the tab taking it. */
 .fly-ghost { position: fixed; z-index: 1001; pointer-events: none; object-fit: contain; filter: drop-shadow(0 4px 10px rgba(var(--shade-rgb), 0.6)); }
 @keyframes tabTick {
-  0% { box-shadow: 0 0 0 0 rgba(78, 201, 174, 0.7); }
+  0% { box-shadow: 0 0 0 0 rgba(var(--teal-rgb), 0.7); }
   30% { transform: scale(1.12); }
-  100% { box-shadow: 0 0 0 12px rgba(78, 201, 174, 0); transform: scale(1); }
+  100% { box-shadow: 0 0 0 12px rgba(var(--teal-rgb), 0); transform: scale(1); }
 }
 .tab-tick { animation: tabTick 0.8s ease-out; }
 
@@ -181,8 +179,6 @@
   font-family: var(--font-display);
   font-size: 16px;
   font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
   color: var(--ink-hi);
 }
 
@@ -286,9 +282,7 @@
 
 .picker-tag {
   font-family: var(--font-display);
-  font-size: 10.5px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: 12px;
   color: var(--ink-faint);
 }
 
@@ -387,8 +381,6 @@
   font-family: var(--font-display);
   font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
   color: var(--blue);
   white-space: nowrap;
 }
@@ -415,10 +407,8 @@
 
 .pouch-title {
   font-family: var(--font-display);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
   color: var(--ink-mute);
   white-space: nowrap;
 }
@@ -443,8 +433,8 @@
 }
 
 .pouch-item:hover { border-color: rgba(var(--line-rgb), 0.22); }
-.pouch-item.short { border-color: rgba(232, 122, 109, 0.3); }
-.pouch-item.ok { border-color: rgba(78, 201, 174, 0.26); }
+.pouch-item.short { border-color: rgba(var(--red-rgb), 0.3); }
+.pouch-item.ok { border-color: rgba(var(--teal-rgb), 0.26); }
 
 .pouch-icon,
 .pouch-glyph {
@@ -467,9 +457,7 @@
 .pouch-body { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 
 .pouch-k {
-  font-size: 10px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font-size: 12px;
   color: var(--ink-mute);
   white-space: nowrap;
 }
@@ -516,10 +504,8 @@
   margin-left: 2px;
   border-left: 1px solid var(--line);
   font-family: var(--font-display);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
   color: var(--ink-faint);
   white-space: nowrap;
 }
@@ -555,7 +541,7 @@
 .pouch-item.sail.summary:hover { border-color: rgba(var(--line-rgb), 0.28); }
 /* Nought barters is a real answer and an unanswered question at once,
    so the chip asks until it is told. */
-.pouch-item.sail.summary.asking { border-color: rgba(232, 182, 97, 0.45); }
+.pouch-item.sail.summary.asking { border-color: rgba(var(--amber-rgb), 0.45); }
 .pouch-item.sail.summary.asking .pouch-need { color: var(--amber); }
 
 /* The table of thresholds, from the bar's ? and from the Barter tab. */
@@ -716,9 +702,7 @@ button.pouch-item.sail.pets:focus-visible { outline: 2px solid var(--focus); out
    told apart by its words and not by being drawn differently. */
 .pet-row.head .pet-row-k {
   font-family: var(--font-display);
-  font-size: 10px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font-size: 12px;
   color: var(--ink-faint);
   justify-content: flex-end;
   padding-right: 2px;
@@ -1023,9 +1007,7 @@ button.pouch-item.sail.pets:focus-visible { outline: 2px solid var(--focus); out
 .route-name { font-weight: 600; font-size: 12.5px; }
 
 .route-have {
-  font-size: 10px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-size: 12px;
   color: var(--teal);
   border: 1px solid var(--teal-edge);
   border-radius: 8px;
@@ -1311,7 +1293,7 @@ h2 .copy-name { font-size: 14px; min-width: 24px; height: 24px; vertical-align: 
   padding: 8px 10px;
   border-radius: var(--r-btn);
   border: 1px solid rgba(var(--line-rgb), 0.14);
-  background: rgba(255, 255, 255, 0.015);
+  background: rgba(var(--white-rgb), 0.015);
 }
 
 .way + .way { margin-top: 6px; }
@@ -1363,7 +1345,9 @@ h2 .copy-name { font-size: 14px; min-width: 24px; height: 24px; vertical-align: 
 .row-sea-why { color: var(--ink-faint); }
 .row-sea-why::before { content: "· "; }
 
-/* A tick that reads as part of the sentence it interrupts. */
+/* A tick that reads as part of the sentence it interrupts. Under a
+   craft card's buttons it stands alone, at the card's own small size. */
+.craft-card .inline-check { margin-top: 8px; font-size: 12.5px; color: var(--ink-mute); }
 .inline-check {
   display: inline-flex;
   align-items: center;
@@ -1401,4 +1385,4 @@ select.purse-inline { width: auto; cursor: pointer; }
 .log-icon.grade-3 { --log-grade: #f2c13a; }
 .log-icon.grade-4 { --log-grade: #f07b2a; }
 .log-icon .pouch-icon { border-radius: 4px; }
-.log-icon i { position: absolute; left: -3px; top: -6px; font-style: normal; font-family: var(--font-display); font-size: 9.5px; font-weight: 800; line-height: 1; letter-spacing: .02em; color: #fff; padding: 1px 3px; border-radius: 3px; background: rgba(0, 0, 0, .75); text-shadow: 0 0 2px #000; }
+.log-icon i { position: absolute; left: -3px; top: -6px; font-style: normal; font-family: var(--font-display); font-size: 9.5px; font-weight: 800; line-height: 1; letter-spacing: .02em; color: #fff; padding: 1px 3px; border-radius: 3px; background: rgba(var(--black-rgb), .75); text-shadow: 0 0 2px #000; }

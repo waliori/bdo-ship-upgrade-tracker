@@ -808,7 +808,7 @@ test('a ship in a link can be looked at on the Ship tab, and the bar brings your
 	await context.close();
 });
 
-test('the day rides under the pouch on every tab but the Plan, and the More menu opens and closes', async () => {
+test('the day rides under the pouch on the tabs that do not say it themselves, and the More menu opens and closes', async () => {
 	const { page, context, errors } = await open('#builds');
 	await seed(page); await wait(300);
 	assert.match(await text(page, '#status'), /Epheria Carrack: Valor/);
@@ -1671,7 +1671,7 @@ test('Find opens a card for an item, even one nobody owns', async () => {
 	const wanted = await card('Tidal Black Stone');
 	assert.ok(wanted, 'no card opened at all');
 	assert.match(wanted.title, /Tidal Black Stone/i);
-	assert.ok(wanted.sections.includes('WHERE IT STANDS'), 'the card never says where it stands');
+	assert.ok(wanted.sections.some(s => /^where it stands$/i.test(s)), 'the card never says where it stands');
 	assert.ok(wanted.sections.some(s => /BARTER/i.test(s)), 'a bartered item does not say where to barter for it');
 	await page.keyboard.press('Escape'); await wait(400);
 

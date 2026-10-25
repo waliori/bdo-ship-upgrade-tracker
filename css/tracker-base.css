@@ -44,6 +44,17 @@
   --deep-rgb: 9, 22, 42;
   --blue-rgb: 88, 168, 232;
   --shade-rgb: 0, 0, 0;
+  /* Channels the stylesheets mix their own alphas from; no theme
+     changes them, so each reads the same in light and dark. */
+  --amber-rgb: 232, 182, 97;
+  --teal-rgb: 78, 201, 174;
+  --red-rgb: 232, 122, 109;
+  --stash-rgb: 178, 143, 224;
+  --star-rgb: 255, 215, 122;
+  --done-rgb: 126, 240, 212;
+  --sky-rgb: 125, 200, 255;
+  --black-rgb: 0, 0, 0;
+  --white-rgb: 255, 255, 255;
   --wash-blue: rgba(24, 62, 96, 0.5);
   --wash-teal: rgba(30, 80, 70, 0.4);
   --glass: rgba(var(--deep-rgb), 0.5);
@@ -77,17 +88,17 @@
 
   --teal: #4ec9ae;
   --teal-hi: #7fe0c9;
-  --teal-edge: rgba(78, 201, 174, 0.4);
-  --teal-glow: rgba(78, 201, 174, 0.12);
+  --teal-edge: rgba(var(--teal-rgb), 0.4);
+  --teal-glow: rgba(var(--teal-rgb), 0.12);
 
   --amber: #e8b661;
   /* Storage: a wharf call is the one stop on a run where nothing is
      bartered, so it is never the route's amber. */
   --stash: #b28fe0;
-  --stash-edge: rgba(178, 143, 224, 0.5);
+  --stash-edge: rgba(var(--stash-rgb), 0.5);
   --red: #e87a6d;
   --red-soft: #e0988e;
-  --red-edge: rgba(232, 122, 109, 0.35);
+  --red-edge: rgba(var(--red-rgb), 0.35);
 
   /* Solid wells and marks that were hex in the sheets: an inset well
      (a taken seat), a deeper one (a level badge), a solid track, a
@@ -208,9 +219,9 @@
   --sheet-solid: #ffffff;
   --link: #1a6fb0;
   --link-hi: #0d5a95;
-  --panel: rgba(255, 255, 255, 0.72);
-  --panel-solid: rgba(255, 255, 255, 0.95);
-  --panel-strong: rgba(255, 255, 255, 0.84);
+  --panel: rgba(var(--white-rgb), 0.72);
+  --panel-solid: rgba(var(--white-rgb), 0.95);
+  --panel-strong: rgba(var(--white-rgb), 0.84);
   --panel-inset: rgba(226, 235, 245, 0.7);
 
   --ink: #17263a;
@@ -291,9 +302,9 @@
     --sheet-solid: #ffffff;
     --link: #1a6fb0;
     --link-hi: #0d5a95;
-    --panel: rgba(255, 255, 255, 0.72);
-    --panel-solid: rgba(255, 255, 255, 0.95);
-    --panel-strong: rgba(255, 255, 255, 0.84);
+    --panel: rgba(var(--white-rgb), 0.72);
+    --panel-solid: rgba(var(--white-rgb), 0.95);
+    --panel-strong: rgba(var(--white-rgb), 0.84);
     --panel-inset: rgba(226, 235, 245, 0.7);
 
     --ink: #17263a;
@@ -368,6 +379,7 @@ html {
   /* Nothing overhangs the top edge any more, so this is breathing room
      and not clearance: what is scrolled to stops a little below it. */
   scroll-padding-top: 8px;
+  overflow-x: clip;
   background-color: var(--ocean-deep);
   background-image: var(--ocean-gradient);
   min-height: 100%;
@@ -404,7 +416,7 @@ body {
   color: var(--ink);
   min-height: 100vh;
   position: relative;
-  overflow-x: hidden;
+  overflow-x: clip;
   -webkit-font-smoothing: antialiased;
 }
 

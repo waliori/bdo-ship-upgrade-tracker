@@ -366,11 +366,12 @@ export function render() {
 			data-act="view" data-id="${t.id}" id="tab-${t.id}" title="${said(t.label)}${i < 10 ? ` (${(i + 1) % 10})` : ''}">
 			<span class="tab-icon" aria-hidden="true">${t.icon}</span><span class="tab-label">${said(t.label)}</span>${badge(t.id, 'tab-count')}
 		</button>`).join('');
-	// The day's clocks and the ship, in one line, wherever the Plan's
-	// own strip is not on the page.
+	// The day's clocks and the ship, in one line, wherever the page does
+	// not say them itself: the Plan's own strip, the Quests' clocks and
+	// the chart's corner all do.
 	const status = document.getElementById('status');
 	if (status) {
-		const line = view === 'plan' || !store.getActiveTargets().length ? '' : statusLine();
+		const line = ['plan', 'quests', 'map'].includes(view) || !store.getActiveTargets().length ? '' : statusLine();
 		status.innerHTML = line;
 		status.hidden = !line;
 	}
