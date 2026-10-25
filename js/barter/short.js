@@ -89,10 +89,10 @@ export function coinPurseHTML(plan) {
  * a short trip: one trade chosen, and what fits round it
  * ------------------------------------------------------------------ */
 
-/** The switch at the head of the plan, with a word on what it means. */
+/** The day's second fork, beside the first: full run or short trip. */
 export function shapeBarHTML() {
 	if (V.goal === 'material' || V.reach) return '';
-	return `<div class="plan-shape"><span class="run-pick-k">${T('the run')}</span>${shapeChips()}<span class="panel-sub">${V.shape === 'short'
+	return `<div class="fork-row plan-shape"><span class="fork-k">${T('How much of the board')}</span>${shapeChips()}<span class="fork-say">${V.shape === 'short'
 		? T('One trade you pick, and what fits round it under the hold’s limit.')
 		: T('The board’s chains, searched for the best set and climbed.')}</span></div>`;
 }

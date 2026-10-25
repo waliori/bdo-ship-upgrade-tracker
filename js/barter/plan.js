@@ -455,10 +455,10 @@ export function aheadHTML(gains, plan, prof) {
  * the plan: where today ends, how to sail it
  * ------------------------------------------------------------------ */
 
-/** The head of one of the plan's three steps: what the day is for,
- *  what the game is showing, and the run itself. */
-export function dayStep(n, title, sub = '', side = '') {
-	return `<div class="day-step"><i>${n}</i><b>${title}</b>${sub ? `<span class="day-step-sub">${sub}</span>` : ''}<span class="panel-spacer"></span>${side}</div>`;
+/** The head of a stretch of the plan: what the game is showing, then
+ *  the run. Unnumbered: the steps across the top are the only count. */
+export function dayStep(title, sub = '', side = '') {
+	return `<div class="day-step"><b>${title}</b>${sub ? `<span class="day-step-sub">${sub}</span>` : ''}<span class="panel-spacer"></span>${side}</div>`;
 }
 
 /**
@@ -467,19 +467,22 @@ export function dayStep(n, title, sub = '', side = '') {
  * silver, a stock or coins, the material list for a material -- and so
  * which screenshot is asked for.
  */
-export function goalCardsHTML() {
-	const card = (id, icon, label, sub, reads) => `<button class="goal-card${V.goal === id ? ' on' : ''}" data-act="barter-goal" data-id="${id}" aria-pressed="${V.goal === id}">
-		<span class="goal-card-top">${icon}<b>${label}</b></span>
-		<span class="goal-card-sub">${sub}</span>
-		<span class="goal-card-reads">${reads}</span>
-	</button>`;
+export function goalCardsHTML(shapeRow = '') {
 	const board = T('reads: the trade goods list');
-	return `<div class="goal-cards" role="group" aria-label="${T('What the run is for')}">
-		${card('silver', img(SILVER, 'goal-icon'), T('Silver'), T('Today’s board climbed and the top sold. A floor of each level is kept and filled on the way'), board)}
-		${card('stock', '<span class="goal-emoji" aria-hidden="true">📦</span>', T('A stock'), T('The same board, sailed to fill a target of every good. Nothing is sold'), board)}
-		${card('coin', img(COIN, 'goal-icon'), T('Crow Coins'), lvChips(T('The same board, climbed to [Level 4] for the coin islands')), board)}
-		${card('material', '<span class="goal-emoji" aria-hidden="true">⚓</span>', T('A material'), T('Ship materials, from the islands that deal them'), T('reads: the ship material list'))}
-	</div>
+	const goals = [
+		['silver', img(SILVER, 'goal-icon'), T('Silver'), T('Today’s board climbed and the top sold. A floor of each level is kept and filled on the way'), board],
+		['stock', img('Storage Keeper', 'goal-icon'), T('A stock'), T('The same board, sailed to fill a target of every good. Nothing is sold'), board],
+		['coin', img(COIN, 'goal-icon'), T('Crow Coins'), lvChips(T('The same board, climbed to [Level 4] for the coin islands')), board],
+		['material', img('Standardized Timber Square', 'goal-icon'), T('A material'), T('Ship materials, from the islands that deal them'), T('reads: the ship material list')]
+	];
+	const on = goals.find(g => g[0] === V.goal) || goals[0];
+	// The two forks of the day side by side, each a row: what the day is
+	// for, then how much of the board it takes. Every choice below them
+	// follows from these two, so they are asked together and once.
+	const seg = ([id, icon, label]) => `<button class="seg goal-seg${V.goal === id ? ' on' : ''}" data-act="barter-goal" data-id="${id}" aria-pressed="${V.goal === id}">${icon}${label}</button>`;
+	return `<section class="panel day-fork">
+	<div class="fork-row"><span class="fork-k">${T('What is today for?')}</span><span class="segs goal-cards" role="group" aria-label="${T('What the run is for')}">${goals.map(seg).join('')}</span><span class="fork-say">${on[3]}<span class="fork-reads">${on[4]}</span></span></div>
+	${shapeRow}
 	<details class="goal-which"><summary>${T('Which day is which?')}</summary>
 		<table class="goal-table">
 			<tr><th></th><th>${T('Silver')}</th><th>${T('A stock')}</th><th>${T('Crow Coins')}</th></tr>
@@ -488,7 +491,8 @@ export function goalCardsHTML() {
 			<tr><th>${T('what is sold')}</th><td>${T('the top, at the wharf')}</td><td>${T('nothing')}</td><td>${lvChips(T('nothing: the [Level 4]s are cashed in for coins'))}</td></tr>
 			<tr><th>${T('when')}</th><td>${T('most days: keep a stock, sell the surplus')}</td><td>${T('building a pile from little, or pushing the barter count')}</td><td>${T('a coin day')}</td></tr>
 		</table>
-	</details>`;
+	</details>
+	</section>`;
 }
 
 /** The level the day's climbs end at, whatever the day is for. */
@@ -840,13 +844,13 @@ export function parleyHTML(prof) {
 	</div>`;
 }
 
-/** One part of the plan: a numbered head that says what is set inside,
+/** One part of the plan: a head that says what is set inside,
  *  and the body when it is the part that is open. */
 const secOpen = id => V.planSec === 'all' || V.planSec === id;
-export function planSection(n, id, title, summary, body) {
+export function planSection(id, title, summary, body) {
 	const open = secOpen(id);
 	return `<section class="panel plan-sec${open ? ' open' : ''}" data-sec="${id}">
-		<button class="plan-sec-head" data-act="barter-sec" data-id="${id}" aria-expanded="${open}"><i>${n}</i><b>${title}</b><span>${summary}</span><em aria-hidden="true">${open ? '▴' : '▾'}</em></button>
+		<button class="plan-sec-head" data-act="barter-sec" data-id="${id}" aria-expanded="${open}"><b>${title}</b><span>${summary}</span><em aria-hidden="true">${open ? '▴' : '▾'}</em></button>
 		${open ? `<div class="plan-sec-body">${body}</div>` : ''}
 	</section>`;
 }

@@ -59,16 +59,15 @@ export function renderBarter() {
 	setTimeout(refreshSheet, 0);
 	const now = stepNow();
 	const on = sailing();
-	const secs = parts.secs.map(([id, title, summary, body], i) => planSection(i + 1, id, title, summary, body)).join('');
-	// Three steps, in the order they are answered: what the day is for,
-	// then what the game is showing -- the board or the material list,
-	// whichever that answer reads -- then the run.
-	const planStep = `${dayStep(1, T('What is today for?'), T('It decides which list of the barter window is read next'))}
-		${goalCardsHTML()}
-		${dayStep(2, V.goal === 'material' ? T('Read today’s material list') : T('Read today’s board'), V.goal === 'material' ? T('A screenshot of the barter window: its rows paying ship materials are read') : T('A screenshot of the barter window: the layout is found from a few islands'))}
+	const secs = parts.secs.map(([id, title, summary, body]) => planSection(id, title, summary, body)).join('');
+	// The day's two forks first, together -- what it is for, and how
+	// much of the board -- since the rest follows from them: which list
+	// of the barter window is read, then the run. No numbers here: the
+	// steps across the top are the page's one count.
+	const planStep = `${goalCardsHTML(shapeBarHTML())}
+		${dayStep(V.goal === 'material' ? T('Read today’s material list') : T('Read today’s board'), V.goal === 'material' ? T('A screenshot of the barter window: its rows paying ship materials are read') : T('A screenshot of the barter window: the layout is found from a few islands'))}
 		${rolledHTML()}${pinnedHTML(b)}${boardHTML(b)}${parts.cont || ''}
-		${dayStep(3, T('Plan the run'), T('Four parts · each opens when the one before is settled'), `<button class="linky" data-act="barter-sec" data-id="all">${T('show all')}</button><button class="linky" data-act="barter-sec" data-id="none">${T('collapse all')}</button>`)}
-		${shapeBarHTML()}
+		${dayStep(T('Plan the run'), '', `<button class="linky" data-act="barter-sec" data-id="all">${T('show all')}</button><button class="linky" data-act="barter-sec" data-id="none">${T('collapse all')}</button>`)}
 		${secs}${parts.dock || ''}`;
 	const loadFoot = `<div class="load-dock"><button class="linky" data-act="barter-step" data-id="plan">‹ ${T('Back to the plan')}</button><span class="run-dock-figs"><span>${parts.things.all ? (parts.things.later ? T('Trip 1: {n} of {of} aboard', { n: parts.things.done, of: parts.things.all }) : T('{n} of {of} aboard', { n: parts.things.done, of: parts.things.all })) : ''}</span>${parts.things.later ? `<span>${T('{n} picked up on the way', { n: parts.things.later })}</span>` : ''}</span>${on ? `<button class="act" data-act="barter-step" data-id="sail">${T('Back to the run')} ›</button>` : `<button class="act" data-act="barter-cast-off"${V.shownPlan && V.shownPlan.stops && V.shownPlan.stops.length ? '' : ' disabled'} title="${T('Each stop goes into the hold as you tick it; at the end the run is recorded')}">${img(currentShip().name, 'ship-ico')} ${T('Cast off')}</button>`}</div>`;
 	// While a run is under way the step leads with what it said at the

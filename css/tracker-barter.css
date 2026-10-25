@@ -20,7 +20,7 @@
    ticked: it stays in view above the phone's section bar as the chains
    or the islands are ticked, and opens the run laid out over the page. */
 .run-dock, .load-dock { position: sticky; bottom: calc(var(--tabbar-h, 0px) + 10px); z-index: 20; display: flex; align-items: center; gap: 8px 14px; flex-wrap: wrap; padding: 9px 12px 9px 16px; border-radius: var(--r-panel); background: rgba(var(--deep-rgb), 0.96); border: 1px solid rgba(var(--blue-rgb), 0.45); box-shadow: 0 10px 34px rgba(var(--shade-rgb), 0.5); backdrop-filter: blur(8px); }
-.run-dock-k { font-family: var(--font-display); font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--teal); white-space: nowrap; }
+.run-dock-k { font-size: 13px; font-weight: 700; color: var(--teal); white-space: nowrap; }
 .run-dock-figs { flex: 1 1 200px; min-width: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; color: var(--ink-mute); }
 .run-dock-figs > span { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
 .run-dock-figs b { font-family: var(--font-display); font-weight: 700; color: var(--ink-hi); }
@@ -734,34 +734,36 @@ ul.lb-readers.flat { margin: 0 0 12px; }
 .lb-readers b { color: var(--ink-hi); }
 .lb-readers .linky { font-size: 12px; margin-left: 6px; }
 
-/* the plan as three steps: what the day is for, the board, the run */
-.day-step { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; margin: 6px 2px -2px; }
-.day-step > i { align-self: center; flex: none; display: grid; place-items: center; width: 24px; height: 24px; font-style: normal; font-family: var(--font-display); font-size: 12px; font-weight: 700; border-radius: 50%; border: 1px solid var(--teal-edge); color: var(--teal-hi); background: var(--teal-glow); }
-.day-step > b { font-family: var(--font-display); font-size: 14px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-hi); }
-.day-step-sub { font-size: 12px; color: var(--ink-mute); }
+/* The plan: the day's two forks in one panel, then the board, then
+   the run. The steps across the top are the only numbers on the page. */
+.day-step { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; margin: 6px 2px -4px; }
+.day-step > b { font-family: var(--font-display); font-size: 17px; font-weight: 600; color: var(--ink-hi); }
+.day-step-sub { font-size: 12.5px; color: var(--ink-mute); }
 .day-step .linky { font-size: 12px; }
-.goal-cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
-.goal-which { margin: 8px 0 0; font-size: 11.5px; color: var(--ink-faint); }
+/* Each fork is a row: the question, its switch, and what the answer
+   means. The two rows share their columns, so the switches line up. */
+.day-fork { padding: 2px 18px; }
+.fork-row { display: grid; grid-template-columns: 12rem auto minmax(0, 1fr); align-items: center; gap: 8px 18px; padding: 12px 0; }
+.fork-row + .fork-row { border-top: 1px solid var(--line); }
+.fork-k { font-size: 14px; font-weight: 600; color: var(--ink-hi); }
+.fork-say { min-width: 0; font-size: 12.5px; line-height: 1.45; color: var(--ink-dim); }
+.fork-reads { display: block; color: var(--ink-faint); }
+.goal-seg { display: inline-flex; align-items: center; gap: 6px; }
+.goal-seg .goal-icon { width: 18px; height: 18px; margin: 0; vertical-align: 0; }
+.goal-which { margin: 0 0 12px; font-size: 12px; color: var(--ink-faint); }
 .goal-which summary { cursor: pointer; }
 .goal-table { margin: 6px 0 0; border-collapse: collapse; width: 100%; }
 .goal-table th, .goal-table td { padding: 3px 8px 3px 0; text-align: left; vertical-align: top; font-weight: normal; border-top: 1px solid var(--line-soft); }
 .goal-table tr:first-child th { border-top: 0; color: var(--ink); font-weight: 600; }
 .goal-table tr > th:first-child { color: var(--ink); white-space: nowrap; }
-.goal-card { display: flex; flex-direction: column; gap: 4px; min-width: 0; padding: 10px 12px; text-align: left; font: inherit; color: var(--ink); cursor: pointer; background: var(--panel-strong); border: 1px solid var(--line); border-radius: var(--r-tile); transition: border-color 0.12s, background 0.12s; }
-.goal-card:hover { border-color: var(--line-btn-hi); }
-.goal-card.on { border-color: var(--teal-edge); background: var(--teal-glow); }
-.goal-card-top { display: flex; align-items: center; gap: 7px; }
-.goal-card-top b { font-size: 14px; color: var(--ink-hi); }
-.goal-card.on .goal-card-top b { color: var(--teal-hi); }
-.goal-emoji { font-size: 16px; line-height: 1; }
-.goal-card .goal-icon { width: 18px; height: 18px; margin: 0; vertical-align: 0; }
-.goal-card-sub { font-size: 12px; line-height: 1.4; color: var(--ink-dim); }
-.goal-card-reads { margin-top: auto; font-size: 10.5px; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; color: var(--ink-faint); }
-.goal-card.on .goal-card-reads { color: var(--teal); }
+@media (max-width: 960px) {
+  .fork-row { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+}
 @media (max-width: 720px) {
-  .goal-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .goal-card { padding: 8px 10px; }
-  .day-step-sub { flex: 1 0 100%; padding-left: 34px; margin-top: -4px; }
+  .day-fork { padding: 2px 12px; }
+  .goal-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .goal-seg { justify-content: flex-start; }
+  .day-step-sub { flex: 1 0 100%; margin-top: -4px; }
 }
 
 /* the material list as three steps: one page, which board, share */
@@ -820,9 +822,10 @@ ul.lb-readers.flat { margin: 0 0 12px; }
 .step.on { opacity: 1; border-color: var(--teal-edge); background: var(--teal-glow); }
 /* A step with nothing to show yet: still pressable, it says why. */
 .step.locked { opacity: 0.45; border-style: dashed; }
-.step-k { display: flex; align-items: baseline; gap: 5px; font-family: var(--font-display); font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint); }
-.step-k > i { font-style: normal; }
-.step-k > i::after { content: " ·"; }
+.step-k { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--ink-faint); }
+/* The page's one count: a number in a ring, filled on the step you are on. */
+.step-k > i { display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; border: 1px solid currentColor; font-style: normal; font-family: var(--font-display); font-size: 11px; line-height: 1; }
+.step.on .step-k > i { background: var(--teal); border-color: var(--teal); color: rgb(var(--deep-rgb)); }
 .step-k > em { font-style: normal; }
 .step > b { font-family: var(--font-display); font-size: 17px; font-weight: 600; color: var(--ink-hi); line-height: 1.15; }
 /* Two lines at most, and clipped there. A button is its own flex
@@ -890,11 +893,9 @@ ul.lb-readers.flat { margin: 0 0 12px; }
 .parley-gauge.guess .parley-gauge-k > span:first-child { color: var(--amber); }
 .plan-sec { overflow: hidden; }
 .plan-sec-head { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 18px; background: none; border: 0; color: inherit; text-align: left; cursor: pointer; }
-.plan-sec-head > i { display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; flex: none; border-radius: 50%; border: 1px solid var(--line-btn); background: var(--panel-inset); font-family: var(--font-display); font-size: 12px; font-style: normal; color: var(--ink-hi); }
-.plan-sec-head > b { font-family: var(--font-display); font-size: 13px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--blue); white-space: nowrap; }
+.plan-sec-head > b { font-family: var(--font-display); font-size: 15px; font-weight: 600; color: var(--blue-hi); white-space: nowrap; }
 .plan-sec-head > span { flex: 1; min-width: 0; font-size: 12.5px; color: var(--ink-mute); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .plan-sec-head > em { flex: none; font-style: normal; color: var(--ink-faint); }
-.plan-sec.open .plan-sec-head > i { border-color: var(--blue); color: var(--blue); }
 .plan-sec-body { padding: 4px 18px 18px; }
 .plan-next { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
 .plan-next .panel-sub { flex: 1 1 200px; min-width: 0; }
@@ -1278,7 +1279,7 @@ button.rung-held:hover { color: var(--ink-hi); text-decoration: underline; }
   .steps::-webkit-scrollbar { display: none; }
   .step { flex: 0 0 auto; padding: 7px 11px; gap: 0; }
   .step > b, .step-sub { display: none; }
-  .step:not(.on) .step-k > em { font-size: 10px; letter-spacing: 0.08em; }
+  .step:not(.on) .step-k > em { font-size: 11px; }
   .step.on { flex: 1 1 auto; min-width: 0; }
   .step.on > b { display: block; font-size: 14px; }
   .step.on .step-sub { display: -webkit-box; }
@@ -1543,9 +1544,6 @@ body.sail-scene-hold .sail-scene canvas { visibility: hidden; }
 .st-figs b.gold { color: var(--amber); }
 .st-figs b.teal, .st-sub b.teal { color: var(--teal); }
 .st-sub b.amber, .st-pick-foot b.amber { color: var(--amber); }
-.plan-shape { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 4px 0 10px; padding: 0 4px; }
-.plan-shape .run-pick-k { margin: 0; }
-.plan-shape .panel-sub { font-size: 12.5px; }
 .st-figs b.amber { color: var(--amber); }
 .cockpit-head .arrived-btn { margin-left: 8px; }
 .cockpit-head .arrived-said { margin-left: 8px; font-size: 12px; color: var(--teal); }
