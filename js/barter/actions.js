@@ -91,6 +91,8 @@ export function barterAction(act, el, redraw) {
 			const id = el.dataset.id;
 			if (id === 'chains') { V.sheetAfter = 'chains'; V.planSec = V.planSec === 'all' ? 'all' : 'none'; persist(); return true; }
 			const open = el.getAttribute('aria-expanded') === 'true';
+			// From inside the chains (the board not read yet): back to the page.
+			if (V.sheetOpen === 'chains') { closeDialog(); V.sheetOpen = null; }
 			V.planSec = id === 'all' || id === 'none' ? id : open ? 'shut' : id;
 			if (V.planSec === id && id !== 'all' && id !== 'none') bringUp(`.barter-screen [data-sec="${id}"]`);
 			persist();

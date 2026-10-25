@@ -227,7 +227,7 @@ const SHEETS = {
 	hold: { cls: 'hold-dialog', box: 'wide', html: () => holdHTML(currentShip()) },
 	// The chains, over the plan: drawn by the last render of the tab, so a
 	// chain ticked inside it is in the sheet as soon as the tab has redrawn.
-	chains: { cls: 'chains-dialog', box: 'wide', html: () => V.chainsSheet || '' }
+	chains: { cls: 'chains-dialog', box: 'xwide', html: () => V.chainsSheet || '' }
 };
 
 export function openSheet(id) {
