@@ -185,6 +185,86 @@
      here as it does there. */
   --tier-1: #e4e8ee; --tier-2: #7fcf5f; --tier-3: #4f9fe0; --tier-4: #e8c04a;
   --tier-5: #e8643a; --tier-6: #e8643a; --tier-7: #e8643a;
+
+  /* Colours no theme changes. The night set is the dark theme's own
+     values, held for the chart (dark in either theme) and the few marks
+     that keep their dark look on a pale page. */
+  --night-ink: #d9e6f2; --night-ink-hi: #eef5fb; --night-ink-row: #e6eff8; --night-ink-mid: #b7c9da;
+  --night-ink-dim: #a8bed3; --night-ink-soft: #9db3c9; --night-ink-mute: #8aa3bd; --night-ink-faint: #7690ad; --night-ink-off: #94aac2;
+  --night-blue: #7cc3ee; --night-blue-hi: #9fd0f2; --night-blue-bar: #3a89c9;
+  --night-teal: rgb(var(--teal-rgb)); --night-teal-hi: #7fe0c9;
+  --night-amber: rgb(var(--amber-rgb)); --night-stash: #b28fe0;
+  --night-red: #e87a6d; --night-red-soft: #e0988e;
+  --night-done-ink: #5ef0c9; --night-star: rgb(var(--star-rgb)); --night-on-tint: #08131f;
+  --black: #000; --white: #fff;
+  --warn: #e07a6a;
+
+  /* More channels for alphas mixed in the sheets. */
+  --orange-rgb: 232, 144, 93;
+  --wheat-rgb: 232, 180, 90;
+  --sun-rgb: 240, 180, 90;
+  --brass-rgb: 231, 181, 77;
+  --aqua-rgb: 70, 224, 200;
+  --cyan-rgb: 88, 196, 196;
+  --pale-rgb: 207, 227, 245;
+  --course-rgb: 240, 130, 190;
+  --plate-rgb: 6, 14, 22;
+  --silver-rgb: 195, 210, 224;
+  --bronze-rgb: 201, 138, 90;
+  --discord-rgb: 88, 101, 242;
+
+  /* The chart: its water, the marks and names drawn on it. */
+  --map-sea: #1e3636;
+  --map-sea-3d: #0d1921;
+  --map-label: rgba(214, 232, 246, 0.5);
+  --map-style-label: #8ea6bb;
+  --pale: #cfe3f5;
+  --mint: rgb(var(--done-rgb));
+  --course: #f082be;
+  --waypoint-ink: rgba(255, 200, 230, 0.8);
+  --waypoint-rim: rgba(255, 240, 248, 0.8);
+  --trace-dot: #0b1622;
+  --trace-note: #f3e9c8;
+  --port-rim: rgba(240, 250, 255, 0.7);
+  --guild: #d9c4ff;
+  --habitat: #f3e35a;
+  --habitat-ink: #14202c;
+  --leg-dot: #101826;
+  --stash-deep: #2a1c46;
+  --stash-pale: #ddc9ff;
+  --stash-at: #a98fd0;
+
+  /* Marks of the game's own: Parley, the shot reader's keys, ration,
+     pet and log grades, the podium. */
+  --parley: #b06cf0;
+  --parley-ink: #c99af5;
+  --shot-key-ink: #10202e;
+  --shot-key-head: #f2b84b;
+  --ration-green: #5be07a; --ration-blue: #4aa8ff; --ration-yellow: #f3c14a; --ration-orange: #ff9a4a;
+  --pet-tier-2: #6fce72; --pet-tier-3: #5aa9e6; --pet-tier-4: #f0c04a; --pet-tier-5: #e2622c;
+  --tier-ink: #0b1a2c; --tier-ink-hot: #fff1e8;
+  --log-grade-1: #6fcf4a; --log-grade-2: #3d8fe0; --log-grade-3: #f2c13a; --log-grade-4: #f07b2a;
+  --gold-medal-ink: #2a1d05;
+  --silver: #c3d2e0; --silver-ink: #152232;
+  --bronze: #c98a5a; --bronze-ink: #2a1508;
+
+  /* Odd surfaces: the crew board, the brand tile, washes, the film. */
+  --crew-board: rgba(30, 80, 120, 0.18);
+  --seat-plus: #3d5c80;
+  --over-wash: rgba(232, 184, 109, 0.1);
+  --peek-wash: rgba(120, 160, 200, 0.09);
+  --codex-edge: rgba(124, 195, 238, 0.45);
+  --film-bg: #06111e;
+  --brand-hi: #123a5e; --brand-lo: #0a1f38;
+  --discord: #8b9bf0; --discord-hi: #c3cbfb;
+  --discord-day: #4650d0; --discord-day-hi: #2c34a4;
+
+  /* Paper: what the print sheet lays down. */
+  --print-paper: #fff;
+  --print-ink: #000;
+  --print-rule: #999;
+  /* The flag's own face: the page's faces have no flags in them. */
+  --font-emoji: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', 'Twemoji Mozilla', sans-serif;
 }
 
 /* ---- the light theme ------------------------------------------------- *

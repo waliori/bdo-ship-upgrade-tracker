@@ -33,6 +33,7 @@ import { redrawSoon } from './search.js';
 import { assumedRolls, noteRolls, rollsChipHTML } from './rolls.js';
 import { persist } from './view.js';
 
+import { ico } from '../icons.js';
 /* ------------------------------------------------------------------ *
  * today's board
  * ------------------------------------------------------------------ */
@@ -210,7 +211,7 @@ export function boardHTML(b) {
 				`<b>${T('Your own board')}</b><span>${b.combo.offers.length === 1 ? T('{n} island as you read them', { n: b.combo.offers.length }) : T('{n} islands as you read them', { n: b.combo.offers.length })}</span>`,
 				T('No layout in the record fits what you saw, so the board is what you told it and nothing else — every chain below climbs only the islands above. The record is from {when} and the game moves a slot at a maintenance without renumbering anything, so this is worth passing on.', { when: esc(combos.read) }),
 				seen,
-				`<button class="ghost-btn sm" data-act="barter-shot" title="${T('Read more of the window off a screenshot')}">📷 ${T('Read the window')}</button><button class="ghost-btn sm" data-act="barter-book" title="${T('Every layout on file, how often each has been seen, and the boards sailors have read that are in no record')}">📖 ${T('The layout book')}</button>${tellChip()}<button class="ghost-btn sm" data-act="barter-own-board" title="${T('Go back to planning on the whole table instead')}">↩ ${T('the whole table')}</button><button class="ghost-btn sm" data-act="barter-board-clear" title="${T('The board was refreshed in game: start again')}">↻ ${T('Refreshed in game')}</button>`,
+				`<button class="ghost-btn sm" data-act="barter-shot" title="${T('Read more of the window off a screenshot')}">${ico('camera')} ${T('Read the window')}</button><button class="ghost-btn sm" data-act="barter-book" title="${T('Every layout on file, how often each has been seen, and the boards sailors have read that are in no record')}">${ico('book')} ${T('The layout book')}</button>${tellChip()}<button class="ghost-btn sm" data-act="barter-own-board" title="${T('Go back to planning on the whole table instead')}">↩ ${T('the whole table')}</button><button class="ghost-btn sm" data-act="barter-board-clear" title="${T('The board was refreshed in game: start again')}">↻ ${T('Refreshed in game')}</button>`,
 				fleetLine());
 		}
 		const fix = `<button class="ghost-btn sm" data-act="barter-board-fix" title="${T('An island is showing something the board below does not say, or nothing at all: say what you see, and the board follows')}">✎ ${T('An island shows something else…')}</button>`;
@@ -222,14 +223,14 @@ export function boardHTML(b) {
 					? T('What you answered fits layout {id} everywhere but {moved}, so the board is that layout with that island as you saw it. The game moves a slot at a maintenance without renumbering anything — which makes this worth telling the fleet.', { id: esc(b.combo.id), moved })
 					: T('What you answered fits layout {id} everywhere but {moved}, so the board is that layout with those islands as you saw them. The game moves a slot at a maintenance without renumbering anything — which makes this worth telling the fleet.', { id: esc(b.combo.id), moved }),
 				seen,
-				`${tellChip(true)}<button class="ghost-btn sm" data-act="barter-shot" title="${T('Read more of the window off a screenshot')}">📷 ${T('Read the window')}</button><button class="ghost-btn sm" data-act="barter-book" title="${T('Every layout on file, how often each has been seen, and the boards sailors have read that are in no record')}">📖 ${T('The layout book')}</button>${fix}<button class="ghost-btn sm" data-act="barter-board-clear" title="${T('The board was refreshed in game: start again')}">↻ ${T('Refreshed in game')}</button>`,
+				`${tellChip(true)}<button class="ghost-btn sm" data-act="barter-shot" title="${T('Read more of the window off a screenshot')}">${ico('camera')} ${T('Read the window')}</button><button class="ghost-btn sm" data-act="barter-book" title="${T('Every layout on file, how often each has been seen, and the boards sailors have read that are in no record')}">${ico('book')} ${T('The layout book')}</button>${fix}<button class="ghost-btn sm" data-act="barter-board-clear" title="${T('The board was refreshed in game: start again')}">↻ ${T('Refreshed in game')}</button>`,
 				shutLine);
 		}
 		return bar('known',
 			`<b>${T('Layout {id}', { id: esc(b.combo.id) })}</b><span>${T('today’s board')}</span>${rollsChipHTML(b.combo)}`,
 			T('one of the game’s {n} layouts · every island’s offer is known; the material list is a layout of its own, named on its bar, and which of its four [Level 7] goods an island pays is not the layout’s to say', { n: combos.combos.length }),
 			seen,
-			`<button class="ghost-btn sm" data-act="barter-shot" title="${T('Read more of the window off a screenshot — the rows are matched against what each island deals')}">📷 ${T('Read the window')}</button><button class="ghost-btn sm" data-act="barter-book" title="${T('Every layout on file, how often each has been seen, and the boards sailors have read that are in no record')}">📖 ${T('The layout book')}</button>${fix}<button class="ghost-btn sm" data-act="barter-board-clear" title="${T('The board was refreshed in game: start again')}">↻ ${T('Refreshed in game')}</button>`,
+			`<button class="ghost-btn sm" data-act="barter-shot" title="${T('Read more of the window off a screenshot — the rows are matched against what each island deals')}">${ico('camera')} ${T('Read the window')}</button><button class="ghost-btn sm" data-act="barter-book" title="${T('Every layout on file, how often each has been seen, and the boards sailors have read that are in no record')}">${ico('book')} ${T('The layout book')}</button>${fix}<button class="ghost-btn sm" data-act="barter-board-clear" title="${T('The board was refreshed in game: start again')}">↻ ${T('Refreshed in game')}</button>`,
 			shutLine);
 	}
 	// Never asked about an island this sailor cannot sail to: its offer
@@ -240,7 +241,7 @@ export function boardHTML(b) {
 			`<b>${T('No layout shows that')}</b><span>${T('nothing in the record fits')}</span>`,
 			T('The record is from {when}; the game moves a slot at a maintenance without renumbering anything, so it may simply have moved on. Sail what you saw instead — the run is then planned on those islands and nothing else — and tell the fleet, because a board the record has never seen is exactly what is worth passing on.', { when: esc(combos.read) }),
 			seen,
-			`<button class="chip primary" data-act="barter-own-board" title="${T('Plan on the islands you have answered, instead of on the whole table')}">⚑ ${T('Sail what you saw')}</button><button class="ghost-btn sm" data-act="barter-shot" title="${T('Read the whole window off a screenshot, and offer it to the fleet')}">📷 ${T('Read the window')}</button><button class="ghost-btn sm" data-act="barter-book" title="${T('Every layout on file, how often each has been seen, and the boards sailors have read that are in no record')}">📖 ${T('The layout book')}</button>${tellChip(true)}<button class="ghost-btn sm" data-act="barter-board-clear">↻ ${T('Start again')}</button>`,
+			`<button class="chip primary" data-act="barter-own-board" title="${T('Plan on the islands you have answered, instead of on the whole table')}">⚑ ${T('Sail what you saw')}</button><button class="ghost-btn sm" data-act="barter-shot" title="${T('Read the whole window off a screenshot, and offer it to the fleet')}">${ico('camera')} ${T('Read the window')}</button><button class="ghost-btn sm" data-act="barter-book" title="${T('Every layout on file, how often each has been seen, and the boards sailors have read that are in no record')}">${ico('book')} ${T('The layout book')}</button>${tellChip(true)}<button class="ghost-btn sm" data-act="barter-board-clear">↻ ${T('Start again')}</button>`,
 			fleetLine());
 	}
 	const first = ask[0] ? npcById.get(ask[0].npcId) : null;
@@ -251,7 +252,7 @@ export function boardHTML(b) {
 	// only once the layout is known, because this is the question their
 	// reading answers.
 	const fleetNote = fleetLine();
-	const acts = `${first ? `<button class="chip primary" data-act="barter-board-ask" data-npc="${first.id}" title="${T('The island whose offer tells the layouts apart best')}${ask[0].worst > 1 ? ` — ${T('leaves {n} at worst', { n: ask[0].worst })}` : ''}">${T('What does <b>{isle}</b> show?', { isle: esc(gameName(isleOf(first))) })} ▾</button>` : ''}<button class="chip" data-act="barter-board-island" title="${T('Look at an island of your own choosing instead')}">${T('another island…')}</button><button class="ghost-btn sm" data-act="barter-book" title="${T('Every layout on file, how often each has been seen, and the boards sailors have read that are in no record')}">📖 ${T('The layout book')}</button>`;
+	const acts = `${first ? `<button class="chip primary" data-act="barter-board-ask" data-npc="${first.id}" title="${T('The island whose offer tells the layouts apart best')}${ask[0].worst > 1 ? ` — ${T('leaves {n} at worst', { n: ask[0].worst })}` : ''}">${T('What does <b>{isle}</b> show?', { isle: esc(gameName(isleOf(first))) })} ▾</button>` : ''}<button class="chip" data-act="barter-board-island" title="${T('Look at an island of your own choosing instead')}">${T('another island…')}</button><button class="ghost-btn sm" data-act="barter-book" title="${T('Every layout on file, how often each has been seen, and the boards sailors have read that are in no record')}">${ico('book')} ${T('The layout book')}</button>`;
 	return bar('', lead, T('Look at one island in the game and tap what it offers; the whole board follows, since every refresh is one of {n} layouts. Or screenshot the window and let it read every row at once.', { n: combos.combos.length }), seen, acts, fleetNote);
 }
 
@@ -407,7 +408,7 @@ export function continueHTML(all, b) {
 	const when = new Date(last.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 	return `<section class="panel continue-card"><div class="continue-head"><b>${T('Continue where you left off')}</b><span>${T('your last run on this board stopped at {time}, after {n} of {of} stops', { time: esc(when), n: last.done, of: last.all })}</span></div>
 		<div class="continue-figs"><span>${T('{n} of its {of} islands still deal', { n: left, of: isles.length })}</span><span>${parleyGuessed(prof) ? T('Parley: a full bar') : T('Parley {n}', { n: F(Math.min(PARLEY.max, prof.parleyHeld)) })}</span><span>${aboard.length ? T('{n} kinds of goods aboard', { n: aboard.length }) : T('nothing aboard')}</span></div>
-		<div class="continue-acts">${ids.length ? `<button class="act" data-act="barter-continue" data-ids="${esc(ids.join('\n'))}">${T('Continue that run')} ›</button>` : `<span class="faint">${T('Nothing of it can climb any more: its islands have dealt, or its goods are not aboard.')}</span>`}<button class="linky" data-act="barter-continue-drop">${T('Plan afresh')}</button></div></section>`;
+		<div class="continue-acts">${ids.length ? `<button class="act" data-act="barter-continue" data-ids="${esc(ids.join('\n'))}">${T('Continue that run')}</button>` : `<span class="faint">${T('Nothing of it can climb any more: its islands have dealt, or its goods are not aboard.')}</span>`}<button class="linky" data-act="barter-continue-drop">${T('Plan afresh')}</button></div></section>`;
 }
 
 /** The daily refill has passed since the board was read: said, with
@@ -625,7 +626,7 @@ function tellChip(lost = false) {
 	if (!boardsShared() || !worthTelling()) return '';
 	return `<button class="${lost ? 'chip primary' : 'ghost-btn sm'}" data-act="barter-fleet-tell" title="${me()
 		? T('Everyone with the page open today can sail on it, with your name on the reading')
-		: T('Sign in from the Menu first — a reading goes up with a name on it')}">📣 ${T('Tell the fleet')}</button>`;
+		: T('Sign in from the Menu first — a reading goes up with a name on it')}">${ico('horn')} ${T('Tell the fleet')}</button>`;
 }
 
 /**

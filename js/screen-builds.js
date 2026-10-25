@@ -8,7 +8,7 @@ import { esc, F, FD } from './fmt.js';
 import { T, said, gameName, nameHas } from './i18n.js';
 import * as store from './state.js';
 import { openDialog, closeDialog, toast, toastAsk } from './dialogs.js';
-import { img, codexName, amountInput, costCtx, costText, buildableItems, heldBox } from './ui-bits.js';
+import { img, codexName, amountInput, costCtx, costText, buildableItems } from './ui-bits.js';
 import { snapshot } from './ui-state.js';
 import { planOne, bottlenecks, routeOf, routeKey, remainingCost } from './planner.js';
 import { paceText } from './pace.js';
@@ -82,10 +82,6 @@ export function flyToBuilds(from) {
 	], { duration: 700, easing: 'cubic-bezier(.45, 0, .3, 1)' }).onfinish = () => { ghost.remove(); tick(); };
 }
 
-// Whether the blockers panel shows the worst five or the lot.
-let allBlockers = false;
-export function toggleBlockers() { allBlockers = !allBlockers; }
-
 export function renderBuilds() {
 	const targets = store.getTargets();
 	const byId = new Map(snapshot.targets.map(t => [t.id, t]));
@@ -151,23 +147,16 @@ export function renderBuilds() {
 		</div>`;
 	}).join('') : `<div class="panel"><p class="empty">${T('Nothing queued yet. Add a ship or a part above and the rest follows from it.')}</p></div>`;
 
+	// What is still missing is To Get's to list; the queue only says how
+	// much there is and opens it, so the same rows are not read twice.
 	const every = bottlenecks(snapshot, Infinity);
-	const blockers = allBlockers ? every : every.slice(0, 5);
-	const blockHTML = blockers.length ? `<div class="panel">
+	const blockHTML = every.length ? `<div class="panel builds-short">
 		<div class="panel-head">
-			<h2 class="panel-title amber">${T('Biggest blockers')}</h2>
-			<span class="panel-sub">${T('Missing items holding up the queue')}${every.length > 5
-				? ` · <button class="linky" data-act="blockers-all">${allBlockers ? T('the worst five') : T('all {n}', { n: every.length })}</button>` : ''}</span>
+			<h2 class="panel-title amber">${T('Still to get')}</h2>
+			<span class="panel-sub">${every.length === 1 ? T('{n} thing short', { n: F(every.length) }) : T('{n} things short', { n: F(every.length) })} · ${T('Missing items holding up the queue')}</span>
+			<span class="panel-spacer"></span>
+			<button class="act quiet small" data-act="view" data-id="get">${T('Open To Get')}</button>
 		</div>
-		${blockers.map(b => `<div class="row">
-			${img(b.item, 'row-icon md')}
-			<div class="row-main">
-				<div class="row-name">${codexName(b.item)}</div>
-				<div class="row-sub">${T('blocks {targets}', { targets: esc(b.targets.map(gameName).join(', ')) })}</div>
-			</div>
-			${heldBox(b.item)}
-			<span class="qty-out">${T('{n} short', { n: F(b.qty) })}</span>
-		</div>`).join('')}
 	</div>` : '';
 
 	return head + list + blockHTML;

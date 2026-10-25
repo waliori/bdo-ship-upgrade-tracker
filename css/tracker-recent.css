@@ -27,7 +27,7 @@
   border: 1px solid rgba(var(--blue-rgb), 0.3);
   color: var(--blue-hi);
 }
-.tile-at.split { background: rgba(232, 180, 90, 0.14); border-color: rgba(232, 180, 90, 0.35); color: var(--amber); }
+.tile-at.split { background: rgba(var(--wheat-rgb), 0.14); border-color: rgba(var(--wheat-rgb), 0.35); color: var(--amber); }
 .tile.picked .tile-at { opacity: 0.5; }
 
 /* Select mode: a tick box on every tile, lit when ticked. */
@@ -227,14 +227,14 @@
    it away -- so they are words now, and one of them starts it over. */
 .sail-timer .chip.tiny.sail-timer-again, .sail-timer .chip.tiny.sail-timer-off { padding: 2px 7px; font-size: 10.5px; }
 .sail-timer .chip.tiny.sail-timer-off { color: var(--ink-faint); }
-.sail-timer.over { background: rgba(232, 184, 109, 0.1); }
+.sail-timer.over { background: var(--over-wash); }
 .sail-timer.over b { color: var(--amber); }
 .sail-timer.over .sail-timer-bar i { background: var(--amber); }
 .sail-n b { font-family: var(--font-display); font-size: 16px; color: var(--ink-hi); }
 /* What the recording will have to guess at. Amber rather than red: it
    is a count being estimated, not a thing gone wrong, and the sailor
    can still say the number on the stop itself. */
-.sail-guess { font-size: 11px; color: var(--amber); border: 1px solid color-mix(in srgb, var(--amber) 40%, transparent); background: color-mix(in srgb, var(--amber) 8%, transparent); border-radius: 999px; padding: 2px 9px; }
+.sail-guess { font-size: 11px; color: var(--amber); border: 1px solid color-mix(in srgb, var(--amber) 40%, transparent); background: color-mix(in srgb, var(--amber) 8%, transparent); border-radius: var(--r-sm); padding: 2px 9px; }
 
 /* The week: the runs recorded, a bar a day. */
 .week .panel-head { flex-wrap: wrap; }
@@ -409,7 +409,7 @@ body.map-turned .toast { left: 40px; top: 50%; bottom: auto; transform: translat
   .mat-goods .run-good { padding-left: 14px; padding-right: 14px; }
   .mat-goods .run-good .run-good-worth { flex: 1 1 100%; order: 6; margin-left: 0; }
 }
-.run-list.orange { border-color: rgba(232, 144, 93, 0.25); }
+.run-list.orange { border-color: rgba(var(--orange-rgb), 0.25); }
 .run-list.orange .panel-title { color: var(--tier-7); }
 .run-list.amber { border-color: rgba(var(--amber-rgb), 0.3); }
 .run-list.amber .panel-title { color: var(--amber); }
@@ -593,7 +593,7 @@ body[data-view="map"] .status-bar { display: none; }
 .mk-video-thumb { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.55; }
 .mk-play { position: relative; width: 52px; height: 52px; padding: 0 0 0 4px; border: 1px solid var(--line-btn-hi); border-radius: 999px; background: rgba(var(--deep-rgb), 0.82); color: var(--ink-hi); font-size: 19px; line-height: 1; cursor: pointer; }
 .mk-play:hover { border-color: var(--blue-edge); color: var(--blue-hi); }
-.mk-video-out { position: absolute; right: 6px; bottom: 6px; padding: 2px 8px; border-radius: 999px; background: rgba(var(--deep-rgb), 0.82); font-size: 10.5px; color: var(--ink-mid); }
+.mk-video-out { position: absolute; right: 6px; bottom: 6px; padding: 2px 8px; border-radius: var(--r-sm); background: rgba(var(--deep-rgb), 0.82); font-size: 10.5px; color: var(--ink-mid); }
 .mk-video.playing { display: block; }
 .mk-video iframe { width: 100%; height: 100%; border: 0; display: block; }
 
@@ -689,17 +689,17 @@ details.run-quests-off[open] > summary .panel-title::before { content: '▾ '; }
 button.comm-place { cursor: pointer; }
 button.comm-place:hover { border-color: var(--line-btn-hi); color: var(--ink-hi); }
 .comm-place.p1 { border-color: rgba(var(--amber-rgb), 0.45); }
-.comm-place.p2 { border-color: rgba(195, 210, 224, 0.4); }
-.comm-place.p3 { border-color: rgba(201, 138, 90, 0.45); }
+.comm-place.p2 { border-color: rgba(var(--silver-rgb), 0.4); }
+.comm-place.p3 { border-color: rgba(var(--bronze-rgb), 0.45); }
 .comm-place > span i { font-style: normal; margin-right: 2px; }
 .comm-place > b { font-family: var(--font-display); font-weight: 600; font-size: 11.5px; color: var(--ink-mute); }
 .comm-place .comm-pos { width: 20px; height: 20px; font-size: 10px; }
 
 /* The medal: a circle with the place in it, gold, silver and bronze for the podium. */
 .comm-pos { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; flex: none; background: rgba(var(--line-rgb), 0.12); font-family: var(--font-display); font-size: 11px; font-weight: 700; color: var(--ink-mute); font-variant-numeric: tabular-nums; }
-.comm-pos.p1 { background: #e8b661; color: #2a1d05; box-shadow: 0 0 10px rgba(var(--amber-rgb), 0.45); }
-.comm-pos.p2 { background: #c3d2e0; color: #152232; box-shadow: 0 0 8px rgba(195, 210, 224, 0.3); }
-.comm-pos.p3 { background: #c98a5a; color: #2a1508; box-shadow: 0 0 8px rgba(201, 138, 90, 0.3); }
+.comm-pos.p1 { background: var(--night-amber); color: var(--gold-medal-ink); box-shadow: 0 0 10px rgba(var(--amber-rgb), 0.45); }
+.comm-pos.p2 { background: var(--silver); color: var(--silver-ink); box-shadow: 0 0 8px rgba(var(--silver-rgb), 0.3); }
+.comm-pos.p3 { background: var(--bronze); color: var(--bronze-ink); box-shadow: 0 0 8px rgba(var(--bronze-rgb), 0.3); }
 
 /* The hall of fame: sections of boards. */
 .comm-fame { display: flex; flex-direction: column; gap: 14px; }
@@ -741,7 +741,7 @@ h2.comm-board-title { font-size: 15px; }
 .comm-val small { margin-left: 4px; font-size: 10px; font-weight: 500; color: var(--ink-faint); }
 .comm-val-bar { width: 72px; height: 3px; border-radius: 2px; background: var(--track); overflow: hidden; }
 .comm-val-bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--blue-bar), var(--teal)); }
-.comm-row.p1 .comm-val-bar i { background: #e8b661; }
+.comm-row.p1 .comm-val-bar i { background: var(--night-amber); }
 .comm-empty { margin: 0; padding: 16px 16px; font-size: 12.5px; color: var(--ink-faint); text-align: center; }
 .comm-empty p { margin: 0; color: var(--ink-mute); }
 .comm-empty small { display: block; margin-top: 3px; font-size: 11.5px; }
@@ -1230,4 +1230,80 @@ img.comm-silver { width: 1.25em; height: 1.25em; vertical-align: -0.25em; object
   /* The craftable strip scrolls sideways, which clips; it is given
      the room above and below its chips, at no cost to the layout. */
   .readybar-list { padding-top: 4px; padding-bottom: 4px; margin-top: -4px; margin-bottom: -4px; }
+}
+
+/* Facts on one line part at a hairline, not a dot (js/sep.js puts each
+   " · " dot in a .sep). The dot stays in the text for copying and reading
+   aloud; only its mark is swapped. */
+.sep {
+  display: inline-block;
+  width: 1px;
+  height: 0.85em;
+  margin: 0 0.3em;
+  vertical-align: -0.08em;
+  background: currentColor;
+  opacity: 0.3;
+  overflow: hidden;
+  color: inherit;
+  font-size: inherit;
+  text-indent: 2em;
+  white-space: nowrap;
+}
+
+/* The line icons (js/icons.js): the text's own size and colour. */
+.ico {
+  width: 1.15em;
+  height: 1.15em;
+  flex: none;
+  vertical-align: -0.2em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.tab-icon .ico, .tabbar-icon .ico, .sheet-icon .ico { width: 1.05em; height: 1.05em; vertical-align: -0.15em; }
+.tabbar-menu-mark .ico { width: 10px; height: 10px; }
+
+/* The Plan's rows end in a fixed tail, so every bar starts and stops
+   at the same place whether or not the row has a Craft button. */
+@media (min-width: 721px) {
+  .row:has(.plan-why) .row-tail { flex: 0 0 264px; justify-content: flex-end; }
+}
+.readybar-list { flex: 1 1 auto; }
+.readybar { backdrop-filter: none; }
+
+/* Figures inside a panel sit on the panel, parted by hairlines, rather
+   than in boxes of their own: the panel is already the card. */
+.run-tiles { gap: 10px 0; }
+.run-tiles > div { background: none; border-radius: 0; padding: 2px 16px; border-left: 1px solid var(--line); }
+.pay-range { border: 0; border-top: 1px solid var(--line); border-radius: 0; background: none; padding: 12px 0 0; gap: 8px 0; }
+.pay-range-cell { border: 0; border-left: 1px solid var(--line); border-radius: 0; padding: 2px 16px; }
+.pay-range-cell.on em { color: var(--gold); }
+.way-tiles { gap: 0; }
+.way-tile, .way-tile.amber, .way-tile.blue { background: none; border: 0; border-left: 1px solid var(--line); border-radius: 0; padding: 2px 18px; min-width: 140px; }
+.slot-card { background: none; border: 0; border-top: 1px solid var(--line); border-radius: 0; padding: 12px 0 4px; }
+.slot-card.unowned { border-top-color: rgba(var(--sun-rgb), 0.4); }
+.slot-card.empty { border-style: solid; }
+
+/* A leaf's blank caret shares the name of the empty-state line, whose
+   padding made every leaf row twice the height of its branch. */
+.tcaret.empty, .tmap.empty { padding: 0; }
+
+/* The Inventory's side panel waits for an item: until one is picked the
+   tiles have the whole width, and a pick opens the panel beside them. */
+@media (min-width: 721px) {
+  .inv-layout:not(:has(> .detail.open)) { grid-template-columns: minmax(0, 1fr); }
+  .inv-layout > .detail:not(.open) { display: none; }
+}
+
+/* A status bit keeps its words together; the line breaks between bits,
+   never inside "barter 16 h 19 m". */
+.status-bit { white-space: nowrap; }
+.builds-short .panel-head .act { flex: none; }
+
+/* On a phone the ship's figures pair up, two to a line, instead of a
+   column of nine. */
+@media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
+  .ship-card-facts, .ship-card-specs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; flex: 1 1 100%; }
 }

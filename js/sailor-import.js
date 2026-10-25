@@ -22,6 +22,7 @@ import { openDialog, closeDialog, toast } from './dialogs.js';
 import { anyType, pool, mateTypes, SAILOR_CAP, logLevel, STAT_NAMES, statBand } from './sailors.js';
 import { LIMITS, triage, readShots, wireShotIntake, close as closeReader, shotLang, shotLangNote, queuedNote, pasteManyNote } from './shot-reader.js';
 
+import { ico } from './icons.js';
 const MOVES = ['speed', 'accel', 'turn', 'brake'];
 const CANNON = ['patience', 'force', 'focus', 'vision'];
 
@@ -83,7 +84,7 @@ export function openSailorImport(after = () => {}, files = null) {
 		<p class="dialog-note quiet">${T("Whichever it is, keep the sailor's name at the top and the last growth at the bottom inside the crop: the name, the condition, the appetite, the cabin cost, the weight and the growths are all read off it.")}</p>
 		${shotLangNote()}
 		<div class="shot-drop" data-drop tabindex="0" role="button" aria-label="${T('Choose screenshots to read')}">
-			<div class="shot-drop-mark">⛵</div>
+			<div class="shot-drop-mark">${ico('sail')}</div>
 			<div><b>${T('Drop screenshots here, or paste one')}</b></div>
 			<div class="row-sub">${T('{paste}, or {link}', { paste: `<b>${T('Ctrl+V')}</b>`, link: `<button class="link-btn" data-choose>${T('choose files')}</button>` })}</div>
 			<div class="row-sub quiet">${T('A shot taken with Shift+Win+S goes to the clipboard — paste it straight in, no file to save first.')}</div>

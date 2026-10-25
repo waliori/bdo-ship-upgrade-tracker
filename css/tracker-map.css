@@ -26,7 +26,7 @@
   /* The tiles' own ocean colour, so a spot the chart does not cover --
      past its edge, inside a still-loading tile, under the transparent
      fringe of an edge tile -- reads as open sea, not as a hole. */
-  background: #1e3636;
+  background: var(--map-sea);
   touch-action: none;
   contain: strict;
 }
@@ -70,12 +70,12 @@
    so in that theme this changes nothing. */
 .map-layer {
   position: absolute; inset: 0;
-  --ink: #d9e6f2; --ink-hi: #eef5fb; --ink-row: #e6eff8; --ink-mid: #b7c9da;
-  --ink-dim: #a8bed3; --ink-soft: #9db3c9; --ink-mute: #8aa3bd; --ink-faint: #7690ad; --ink-off: #94aac2;
-  --blue: #7cc3ee; --blue-hi: #9fd0f2; --teal: #4ec9ae; --teal-hi: #7fe0c9;
-  --amber: #e8b661; --stash: #b28fe0; --red: #e87a6d; --red-soft: #e0988e;
+  --ink: var(--night-ink); --ink-hi: var(--night-ink-hi); --ink-row: var(--night-ink-row); --ink-mid: var(--night-ink-mid);
+  --ink-dim: var(--night-ink-dim); --ink-soft: var(--night-ink-soft); --ink-mute: var(--night-ink-mute); --ink-faint: var(--night-ink-faint); --ink-off: var(--night-ink-off);
+  --blue: var(--night-blue); --blue-hi: var(--night-blue-hi); --teal: var(--night-teal); --teal-hi: var(--night-teal-hi);
+  --amber: var(--night-amber); --stash: var(--night-stash); --red: var(--night-red); --red-soft: var(--night-red-soft);
   --line-rgb: 125, 175, 225; --deep-rgb: 9, 22, 42; --blue-rgb: 88, 168, 232; --shade-rgb: 0, 0, 0;
-  --done-ink: #5ef0c9; --star: #ffd77a;
+  --done-ink: var(--night-done-ink); --star: var(--night-star); --on-tint: var(--night-on-tint);
 }
 
 /* ---- the chart stood up --------------------------------------------
@@ -92,7 +92,7 @@
   height: 100%;
   z-index: 0;
 }
-.map.three-d { background: #0d1921; }
+.map.three-d { background: var(--map-sea-3d); }
 /* Stood up, the coordinates readout is measuring a plane the ground is
    no longer flat against; the ruler is likewise a flat instrument. */
 .map.three-d .map-coords { display: none; }
@@ -261,7 +261,6 @@
   left: calc(100% + 5px);
   top: 50%;
   transform: translateY(-50%);
-  opacity: 0;
   transition: opacity .12s;
   display: flex;
   flex-direction: column;
@@ -272,6 +271,9 @@
 /* The island itself, under the barterer who stands on it. */
 .map-pin-at { font-size: 10.5px; letter-spacing: 0.02em; color: var(--ink-mute); }
 .map-pin.wanted .map-pin-at { color: var(--ink-dim); }
+/* A name shows on hover; boot.js marks the page .js, so a chart drawn
+   without the script would still name every pin. */
+.js .map-pin-name { opacity: 0; }
 .map-pin:hover .map-pin-name { opacity: 1; color: var(--ink-hi); }
 
 /* An island that has something you are short of. Named all the time,
@@ -320,7 +322,7 @@
 .map-pin.dim { opacity: 0.42; transition: opacity 0.25s; }
 
 /* Already sailed today: the ping stops, the strike-through stands. */
-.map-pin.done .map-pin-dot { background: #2c9a7a; animation: none; }
+.map-pin.done .map-pin-dot { background: var(--done-edge); animation: none; }
 .map-pin.done .map-pin-dot::after { display: none; }
 .map-pin.done .map-pin-name { color: var(--ink-mute); text-decoration: line-through; }
 
@@ -334,7 +336,7 @@
   padding: 0 3px;
   border-radius: 50%;
   background: var(--amber);
-  color: #241a05;
+  color: var(--on-tint);
   font-size: 10px;
   font-weight: 700;
   display: none;
@@ -510,7 +512,7 @@
   height: 18px;
   border-radius: 50%;
   background: var(--amber);
-  color: #241a05;
+  color: var(--on-tint);
   font-size: 11px;
   font-weight: 700;
   display: grid;
@@ -781,14 +783,14 @@
   z-index: 3;
 }
 .map-port::before { content: ''; position: absolute; left: 50%; top: 50%; width: 20px; height: 20px; transform: translate(-50%, -50%); }
-.map-port-name { position: absolute; top: calc(100% + 3px); left: 50%; transform: translateX(-50%); text-shadow: 0 1px 4px #000; }
+.map-port-name { position: absolute; top: calc(100% + 3px); left: 50%; transform: translateX(-50%); text-shadow: 0 1px 4px var(--black); }
 .map-port-dot {
   display: block;
   width: 9px;
   height: 9px;
   border-radius: 2px;
   background: var(--blue-bar);
-  border: 1.5px solid rgba(240, 250, 255, 0.7);
+  border: 1.5px solid var(--port-rim);
   box-shadow: 0 0 8px rgba(var(--black-rgb), 0.5);
 }
 .map-port:hover .map-port-name { color: var(--ink-hi); }
@@ -852,7 +854,7 @@
   scrollbar-width: none;
   /* A clipped chip half-hiding under the arrows read as a bug; fade
      the ends instead of cutting them. */
-  mask-image: linear-gradient(90deg, transparent 0, #000 10px, #000 calc(100% - 10px), transparent);
+  mask-image: linear-gradient(90deg, transparent 0, var(--black) 10px, var(--black) calc(100% - 10px), transparent);
 }
 .map-step-chips::-webkit-scrollbar { display: none; }
 
@@ -871,7 +873,7 @@
 .map-step-chip.on {
   background: var(--amber);
   border-color: transparent;
-  color: #241a05;
+  color: var(--on-tint);
   font-weight: 700;
 }
 
@@ -1116,7 +1118,7 @@
 /* The hold and the Parley under the stop, not beside it: beside, the
    trade had a third of the panel and broke a word a line. */
 .map-plan-route .run-stop { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 0 10px; background: var(--panel-inset); border: 1px solid var(--line); border-radius: var(--r-tile); padding: 6px 4px 2px; cursor: pointer; transition: border-color .15s, background .15s; }
-.map-plan-route .run-stop:hover { border-color: var(--blue-edge, rgba(120, 170, 255, .45)); background: color-mix(in srgb, var(--panel-inset) 85%, var(--blue, #4d8eff) 15%); }
+.map-plan-route .run-stop:hover { border-color: var(--blue-edge); background: color-mix(in srgb, var(--panel-inset) 85%, var(--blue) 15%); }
 .map-plan-route .run-stop:hover .run-stop-name { color: var(--blue-hi); }
 .map-plan-route .run-stop.wharf { border-style: dashed; }
 .map-plan-route .run-rail i { display: none; }

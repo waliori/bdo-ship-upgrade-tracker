@@ -31,6 +31,7 @@ import { STASHES, STORE_NAMES, bagSet, stashes, n1, TIER, runTime, chartData, ch
 import { sailing } from './sail.js';
 import { VOUCHER, persist } from './view.js';
 
+import { ico } from '../icons.js';
 /** The run as the wharf step lays it, laid now if nothing has: the
  *  same builder the tab draws with, so the chart and the tab agree. */
 function planNow() {
@@ -70,14 +71,14 @@ export function planSheetHTML(chartIds) {
 	const aboard = plan.order ? packingCount(plan, from, plan.order) : { all: 0, done: 0 };
 	const figs = [plan.stops.length === 1 ? T('{n} stop', { n: plan.stops.length }) : T('{n} stops', { n: plan.stops.length }),
 		plan.net ? FC(Math.round(plan.net)) : '', legs.total ? `≈ ${esc(runTime(legs, book))}` : '',
-		(n => (n ? `🍞 ${n === 1 ? T('{n} call for supplies', { n }) : T('{n} calls for supplies', { n })}` : ''))(plan.stops.filter(x => x.refill).length)].filter(Boolean).join(' · ');
+		(n => (n ? `${ico('bread')} ${n === 1 ? T('{n} call for supplies', { n }) : T('{n} calls for supplies', { n })}` : ''))(plan.stops.filter(x => x.refill).length)].filter(Boolean).join(' · ');
 	const ready = !!(V.shownPlan && V.shownPlan.stops && V.shownPlan.stops.length);
 	return `<div class="map-run-head">
 		<div class="map-run-title"><b>${T('The run · planned')}</b><span>${figs}</span></div>
 	</div>
 	<div class="map-plan-bar">
 		<span class="map-plan-aboard">${aboard.all ? T('{n} of {of} aboard', { n: aboard.done, of: aboard.all }) : T('nothing to load')}</span>
-		<button class="linky" data-act="barter-step" data-id="load">${T('Pack at the wharf')} ›</button>
+		<button class="linky" data-act="barter-step" data-id="load">${T('Pack at the wharf')}</button>
 		<span class="panel-spacer"></span>
 		<button class="act" data-act="barter-cast-off"${ready ? '' : ' disabled'} title="${T('Each stop goes into the hold as you tick it; at the end the run is recorded')}">${img(currentShip().name, 'ship-ico')} ${T('Cast off')}</button>
 	</div>
@@ -602,7 +603,7 @@ export function ladderHTML(o, { fits = null, tickedN = 0 } = {}) {
 	const tile = (k, v, sub, cls = '') => `<div><div class="summary-k">${k}</div><div class="summary-v${cls ? ` ${cls}` : ''}">${v}</div><div class="summary-sub">${sub}</div></div>`;
 	const aims = stocking ? `<div class="ladder-aim"><span class="run-pick-k">${T('the day is for')}</span><span class="segs" role="group" aria-label="${T('What the stock run is for')}">${AIM_CHOICES.map(([id, label, title]) => `<button class="seg${V.stockGoal.aim === id ? ' on' : ''}" aria-pressed="${V.stockGoal.aim === id ? 'true' : 'false'}" data-act="barter-aim" data-id="${id}" title="${esc(said(title))}">${esc(said(label))}</button>`).join('')}</span><span class="orders-sub">${esc(said((AIM_CHOICES.find(([a]) => a === V.stockGoal.aim) || AIM_CHOICES[0])[2]))}</span></div>
 	<div class="ladder-aim"><span class="run-pick-k">${T('filled')}</span><span class="segs" role="group" aria-label="${T('Which end the stock is filled from')}">${ORDER_CHOICES.map(([id, label, title]) => `<button class="seg${(V.stockGoal.order || 'up') === id ? ' on' : ''}" aria-pressed="${(V.stockGoal.order || 'up') === id ? 'true' : 'false'}" data-act="barter-fill-from" data-id="${id}" title="${esc(said(title))}">${esc(said(label))}</button>`).join('')}</span><span class="orders-sub">${esc(said((ORDER_CHOICES.find(([a]) => a === (V.stockGoal.order || 'up')) || ORDER_CHOICES[0])[2]))}</span></div>` : '';
-	return `<div class="ladder-head"><span class="panel-spacer"></span><button class="linky" data-act="barter-hold-open" title="${T('Open the hold: every good aboard and ashore, with its count')}">${T('Open the hold')} ›</button><button class="linky" data-act="barter-add" title="${T('Record a good that is aboard')}">＋ ${T('A good')}</button></div>
+	return `<div class="ladder-head"><span class="panel-spacer"></span><button class="linky" data-act="barter-hold-open" title="${T('Open the hold: every good aboard and ashore, with its count')}">${T('Open the hold')}</button><button class="linky" data-act="barter-add" title="${T('Record a good that is aboard')}">＋ ${T('A good')}</button></div>
 		<p class="ladder-copy">${stocking ? T('Click the level where the stock ends. Under each level: what you hold, and what to keep of every good there.') : T('Click the level where today’s climb ends. Under each level: what you hold, what happens to it, and how many to keep back.')}</p>
 		<div class="ladder${stocking ? ' stocking' : ''}" role="group" aria-label="${T('The level the climbs stop at')}">${legend}${rungs}</div>
 		<p class="ladder-hint">${stocking
@@ -618,7 +619,7 @@ export function ladderHTML(o, { fits = null, tickedN = 0 } = {}) {
 				${tile(coining ? T('Cashed in') : T('Sold at the wharf'), coining ? T('Level {lv}', { lv: COIN_LEVEL }) : sold.length ? (sold.length === 1 ? T('Level {lv}', { lv: sold[0] }) : T('Level {lv} and up', { lv: sold[0] })) : T('nothing'), `${coining ? T('for Crow Coins, at the islands that pay in them') : sold.length ? T('for silver, at a wharf call') : T('the wharf only stores today')}${floorsSaid ? ` · ${T('keeping {list}', { list: floorsSaid })}` : ''}`, 'gold')}
 				${tile(T('Chains that fit'), fits === null ? '—' : F(fits), fits === null ? T('the board is not read yet') : tickedN === 1 ? T('on today’s board, {n} ticked', { n: tickedN }) : T('on today’s board, {n} ticked', { n: tickedN }), 'blue')}
 			</div>
-			<div class="plan-next"><span class="panel-sub">${T('Nothing is bought or sailed yet — the next step chooses how.')}</span><span class="panel-spacer"></span><button class="act" data-act="barter-sec" data-id="how">${T('OK, that’s the goal')} ›</button></div>
+			<div class="plan-next"><span class="panel-sub">${T('Nothing is bought or sailed yet — the next step chooses how.')}</span><span class="panel-spacer"></span><button class="act" data-act="barter-sec" data-id="how">${T('OK, that’s the goal')}</button></div>
 		</div>`;
 }
 
@@ -634,7 +635,7 @@ function bagRowHTML() {
 	const bars = b.on ? `<div class="bag-bars">
 		<label class="run-pause"><span>${T('Weight')}</span>${box('now', b.now, T('The weight your inventory holds now'), true)}<span>/</span>${box('max', b.max, T('Your weight limit'))}<span>LT</span></label>
 		<label class="run-pause"><span>${T('Inventory Slot')}</span>${box('used', b.used, T('The inventory slots filled'))}<span>/</span>${box('slots', b.slots, T('The inventory slots you have'))}</label>
-		<button class="chip tiny" data-act="barter-bag-shot" title="${T('A screenshot of the Inventory window: its foot says both')}">📷 ${T('Read the Inventory window')}</button>
+		<button class="chip tiny" data-act="barter-bag-shot" title="${T('A screenshot of the Inventory window: its foot says both')}">${ico('camera')} ${T('Read the Inventory window')}</button>
 	</div>` : '';
 	const sub = !b.on ? T('Your inventory weighs nothing on the ship: sailors carry a later chain’s goods in it, moved at any wharf.')
 		: r.lt === null ? T('The two bars at the foot of the Inventory window, typed in or read off a screenshot of it: the app works out what the bag takes.')
@@ -796,11 +797,11 @@ export function howHTML(o, figs = null) {
 	const side = o.side || {};
 	const sw = (k, on, label, title) => `<button class="chip tiny${on ? ' active' : ''}" data-act="barter-side" data-k="${k}" aria-pressed="${on}" title="${esc(title)}">${on ? '✓ ' : ''}${label}</button>`;
 	const sideRow = `<div class="order-rows side-rows"><div class="order-row"><span class="order-k">${T('also trade for')}</span><div class="order-v"><span class="chips">
-		${sw('mats', !!side.mats, `⚓ ${T('ship materials')}`, T('Chains ending at an island of this board that pays a ship material -- Tidal Black Stone, Luminous Cobalt, a Brilliant… -- the ones your builds need first. Kept, not sold. A pool pays one only once you say what it shows today.'))}
+		${sw('mats', !!side.mats, `${ico('anchor')} ${T('ship materials')}`, T('Chains ending at an island of this board that pays a ship material -- Tidal Black Stone, Luminous Cobalt, a Brilliant… -- the ones your builds need first. Kept, not sold. A pool pays one only once you say what it shows today.'))}
 		${sw('ocean', side.ocean !== false, T('Great Ocean goods'), T('The Great Ocean goods and the few rare goods only a wharf buys: climbed to and sold like a [Level 7]'))}
-		${sw('boxes', !!side.boxes, `📦 ${T('Lost Trade Boxes')}`, T('Chains ending at an island paying a Lost Trade Box: listed to tick by hand, since what a box holds is a draw the search cannot price'))}
-	</span><span class="run-pick-sub">${esc([side.mats ? T('materials: listed apart, the ones your builds need first — a pool counts once said under 🎲') : '', side.ocean === false ? T('no Great Ocean goods') : '', side.boxes ? T('boxes: listed apart, ticked by hand') : ''].filter(Boolean).join(' · ') || T('the climbs only'))}</span></div></div></div>`;
-	const fromLadder = `<div class="from-ladder"><span>${T('From the step above')}</span><b>${esc(goalLine(o))}</b><button class="linky" data-act="barter-sec" data-id="ladder">${T('change it there')} ›</button></div>`;
+		${sw('boxes', !!side.boxes, `${ico('box')} ${T('Lost Trade Boxes')}`, T('Chains ending at an island paying a Lost Trade Box: listed to tick by hand, since what a box holds is a draw the search cannot price'))}
+	</span><span class="run-pick-sub">${([side.mats ? T('materials: listed apart, the ones your builds need first — a pool counts once said under {dice}', { dice: ico('dice') }) : '', side.ocean === false ? T('no Great Ocean goods') : '', side.boxes ? T('boxes: listed apart, ticked by hand') : ''].filter(Boolean).join(' · ') || T('the climbs only'))}</span></div></div></div>`;
+	const fromLadder = `<div class="from-ladder"><span>${T('From the step above')}</span><b>${esc(goalLine(o))}</b><button class="linky" data-act="barter-sec" data-id="ladder">${T('change it there')}</button></div>`;
 	// Where the ship leaves from is not a way of sailing, it is a fact
 	// about the sailor -- where their storage is -- and no card can know
 	// it, so it is the one thing asked beside the cards.
@@ -809,7 +810,7 @@ export function howHTML(o, figs = null) {
 		${sideRow}
 		${V.advOpen ? `<div class="order-rows">${rows}</div>${savedHTML()}` : ''}
 		${stocking || coining ? '' : fromLadder}
-		<div class="plan-next"><span class="panel-sub">${esc(howLine(o))}</span><span class="panel-spacer"></span><button class="act" data-act="barter-sec" data-id="chains">${T('OK, pick the chains')} ›</button></div>`;
+		<div class="plan-next"><span class="panel-sub">${esc(howLine(o))}</span><span class="panel-spacer"></span><button class="act" data-act="barter-sec" data-id="chains">${T('OK, pick the chains')}</button></div>`;
 }
 
 /**
@@ -844,7 +845,7 @@ export function parleyHTML(prof) {
 			<label class="run-pause">${amountInput('purse-inline', o.pause.call || 0, `data-act="barter-pause" data-at="call" aria-label="${T('Seconds at a wharf or a quest stop')}"`)}<span>${T('s at a wharf or a quest')}<em>${T('storing, selling, handing in — the longer sort of stop')}</em></span></label>
 		</div></div>
 		${bagRowHTML()}</div>
-		<div class="plan-next"><span class="panel-sub">${T('The barter window’s screenshot fills both in — Read the window, above.')}</span><span class="panel-spacer"></span><button class="act" data-act="barter-sec" data-id="ladder">${T('OK, where does today end?')} ›</button></div>
+		<div class="plan-next"><span class="panel-sub">${T('The barter window’s screenshot fills both in — Read the window, above.')}</span><span class="panel-spacer"></span><button class="act" data-act="barter-sec" data-id="ladder">${T('OK, where does today end?')}</button></div>
 	</div>`;
 }
 
@@ -942,7 +943,7 @@ export function chainRow(c, on, solo, dockName, from, ladder = null, shut = null
 	if (shut) {
 		const npc = npcById.get(shut.npcId);
 		return `<button class="chain shut" disabled style="--tier:${TIER(c.top)}" title="${T('{isle} opens at {barters} Total Barters', { isle: esc(gameName(isleOf(npc) || shut.npc)), barters: F(shut.barters) })}">
-			<span class="chain-mark">🔒</span>
+			<span class="chain-mark">${ico('lock')}</span>
 			<span class="chain-main">
 				<span class="chain-start">${start}</span>
 				<span class="chain-pips">${pips}<em>${reachLabel(c)}</em></span>${stockLine(c)}
@@ -996,7 +997,7 @@ export function chainRow(c, on, solo, dockName, from, ladder = null, shut = null
 			${solo.cost ? `<span>${T('{sold} sold · {bought} bought', { sold: FC(Math.round(solo.silver)), bought: FC(Math.round(solo.cost)) })}</span>` : solo.bought.some(b => b.how === 'unpriced') ? `<span class="faint">${T('land goods unpriced')}</span>` : ''}
 			<span>${solo.keptWorth ? T('{silver} left over', { silver: FC(Math.round(solo.keptWorth)) }) : solo.silver ? T('nothing left over') : T('nothing to sell at this reach')}</span>
 			<span>${c.rungs.length === 1 ? T('{n} island', { n: c.rungs.length }) : T('{n} islands', { n: c.rungs.length })}${from ? '' : ''}</span>
-			<span class="chain-steps-open" role="button" tabindex="0" data-act="barter-chain-steps" data-id="${esc(c.id)}" title="${T('Every step of this climb: the islands in full, what each takes and pays, the wharf calls')}">${T('step by step')} ›</span>
+			<span class="chain-steps-open" role="button" tabindex="0" data-act="barter-chain-steps" data-id="${esc(c.id)}" title="${T('Every step of this climb: the islands in full, what each takes and pays, the wharf calls')}">${T('step by step')}</span>
 		</span>
 	</button>`;
 	shownChains.set(c.id, { c, solo, dockName });
@@ -1122,7 +1123,7 @@ export function chainStepsDialog(id) {
 			(s.dropped || []).length ? `${T('Leaves in storage')}: ${s.dropped.map(d => `${n1(d.n)}× ${esc(gameName(d.item))}`).join(', ')}` : '',
 			(s.loads || []).length ? `${T('Loads from storage')}: ${s.loads.map(d => `${n1(d.n)}× ${esc(gameName(d.item))}`).join(', ')}` : ''
 		].filter(Boolean).join(' · ');
-		return `<li class="chain-step call"><span class="chain-step-n">⚓</span><div class="chain-step-body"><div class="chain-step-place"><b>${esc(gameName(s.wharf.at))}</b><span>${T('wharf')}</span></div>${what ? `<div class="chain-step-meta">${what}</div>` : ''}</div></li>`;
+		return `<li class="chain-step call"><span class="chain-step-n">${ico('anchor')}</span><div class="chain-step-body"><div class="chain-step-place"><b>${esc(gameName(s.wharf.at))}</b><span>${T('wharf')}</span></div>${what ? `<div class="chain-step-meta">${what}</div>` : ''}</div></li>`;
 	};
 	const rows = [
 		...stops.map(s => (s.npcId ? isle(c.rungs.find(r => r.npcId === s.npcId) || s, s) : call(s))),

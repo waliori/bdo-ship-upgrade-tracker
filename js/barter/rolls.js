@@ -33,6 +33,7 @@ import { V } from './state.js';
 import { fleetRolls } from './fleet.js';
 import { persist } from './view.js';
 
+import { ico } from '../icons.js';
 const keyOf = o => `${o.give}|${o.recv}`;
 /** A roll between a trade good and coins. */
 const itemOrCoins = roll => roll.options.some(o => o.recv === COIN) && roll.options.some(o => o.recv !== COIN);
@@ -144,8 +145,8 @@ export function rollsChipHTML(combo) {
 	if (!asks.length) return '';
 	const left = asks.filter(x => !x.said && !x.blank).length;
 	return left
-		? `<button class="chip tiny rolls-chip warn" data-act="barter-rolls" title="${T('These islands show one of several exchanges, a different one each refresh; which one changes the route')}">🎲 ${left === 1 ? T('{n} island draws its offer — which?', { n: left }) : T('{n} islands draw their offer — which?', { n: left })}</button>`
-		: `<button class="chip tiny rolls-chip ok" data-act="barter-rolls" title="${T('What the islands that roll a good or coins showed today')}">🎲 ${T('rolls said')}</button>`;
+		? `<button class="chip tiny rolls-chip warn" data-act="barter-rolls" title="${T('These islands show one of several exchanges, a different one each refresh; which one changes the route')}">${ico('dice')} ${left === 1 ? T('{n} island draws its offer — which?', { n: left }) : T('{n} islands draw their offer — which?', { n: left })}</button>`
+		: `<button class="chip tiny rolls-chip ok" data-act="barter-rolls" title="${T('What the islands that roll a good or coins showed today')}">${ico('dice')} ${T('rolls said')}</button>`;
 }
 
 /** The dialog: every roll, its options side by side. */
@@ -162,7 +163,7 @@ export function openRolls(combo, redraw) {
 				return `<button class="roll-option${on ? ' on' : ''}${!x.said && on ? ' likely' : ''}" data-act="barter-roll-pick" data-npc="${x.npcId}" data-give="${esc(o.give)}" data-recv="${esc(o.recv)}" aria-pressed="${x.said === o}">
 					<span class="roll-trade">${img(o.give, 'row-icon sm')}<span class="faint">→</span>${img(o.recv, 'row-icon sm')}</span>
 					<span class="roll-name"><b>${esc(gameName(o.recv))}</b> × ${esc(pay)}</span>
-					<span class="roll-meta">${T('{n} a day', { n: F(o.perDay) })}${pct !== null ? ` · <i class="pay-fleet">⚓${pct}%</i>` : ''}${!x.said && on ? ` · ${T('likely')}` : ''}</span>
+					<span class="roll-meta">${T('{n} a day', { n: F(o.perDay) })}${pct !== null ? ` · <i class="pay-fleet">${ico('anchor')}${pct}%</i>` : ''}${!x.said && on ? ` · ${T('likely')}` : ''}</span>
 				</button>`;
 			};
 			if (x.pool) return poolRow(x, npc, f);
@@ -183,7 +184,7 @@ export function openRolls(combo, redraw) {
 			for (const o of x.options) { if (once.has(keyOf(o))) continue; once.add(keyOf(o)); if (!pays.has(o.recv)) pays.set(o.recv, []); pays.get(o.recv).push(o); }
 			const pctOf = list => (f ? Math.round((list.reduce((a, o) => a + (f.seen[keyOf(o)] || 0), 0) / f.total) * 100) : null);
 			const open = expand.get(x.npcId) || (x.said ? x.said.recv : '');
-			const payChip = ([recv, list]) => { const pct = pctOf(list); return `<button class="roll-pay${open === recv ? ' on' : ''}${x.said && x.said.recv === recv ? ' said' : ''}" data-act="barter-roll-pays" data-npc="${x.npcId}" data-recv="${esc(recv)}" aria-pressed="${open === recv}" title="${esc(gameName(recv))}">${img(recv, 'row-icon sm')}<span>${esc(gameName(recv))}</span><em>${F(list.length)}${pct !== null ? ` · ⚓${pct}%` : ''}</em></button>`; };
+			const payChip = ([recv, list]) => { const pct = pctOf(list); return `<button class="roll-pay${open === recv ? ' on' : ''}${x.said && x.said.recv === recv ? ' said' : ''}" data-act="barter-roll-pays" data-npc="${x.npcId}" data-recv="${esc(recv)}" aria-pressed="${open === recv}" title="${esc(gameName(recv))}">${img(recv, 'row-icon sm')}<span>${esc(gameName(recv))}</span><em>${F(list.length)}${pct !== null ? ` · ${ico('anchor')}${pct}%` : ''}</em></button>`; };
 			const list = open ? pays.get(open) || [] : [];
 			const option = o => {
 				const on = x.said === o;
@@ -192,7 +193,7 @@ export function openRolls(combo, redraw) {
 				return `<button class="roll-option mini${on ? ' on' : ''}" data-act="barter-roll-pick" data-npc="${x.npcId}" data-give="${esc(o.give)}" data-recv="${esc(o.recv)}" aria-pressed="${on}">
 					<span class="roll-trade">${img(o.give, 'row-icon sm')}<span class="faint">→</span>${img(o.recv, 'row-icon sm')}</span>
 					<span class="roll-name"><b>${esc(o.qty)}× ${esc(gameName(o.give))}</b> → ${esc(pay)}</span>
-					<span class="roll-meta">${T('{n} a day', { n: F(o.perDay) })}${pct !== null ? ` · <i class="pay-fleet">⚓${pct}%</i>` : ''}</span>
+					<span class="roll-meta">${T('{n} a day', { n: F(o.perDay) })}${pct !== null ? ` · <i class="pay-fleet">${ico('anchor')}${pct}%</i>` : ''}</span>
 				</button>`;
 			};
 			const openN = new Set(x.options.map(keyOf)).size;

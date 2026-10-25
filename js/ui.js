@@ -47,7 +47,7 @@ import { toggleSailBar, openRoutes, openPets } from './profile-bar.js';
 import { hidePeek, wirePeek } from './peek.js';
 import { openGuide, wireGuide } from './guide.js';
 import { renderPlan } from './screen-plan.js';
-import { renderBuilds, openBuildPicker, askRoute, toggleBlockers, askMade, flyToBuilds } from './screen-builds.js';
+import { renderBuilds, openBuildPicker, askRoute, askMade, flyToBuilds } from './screen-builds.js';
 import { renderInventory } from './screen-inventory.js';
 import { renderBarter, barterAction, barterChange, barterType, chartFragment, runSheetHTML, sailChart, sailCurrent, sailStop, sailJump, plannedChart, sailIds, barterWritingView } from './screen-barter.js';
 import { tickTimer, watchTimer, timerState } from './sail-timer.js';
@@ -77,6 +77,7 @@ import { openTables } from './screen-tables.js';
 import { openTripLog } from './triplog.js';
 import { pickGameFolder, writeGameFile, restoreGameFile } from './gamefile.js';
 import { openCoinBuy } from './coin-shop.js';
+import { ico } from './icons.js';
 import {
 	renderMap, paintMap, wireMap, setMapPick, mapZoomStep, mapCentreOn, mapCentreOnStash,
 	mapShowItem, mapFit, setMapMode, toggleMapPanel, toggleMapStop,
@@ -91,20 +92,20 @@ import {
 // Two groups: the yard, where a build is planned and made, and the
 // sea, where the day is spent. A divider in the tab row says so.
 const TABS = [
-	{ id: 'plan', label: TT('Plan'), icon: '◈', group: 'yard' },
-	{ id: 'builds', label: TT('Builds'), icon: '⚒', group: 'yard' },
-	{ id: 'inventory', label: TT('Inventory'), icon: '▦', group: 'yard' },
-	{ id: 'tree', label: TT('Tree'), icon: '⌥', group: 'yard' },
-	{ id: 'workshop', label: TT('Workshop'), icon: '⚙', group: 'yard' },
-	{ id: 'get', label: TT('To Get'), icon: '☰', group: 'yard' },
-	{ id: 'map', label: TT('Map'), icon: '⌖', group: 'sea' },
-	{ id: 'quests', label: TT('Quests'), icon: '✦', group: 'sea' },
-	{ id: 'crew', label: TT('Ship'), icon: '⚓', group: 'sea' },
+	{ id: 'plan', label: TT('Plan'), icon: 'plan', group: 'yard' },
+	{ id: 'builds', label: TT('Builds'), icon: 'hammer', group: 'yard' },
+	{ id: 'inventory', label: TT('Inventory'), icon: 'box', group: 'yard' },
+	{ id: 'tree', label: TT('Tree'), icon: 'tree', group: 'yard' },
+	{ id: 'workshop', label: TT('Workshop'), icon: 'cog', group: 'yard' },
+	{ id: 'get', label: TT('To Get'), icon: 'list', group: 'yard' },
+	{ id: 'map', label: TT('Map'), icon: 'map', group: 'sea' },
+	{ id: 'quests', label: TT('Quests'), icon: 'scroll', group: 'sea' },
+	{ id: 'crew', label: TT('Ship'), icon: 'sail', group: 'sea' },
 	// Last, so the digit shortcuts the first nine tabs answer to stay put.
-	{ id: 'barter', label: TT('Barter'), icon: '⇄', group: 'sea' },
+	{ id: 'barter', label: TT('Barter'), icon: 'swap', group: 'sea' },
 	// The harbour: only where there are accounts to stand on its boards.
 	// Past the ten with a digit, and shown once the server has said so.
-	{ id: 'community', label: TT('Community'), icon: '☸', group: 'harbour', when: () => feature('community') }
+	{ id: 'community', label: TT('Community'), icon: 'users', group: 'harbour', when: () => feature('community') }
 ];
 
 /** The tabs this deployment shows. A tab with a `when` waits on it. */
@@ -136,7 +137,7 @@ const MENU = [
 		{ act: 'redo', icon: '↷', label: TT('Redo'), hint: () => (store.canRedo() ? store.nextRedo().label : T('nothing to redo')) }
 	] },
 	{ group: TT('Your save'), items: [
-		{ act: 'profiles', icon: '👤', label: TT('Profiles'), hint: TT('separate saves on this browser') },
+		{ act: 'profiles', icon: ico('user'), label: TT('Profiles'), hint: TT('separate saves on this browser') },
 		{ act: 'export', icon: '⇪', label: TT('Export'), hint: TT('a file, or a link') },
 		{ act: 'import', icon: '⇩', label: TT('Import'), hint: TT('a file saved from here') },
 		{ act: 'reset', icon: '✕', label: TT('Start fresh'), hint: TT('clears everything, one Undo away'), danger: true }
@@ -205,7 +206,7 @@ function paintTabBar(counts) {
 	if (!bar) return;
 	const cell = (t, extra = '') => `<button class="tabbar-btn${view === t.id ? ' active' : ''}${extra}"
 		data-act="view" data-id="${t.id}" aria-current="${view === t.id}" title="${said(t.label)}">
-		<span class="tabbar-icon" aria-hidden="true">${t.icon}</span><span class="tabbar-label">${said(t.label)}</span>
+		<span class="tabbar-icon" aria-hidden="true">${ico(t.icon)}</span><span class="tabbar-label">${said(t.label)}</span>
 		${counts[t.id] ? `<span class="tabbar-count">${counts[t.id]}</span>` : ''}</button>`;
 	const seats = THUMB_TABS.map(id => TABS.find(t => t.id === id)).filter(Boolean);
 	const here = tabs().find(t => t.id === view);
@@ -216,10 +217,10 @@ function paintTabBar(counts) {
 	const html = seats.map(t => cell(t)).join('')
 		+ (away
 			? `<button class="tabbar-btn all active" data-act="tab-sheet" data-id="${away.id}" aria-current="true" aria-haspopup="dialog" title="${said(away.label)} · ${T('Every section, and everything else')}">
-			<span class="tabbar-icon" aria-hidden="true">${away.icon}</span><span class="tabbar-label">${said(away.label)}</span>
-			<span class="tabbar-menu-mark" aria-hidden="true">☰</span>${badge}</button>`
+			<span class="tabbar-icon" aria-hidden="true">${ico(away.icon)}</span><span class="tabbar-label">${said(away.label)}</span>
+			<span class="tabbar-menu-mark" aria-hidden="true">${ico('menu')}</span>${badge}</button>`
 			: `<button class="tabbar-btn all" data-act="tab-sheet" aria-haspopup="dialog" title="${T('Every section, and everything else')}">
-			<span class="tabbar-icon" aria-hidden="true">☰</span><span class="tabbar-label">${T('Menu')}</span>
+			<span class="tabbar-icon" aria-hidden="true">${ico('menu')}</span><span class="tabbar-label">${T('Menu')}</span>
 			${badge}</button>`);
 	// The same bar as last time is left alone: measuring it made every
 	// draw lay the page out on the spot, a stall under the sailing clock.
@@ -259,7 +260,7 @@ function openTabSheet() {
 	const group = (id, title, note) => `<div class="sheet-head">${title} <span class="sheet-note">${note}</span></div>
 		<div class="sheet-grid">${tabs().filter(t => t.group === id).map(t => `
 			<button class="sheet-tab${view === t.id ? ' active' : ''}" data-act="view" data-id="${t.id}" aria-current="${view === t.id}">
-				<span class="sheet-icon" aria-hidden="true">${t.icon}</span>
+				<span class="sheet-icon" aria-hidden="true">${ico(t.icon)}</span>
 				<span class="sheet-name">${said(t.label)}</span>
 				${counts[t.id] ? `<span class="sheet-count">${counts[t.id]}</span>` : ''}
 			</button>`).join('')}</div>`;
@@ -364,7 +365,7 @@ export function render() {
 			aria-selected="${view === t.id}" aria-controls="screen"
 			tabindex="${view === t.id ? 0 : -1}"
 			data-act="view" data-id="${t.id}" id="tab-${t.id}" title="${said(t.label)}${i < 10 ? ` (${(i + 1) % 10})` : ''}">
-			<span class="tab-icon" aria-hidden="true">${t.icon}</span><span class="tab-label">${said(t.label)}</span>${badge(t.id, 'tab-count')}
+			<span class="tab-icon" aria-hidden="true">${ico(t.icon)}</span><span class="tab-label">${said(t.label)}</span>${badge(t.id, 'tab-count')}
 		</button>`).join('');
 	// The day's clocks and the ship, in one line, wherever the page does
 	// not say them itself: the Plan's own strip, the Quests' clocks and
@@ -1140,7 +1141,6 @@ function wire() {
 			case 'pets': returnToPouch(); return openPets();
 			// Every threshold and where the count stands among them.
 			case 'routes': returnToPouch(); return openRoutes();
-			case 'blockers-all': toggleBlockers(); return render();
 			case 'enh-blocked': toggleBlocked(); return render();
 			case 'open-item': hidePeek(); showView('inventory'); setSelected(el.dataset.item); return render();
 			case 'resets-edit': return openResetsDialog();

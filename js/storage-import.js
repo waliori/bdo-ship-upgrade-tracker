@@ -34,6 +34,7 @@ import { levelOf } from './barter.js';
 import { holdGoods, hullSlots, inHoldAt } from './hold-room.js';
 import { currentShip, shownSlots } from './ship.js';
 
+import { ico } from './icons.js';
 /** Where a reading is written by default, remembered between goes: a
  *  player reads the same storage every week. */
 const lastPlace = () => store.getSetting('shotStore', '');
@@ -171,7 +172,7 @@ export function openStorageImport(after = () => {}, handOff = null, files = null
 		${adding && rows.length ? `<p class="dialog-note shot-adding">${T('Adding to the {n} lines read so far: the new screenshots are read together with the ones before, and nothing is written until you say so.', { n: rows.length })}</p>` : ''}
 		${handOff ? '' : placePicker()}
 		<div class="shot-drop" data-drop tabindex="0" role="button" aria-label="${T('Choose screenshots to read')}">
-			<div class="shot-drop-mark">🏰</div>
+			<div class="shot-drop-mark">${ico('keep')}</div>
 			<div><b>${T('Drop screenshots here, or paste one')}</b></div>
 			<div class="row-sub">${T('{paste}, or {link}', { paste: `<b>${T('Ctrl+V')}</b>`, link: `<button class="link-btn" data-choose>${T('choose files')}</button>` })}</div>
 			<div class="row-sub quiet">${T('A shot taken with Shift+Win+S goes to the clipboard — paste it straight in, no file to save first.')}</div>
@@ -190,7 +191,7 @@ export function openStorageImport(after = () => {}, handOff = null, files = null
 			<p class="dialog-note quiet">${T('Up to {files} at a time, {mb} MB each, PNG, JPEG or WebP.', { files: LIMITS.files, mb: Math.round(LIMITS.bytes / 1024 / 1024) })}
 				${T('They are read in this browser and never uploaded, and a storage needs no reader fetched for it: the pictures and the figures are both read off the pixels.')}</p>
 		</details>
-		<div class="dialog-actions">${adding && rows.length ? `<button class="act quiet" data-back>‹ ${T('Back to the table')}</button>` : ''}<button class="act quiet" data-close>${T('Close')}</button></div>`;
+		<div class="dialog-actions">${adding && rows.length ? `<button class="act quiet" data-back>${T('Back to the table')}</button>` : ''}<button class="act quiet" data-close>${T('Close')}</button></div>`;
 
 	/* --- reading ----------------------------------------------------- */
 	const readingView = (at, text) => `

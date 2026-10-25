@@ -16,6 +16,7 @@ import { stopsLive, marksNow, seaBent } from './marks.js';
 import { stashRoute, readStash, routeSeq } from './route.js';
 import { TRACE_STOPS, cleanTrace, traceAnchors, tracePoints, traceGameLines } from './trace.js';
 
+import { ico } from '../icons.js';
 /* ------------------------------------------------------------------ *
  * the game's map, read back
  * ------------------------------------------------------------------ */
@@ -260,7 +261,7 @@ function routePoints() {
 	if (!stopsLive()) return [];
 	return routeSeq(marksNow()).map(s => ({
 		name: s.kind === 'stash'
-			? `${s.n}: ⚓ ${gameName(s.place.name)} (${gameName(s.place.at)})`
+			? `${s.n}: ${ico('anchor')} ${gameName(s.place.name)} (${gameName(s.place.at)})`
 			: `${s.n}: ${gameName(s.place.name)} (${gameName(s.place.at)})`,
 		x: s.place.x, y: s.place.y
 	}));

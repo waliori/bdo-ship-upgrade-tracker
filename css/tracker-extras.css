@@ -25,7 +25,7 @@
 .card-row { display: flex; justify-content: space-between; gap: 10px; padding: 2px 0; font-size: 12.5px; color: var(--ink-mid); }
 .card-row .n { font-family: var(--font-display); color: var(--ink-hi); white-space: nowrap; }
 .card-row .n.amber { color: var(--amber); }
-.card-row .n.teal { color: var(--teal-hi, #4ec9ae); }
+.card-row .n.teal { color: var(--teal-hi); }
 .card-line { font-size: 12.5px; line-height: 1.6; color: var(--ink-mid); }
 .card-more { margin-top: 3px; font-size: 11.5px; color: var(--ink-faint); }
 /* A way through to the screen that owns the section sits under it, not
@@ -66,7 +66,7 @@
 .setup-fig { font-family: var(--font-body, inherit); font-size: 12.5px; color: var(--ink-mid); white-space: nowrap; }
 .setup-fig b { font-family: var(--font-display); color: var(--ink-hi); font-weight: 600; }
 .setup-diff { margin-left: 4px; font-size: 11px; font-family: var(--font-display); }
-.setup-diff.up { color: var(--teal-hi, #4ec9ae); }
+.setup-diff.up { color: var(--teal-hi); }
 .setup-diff.down { color: var(--amber); }
 .setup-sailing {
   font-family: var(--font-display);
@@ -293,8 +293,7 @@
     position: fixed;
     inset: 0;
     z-index: 54;
-    background: rgba(var(--deep-rgb), 0.6);
-    backdrop-filter: blur(2px);
+    background: var(--panel-strong);
   }
 
   /* The grab bar has the top of the panel now, so the close button
@@ -356,17 +355,17 @@
 .ration-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .ration-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--ink-dim); padding: 3px 10px 3px 8px; border-radius: 999px; border: 1px solid var(--line-btn); background: rgba(var(--deep-rgb), 0.5); }
 .ration-chip b { font-family: var(--font-display); font-weight: 600; }
-.ration-chip i { width: 8px; height: 8px; border-radius: 50%; background: var(--g, #cfe3f5); box-shadow: 0 0 6px var(--g, #cfe3f5); }
-.ration-chip.g-white { --g: #cfe3f5; }
-.ration-chip.g-green { --g: #5be07a; }
-.ration-chip.g-blue { --g: #4aa8ff; }
-.ration-chip.g-yellow { --g: #f3c14a; }
-.ration-chip.g-orange { --g: #ff9a4a; }
+.ration-chip i { width: 8px; height: 8px; border-radius: 50%; background: var(--g, var(--pale)); box-shadow: 0 0 6px var(--g, var(--pale)); }
+.ration-chip.g-white { --g: var(--pale); }
+.ration-chip.g-green { --g: var(--ration-green); }
+.ration-chip.g-blue { --g: var(--ration-blue); }
+.ration-chip.g-yellow { --g: var(--ration-yellow); }
+.ration-chip.g-orange { --g: var(--ration-orange); }
 .exp-row { display: flex; align-items: center; gap: 10px; }
 .exp-aboard { flex: none; width: 68px; font-family: var(--font-display); font-size: 15px; color: var(--ink-hi); }
 .exp-aboard small { font-size: 12px; color: var(--ink-faint); margin-left: 4px; }
 .exp-bar { flex: 1; min-width: 40px; height: 5px; border-radius: 3px; background: rgba(var(--line-rgb), 0.12); overflow: hidden; }
-.exp-bar i { display: block; height: 100%; border-radius: 3px; background: linear-gradient(90deg, #3a89c9, #4ec9ae); }
+.exp-bar i { display: block; height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--night-blue-bar), var(--night-teal)); }
 .exp-fig { flex: none; font-size: 11.5px; color: var(--ink-mute); }
 .exp-fig b { font-family: var(--font-display); font-size: 12.5px; color: var(--teal); }
 .slot-badge { flex: none; width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center; font-family: var(--font-display); font-size: 14px; font-weight: 700; color: var(--teal); background: rgba(var(--done-rgb), 0.1); border: 1px solid rgba(var(--done-rgb), 0.3); }
@@ -426,7 +425,7 @@
 .map-load-bar { position: relative; height: 6px; border-radius: 3px; background: var(--track); margin-top: 8px; overflow: hidden; }
 .map-load-bar > i { position: absolute; top: 0; bottom: 0; left: 0; background: var(--teal); border-radius: 3px; }
 .map-load-bar > i.over { background: var(--amber); }
-.map-load-bar > i.dead { background: var(--red, #e05050); }
+.map-load-bar > i.dead { background: var(--red); }
 .map-load-bar > s { position: absolute; top: -2px; bottom: -2px; width: 1px; background: var(--ink-faint); }
 @media (pointer: coarse) { .map-load-btn { width: 28px; height: 28px; } }
 
@@ -477,47 +476,47 @@
    the panels lose their glass, since a translucent navy over white is a
    grey smear on paper. */
 @media print {
-  html, body, body::before { background: #fff !important; background-image: none !important; color: #000; }
-  body { font-size: 11pt; color: #000; }
+  html, body, body::before { background: var(--print-paper) !important; background-image: none !important; color: var(--print-ink); }
+  body { font-size: 11pt; color: var(--print-ink); }
   .shell { max-width: none; padding: 0; }
   .masthead-actions, .hamburger, .tabs, .tabbar, .pouch, .status-bar, .toast, .peek, .dialog,
   .app-tip, .shared-bar, .detail, .detail-veil, .controls, .get-copy, .chips, .sq-btn, .stepper,
   .readybar, .plan-step-cta, .tcaret, .chart-link, .linky, .ghost-btn, .act, .info-dot, canvas,
   .map-side, .map-clocks, .map-mini, .quest-actions, .get-quests, .brand-sub { display: none !important; }
-  .brand-name { color: #000; }
-  .masthead { padding: 0 0 8pt; border-bottom: 1pt solid #000; margin-bottom: 10pt; }
+  .brand-name { color: var(--print-ink); }
+  .masthead { padding: 0 0 8pt; border-bottom: 1pt solid var(--print-ink); margin-bottom: 10pt; }
   .screen { gap: 10pt; }
   .panel, .stats, .summary, .stat, .tile, .want, .row, .trow, .quest, .craft, .card, .build, .today, .step, .plan-step,
   .kv-row, .way, .group, .picker, .item-card {
     background: none !important;
-    border-color: #999 !important;
+    border-color: var(--print-rule) !important;
     box-shadow: none !important;
     backdrop-filter: none !important;
-    color: #000 !important;
+    color: var(--print-ink) !important;
     break-inside: avoid;
   }
-  .panel { break-after: page; border: 1pt solid #999; border-radius: 0; }
+  .panel { break-after: page; border: 1pt solid var(--print-rule); border-radius: 0; }
   .panel:last-child { break-after: auto; }
-  .panel-head { border-bottom: 1pt solid #999; }
+  .panel-head { border-bottom: 1pt solid var(--print-rule); }
   .panel-title, .summary-title, .summary-k, .summary-v, .summary-sub, .stat-k, .stat-v, .stat-sub,
   .row-name, .row-sub, .row-alt, .row-sea, .row-sea-why, .group-total, .qty-out, .empty, .trow-name, .trow-sub,
   .tab, h1, h2, h3, p, span, small, b, i, a, li, td, th, dt, dd, label, summary, .badge, .tag {
-    color: #000 !important;
+    color: var(--print-ink) !important;
     text-shadow: none !important;
   }
   a.codex { border-bottom: none; }
   .codex-mark { display: none !important; }
-  input, select, textarea { background: none !important; color: #000 !important; border: 1pt solid #999 !important; -webkit-text-fill-color: #000; }
+  input, select, textarea { background: none !important; color: var(--print-ink) !important; border: 1pt solid var(--print-rule) !important; -webkit-text-fill-color: var(--print-ink); }
   .row-icon, .trow-icon, .tile img, .want-icon, img { filter: none; }
   .row-ways { display: block; }
   .row-ways summary { display: none; }
   .row-ways > div { display: block; }
   .qty-out { font-weight: 700; }
-  .stat, .summary-stats > div { border-color: #999 !important; }
+  .stat, .summary-stats > div { border-color: var(--print-rule) !important; }
   /* A screen's own screen colours mean nothing in ink. */
   .badge, .tag, .chip, .ready-chip, .tab-count, .stat-v.teal, .stat-v.amber, .stat-v.blue, .summary-v.amber, .summary-v.blue {
     background: none !important;
-    border-color: #999 !important;
+    border-color: var(--print-rule) !important;
   }
 }
 

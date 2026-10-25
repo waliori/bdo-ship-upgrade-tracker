@@ -135,7 +135,7 @@ function questRow(q, short, wanted, isDone) {
 		<div class="quest-main">
 			<div class="quest-name">${name}${wanted ? `<span class="quest-tag">${esc(wanted)}</span>` : ''}</div>
 			<div class="quest-where">${esc(said(q.where))}${q.note ? ` · ${esc(said(q.note))}` : ''}${q.monster
-				? ` · <button class="link-btn" data-act="quest-map" data-monster="${esc(q.monster)}" title="${T('Show where they are on the Map')}">${T('on the map')} ↗</button>` : ''}</div>
+				? ` · <button class="link-btn" data-act="quest-map" data-monster="${esc(q.monster)}" title="${T('Show where they are on the Map')}">${T('on the map')}</button>` : ''}</div>
 			<div class="quest-rewards">${q.hands ? `<span class="reward cost" title="${T('Handed over at the claim: you pick which, and it comes out of your inventory')}"><b>−${F(q.hands.n)}×</b> ${T('any Level {lv} trade good', { lv: q.hands.level })}</span>` : ''}${rewardChips(q.rewards, short)}${q.choice
 				? `<span class="quest-or">${T('and one of')}</span>${q.choice.map(c => rewardChips(c, short)).join(`<span class="quest-or">${T('or')}</span>`)}` : ''}</div>
 			${q.choice ? (last

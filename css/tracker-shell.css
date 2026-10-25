@@ -26,7 +26,7 @@
   width: 40px;
   height: 40px;
   border-radius: var(--r-tile);
-  background: linear-gradient(160deg, #123a5e, #0a1f38);
+  background: linear-gradient(160deg, var(--brand-hi), var(--brand-lo));
   border: 1px solid rgba(var(--line-rgb), 0.3);
   display: flex;
   align-items: center;
@@ -71,16 +71,16 @@
 a.ghost-btn { display: inline-flex; align-items: center; gap: 7px; text-decoration: none; }
 
 .discord-btn {
-  --discord-ink: #8b9bf0;
-  --discord-ink-hi: #c3cbfb;
+  --discord-ink: var(--discord);
+  --discord-ink-hi: var(--discord-hi);
   color: var(--discord-ink);
-  border-color: rgba(88, 101, 242, 0.42);
+  border-color: rgba(var(--discord-rgb), 0.42);
 }
 
 .discord-btn:hover:not(:disabled) {
   color: var(--discord-ink-hi);
-  border-color: rgba(88, 101, 242, 0.85);
-  background: rgba(88, 101, 242, 0.12);
+  border-color: rgba(var(--discord-rgb), 0.85);
+  background: rgba(var(--discord-rgb), 0.12);
 }
 
 .discord-mark { flex: none; }
@@ -88,9 +88,9 @@ a.ghost-btn { display: inline-flex; align-items: center; gap: 7px; text-decorati
 /* Blurple is a dark-screen colour; on the light theme it has to come
    down to stay legible on white. Two selectors for the one rule, as
    everywhere else here: chosen by hand, and preferred by the browser. */
-:root[data-theme="light"] .discord-btn { --discord-ink: #4650d0; --discord-ink-hi: #2c34a4; }
+:root[data-theme="light"] .discord-btn { --discord-ink: var(--discord-day); --discord-ink-hi: var(--discord-day-hi); }
 @media (prefers-color-scheme: light) {
-  :root:not([data-theme="dark"]) .discord-btn { --discord-ink: #4650d0; --discord-ink-hi: #2c34a4; }
+  :root:not([data-theme="dark"]) .discord-btn { --discord-ink: var(--discord-day); --discord-ink-hi: var(--discord-day-hi); }
 }
 
 /* ---- who else is out ---------------------------------------------- *

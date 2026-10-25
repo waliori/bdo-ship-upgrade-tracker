@@ -690,7 +690,7 @@ export function strandedHTML() {
 	return `<div class="barter-shut stranded"><b>${T('A run you sailed is not recorded yet')}</b> — ${n === 1
 		? T('{n} stop of it is ticked off, and the board has moved on since. It is all still here.', { n })
 		: T('{n} stops of it are ticked off, and the board has moved on since. It is all still here.', { n })}
-		<button class="chip tiny primary" data-act="barter-record-stranded" title="${T('Put the trip in the Inventory as it was sailed — one Undo takes it back')}">${T('Record it')} →</button>
+		<button class="chip tiny primary" data-act="barter-record-stranded" title="${T('Put the trip in the Inventory as it was sailed — one Undo takes it back')}">${T('Record it')}</button>
 		<button class="chip tiny" data-act="barter-sail-drop" title="${T('Drop the checklist; nothing is recorded')}">${T('let it go')}</button></div>`;
 }
 

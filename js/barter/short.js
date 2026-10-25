@@ -202,7 +202,7 @@ export function shortHTML({ set, picked, opts, aim, ship, from, stock, plan, pke
 		return `<div class="st-pick">
 			<div class="st-pick-rungs">${c.rungs.map((r, i) => `<div class="st-pick-rung">${i ? `<span class="st-then">${T('then')}</span>` : ''}${tradeLineHTML(r)}</div>`).join('')}</div>
 			<div class="st-pick-foot"><span class="st-sub">${cut && !mine.length ? `<b class="amber">${esc(shortWhy(cut.why))}</b>` : got}</span><span class="panel-spacer"></span>
-			${c.depth > 0 ? `<button class="chip tiny" data-act="barter-short-back" data-id="${esc(c.id)}" title="${T('Stop one island sooner')}">‹ ${T('one island less')}</button>` : ''}
+			${c.depth > 0 ? `<button class="chip tiny" data-act="barter-short-back" data-id="${esc(c.id)}" title="${T('Stop one island sooner')}">${T('one island less')}</button>` : ''}
 			<button class="map-x" data-act="barter-short-drop" data-id="${esc(c.id)}" aria-label="${T('Take this trade off the trip')}">×</button></div>
 		</div>`;
 	}).join('')}</div>` : '';
@@ -248,7 +248,7 @@ export function canAppearHTML(b, prof, o) {
 		? `<div class="st-list maybe">${rows.slice(0, 24).map(x => `<div class="st-row off maybe"><span class="st-plus" aria-hidden="true">?</span><span class="st-body">${tradeLineHTML(x.r)}<span class="st-sub">${(() => { const h = heldOf(x.item); return [h.aboard ? T('{n} aboard', { n: F(h.aboard) }) : '', h.dock ? T('{n} in storage', { n: F(h.dock) }) : ''].filter(Boolean).join(' · '); })()}</span></span><span class="st-figs">${T('on {n} of {of} layouts', { n: x.n, of })}</span></div>`).join('')}</div>`
 		: `<p class="empty">${T('None of the layouts still standing trades what you hold: the trips start ashore, once the board is read.')}</p>`;
 	return `<div class="barter-chains short-trip">
-		<div class="chains-wait"><p>${T('Which trades are on today’s board follows from one island: look at one in the game and tap what it shows. Until then, these are the trades the {n} layouts still standing could make of what you hold — maybes, not today’s board.', { n: of })}</p><button class="chip primary" data-act="barter-board-island">${T('Tell it what an island shows')} ›</button></div>
+		<div class="chains-wait"><p>${T('Which trades are on today’s board follows from one island: look at one in the game and tap what it shows. Until then, these are the trades the {n} layouts still standing could make of what you hold — maybes, not today’s board.', { n: of })}</p><button class="chip primary" data-act="barter-board-island">${T('Tell it what an island shows')}</button></div>
 		<div class="plan-sub-head"><b>${T('Where what you hold can be traded')}</b><span>${T('the layouts that carry each trade')}</span></div>
 		${list}
 	</div>`;

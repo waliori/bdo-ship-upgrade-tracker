@@ -47,7 +47,7 @@
 .bar .take { background: var(--teal); }
 .bar .make { background: var(--blue-bar); }
 .bar .lack { background: var(--red); }
-.bar .fill { background: linear-gradient(90deg, #3a89c9, #4ec9ae); }
+.bar .fill { background: linear-gradient(90deg, var(--night-blue-bar), var(--night-teal)); }
 
 .bar-legend { display: flex; justify-content: space-between; gap: 10px; font-size: 11px; color: var(--ink-faint); margin-top: 4px; }
 .bar-legend .n { font-family: var(--font-display); color: var(--ink-dim); }

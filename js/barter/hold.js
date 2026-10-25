@@ -19,6 +19,7 @@ import { fromPort } from './board.js';
 import { parleyOf, ordersNow } from './plan.js';
 import { STASHES, storeOf, TIER } from './route.js';
 
+import { ico } from '../icons.js';
 /* ------------------------------------------------------------------ *
  * the hold
  * ------------------------------------------------------------------ */
@@ -189,10 +190,10 @@ export function holdBarHTML(me, tickedLT = 0, slotsUsed = null) {
 		<div class="hold-cols">
 			<section class="hold-col hold-col-ship">
 				<div class="hold-col-head">
-					<span class="hold-bar-k">⚓ ${T('The hold')}</span>
+					<span class="hold-bar-k">${ico('anchor')} ${T('The hold')}</span>
 					<span class="hold-bar-ship">${esc(gameName(me.name))}</span>
 					<span class="panel-spacer"></span>
-					<button class="ghost-btn sm" data-act="barter-hold-open" title="${T('Open the hold: every good aboard and ashore, with its count')}">${T('Open the hold')} ›</button>
+					<button class="ghost-btn sm" data-act="barter-hold-open" title="${T('Open the hold: every good aboard and ashore, with its count')}">${T('Open the hold')}</button>
 				</div>
 				<div class="hold-gauge"><span class="map-load-bar"><i class="${state}" style="width:${pct.toFixed(1)}%"></i><s style="left:${mark.toFixed(1)}%"></s></span><b class="${state ? 'warn' : ''}">${weightText}</b></div>
 				<div class="hold-goods">${levels || `<span class="faint">${T('no trade goods aboard')}</span>`}</div>

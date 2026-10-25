@@ -2236,7 +2236,8 @@ test('the material book is the game’s own layouts, every one, and a page read 
 	await page.waitForSelector('.dialog .rolls', { timeout: 5000 });
 	const asked = await count(page, '.dialog .roll-row');
 	assert.ok(asked >= 2, `the rolled islands asked about: ${asked}`);
-	assert.match(await text(page, '.dialog .roll-option .roll-meta'), /🎲\d+%/);
+	assert.match(await text(page, '.dialog .roll-option .roll-meta'), /^\d+%/);
+	assert.ok(await page.$('.dialog .roll-option .roll-meta svg.ico'), 'the odds carry the dice mark');
 	await page.evaluate(() => document.querySelector('.dialog [data-act="barter-mat-roll-pick"][data-npc="50817"]').click()); await wait(200);
 	const picked = await page.evaluate(async () => {
 		const { V } = await import('/js/barter/state.js'); const store = await import('/js/state.js');

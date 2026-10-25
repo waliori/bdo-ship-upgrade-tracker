@@ -25,7 +25,8 @@ const browserGlobals = {
 	Notification: 'readonly', Intl: 'readonly',
 	createImageBitmap: 'readonly', FileReader: 'readonly', File: 'readonly',
 	FormData: 'readonly', Request: 'readonly', ReadableStream: 'readonly',
-	crypto: 'readonly', requestIdleCallback: 'readonly', structuredClone: 'readonly'
+	crypto: 'readonly', requestIdleCallback: 'readonly', structuredClone: 'readonly',
+	MutationObserver: 'readonly', NodeFilter: 'readonly'
 };
 
 export default [
