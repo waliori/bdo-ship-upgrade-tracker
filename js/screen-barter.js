@@ -60,26 +60,27 @@ export function renderBarter() {
 	setTimeout(refreshSheet, 0);
 	const now = stepNow();
 	const on = sailing();
-	// The day card: every choice the run is laid from, in one place --
-	// what the day is for, how much of the board, the board, and the
-	// orders -- each cell saying what it is set to, one editor open
-	// beneath. Until the board is read, the board is what is open: it is
-	// the next thing to do. The steps across the top are the only count.
+	// The day card: every choice the run is laid from, in the order a day
+	// is settled -- what it is for, the board, how much of it, the Parley,
+	// where it ends, how it is sailed -- each cell saying what it is set
+	// to. The first step not yet settled is the one open; Next settles it
+	// and opens the one after, and any cell can be opened ahead of its
+	// turn. The chains are the answer to all of it: folded to a line
+	// while a step is open, in full once the card is done or shut.
 	const material = V.goal === 'material';
 	const matPage = material ? matPageNow() : null;
 	const boardRead = material ? matBoardNow().answers.length > 0 : Boolean(b.combo);
 	const boardSaid = material
 		? (matPage ? T('Material layout {id}', { id: esc(matPage.id) }) : boardRead ? T('looked at') : T('the board is not read yet'))
 		: b.combo ? T('Layout {id}', { id: esc(b.combo.id) }) : T('the board is not read yet');
-	const openId = !boardRead && ['none', 'chains'].includes(V.planSec) ? 'board' : V.planSec;
 	const cells = [
 		['goal', T('What is today for?'), goalSaid(), goalCardsHTML()],
+		['board', material ? T('Today’s material list') : T('Today’s board'), boardSaid, `${pinnedHTML(b)}${boardHTML(b)}`],
 		...(material || V.reach ? [] : [['shape', T('How much of the board'), V.shape === 'short' ? T('Short trip') : T('Full run'), shapeBarHTML()]]),
-		['board', material ? T('Today’s material list') : T('Today’s board'), boardSaid, `${pinnedHTML(b)}${boardHTML(b)}`, !boardRead],
 		...parts.secs.filter(([id]) => id !== 'chains')
 	];
 	const planStep = `${rolledHTML()}${parts.cont || ''}
-		${dayCardHTML(cells, parts.secs.filter(([id]) => id === 'chains'), openId)}${parts.dock || ''}`;
+		${dayCardHTML(cells, parts.secs.find(([id]) => id === 'chains'), boardRead)}${parts.dock || ''}`;
 	const loadFoot = `<div class="load-dock"><button class="linky" data-act="barter-step" data-id="plan">${T('Back to the plan')}</button><span class="run-dock-figs"><span>${parts.things.all ? (parts.things.later ? T('Trip 1: {n} of {of} aboard', { n: parts.things.done, of: parts.things.all }) : T('{n} of {of} aboard', { n: parts.things.done, of: parts.things.all })) : ''}</span>${parts.things.later ? `<span>${T('{n} picked up on the way', { n: parts.things.later })}</span>` : ''}</span>${on ? `<button class="act" data-act="barter-step" data-id="sail">${T('Back to the run')}</button>` : `<button class="act" data-act="barter-cast-off"${V.shownPlan && V.shownPlan.stops && V.shownPlan.stops.length ? '' : ' disabled'} title="${T('Each stop goes into the hold as you tick it; at the end the run is recorded')}">${img(currentShip().name, 'ship-ico')} ${T('Cast off')}</button>`}</div>`;
 	// While a run is under way the step leads with what it said at the
 	// wharf, kept with the run: the live list below is laid again from

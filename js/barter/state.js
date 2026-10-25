@@ -34,7 +34,8 @@ export const V = {
 	// Where the ship is when a material run is taken up again at sea: an
 	// island's id, or 0 for the home port. For the day.
 	matAt: 0,
-	planSec: 'none', // the cell of the day card that is open: goal | shape | board | parley | ladder | how | chains (none) | all | none; the board opens itself until it is read
+	planSec: 'none', // the cell of the day card that is open: goal | board | shape | parley | ladder | how, chains (the card shut, the run in full), all, or none: the next step not yet settled
+	planDone: { day: '', ids: [] }, // the plan's steps settled with Next, for the barter day
 	advOpen: false, // every order, unfolded
 	ownWay: false, // "my own way" chosen, whether or not the orders happen to match a card
 	routeEdit: { key: '', skip: [], nudge: {}, trips: [] }, // the route as the sailor changed it on the wharf: islands taken off, stops moved

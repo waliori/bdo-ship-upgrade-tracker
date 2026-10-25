@@ -32,6 +32,7 @@ import { sailing } from './sail.js';
 import { VOUCHER, persist } from './view.js';
 
 import { ico } from '../icons.js';
+import { barterKey } from '../clock.js';
 /** The run as the wharf step lays it, laid now if nothing has: the
  *  same builder the tab draws with, so the chart and the tab agree. */
 function planNow() {
@@ -619,7 +620,7 @@ export function ladderHTML(o, { fits = null, tickedN = 0 } = {}) {
 				${tile(coining ? T('Cashed in') : T('Sold at the wharf'), coining ? T('Level {lv}', { lv: COIN_LEVEL }) : sold.length ? (sold.length === 1 ? T('Level {lv}', { lv: sold[0] }) : T('Level {lv} and up', { lv: sold[0] })) : T('nothing'), `${coining ? T('for Crow Coins, at the islands that pay in them') : sold.length ? T('for silver, at a wharf call') : T('the wharf only stores today')}${floorsSaid ? ` · ${T('keeping {list}', { list: floorsSaid })}` : ''}`, 'gold')}
 				${tile(T('Chains that fit'), fits === null ? '—' : F(fits), fits === null ? T('the board is not read yet') : tickedN === 1 ? T('on today’s board, {n} ticked', { n: tickedN }) : T('on today’s board, {n} ticked', { n: tickedN }), 'blue')}
 			</div>
-			<div class="plan-next"><span class="panel-sub">${T('Nothing is bought or sailed yet — the next step chooses how.')}</span><span class="panel-spacer"></span><button class="act" data-act="barter-sec" data-id="how">${T('OK, that’s the goal')}</button></div>
+			<div class="plan-next"><span class="panel-sub">${T('Nothing is bought or sailed yet — the next step chooses how.')}</span><span class="panel-spacer"></span><button class="act" data-act="barter-next" data-id="ladder">${T('OK, that’s the goal')}</button></div>
 		</div>`;
 }
 
@@ -810,7 +811,7 @@ export function howHTML(o, figs = null) {
 		${sideRow}
 		${V.advOpen ? `<div class="order-rows">${rows}</div>${savedHTML()}` : ''}
 		${stocking || coining ? '' : fromLadder}
-		<div class="plan-next"><span class="panel-sub">${esc(howLine(o))}</span><span class="panel-spacer"></span><button class="act" data-act="barter-sec" data-id="chains">${T('OK, pick the chains')}</button></div>`;
+		<div class="plan-next"><span class="panel-sub">${esc(howLine(o))}</span><span class="panel-spacer"></span><button class="act" data-act="barter-next" data-id="how">${T('OK, pick the chains')}</button></div>`;
 }
 
 /**
@@ -845,38 +846,54 @@ export function parleyHTML(prof) {
 			<label class="run-pause">${amountInput('purse-inline', o.pause.call || 0, `data-act="barter-pause" data-at="call" aria-label="${T('Seconds at a wharf or a quest stop')}"`)}<span>${T('s at a wharf or a quest')}<em>${T('storing, selling, handing in — the longer sort of stop')}</em></span></label>
 		</div></div>
 		${bagRowHTML()}</div>
-		<div class="plan-next"><span class="panel-sub">${T('The barter window’s screenshot fills both in — Read the window, above.')}</span><span class="panel-spacer"></span><button class="act" data-act="barter-sec" data-id="ladder">${T('OK, where does today end?')}</button></div>
+		<div class="plan-next"><span class="panel-sub">${T('The barter window’s screenshot fills both in — Read the window, above.')}</span><span class="panel-spacer"></span><button class="act" data-act="barter-next" data-id="parley">${T('OK, where does today end?')}</button></div>
 	</div>`;
 }
 
-/** The chains: the plan's answer, a panel of its own under the card. */
-function planSection(id, title, summary, body) {
-	return `<section class="panel plan-sec open" data-sec="${id}">
-		<button class="plan-sec-head" data-act="barter-sec" data-id="${id}" aria-expanded="true"><b>${title}</b><span>${summary}</span></button>
-		<div class="plan-sec-body">${body}</div>
+/** The chains: the plan's answer, under the card. Folded to its head
+ *  line while a step of the card is open, in full once none is. */
+function planSection(id, title, summary, body, open = true) {
+	return `<section class="panel plan-sec${open ? ' open' : ''}" data-sec="${id}">
+		<button class="plan-sec-head" data-act="barter-sec" data-id="${id}" aria-expanded="${open}"><b>${title}</b><span>${summary}</span></button>
+		${open ? `<div class="plan-sec-body">${body}</div>` : ''}
 	</section>`;
 }
 
+/** The steps settled with Next today. */
+export const planSettled = () => (V.planDone.day === barterKey() ? V.planDone.ids : []);
+
 /**
- * The day card: every choice the run is laid from, one cell each --
- * what the day is for, how much of the board, the board itself, then
- * the orders -- each saying what it is set to, and the open one's
- * editor across the card beneath them. The chains are the answer, so
- * they stand under the card, always open.
+ * The day card: every choice the run is laid from, one cell each, in the
+ * order a day is settled -- what it is for, the board, how much of it,
+ * then the orders. A step is settled by its Next (the board by being
+ * read); the first one that is not is the step the card stands on, and
+ * the one open while the sailor has not opened another. The chains are
+ * the answer, so they stand under the card.
  *
- * `cells` are [id, title, said, body, todo]; the orders among them keep
- * the .plan-sec class their head and body have always had.
+ * `cells` are [id, title, said, body]; the orders among them keep the
+ * .plan-sec class their head and body have always had.
  */
 const ORDER_IDS = ['parley', 'ladder', 'how'];
-export function dayCardHTML(cells, chains, openId) {
-	const cell = ([id, title, said, body, todo]) => {
+// The cells whose body has no Next of its own; the orders carry theirs.
+const NEXT_HERE = ['goal', 'board', 'shape'];
+
+export function dayCardHTML(cells, chains, boardRead) {
+	const said = new Set(planSettled());
+	const settled = id => (id === 'board' ? boardRead : said.has(id));
+	const now = (cells.find(([id]) => !settled(id)) || [])[0] || '';
+	const openId = V.planSec === 'none' ? now || 'chains' : V.planSec;
+	const next = id => (id === 'board' && !boardRead ? ''
+		: `<div class="plan-next"><span class="panel-spacer"></span><button class="act" data-act="barter-next" data-id="${id}">${T('Next')}</button></div>`);
+	const cell = ([id, title, line, body]) => {
 		const open = V.planSec === 'all' || openId === id;
-		return `<section class="${ORDER_IDS.includes(id) ? 'plan-sec ' : ''}day-cell${open ? ' open' : ''}${todo ? ' todo' : ''}" data-sec="${id}">
-		<button class="plan-sec-head" data-act="barter-sec" data-id="${id}" aria-expanded="${open}"><b>${title}</b><span>${said}</span></button>
-		${open ? `<div class="panel plan-sec-body">${body}</div>` : ''}
+		const done = settled(id);
+		return `<section class="${ORDER_IDS.includes(id) ? 'plan-sec ' : ''}day-cell${open ? ' open' : ''}${done ? ' done' : ''}${id === now ? ' todo' : ''}" data-sec="${id}">
+		<button class="plan-sec-head" data-act="barter-sec" data-id="${id}" aria-expanded="${open}"><b>${title}${done ? ico('check', 'day-tick') : ''}</b><span>${line}</span></button>
+		${open ? `<div class="panel plan-sec-body">${body}${NEXT_HERE.includes(id) ? next(id) : ''}</div>` : ''}
 	</section>`;
 	};
-	return `<div class="day-card" style="--n: ${cells.length}">${cells.map(cell).join('')}</div>${chains.map(x => planSection(...x)).join('')}`;
+	const full = V.planSec === 'all' || openId === 'chains';
+	return `<div class="day-card" style="--n: ${cells.length}">${cells.map(cell).join('')}</div>${chains ? planSection(...chains, full) : ''}`;
 }
 
 /** A chain the Market stops before its first trade: the cut that says

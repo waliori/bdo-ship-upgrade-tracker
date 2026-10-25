@@ -65,7 +65,7 @@ export function barterAction(act, el, redraw) {
 		// A choice made on the day card shuts its cell: the card says what
 		// was chosen, and the next thing to answer -- the board, until it is
 		// read -- opens in its place.
-		case 'barter-goal': V.goal = ['material', 'stock', 'coin'].includes(el.dataset.id) ? el.dataset.id : 'silver'; V.planSec = 'none'; persist(); return true;
+		case 'barter-goal': V.goal = ['material', 'stock', 'coin'].includes(el.dataset.id) ? el.dataset.id : 'silver'; persist(); return true;
 		// Which of the four steps is on the page. Asked for by hand, it
 		// stays asked for: the page does not slide out from under a sailor
 		// reading it because a stop was ticked somewhere else.
@@ -84,11 +84,25 @@ export function barterAction(act, el, redraw) {
 			return true;
 		}
 		// Which part of the plan is open. Pressing the open one shuts it.
+		// A cell of the day card, opened ahead of its turn or back to one
+		// settled; pressed again, the card shuts and the run is in full.
 		case 'barter-sec': {
 			const id = el.dataset.id;
-			V.planSec = id === 'all' || id === 'none' || id === 'chains' ? id : V.planSec === id ? 'none' : id;
+			const open = el.getAttribute('aria-expanded') === 'true';
+			V.planSec = id === 'all' || id === 'none' ? id : open || id === 'chains' ? 'chains' : id;
 			if (V.planSec === id && id !== 'all' && id !== 'none') bringUp(`.barter-screen [data-sec="${id}"]`);
 			persist();
+			return true;
+		}
+		// A step settled: the card moves on to the first one still to do,
+		// or, with every one done, shuts on the run.
+		case 'barter-next': {
+			const day = barterKey();
+			const ids = V.planDone.day === day ? V.planDone.ids : [];
+			V.planDone = { day, ids: [...new Set([...ids, el.dataset.id])] };
+			V.planSec = 'none';
+			persist();
+			bringUp('.barter-screen .day-card');
 			return true;
 		}
 		// "My own way" is a choice like the cards beside it: the first
@@ -366,7 +380,6 @@ export function barterAction(act, el, redraw) {
 			[V.routes, V.routesOther] = [V.routesOther, V.routes];
 			V.shape = want;
 			V.routesAuto = '';
-			V.planSec = 'none';
 			persist();
 			return true;
 		}

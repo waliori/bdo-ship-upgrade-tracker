@@ -12,6 +12,7 @@ const P = {
 	list: '<path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/>',
 	swap: '<path d="M4 8h14l-3.5-3.5M20 16H6l3.5 3.5"/>',
 	menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
+	check: '<path d="M4.5 12.5 9.5 17.5 19.5 6.5"/>',
 	anchor: '<circle cx="12" cy="5" r="2.5"/><path d="M12 7.5V21M5 13H3a9 8 0 0 0 18 0h-2M8 11h8"/>',
 	sail: '<path d="M12 3v14M12 4 5 15h7M13.5 7 18 15h-4.5M3 18h18l-2.5 3h-13z"/>',
 	camera: '<path d="M14.5 4h-5L7.5 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3.5z"/><circle cx="12" cy="13" r="3.5"/>',

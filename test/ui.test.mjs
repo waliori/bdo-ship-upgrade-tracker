@@ -2209,6 +2209,9 @@ test('the material book is the game’s own layouts, every one, and a page read 
 	await page.waitForSelector('.barter-screen', { timeout: 15000 }); await wait(600);
 	await page.evaluate(async () => { const store = await import('/js/state.js'); store.setView('barter', { goal: 'material' }); store.flush(); });
 	await page.reload({ waitUntil: 'domcontentloaded' });
+	// The plan opens on its first step, what the day is for: the list is the next.
+	await page.waitForSelector('.day-cell[data-sec="board"]', { timeout: 20000 });
+	await openCell(page, 'board');
 	await page.waitForSelector('[data-act="barter-mat-book"]', { timeout: 20000 });
 	const said = Number((await text(page, '[data-act="barter-mat-book"]')).match(/(\d+) boards/)[1]);
 	await page.evaluate(() => document.querySelector('[data-act="barter-mat-book"]').click());
