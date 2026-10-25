@@ -590,9 +590,12 @@ export function ladderHTML(o, { fits = null, tickedN = 0 } = {}) {
 			<button class="rung-node" data-act="barter-rung" data-lv="${lv}" title="${T('End the climb at Level {lv}', { lv })}"${coining ? '' : ` aria-pressed="${lv === top}"`}>${lv}</button>
 			<span class="rung-name">${T('Level {lv}', { lv })}</span>
 			<button class="rung-held linky" data-act="barter-level-goods" data-lv="${lv}" title="${T('See every good at this level: what you hold, and how many short')}">${heldAt.get(lv) ? T('{n} held', { n: F(heldAt.get(lv)) }) : T('none held')} <span aria-hidden="true">▦</span></button>
-			${fateHTML}${keep}${note}${coinNode}
+			${fateHTML}${keep}${note || coinNode ? `<div class="rung-more">${note}${coinNode}</div>` : ''}
 		</div>`;
 	}).join('');
+	// What each row under the rungs is, said once at its head rather
+	// than beside every rung.
+	const legend = `<div class="rung-legend" aria-hidden="true"><span></span><span></span><span>${T('You hold')}</span><span>${T('at the wharf')}</span><span>${stocking ? '' : T('kept back')}</span></div>`;
 	const sold = stocking || coining ? [] : soldLevelsOf(o, top);
 	const floorsSaid = Object.entries(stocking ? {} : o.floors).filter(([, n]) => n > 0).map(([lv, n]) => T('{n} of each Level {lv} good', { n: F(n), lv })).join(', ');
 	const tile = (k, v, sub, cls = '') => `<div><div class="summary-k">${k}</div><div class="summary-v${cls ? ` ${cls}` : ''}">${v}</div><div class="summary-sub">${sub}</div></div>`;
@@ -600,7 +603,7 @@ export function ladderHTML(o, { fits = null, tickedN = 0 } = {}) {
 	<div class="ladder-aim"><span class="run-pick-k">${T('filled')}</span><span class="segs" role="group" aria-label="${T('Which end the stock is filled from')}">${ORDER_CHOICES.map(([id, label, title]) => `<button class="seg${(V.stockGoal.order || 'up') === id ? ' on' : ''}" aria-pressed="${(V.stockGoal.order || 'up') === id ? 'true' : 'false'}" data-act="barter-fill-from" data-id="${id}" title="${esc(said(title))}">${esc(said(label))}</button>`).join('')}</span><span class="orders-sub">${esc(said((ORDER_CHOICES.find(([a]) => a === (V.stockGoal.order || 'up')) || ORDER_CHOICES[0])[2]))}</span></div>` : '';
 	return `<div class="ladder-head"><span class="panel-spacer"></span><button class="linky" data-act="barter-hold-open" title="${T('Open the hold: every good aboard and ashore, with its count')}">${T('Open the hold')} ›</button><button class="linky" data-act="barter-add" title="${T('Record a good that is aboard')}">＋ ${T('A good')}</button></div>
 		<p class="ladder-copy">${stocking ? T('Click the level where the stock ends. Under each level: what you hold, and what to keep of every good there.') : T('Click the level where today’s climb ends. Under each level: what you hold, what happens to it, and how many to keep back.')}</p>
-		<div class="ladder" role="group" aria-label="${T('The level the climbs stop at')}">${rungs}</div>
+		<div class="ladder${stocking ? ' stocking' : ''}" role="group" aria-label="${T('The level the climbs stop at')}">${legend}${rungs}</div>
 		<p class="ladder-hint">${stocking
 		? T('A target is what to keep of <b>every</b> good at that level, and it is a floor as well: the run fills it and never spends below it, so a level fills before anything climbs from it and only the surplus goes up. Nothing is sold at a wharf while the stock is the goal.')
 		: coining
@@ -844,15 +847,24 @@ export function parleyHTML(prof) {
 	</div>`;
 }
 
-/** One part of the plan: a head that says what is set inside,
- *  and the body when it is the part that is open. */
-const secOpen = id => V.planSec === 'all' || V.planSec === id;
+/** One part of the plan: a head that says what is set inside, and the
+ *  body when it is open. The chains are the answer, so they are always
+ *  open; the parts before them are the orders, laid as tabs (plan.css). */
+const secOpen = id => id === 'chains' || V.planSec === 'all' || V.planSec === id;
 export function planSection(id, title, summary, body) {
 	const open = secOpen(id);
-	return `<section class="panel plan-sec${open ? ' open' : ''}" data-sec="${id}">
-		<button class="plan-sec-head" data-act="barter-sec" data-id="${id}" aria-expanded="${open}"><b>${title}</b><span>${summary}</span><em aria-hidden="true">${open ? '▴' : '▾'}</em></button>
-		${open ? `<div class="plan-sec-body">${body}</div>` : ''}
+	return `<section class="${id === 'chains' ? 'panel ' : ''}plan-sec${open ? ' open' : ''}" data-sec="${id}">
+		<button class="plan-sec-head" data-act="barter-sec" data-id="${id}" aria-expanded="${open}"><b>${title}</b><span>${summary}</span>${id === 'chains' ? '' : `<em aria-hidden="true">${open ? '▴' : '▾'}</em>`}</button>
+		${open ? `<div class="${id === 'chains' ? '' : 'panel '}plan-sec-body">${body}</div>` : ''}
 	</section>`;
+}
+
+/** The orders as a row of tabs, each saying what it is set to, with the
+ *  open one's body under the row; then the chains. */
+export function planSectionsHTML(secs) {
+	const orders = secs.filter(([id]) => id !== 'chains');
+	const chains = secs.filter(([id]) => id === 'chains');
+	return `<div class="plan-orders" style="--n: ${orders.length}">${orders.map(x => planSection(...x)).join('')}</div>${chains.map(x => planSection(...x)).join('')}`;
 }
 
 /** A chain the Market stops before its first trade: the cut that says

@@ -24,7 +24,7 @@ import { stepNow, stepperHTML, underWayHTML, recordedHTML, sailHTML } from './ba
 import { holdBarHTML, refreshSheet } from './barter/hold.js';
 import { materialParts } from './barter/material.js';
 import { silverParts } from './barter/parts.js';
-import { dayStep, goalCardsHTML, planSection } from './barter/plan.js';
+import { dayStep, goalCardsHTML, planSectionsHTML } from './barter/plan.js';
 import { resultsHTML } from './barter/results.js';
 import { sailing, strandedHTML } from './barter/sail.js';
 import { shapeBarHTML } from './barter/short.js';
@@ -59,7 +59,7 @@ export function renderBarter() {
 	setTimeout(refreshSheet, 0);
 	const now = stepNow();
 	const on = sailing();
-	const secs = parts.secs.map(([id, title, summary, body]) => planSection(id, title, summary, body)).join('');
+	const secs = planSectionsHTML(parts.secs);
 	// The day's two forks first, together -- what it is for, and how
 	// much of the board -- since the rest follows from them: which list
 	// of the barter window is read, then the run. No numbers here: the

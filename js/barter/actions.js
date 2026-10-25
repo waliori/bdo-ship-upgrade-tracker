@@ -83,7 +83,7 @@ export function barterAction(act, el, redraw) {
 		// Which part of the plan is open. Pressing the open one shuts it.
 		case 'barter-sec': {
 			const id = el.dataset.id;
-			V.planSec = id === 'all' || id === 'none' ? id : V.planSec === id ? 'none' : id;
+			V.planSec = id === 'all' || id === 'none' || id === 'chains' ? id : V.planSec === id ? 'none' : id;
 			if (V.planSec === id && id !== 'all' && id !== 'none') bringUp(`.plan-sec[data-sec="${id}"]`);
 			persist();
 			return true;
