@@ -675,7 +675,7 @@ export function castOffRow(plan, from) {
  * and kept by the time the route is drawn, so this costs the tiles.
  */
 const SNAP = { w: 300, h: 120, pad: 16 };
-function legSnap(from, to) {
+export function legSnap(from, to) {
 	if (!from || !to || (from.x === to.x && from.y === to.y)) return '';
 	const pts = seaLeg(from, to);
 	const x0 = Math.min(...pts.map(p => p.x)), x1 = Math.max(...pts.map(p => p.x));
@@ -712,7 +712,7 @@ function legSnap(from, to) {
 /** A leg's still, folded under its stop: the route reads as a list,
  *  and the picture is there for the stop it is wanted on. The tiles
  *  are lazy, so a fold never opened fetches nothing. */
-const legFold = snap => (snap ? `<details class="leg-fold" open><summary>${T('On the chart')}</summary>${snap}</details>` : '');
+export const legFold = snap => (snap ? `<details class="leg-fold" open><summary>${T('On the chart')}</summary>${snap}</details>` : '');
 
 export function stopRows(stops, legs, { k0 = 0, board = false, sailing = null, tag = null, notes = null, ledger = null, map = false, edit = false, snap = edit, trip = null, before = null } = {}) {
 	const wanted = notes ? questWanted() : new Set();

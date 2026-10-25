@@ -1317,3 +1317,10 @@ img.comm-silver { width: 1.25em; height: 1.25em; vertical-align: -0.25em; object
 .chains-bar .plan-sec-head:hover .chains-bar-open { text-decoration: underline; }
 .chains-dialog > .panel-head { margin-bottom: 10px; }
 .chains-dialog .run-dock { bottom: 0; }
+.plan-next .plan-to-chains { margin-right: 8px; }
+
+/* The short trip's legs on the chart: under each picked rung, and under
+   each "one island further" offer, the leg it would add. */
+.st-pick-rung .leg-fold { flex-basis: 100%; margin-top: 2px; }
+.st-row .st-still { grid-column: 2 / -1; }
+.st-row .st-still .leg-snap { margin: 2px 0 0; }

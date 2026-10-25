@@ -35,10 +35,10 @@ export const V = {
 	// island's id, or 0 for the home port. For the day.
 	matAt: 0,
 	planSec: 'none', // the cell of the day card that is open: goal | board | shape | parley | ladder | how, shut (none), all (every one, the chains drawn in place), or none: the next step not yet settled
-	planLeft: [], // the steps not yet settled, as the last render counted them
+	planOrder: [], // the day card's cells in order, as the last render drew them
 	chainsSheet: '', // the chains as the last render drew them, for the sheet over the page
 	sheetAfter: null, // a sheet to open once the tab has redrawn
-	planDone: { day: '', ids: [] }, // the plan's steps settled with Next, for the barter day
+	planDone: { day: '', board: '', ids: [] }, // the plan's steps settled with Next, for the barter day and the board they were settled on
 	advOpen: false, // every order, unfolded
 	ownWay: false, // "my own way" chosen, whether or not the orders happen to match a card
 	routeEdit: { key: '', skip: [], nudge: {}, trips: [] }, // the route as the sailor changed it on the wharf: islands taken off, stops moved

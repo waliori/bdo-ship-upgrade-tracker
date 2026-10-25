@@ -86,7 +86,7 @@ export function renderBarter() {
 	const chains = parts.secs.find(([id]) => id === 'chains');
 	V.chainsSheet = chains ? `<div class="panel-head"><h2 class="panel-title">${chains[1]}</h2><span class="panel-sub">${chains[2]}</span></div>${chains[3]}${parts.dock || ''}` : '';
 	const planStep = `${rolledHTML()}${parts.cont || ''}
-		${dayCardHTML(cells, chains, boardRead)}${parts.dock || ''}`;
+		${dayCardHTML(cells, chains, boardRead, `${V.goal}|${material ? (matPage ? matPage.id : boardRead ? 'read' : '') : b.combo ? b.combo.id : ''}`)}${parts.dock || ''}`;
 	const loadFoot = `<div class="load-dock"><button class="linky" data-act="barter-step" data-id="plan">${T('Back to the plan')}</button><span class="run-dock-figs"><span>${parts.things.all ? (parts.things.later ? T('Trip 1: {n} of {of} aboard', { n: parts.things.done, of: parts.things.all }) : T('{n} of {of} aboard', { n: parts.things.done, of: parts.things.all })) : ''}</span>${parts.things.later ? `<span>${T('{n} picked up on the way', { n: parts.things.later })}</span>` : ''}</span>${on ? `<button class="act" data-act="barter-step" data-id="sail">${T('Back to the run')}</button>` : `<button class="act" data-act="barter-cast-off"${V.shownPlan && V.shownPlan.stops && V.shownPlan.stops.length ? '' : ' disabled'} title="${T('Each stop goes into the hold as you tick it; at the end the run is recorded')}">${img(currentShip().name, 'ship-ico')} ${T('Cast off')}</button>`}</div>`;
 	// While a run is under way the step leads with what it said at the
 	// wharf, kept with the run: the live list below is laid again from

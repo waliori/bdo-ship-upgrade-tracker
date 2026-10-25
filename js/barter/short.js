@@ -17,7 +17,7 @@ import { shutNow, fromPort } from './board.js';
 import { aboardStock, dockStock } from './hold.js';
 import { heldOf } from './material.js';
 import { stockGains } from './plan.js';
-import { TIER } from './route.js';
+import { TIER, legSnap, legFold, startPlace } from './route.js';
 
 /**
  * What a run's coins really come to.
@@ -169,6 +169,9 @@ export function shortHTML({ set, picked, opts, aim, ship, from, stock, plan, pke
 		if (coining) { const g = gainOf(r.run) - g0; return g > 0 ? `<b class="gold">+${F(g)}</b> ${T('coins')}` : ''; }
 		return r.worth > 0 ? `<b class="gold">+${FC(Math.round(r.worth))}</b>` : '';
 	};
+	// Where a rung is sailed from: the island before it, or the harbour.
+	const isleAt = r => npcById.get(r.npcId);
+	const legTo = (c, i) => legSnap(i ? isleAt(c.rungs[i - 1]) : startPlace(), isleAt(c.rungs[i]));
 	const row = r => {
 		const c = r.c, rr = c.rungs[c.rungs.length - 1];
 		const mins = Math.max(0, Math.round(r.minutes));
@@ -180,6 +183,7 @@ export function shortHTML({ set, picked, opts, aim, ship, from, stock, plan, pke
 			<span class="st-plus" aria-hidden="true">${c.grows ? '↗' : '+'}</span>
 			<span class="st-body">${c.grows ? `<span class="st-then">${T('then')}</span>` : ''}${tradeLineHTML(rr)}<span class="st-sub">${tradeHeldHTML(c, stocking)}</span></span>
 			<span class="st-figs">${figs}</span>
+			${c.grows && !r.why ? `<span class="st-still">${legTo(c, c.rungs.length - 1)}</span>` : ''}
 		</button>`;
 	};
 	// The picked trades' next islands first, in a group of their own:
@@ -200,7 +204,7 @@ export function shortHTML({ set, picked, opts, aim, ship, from, stock, plan, pke
 		const last = mine[mine.length - 1];
 		const got = last ? `${last.times === 1 ? T('{n} trade', { n: F(last.times) }) : T('{n} trades', { n: F(last.times) })} · ${T('at least {n}× {item}', { n: F(last.times * (last.recvMin || 1)), item: esc(gameName(last.item)) })}` : '';
 		return `<div class="st-pick">
-			<div class="st-pick-rungs">${c.rungs.map((r, i) => `<div class="st-pick-rung">${i ? `<span class="st-then">${T('then')}</span>` : ''}${tradeLineHTML(r)}</div>`).join('')}</div>
+			<div class="st-pick-rungs">${c.rungs.map((r, i) => `<div class="st-pick-rung">${i ? `<span class="st-then">${T('then')}</span>` : ''}${tradeLineHTML(r)}${legFold(legTo(c, i))}</div>`).join('')}</div>
 			<div class="st-pick-foot"><span class="st-sub">${cut && !mine.length ? `<b class="amber">${esc(shortWhy(cut.why))}</b>` : got}</span><span class="panel-spacer"></span>
 			${c.depth > 0 ? `<button class="chip tiny" data-act="barter-short-back" data-id="${esc(c.id)}" title="${T('Stop one island sooner')}">${T('one island less')}</button>` : ''}
 			<button class="map-x" data-act="barter-short-drop" data-id="${esc(c.id)}" aria-label="${T('Take this trade off the trip')}">×</button></div>

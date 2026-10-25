@@ -100,11 +100,15 @@ export function barterAction(act, el, redraw) {
 		// A step settled: the card moves on to the first one still to do;
 		// with every one done, the chains open to be picked.
 		case 'barter-next': {
-			const day = barterKey();
+			const day = barterKey(), id = el.dataset.id;
 			const ids = V.planDone.day === day ? V.planDone.ids : [];
-			V.planDone = { day, ids: [...new Set([...ids, el.dataset.id])] };
-			V.planSec = 'none';
-			if (!(V.planLeft || []).some(x => x !== el.dataset.id)) V.sheetAfter = 'chains';
+			V.planDone = { day, board: V.planDone.board, ids: [...new Set([...ids, id])] };
+			// Next is the next cell along, settled or not; past the last,
+			// the chains.
+			const order = V.planOrder || [];
+			const after = order[order.indexOf(id) + 1];
+			V.planSec = after || 'none';
+			if (!after) V.sheetAfter = 'chains';
 			persist();
 			bringUp('.barter-screen .day-card');
 			return true;

@@ -883,21 +883,33 @@ const ORDER_IDS = ['parley', 'ladder', 'how'];
 // The cells whose body has no Next of its own; the orders carry theirs.
 const NEXT_HERE = ['goal', 'board', 'shape'];
 
-export function dayCardHTML(cells, chains, boardRead) {
+export function dayCardHTML(cells, chains, boardRead, boardSig) {
+	// The steps after the board were settled on a board: a new one (read,
+	// refreshed in game, or another goal's list) unsettles them, so Next
+	// walks through them again.
+	if (V.planDone.board !== boardSig) {
+		V.planDone = { day: V.planDone.day, board: boardSig, ids: V.planDone.ids.filter(id => id === 'goal') };
+	}
 	const said = new Set(planSettled());
 	const settled = id => (id === 'board' ? boardRead : said.has(id));
 	const now = (cells.find(([id]) => !settled(id)) || [])[0] || '';
-	// What Next still has to go through: with none left, Next opens the chains.
-	V.planLeft = cells.map(([id]) => id).filter(id => !settled(id));
+	const order = cells.map(([id]) => id);
+	// The cell after each, for Next: the last one's Next opens the chains.
+	V.planOrder = order;
 	const openId = V.planSec === 'none' ? now : V.planSec;
+	const last = id => order.indexOf(id) === order.length - 1;
+	// Beside every Next but the last, the chains: whoever has settled
+	// enough can go straight to them.
+	const toChains = id => (chains && !last(id) ? `<button class="ghost-btn plan-to-chains" data-act="barter-chains">${chains[1]}</button>` : '');
 	const next = id => (id === 'board' && !boardRead ? ''
-		: `<div class="plan-next"><span class="panel-spacer"></span><button class="act" data-act="barter-next" data-id="${id}">${T('Next')}</button></div>`);
+		: `<div class="plan-next"><span class="panel-spacer"></span>${toChains(id)}<button class="act" data-act="barter-next" data-id="${id}">${T('Next')}</button></div>`);
 	const cell = ([id, title, line, body]) => {
 		const open = V.planSec === 'all' || openId === id;
 		const done = settled(id);
+		const inside = NEXT_HERE.includes(id) ? body + next(id) : body.replace(/<button class="act" data-act="barter-next"/, `${toChains(id)}$&`);
 		return `<section class="${ORDER_IDS.includes(id) ? 'plan-sec ' : ''}day-cell${open ? ' open' : ''}${done ? ' done' : ''}${id === now ? ' todo' : ''}" data-sec="${id}">
 		<button class="plan-sec-head" data-act="barter-sec" data-id="${id}" aria-expanded="${open}"><b>${title}${done ? ico('check', 'day-tick') : ''}</b><span>${line}</span></button>
-		${open ? `<div class="panel plan-sec-body">${body}${NEXT_HERE.includes(id) ? next(id) : ''}</div>` : ''}
+		${open ? `<div class="panel plan-sec-body">${inside}</div>` : ''}
 	</section>`;
 	};
 	return `<div class="day-card" style="--n: ${cells.length}">${cells.map(cell).join('')}</div>${chains ? planSection(...chains, V.planSec === 'all') : ''}`;
