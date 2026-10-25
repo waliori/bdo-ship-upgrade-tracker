@@ -5,6 +5,40 @@ someone who has been away. The same notes are in the app itself, under
 **Menu → What's new** — this file is generated from them by
 `node tools/build-changelog.mjs`, so the two cannot drift apart.
 
+## 1.6.1 — From your reports
+
+*2026-10-24*
+
+Four days after 1.6.0, what your questions on the server changed: the goal step says plainly what a day does with your stock, a stock can be filled from its top level down, each level of the ladder opens its goods one by one, and the screenshot readers take several pictures at once and ask about a row they are not sure of instead of guessing.
+
+### Asked for by you
+
+Four days of questions on the server — Kemeren’s screenshots and his reading of the goal step, Nerlion’s stock — and what they changed.
+
+- **kemeren** — Pasted thirteen pages of the barter window and found what the readers dropped: the second picture, the doubled island, a wreck cut to *Shipwrecked*, and three storage materials in two lights.
+- **Nerlion** — Asked for a stock filled from the end: the high targets met first, and the low stock what is left below once they are.
+
+### The goal step and the stock
+
+What each day does with what you hold, said where you choose it.
+
+- **The goal step says what each day does with the stock.** The silver card keeps and fills a floor of each level, the stock card fills a target of every good and sells nothing, and a *Which day is which?* table under the cards puts the three side by side. A floor reads *keep 10 each* and *10 of each [Level 1] good*, since *keeping 10 of Level 1* read as a total. Under a floored level, how many goods sit under the floor and how many stand above it; under a stock level, how many of the exchanges paying it your barter count opens.
+- **A stock filled from the top.** Beside the stock run’s aim, *from the bottom* or *from the top*. From the top, a lower level’s target holds as a floor only once every targeted level above it is full, so its goods climb freely until then: with the 1:2 and 1:3 rolls, the order that fills [Level 4] and [Level 5] first.
+- **A quest finished whose reward is in the storage already:** *reward counted already*, on the row and on the batch, ticks the quest and adds nothing to the stock.
+- **The bag.** A run laid by the new planner said nothing went into the bag, whatever it carried; what goes into the bag is said again.
+- Under each level of the ladder, the count held opens every good of that level: its icon, how many you hold, a bar to the keep number, and how many are short or spare.
+
+### The screenshot readers
+
+Several pictures at once, and a row the reader is not sure of is asked, never guessed.
+
+- **The barter window reader** says which two names it could not tell apart — Supreme Bear Hide from Supreme Boar Hide — and the warning gives way to *yours* once you have picked; a row read as an island another row of the same picture already is stays apart and unticked; and when no layout in the book fits what was read, the chains step offers *Sail what you saw*.
+- **The storage reader** tells one drawing in two lights apart — Tide-Dyed and Deep Tide-Dyed Standardized Timber Square, Cobalt and Jade Coral Ingot, Island Tree Coated Plywood plain and Enhanced — by the square’s light against the screenshot’s own dimming, where it threw the three away as ties; and a second storage screenshot pasted adds to the first instead of starting over.
+- A screenshot pasted at the Inventory or the Ship tab, with no dialog open, opens its reader with the picture in hand, as a paste at the Barter tab does: several pictures at once, for the readers that take them.
+- A screenshot pasted while another is being read is read after it, in every reader: a second paste a moment after the first cut the first one’s reading short, and only the last paste was in the table.
+- The paste zones say which browsers paste several screenshots at once: Chrome, Edge, Opera and the other Chromium browsers hand over every file copied, Firefox one a paste — drop or choose the files there.
+- A row whose name the column cut to a word several islands share — *Shipwrecked* opens five wrecks — went under the row above, whose offer it muddled. It is a row of its own now, and it asks: which island, from the ones that begin so. A name read only nearly — a letter off — is shown as read but left unticked until you confirm it. The reader guesses no island.
+
 ## 1.6.0 — A new run planner
 
 *2026-10-20*
@@ -21,7 +55,6 @@ The routes you questioned on the server are what the new planner was built again
 - **kemeren** — Asked why a run went to Hakoven, back to Iliya and west to Padix to bring five [Level 5] to Arehaza, and whether the tool could keep a stockpile: a run is now judged whole, as sailed, and the floor you keep is what a climb makes first.
 - **Asteli** — Reported the otter weekly’s reward shown as 31 Seaweed Stalk where the game gives 45: To Get says the reward as given, with the part the plan needs beside it.
 - **ledrain** — A coin day’s short trip wrote off the second island taking his Solidified Lava as having nothing to hand over, beside forty-nine in storage; and asked for the Panokseon’s skin, which the app said did not exist.
-- **Nerlion** — Asked for a stock filled from the end: the high targets met first, and the low stock what is left below once they are.
 
 The box is under **Menu → Feedback**. It reaches whoever runs the site.
 
@@ -58,22 +91,6 @@ Every plan the tab proposes is sent to the site with the board it was laid on an
 - The two Barter Goods Support dailies say where Baori and Maonil stand on Iliya and that the second opens once the first is handed in.
 - Two trades on a short trip that start from the same stored good each load their own: the second counted the first one’s load aboard as its own, loaded nothing, and read *nothing to hand over* beside a storage full of it.
 - The Panokseon has its skin: Dark Bonghwang’s Panokseon Set, in the Pearl Shop since 2026-08-27 — speed +3%, +600 LT, +100,000 durability, turn +5% — ticked per slot on the Ship tab as the Carrack’s overlay is.
-
-### After the release, from your reports
-
-Four days of questions on the server — Kemeren’s screenshots and his reading of the goal step, Nerlion’s stock — and what they changed.
-
-- **The goal step says what each day does with the stock.** The silver card keeps and fills a floor of each level, the stock card fills a target of every good and sells nothing, and a *Which day is which?* table under the cards puts the three side by side. A floor reads *keep 10 each* and *10 of each [Level 1] good*, since *keeping 10 of Level 1* read as a total. Under a floored level, how many goods sit under the floor and how many stand above it; under a stock level, how many of the exchanges paying it your barter count opens.
-- **A stock filled from the top.** Beside the stock run’s aim, *from the bottom* or *from the top*. From the top, a lower level’s target holds as a floor only once every targeted level above it is full, so its goods climb freely until then: with the 1:2 and 1:3 rolls, the order that fills [Level 4] and [Level 5] first.
-- **A quest finished whose reward is in the storage already:** *reward counted already*, on the row and on the batch, ticks the quest and adds nothing to the stock.
-- **The barter window reader** says which two names it could not tell apart — Supreme Bear Hide from Supreme Boar Hide — and the warning gives way to *yours* once you have picked; a row read as an island another row of the same picture already is stays apart and unticked; and when no layout in the book fits what was read, the chains step offers *Sail what you saw*.
-- **The storage reader** tells one drawing in two lights apart — Tide-Dyed and Deep Tide-Dyed Standardized Timber Square, Cobalt and Jade Coral Ingot, Island Tree Coated Plywood plain and Enhanced — by the square’s light against the screenshot’s own dimming, where it threw the three away as ties; and a second storage screenshot pasted adds to the first instead of starting over.
-- **The bag.** A run laid by the new planner said nothing went into the bag, whatever it carried; what goes into the bag is said again.
-- A screenshot pasted at the Inventory or the Ship tab, with no dialog open, opens its reader with the picture in hand, as a paste at the Barter tab does: several pictures at once, for the readers that take them.
-- A screenshot pasted while another is being read is read after it, in every reader: a second paste a moment after the first cut the first one’s reading short, and only the last paste was in the table.
-- The paste zones say which browsers paste several screenshots at once: Chrome, Edge, Opera and the other Chromium browsers hand over every file copied, Firefox one a paste — drop or choose the files there.
-- Under each level of the ladder, the count held opens every good of that level: its icon, how many you hold, a bar to the keep number, and how many are short or spare.
-- A row whose name the column cut to a word several islands share — *Shipwrecked* opens five wrecks — went under the row above, whose offer it muddled. It is a row of its own now, and it asks: which island, from the ones that begin so. A name read only nearly — a letter off — is shown as read but left unticked until you confirm it. The reader guesses no island.
 
 ## 1.5.3 — What each island pays, off the screenshot
 

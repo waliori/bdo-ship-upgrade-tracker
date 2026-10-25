@@ -6081,7 +6081,6 @@
 	"{n} under the floor, topped up on the way": "{n} 种在下限之下，路上补齐",
 	"{open} of {all} exchanges open at your {count} barters": "按你的 {count} 次交换，{all} 个交换里有 {open} 个已开放",
 	"Asked for a stock filled from the end: the high targets met first, and the low stock what is left below once they are.": "要求从末端填满的存货：先达到高的目标，低的存货则是它们达到后留在下面的部分。",
-	"After the release, from your reports": "发布之后，根据你们的反馈",
 	"Four days of questions on the server — Kemeren’s screenshots and his reading of the goal step, Nerlion’s stock — and what they changed.": "服务器上四天的提问 — Kemeren 的截图和他对目标步骤的理解，Nerlion 的存货 — 以及它们改变了什么。",
 	"<b>The goal step says what each day does with the stock.</b> The silver card keeps and fills a floor of each level, the stock card fills a target of every good and sells nothing, and a <i>Which day is which?</i> table under the cards puts the three side by side. A floor reads <i>keep 10 each</i> and <i>10 of each [Level 1] good</i>, since <i>keeping 10 of Level 1</i> read as a total. Under a floored level, how many goods sit under the floor and how many stand above it; under a stock level, how many of the exchanges paying it your barter count opens.": "<b>目标步骤说明每种日子如何处理存货。</b>银币卡留下并补满每一级的下限，存货卡填满每种货物的目标且什么都不卖，卡片下方的<i>哪天是哪种？</i>表把三者并排列出。下限现在写作<i>每种留 10</i>和<i>每种 [1阶段] 货物各 10</i>，因为<i>留 10 个 1 阶段</i>读起来像总数。有下限的等级下方：多少种货物在下限之下、多少种在其上；存货等级下方：支付它的交换里有多少个按你的交换次数已开放。",
 	"<b>A stock filled from the top.</b> Beside the stock run’s aim, <i>from the bottom</i> or <i>from the top</i>. From the top, a lower level’s target holds as a floor only once every targeted level above it is full, so its goods climb freely until then: with the 1:2 and 1:3 rolls, the order that fills [Level 4] and [Level 5] first.": "<b>从顶部填满的存货。</b>存货航次的目的旁边，<i>从底部</i>或<i>从顶部</i>。从顶部时，低一级的目标要等它上面每个设了目标的等级都填满才作为下限生效，在那之前它的货物随意往上爬：按 1:2 和 1:3 的兑换，这是先填满 [4阶段] 和 [5阶段] 的顺序。",
@@ -6089,7 +6088,6 @@
 	"<b>The barter window reader</b> says which two names it could not tell apart — Supreme Bear Hide from Supreme Boar Hide — and the warning gives way to <i>yours</i> once you have picked; a row read as an island another row of the same picture already is stays apart and unticked; and when no layout in the book fits what was read, the chains step offers <i>Sail what you saw</i>.": "<b>物品交换窗口读取器</b>会说出它分不清的两个名字 — 最上级熊皮和最上级毛毛猪皮 — 你选定后，警告让位给<i>你的</i>；被读成某座岛、而同一张图里另一行已经是那座岛的行，单独留着且不勾选；册子里没有布局符合读到的内容时，链条步骤提供<i>按你看到的航行</i>。",
 	"<b>The storage reader</b> tells one drawing in two lights apart — Tide-Dyed and Deep Tide-Dyed Standardized Timber Square, Cobalt and Jade Coral Ingot, Island Tree Coated Plywood plain and Enhanced — by the square’s light against the screenshot’s own dimming, where it threw the three away as ties; and a second storage screenshot pasted adds to the first instead of starting over.": "<b>仓库读取器</b>能分辨同一张图的两种明暗 — 波光标准角木和深色波光标准角木，钴锭和翡翠珊瑚锭，岛树强化合板和强化的岛树强化合板 — 依据的是格子的亮度对照截图自身的变暗程度；以前这三种都被当作平局扔掉。粘贴的第二张仓库截图会加到第一张上，而不是从头开始。",
 	"<b>The bag.</b> A run laid by the new planner said nothing went into the bag, whatever it carried; what goes into the bag is said again.": "<b>背包。</b>新规划器排出的航次说没有东西放进背包，不管它带了什么；放进背包的东西重新说出来了。",
-	"After 1.6.0: the goal step in plain words, a stock filled from the top, the readers": "1.6.0 之后：用明白话说目标步骤，从顶部填满的存货，读取器",
 	"<b>The goal step.</b> Each card says what it does with the stock; a <i>Which day is which?</i> table puts the three days side by side; a floor reads <i>keep 10 each</i>; under a level, how many goods sit under its floor, or how many of its exchanges your barter count opens.": "<b>目标步骤。</b>每张卡说明它如何处理存货；<i>哪天是哪种？</i>表把三种日子并排列出；下限写作<i>每种留 10</i>；等级下方是多少种货物在它的下限之下，或者它的交换里有多少个按你的交换次数已开放。",
 	"<b>Stock.</b> Filled from the top, when you say so: a lower target holds only once every target above it is full. A quest whose reward is in the storage already is ticked without adding it.": "<b>存货。</b>你指定时从顶部填满：低的目标要等它上面每个目标都填满才生效。奖励已在仓库里的任务可以勾掉而不加入。",
 	"<b>Readers.</b> The barter window reader names the two it could not tell apart and keeps a doubled island apart; the storage reader tells one drawing in two lights apart; a second storage screenshot adds to the first; with no layout to fit, <i>Sail what you saw</i>.": "<b>读取器。</b>物品交换窗口读取器说出它分不清的两个，并把重复的岛单独留着；仓库读取器分辨同一张图的两种明暗；第二张仓库截图加到第一张上；没有布局符合时，<i>按你看到的航行</i>。",
@@ -6116,5 +6114,14 @@
 	"keep {n} of each": "每种保留 {n}",
 	"{n} short across {k} goods": "{k} 种物品共差 {n}",
 	"every good at its keep": "每种物品都达到保留数",
-	"Under each level of the ladder, the count held opens every good of that level: its icon, how many you hold, a bar to the keep number, and how many are short or spare.": "阶梯每个阶段下方的持有数可以打开该阶段的每种物品：图标、持有多少、到保留数的进度条，以及还差或多出多少。"
+	"Under each level of the ladder, the count held opens every good of that level: its icon, how many you hold, a bar to the keep number, and how many are short or spare.": "阶梯每个阶段下方的持有数可以打开该阶段的每种物品：图标、持有多少、到保留数的进度条，以及还差或多出多少。",
+	"From your reports": "来自你们的反馈",
+	"The goal step says what each day does with the stock, a stock can be filled from the top, each level opens its goods one by one, and the screenshot readers ask rather than guess.": "目标步骤会说明每一天如何处理库存，库存可以从高处填起，每个阶段的物品可以逐个查看，截图读取器遇到不确定时会询问而不是猜测。",
+	"Pasted thirteen pages of the barter window and found what the readers dropped: the second picture, the doubled island, a wreck cut to <i>Shipwrecked</i>, and three storage materials in two lights.": "粘贴了交换窗口的十三页，找出了读取器漏掉的东西：第二张图、重复的岛屿、被截成 <i>Shipwrecked</i> 的沉船，以及两种亮度下的三种仓库材料。",
+	"The goal step and the stock": "目标步骤与库存",
+	"What each day does with what you hold, said where you choose it.": "每一天如何处理你持有的东西，就在你选择的地方说明。",
+	"The screenshot readers": "截图读取器",
+	"Several pictures at once, and a row the reader is not sure of is asked, never guessed.": "一次多张图片；读取器不确定的行会询问，绝不猜测。",
+	"1.6.1: the goal step in plain words, a stock filled from the top, the readers": "1.6.1：说清楚的目标步骤、从高处填起的库存、读取器",
+	"Four days after 1.6.0, what your questions on the server changed: the goal step says plainly what a day does with your stock, a stock can be filled from its top level down, each level of the ladder opens its goods one by one, and the screenshot readers take several pictures at once and ask about a row they are not sure of instead of guessing.": "1.6.0 之后四天，你们在服务器上的提问带来的改变：目标步骤清楚说明一天如何处理你的库存，库存可以从最高阶段往下填，阶梯的每个阶段可以逐个查看物品，截图读取器可一次接收多张图片，遇到不确定的行会询问而不是猜测。"
 }
