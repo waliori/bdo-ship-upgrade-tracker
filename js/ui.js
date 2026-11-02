@@ -119,6 +119,8 @@ const THUMB_TABS = ['plan', 'inventory', 'map', 'barter'];
    written for. The masthead links it on every screen; this is the same
    door for the menu and for anywhere else that wants to point at it. */
 export const DISCORD_INVITE = 'https://discord.gg/nAhfqxZRhf';
+// The maker's own page, where this app sits beside the rest of what he makes.
+export const MAKER = 'https://walior.it/';
 
 /**
  * Everything that is not a section, in the one menu the app has. The
@@ -149,7 +151,8 @@ const MENU = [
 		{ act: 'tour', icon: '➤', label: TT('Tour'), hint: TT('a walk through your own screen') },
 		{ act: 'feedback', icon: '✎', label: TT('Feedback'), hint: TT('something wrong, or something you want') },
 		{ act: 'discord', icon: '◉', label: TT('Sailor’s Log Discord'), hint: TT('the app’s own server — questions, bugs, ideas and every release') },
-		{ act: 'inbox', icon: '✉', label: () => (me() && me().admin ? T('Feedback inbox') : T('What people wrote in')), hint: TT('every report sent in, and which have been answered'), when: () => feature('feedback') }
+		{ act: 'inbox', icon: '✉', label: () => (me() && me().admin ? T('Feedback inbox') : T('What people wrote in')), hint: TT('every report sent in, and which have been answered'), when: () => feature('feedback') },
+		{ act: 'maker', icon: '/', label: TT('Made by waliori'), hint: TT('walior.it — the rest of what I make') }
 	] },
 	{ group: TT('The page'), items: [
 		{ act: 'theme', icon: '◐', label: () => (store.getSetting('theme', 'system') === 'light' ? T('Theme: light') : store.getSetting('theme', 'system') === 'system' ? T('Theme: system') : T('Theme: dark')), hint: TT('dark, light, or as the system has it'), keep: true },
@@ -1204,6 +1207,7 @@ function wire() {
 			// as well because on a phone the masthead is three glyphs and
 			// the menu is where anyone goes looking.
 			case 'discord': window.open(DISCORD_INVITE, '_blank', 'noopener'); return;
+			case 'maker': window.open(MAKER, '_blank', 'noopener'); return;
 			case 'inbox': return lazyOpen(() => import('./feedback.js'), el).then(m => m && m.openReports());
 			// The masthead's Menu and the thumb bar's are the one sheet;
 			// pressed while it stands, it goes.
