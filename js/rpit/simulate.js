@@ -330,7 +330,7 @@ export function simulate(I, policy, { mode = 'sample', seed = 1 } = {}) {
 				state.visited.add(s.id);
 			}
 			entry.a = a; entry.Y = Y;
-			entry.in = s.in; entry.out = s.out;
+			entry.in = s.in; entry.out = s.out; entry.q = s.q;
 			state.W = weight();
 		} else if (depotIds.has(act.at)) {
 			if (!travel(act.at)) { stopped = true; break; }
@@ -402,7 +402,7 @@ export function simulate(I, policy, { mode = 'sample', seed = 1 } = {}) {
 		// Where the run ended and what it held: a search that builds a plan
 		// a visit at a time reads its next move off these.
 		at: state.at, hold: Object.fromEntries(h), parleyLeft: state.parleyLeft,
-		deviations: dev, pointless: pointlessOf(state.log), log: state.log
+		deviations: dev, pointless: pointlessOf(state.log, I.initial.hold), log: state.log
 	};
 }
 
@@ -410,18 +410,32 @@ export function simulate(I, policy, { mode = 'sample', seed = 1 } = {}) {
  * The actions that did nothing for the run, read off its log: goods
  * taken aboard and put ashore again before any island took them, calls
  * at which nothing changed hands, calls with no island between, and
- * islands sailed to that dealt nothing.
+ * islands sailed to that dealt nothing. `loadedBack` counts in units what
+ * loadThenDrop counts by the good, which one trade clears: of eight taken
+ * and three dealt, the five put ashore. `hold` is what was aboard before
+ * the first action: the run did not choose to take it, and an island takes
+ * from it, and from what the run made, first.
  */
-export function pointlessOf(log) {
-	const out = { loadThenDrop: 0, storedTwice: 0, idleCalls: 0, consecutiveCalls: 0, emptyVisits: 0 };
+export function pointlessOf(log, hold = {}) {
+	const out = { loadThenDrop: 0, loadedBack: 0, storedTwice: 0, idleCalls: 0, consecutiveCalls: 0, emptyVisits: 0 };
 	const taken = new Set();
+	const units = new Map(), own = new Map(Object.entries(hold));
+	const spend = (g, n) => {
+		const mine = Math.min(n, own.get(g) || 0);
+		own.set(g, (own.get(g) || 0) - mine);
+		units.set(g, Math.max(0, (units.get(g) || 0) - (n - mine)));
+	};
 	// A good left in storage at one call and again at a later one: carried
 	// to the storage twice where once would have done.
 	const stored = new Set();
 	let lastDepot = false;
 	for (const e of log) {
 		if (e.kind === 'station') {
-			if (e.a > 0) taken.delete(e.in);
+			if (e.a > 0) {
+				taken.delete(e.in);
+				spend(e.in, e.a * e.q);
+				own.set(e.out, (own.get(e.out) || 0) + e.Y.reduce((a, y) => a + y, 0));
+			}
 			// An island sailed to that dealt nothing: a stop for no trade.
 			else out.emptyVisits++;
 			lastDepot = false;
@@ -429,8 +443,16 @@ export function pointlessOf(log) {
 		}
 		if (e.kind !== 'depot' && e.kind !== 'start' && e.kind !== 'supply') continue;
 		for (const g of Object.keys(e.dropped || {})) if (taken.has(g)) { out.loadThenDrop++; taken.delete(g); }
+		for (const [g, n] of Object.entries(e.sold || {})) spend(g, n);
+		for (const [g, n] of Object.entries(e.dropped || {})) {
+			const back = Math.min(n, units.get(g) || 0);
+			out.loadedBack += back;
+			units.set(g, (units.get(g) || 0) - back);
+			own.set(g, Math.max(0, (own.get(g) || 0) - (n - back)));
+		}
 		if (e.kind === 'depot') for (const [g, n] of Object.entries(e.dropped || {})) if (n > 0) { if (stored.has(g)) out.storedTwice++; stored.add(g); }
 		for (const g of [...Object.keys(e.loaded || {}), ...Object.keys(e.bought || {}), ...Object.keys(e.fetched || {})]) taken.add(g);
+		for (const m of [e.loaded, e.bought, e.fetched]) for (const [g, n] of Object.entries(m || {})) units.set(g, (units.get(g) || 0) + n);
 		if (e.kind === 'depot' || e.kind === 'supply') {
 			// A call that filled the ration pool did something, whatever it
 			// traded.

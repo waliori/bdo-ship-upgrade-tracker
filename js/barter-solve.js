@@ -28,7 +28,7 @@ import { METRES_PER_PX, speedMs, BAND_MEASURED } from './sailing.js';
 // mean of the quick end and the slow, a shade slower than the speed itself.
 const MID_PACE = (1 / (1 + BAND_MEASURED) + 1 / (1 - BAND_MEASURED)) / 2;
 import { simulate, planPolicy } from './rpit/simulate.js';
-import { finish, indexOf, chainsOf, fillOfRun } from './rpit/common.js';
+import { finish, indexOf, chainsOf, fillOfRun, trimLoads } from './rpit/common.js';
 import { withChain, reorder, serial } from './rpit/insert.js';
 import { maximiseRate } from './rpit/ratio.js';
 import { search } from './rpit/alns.js';
@@ -159,8 +159,8 @@ export function planFor(I, chains, { effort = 2, seed = 1, session = 0, way = 's
 	// search that would thread them together.
 	const starts = way === 'chain' ? [serial(I, seq, chains), serial(I, seq, best1st)] : [reorder(I, seq, { effort: Math.min(effort, 2) }), serial(I, seq, chains), serial(I, seq, best1st)];
 	const tried = starts.map(s => finish(I, s, 0, { must })).sort((a, b) => b.f - a.f);
-	if (effort < 2 || way === 'chain') return tried[0].plan;
-	return search(I, { mu: 0, timeMs: Infinity, most: WORK, seed, pool: chains, fixed: true, warm: { seq: tried[0].visits, calls: tried[0].calls } }).plan;
+	if (effort < 2 || way === 'chain') return trimLoads(I, tried[0].plan);
+	return trimLoads(I, search(I, { mu: 0, timeMs: Infinity, most: WORK, seed, pool: chains, fixed: true, warm: { seq: tried[0].visits, calls: tried[0].calls } }).plan);
 }
 
 /**
@@ -406,7 +406,11 @@ const goodsOf = I => {
 	for (const m of [homeOf(I).storage, I.initial.hold]) for (const [g, n] of Object.entries(m)) if (used.has(g)) all[g] = (all[g] || 0) + n;
 	return Object.fromEntries(Object.entries(all).filter(([, n]) => n > 0).sort());
 };
-const dayOf = I => JSON.stringify([I.stations.map(s => [s.id, s.ymin, s.ymax, s.m]).sort((a, b) => (a[0] < b[0] ? -1 : 1)), goodsOf(I), I.initial.floors, I.depots.filter(d => d !== homeOf(I)).map(d => d.storage), I.vehicle, I.budgets, I.rules]);
+// Keys sorted: the floors and the stock's held follow the order of the chains,
+// which differs between the search's day and the page's, and the same day read
+// as another threw the found plan away at every tick (2026-11-03).
+const sortedKeys = (_, v) => (v && typeof v === 'object' && !Array.isArray(v) ? Object.fromEntries(Object.entries(v).sort(([a], [b]) => (a < b ? -1 : 1))) : v);
+const dayOf = I => JSON.stringify([I.stations.map(s => [s.id, s.ymin, s.ymax, s.m]).sort((a, b) => (a[0] < b[0] ? -1 : 1)), goodsOf(I), I.initial.floors, I.depots.filter(d => d !== homeOf(I)).map(d => d.storage), I.vehicle, I.budgets, I.rules], sortedKeys);
 // The found plan for the day as it is now: what was to be loaded at the
 // start and is aboard already is not loaded again.
 const asPacked = (plan, was, I) => {
@@ -498,6 +502,7 @@ export function newPropose(opts0, all0, { seed = 1, session = 0 } = {}) {
 	const kept = (opts.orders || PLAIN_ORDERS).way === 'chain'
 		? { plan: planFor(lay, instanceOf({ ...opts, chosen: picked }).chains, { seed, session, way: 'chain' }) }
 		: finish(lay, best.seq.filter(v => on.has(v.at)), 0, { calls: (best.calls || []).filter(c => on.has(c.before)) });
+	kept.plan = trimLoads(lay, kept.plan);
 	const memo = { ids: picked.map(c => c.id).sort().join('|'), plan: kept.plan, day: dayOf(atPick), hold: { ...atPick.initial.hold } };
 	keep(memo.ids, memo);
 	const run = solveRun({ ...opts, chosen: picked });

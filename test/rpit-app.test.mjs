@@ -115,6 +115,22 @@ test('the worker answers for the new planner, and the plan it found, remembered 
 	assert.equal(solveRun({ ...base, chosen: ticked }).net, best.run.net);
 });
 
+test('the plan found is the plan laid whatever order the chains come in: the sailor ticking the list does not move it', async () => {
+	const { newPropose, rememberFound } = await import('../js/barter-solve.js');
+	const { cutOf, cutAt } = await import('../js/barter-short.js');
+	const aim = { kind: 'fill', targets: { 1: 40, 2: 40, 3: 40, 4: 40, 5: 20, 6: 20 }, held: Object.entries({ ...stock, ...dock }) };
+	// Floors, as a stock's presets have them: the keys follow the chains' order.
+	const opts = { ...base, aim, orders: { ...PLAIN_ORDERS, floors: { 3: 1, 4: 1, 5: 1 } } };
+	const found = newPropose(opts, all);
+	rememberFound(found.kept);
+	const picks = found.best.ids.map(id => { const { base: b, k } = cutOf(id); const c = all.find(x => x.id === b); return k >= 0 ? cutAt(c, k) : c; });
+	assert.ok(picks.length > 1 && picks.every(Boolean));
+	// The search's day is built in the order of its picks, the page's in the order of the board.
+	const trips = run => run.stops.filter(x => x.npcId).map(x => [x.npcId, x.times]);
+	assert.deepEqual(trips(solveRun({ ...opts, chosen: [...picks].reverse() })), trips(solveRun({ ...opts, chosen: picks })));
+	assert.deepEqual(trips(solveRun({ ...opts, chosen: picks })), trips(found.best.run));
+});
+
 test('the stock goal: the run proposed fills the stock -- each good to its level\'s target, as chainRun\'s fillOf counts it', async () => {
 	const { newPropose } = await import('../js/barter-solve.js');
 	const { fillOf } = await import('../js/barter-optimizer.js');

@@ -88,6 +88,9 @@ and the refills laid last, as a shortest path over where the pool was last
 filled (`refuel`, the fixed-route charging problem of electric-vehicle
 routing), every wharf tried when the nearest five cannot feed the ship.
 
+On the search's answer, once, `trimLoads` leaves ashore what the plan loads and
+brings back unused, as long as the run gives up no trade and no value for it.
+
 ## From the plan to the tab
 
 - The search runs in the worker (`js/barter-worker.js`, `planner: 'new'`), as
