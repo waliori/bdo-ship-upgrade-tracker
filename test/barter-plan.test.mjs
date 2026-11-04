@@ -92,6 +92,17 @@ test('goods put into a hold take its free slots in turn: a stack whole or not at
 	assert.deepEqual(fitInto(held, [[L5b, 9]], Infinity).left, [], 'a hold without slots takes everything');
 });
 
+test('a good the plan hands over partway up a chain, once aboard, stays on the list to be taken back', async () => {
+	const store = await import('../js/state.js');
+	const { packingOf } = await import('../js/barter/packing.js');
+	const good = '[Level 6] Valencian Desert Fine Sword';
+	store.removeItems(Object.keys(store.getAllStock()), 'clear');
+	const plan = { stops: [{ npcId: 1, give: good, times: 3, giveN: 1 }] };
+	assert.deepEqual(packingOf(plan, null, []).aboard, []);
+	store.addStock(good, 3, null, false);
+	assert.deepEqual(packingOf(plan, null, []).aboard.map(x => [x.key, x.n]), [[`a|${good}`, 3]]);
+});
+
 test('a packing tick loads only what the hold has slots for, and hands back what did not go aboard', async () => {
 	const store = await import('../js/state.js');
 	const { packApply } = await import('../js/barter/packing.js');

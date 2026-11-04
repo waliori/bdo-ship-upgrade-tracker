@@ -262,7 +262,10 @@ export function packingOf(plan, from, chosen = []) {
 	// looking broken. Adding the two up was no better, since the six
 	// goods the two chains share are six goods, not twelve.
 	const hold = aboardStock();
-	const aboardItems = [...new Set(chosen.filter(c => c.from !== 'land' && c.have > 0).map(c => c.item))];
+	// And a good the plan hands over partway up a chain, not where the chain
+	// starts: ticked, it went aboard and left the list, with no box to take
+	// it back and the count a row short (2026-11-04).
+	const aboardItems = [...new Set([...chosen.filter(c => c.from !== 'land' && c.have > 0).map(c => c.item), ...(plan.stops || []).filter(s => s.npcId && hold[s.give] > 0).map(s => s.give)])];
 	const aboard = aboardItems.map(item => ({
 		item, n: hold[item] || 0, per: perTrade(item), where: T('in the hold now'), key: `a|${item}`,
 		act: at ? `<button class="chip tiny" data-act="barter-unload" data-item="${esc(item)}" title="${T('Put them back in the storage at {town}', { town: esc(gameName(at)) })}">${T('put it back')}</button>` : ''
