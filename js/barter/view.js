@@ -11,6 +11,7 @@ import { npcById, ports } from '../barter_npcs.js';
 import { QUEST_CHOICES, DEFAULT_STOCK, STOCK_LEVELS, readStock } from '../barter-orders.js';
 import { imagesOn } from '../shot-reader.js';
 import { driftOf } from '../layout-book.js';
+import { rememberFound, foundFor } from '../barter-solve.js';
 import { V, STEP_KEY, STEPS } from './state.js';
 import { readWindow } from './board.js';
 import { STASHES } from './route.js';
@@ -28,6 +29,11 @@ export const VOUCHER = "Crow's Trade Voucher";
 // is brought across once and left where it is for an older build.
 export const VIEW_NS = 'barter';
 const LEGACY_KEY = 'bdo-tracker/barter-view';
+// The plan found for the chains ticked. The chains ride in the view, and a
+// reload laid them again from nothing while the goods were being loaded: 64
+// trades became 31 (2026-11-04). This device's alone, and too big for the
+// profile; it answers only for the day it was found for.
+const FOUND_KEY = 'bdo-tracker/barter-found';
 export const editsBy = new Map();   // the edits of other sets of chains this session, by their key
 export const legsCache = new Map();   // the legs of a run bent round the land, by its stops
 export function setStep(v) {
@@ -54,6 +60,7 @@ export function restore() {
 		// on this build; the redraw reads the view then and this call
 		// finds it already read.
 		store.migrateView(VIEW_NS, LEGACY_KEY, x => x);
+		try { rememberFound(JSON.parse(localStorage.getItem(FOUND_KEY))); } catch { /* the chains are laid again */ }
 	}
 	const s = store.getView(VIEW_NS);
 	const sig = s ? JSON.stringify(s) : null;
@@ -294,6 +301,11 @@ export function flushView({ hold = true } = {}) {
 		store.setView(VIEW_NS, viewNow());
 	} finally {
 		V.writing = false;
+	}
+	const plan = foundFor(V.routes.ids);
+	if (plan && plan !== V.foundWritten) {
+		V.foundWritten = plan;
+		try { localStorage.setItem(FOUND_KEY, JSON.stringify(plan)); } catch { /* the chains are laid again */ }
 	}
 	// What was just written is what is in memory: not to be read back.
 	const s = store.getView(VIEW_NS);

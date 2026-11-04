@@ -518,11 +518,18 @@ export function newPropose(opts0, all0, { seed = 1, session = 0 } = {}) {
 	return { proposals: [proposal], best: proposal, partial: false, kept: memo, study };
 }
 
-/** A plan found elsewhere -- in the worker -- remembered here, so the run
- *  proposed is the run laid when its climbs are ticked. */
+/** A plan found elsewhere -- in the worker, or before a reload -- remembered
+ *  here, so the run proposed is the run laid when its climbs are ticked. Ticks
+ *  ask the search again; for the same chains on the same day the plan being
+ *  packed stands, or its list would move under the sailor's hands. */
 export function rememberFound(memo) {
-	if (memo && memo.ids) keep(memo.ids, memo);
+	if (!memo || !memo.ids) return;
+	const had = found.get(memo.ids);
+	if (!had || had.day !== memo.day) keep(memo.ids, memo);
 }
+
+/** The plan remembered for these chains, for the page to keep across a reload. */
+export const foundFor = ids => found.get([...ids].sort().join('|')) || null;
 
 // Nothing ticked: a run with no stops, as chainRun gives one.
 function emptyRun(opts) {

@@ -131,6 +131,25 @@ test('the plan found is the plan laid whatever order the chains come in: the sai
 	assert.deepEqual(trips(solveRun({ ...opts, chosen: picks })), trips(found.best.run));
 });
 
+test('the plan found survives a reload, and a later search of the same day does not move the plan being packed', async () => {
+	const { newPropose, rememberFound, foundFor } = await import('../js/barter-solve.js');
+	const { cutOf, cutAt } = await import('../js/barter-short.js');
+	const found = newPropose(base, all);
+	const trips = run => run.stops.filter(x => x.npcId).map(x => [x.npcId, x.times]);
+	const picks = found.best.ids.map(id => { const { base: b, k } = cutOf(id); const c = all.find(x => x.id === b); return k >= 0 ? cutAt(c, k) : c; });
+	rememberFound(JSON.parse(JSON.stringify(found.kept)));
+	const saved = foundFor(found.best.ids);
+	assert.ok(saved);
+	assert.deepEqual(trips(solveRun({ ...base, chosen: picks })), trips(found.best.run));
+	// The same day asked again, its plan empty so a move would show.
+	rememberFound({ ...saved, plan: { visits: [{ at: base.home }] } });
+	assert.equal(foundFor(found.best.ids), saved);
+	// Another day is another plan.
+	const other = { ...saved, day: 'another day' };
+	rememberFound(other);
+	assert.equal(foundFor(found.best.ids), other);
+});
+
 test('the stock goal: the run proposed fills the stock -- each good to its level\'s target, as chainRun\'s fillOf counts it', async () => {
 	const { newPropose } = await import('../js/barter-solve.js');
 	const { fillOf } = await import('../js/barter-optimizer.js');
