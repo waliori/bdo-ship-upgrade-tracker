@@ -284,7 +284,7 @@ function questProgressOf(q) {
  * off; `off` the quests the run cannot take in, and why.
  */
 export function questPlan(stops, mode, hold, weightStart = 0) {
-	const none = { stops, at: () => [], home: [], off: [], skipped: [], count: 0, added: 0 };
+	const none = { stops, at: () => [], home: [], off: [], skipped: [], pickups: [], count: 0, added: 0 };
 	if (mode === 'no' || !stops.length) return none;
 	const from = fromPort();
 	const pts = [...(from ? [from] : []), ...stops.map(s => s.wharf || npcById.get(s.npcId))];
@@ -312,6 +312,9 @@ export function questPlan(stops, mode, hold, weightStart = 0) {
 		stops: out,
 		at: k => at[k] || [],
 		home, off: laid.off,
+		// Taken from someone other than whoever it is handed in to: said, or
+		// the run would hand in a quest the sailor never went to fetch.
+		pickups: [...new Map([...home, ...at.flat()].filter(x => x.q.at.length > 1 || x.q.at[0][3] === 'hand in').map(x => [x.q.id, x.q])).values()],
 		skipped: skipped.map(id => quests.find(q => q.id === id)).filter(q => q && !questDone(q)),
 		count: home.length + at.reduce((a, l) => a + l.length, 0),
 		added: out.filter(s => s.quest).length,
@@ -392,9 +395,11 @@ export function questsPanels(qp, from, { atSea = false } = {}) {
 	// A run taken up at sea has cast off already: the home port's quests
 	// wait for the ship to come back there.
 	const home = qp.home.length && from ? `<section class="panel run-list run-quests-home"><div class="panel-head"><h2 class="panel-title">${T('Quests at {port}', { port: esc(gameName(from.name)) })}</h2><span class="panel-sub">${atSea ? T('handed in when the ship is back there') : T('handed in before casting off')}</span></div><div class="run-quests">${qp.home.map(x => questChip(x, wanted)).join('')}</div></section>` : '';
+	const pickupRow = q => { const take = q.at.length > 1 ? q.at[0] : null; return `<span class="run-quest"><i>${ico('scroll')}</i><b>${T('pick up')}</b>${questLink(q)}<small>${take ? `${esc(gameName(take[2]))} · ${esc(gameName(take[0] === 'wharf' ? (wharves.find(w => w.name === take[1]) || { at: take[1] }).at : take[1]))}` : esc(said(q.where))}</small></span>`; };
+	const pickups = (qp.pickups || []).length && !atSea ? `<section class="panel run-list run-quests-pickup"><div class="panel-head"><h2 class="panel-title">${T('Quests to pick up first')}</h2><span class="panel-sub">${T('this run hands them in on its way')}</span></div><div class="run-quests">${qp.pickups.map(pickupRow).join('')}</div></section>` : '';
 	const offN = qp.off.length + qp.skipped.length;
 	const off = offN ? `<details class="panel run-list run-quests-off"><summary class="panel-head"><h2 class="panel-title">${T('Quests off the way')}</h2><span class="panel-sub">${T('{n} not taken in by this run · open to take one in', { n: offN })}</span></summary><div class="run-quests">${qp.off.map(questOff).join('')}${qp.skipped.map(questSkipped).join('')}</div></details>` : '';
-	return home + off;
+	return pickups + home + off;
 }
 
 export const n1 = v => F(Math.round(v * 10) / 10);

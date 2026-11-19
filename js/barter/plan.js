@@ -612,6 +612,7 @@ export function ladderHTML(o, { fits = null, tickedN = 0 } = {}) {
 		: coining
 			? lvChips(T('a floor is held back from the coin islands too: a [Level 4] kept is a [Level 4] not cashed, so a floor at 4 is what this day pays for in coins'))
 			: T('Tap <b class="gold">sold</b> / <b class="teal">kept</b> to flip what the wharf does with a level. A keep number is never sold or handed on.')}</p>
+		${coining ? `<div class="order-rows plain"><label class="order-row" title="${T('Trades that pay fewer Crow Coins than this are left out of the run')}"><span class="order-k">${T('coins a trade, at least')}</span><span class="order-v">${amountInput('purse-inline', V.minCoins || 0, `data-act="barter-min-coins" aria-label="${T('The fewest Crow Coins a trade must pay')}"`)}</span></label></div>` : ''}
 		${aims}
 		<div class="ladder-foot">
 			<div class="ladder-goal">${goalLine(o)}</div>
@@ -789,7 +790,6 @@ export function howHTML(o, figs = null) {
 		${orderRow('barter-vouchers', T('trade vouchers'), o.vouchers, VOUCHER_CHOICES, T('Whether the run draws on the Crow’s Trade Vouchers you carry; each is a quarter of a bar, on its own two-hour cooldown'))}
 		${orderRow('barter-way', T('the way round'), o.way, WAY_CHOICES, T('One route through every rung of every chain ticked, each after the rung beneath it — the nearest islands first, whatever chain they belong to — or each chain climbed to its top before the next'))}
 		${named ? `<p class="orders-set-k">${T('And, whichever way you sail')}</p>` : ''}
-		${orderRow('barter-stash', T('storage at'), V.stash, [['', T('the nearest wharf')], ...stashes.map(w => [w.at, gameName(STORE_NAMES[w.at] || w.at)])])}
 		${breezyRow()}
 		${orderRow('barter-quests', T('quests on the way'), o.quests, QUEST_CHOICES, T('The dailies and weeklies already taken, handed in where the run passes their taker or at a stop put in a short way off the route; the barter quests counted off the run\'s trades; the hunts only when their grounds lie on the way'))}
 `;
@@ -840,7 +840,8 @@ export function parleyHTML(prof) {
 			<div class="parley-gauge${guessed ? ' guess' : ''}"><div class="run-bar parley"><i style="width:${pct.toFixed(1)}%"></i></div><div class="parley-gauge-k"><span>${guessed ? T('a full bar, taken as read — type yours above, or') : T('{n} of {max}', { n: F(held), max: F(PARLEY.max) })}</span>${guessed ? `<button class="chip tiny" data-act="barter-parley-full">${T('it really is full')}</button>` : ''}<span class="panel-spacer"></span><span>${T('{n} trades a refill', { n: F(day.tradesPerBar) })} · ${T('{each} a trade', { each: F(parleyOf(prof).perTrade) })} · ${T('refills on every Barter Refresh')}</span></div></div></div>
 			<label class="parley-field"><span class="summary-k">${img(VOUCHER, 'row-icon xs')} ${T('Vouchers carried')}</span><input class="purse-inline" type="text" inputmode="numeric" value="${prof.vouchers ? F(prof.vouchers) : ''}" placeholder="0" data-act="vouchers" aria-label="${T('{name}s you carry', { name: gameName(VOUCHER) })}"><em>${T('each puts {n} back, on a two-hour cooldown', { n: F(PARLEY.voucher) })}</em></label>
 		</div>
-		<div class="order-rows plain">${orderRow('barter-port', T('Your home port'), V.port, [[0, T('the first stop')], ...ports.map(p => [p.id, gameName(p.name)])], T('Where the run leaves from and comes back to, and whose storage it loads from'))}
+		<div class="order-rows plain">${orderRow('barter-port', T('Load the goods at'), V.port, [[0, T('the first stop')], ...ports.map(p => [p.id, gameName(p.name)])], T('Where the run leaves from, and whose storage it loads from'))}
+		${orderRow('barter-stash', T('Finish the run at'), V.stash, [['', T('where it started')], ...stashes.map(w => [w.at, gameName(STORE_NAMES[w.at] || w.at)])], T('Your home port, when it is not where the goods are loaded: the run ends at this storage'))}
 		<div class="order-row" title="${T('How long the ship actually sits at a stop, apart from the sailing: only the clock uses these')}"><span class="order-k">${T('a stop takes, apart from the sailing')}</span><div class="order-v run-pauses">
 			<label class="run-pause">${amountInput('purse-inline', o.pause.isle || 0, `data-act="barter-pause" data-at="isle" aria-label="${T('Seconds at an island, bartering')}"`)}<span>${T('s bartering, then on')}<em>${T('opening the window, the trades, under way again')}</em></span></label>
 			<label class="run-pause">${amountInput('purse-inline', o.pause.call || 0, `data-act="barter-pause" data-at="call" aria-label="${T('Seconds at a wharf or a quest stop')}"`)}<span>${T('s at a wharf or a quest')}<em>${T('storing, selling, handing in — the longer sort of stop')}</em></span></label>

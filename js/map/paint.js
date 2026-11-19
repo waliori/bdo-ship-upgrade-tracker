@@ -918,7 +918,7 @@ export function habitats(m) {
 /** The markers to draw: one per adult, ship or boss habitat; the young
  *  ones share a marker per ground, naming whoever swims there. */
 let markerCache = null;
-function habitatMarkers() {
+export function habitatMarkers() {
 	if (markerCache) return markerCache;
 	const out = [];
 	for (const m of monsters) {

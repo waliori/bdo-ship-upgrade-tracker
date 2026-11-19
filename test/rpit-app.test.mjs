@@ -185,3 +185,12 @@ test('the stock goal: the run proposed fills the stock -- each good to its level
 	const app = fillOf(found.best.run, { targetOf: g => targets[levelOf(g)] || 0, held: new Map(held), stock });
 	assert.ok(app >= found.best.value - 1e-6, `fillOf ${app} against ${found.best.value}`);
 });
+
+test('a run loaded at one port finishes at the storage asked for', () => {
+	const velia = stashes.find(w => w.at === 'Velia');
+	const run = solveRun({ ...base, prefer: velia });
+	const last = run.stops[run.stops.length - 1];
+	assert.ok(run.stops.some(s => s.npcId), 'the run sails');
+	assert.equal(last.wharf && last.wharf.at, 'Velia', 'the last call is the storage asked for');
+	assert.notEqual(base.start.name, 'Velia', 'and it is not where the run set out from');
+});

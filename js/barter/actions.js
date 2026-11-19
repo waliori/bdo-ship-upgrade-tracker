@@ -856,6 +856,13 @@ export function barterChange(el, parseAmount) {
 		case 'barter-land-from': setOrders({ buy: true, landFrom: el.dataset.id === 'stock' ? 'stock' : 'buy' }); return true;
 		case 'barter-vouchers': setOrders({ vouchers: el.value === 'keep' ? 'keep' : 'use' }); return true;
 		case 'barter-breezy': store.setProfile('breezy', el.value === 'on'); return true;
+		case 'barter-min-coins': {
+			const n = parseAmount(el.value === '' ? '0' : el.value);
+			if (n === null) return true;
+			V.minCoins = Math.max(0, Math.floor(n));
+			persist();
+			return true;
+		}
 		case 'barter-pause': {
 			const n = parseAmount(el.value === '' ? '0' : el.value);
 			if (n === null) return true;

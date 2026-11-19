@@ -442,6 +442,12 @@
 .map-list { display: flex; flex-direction: column; gap: 5px; }
 
 .map-row,
+.map-grip { flex: none; display: grid; place-items: center; width: 24px; height: 28px; padding: 0; border: 0; background: none; color: var(--ink-faint); cursor: grab; touch-action: none; }
+.map-grip:hover { color: var(--ink-hi); }
+.map-stop-row.drop { box-shadow: inset 0 0 0 1px var(--blue); }
+.map-own-list { display: flex; flex-direction: column; gap: 6px; max-height: 50vh; margin-top: 10px; overflow-y: auto; }
+.map-own-list .ghost-btn { justify-content: flex-start; text-align: left; }
+.map-own-list small { color: var(--ink-faint); }
 .map-stop-row {
   display: flex;
   align-items: center;

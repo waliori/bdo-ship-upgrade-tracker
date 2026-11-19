@@ -91,8 +91,9 @@ export function toggleMapStop(npcId) {
 		delete mv.runTrades[npcId];
 	}
 	// The wharf calls were a planned run's, pinned to its order; edit
-	// the stops and they no longer describe the route, so they go.
-	mv.runStash = [];
+	// the stops and they no longer describe the route, so they go. The
+	// sailor's own stops are not the plan's, and stay.
+	mv.runStash = mv.runStash.filter(c => c.own).map(c => ({ ...c, i: Math.min(c.i, mv.stops.length) }));
 	mv.stopsPick = mv.mapPick || '';
 	persist();
 	refreshSide();
@@ -112,7 +113,7 @@ export function useSuggestedRoute() {
 
 export function reverseMapRoute() {
 	mv.stops = [...mv.stops].reverse();
-	mv.runStash = [];
+	mv.runStash = mv.runStash.filter(c => c.own).map(c => ({ ...c, i: mv.stops.length - c.i })).sort((a, b) => a.i - b.i);
 	persist();
 	refreshSide();
 	paintMap();

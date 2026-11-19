@@ -24,6 +24,7 @@ const P = {
 	lock: '<rect x="4.5" y="11" width="15" height="10" rx="2"/><path d="M8 11V7.5a4 4 0 0 1 8 0V11"/>',
 	box: '<path d="M21 8 12 3 3 8v8l9 5 9-5zM3 8l9 5 9-5M12 13v8"/>',
 	bread: '<path d="M5 12a7 5 0 0 1 14 0v7a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1zM9 8.5v3M12 8v3M15 8.5v3"/>',
+	grip: '<path d="M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01"/>',
 	scroll: '<path d="M7 3h11a2 2 0 0 1 2 2v12M7 3a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-2H9M9 8h7M9 12h7"/>',
 	target: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
 	pin: '<path d="M19 10c0 6-7 11-7 11s-7-5-7-11a7 7 0 0 1 14 0z"/><circle cx="12" cy="10" r="2.5"/>',

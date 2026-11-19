@@ -26,6 +26,7 @@ export const V = {
 	stash: '', // the wharf goods are left at, '' for the nearest
 	board: { day: '', answers: [] }, // what islands were seen to show today: { npcId, give, recv }
 	reach: '', // a good the item board is asked to reach, for the material run
+	minCoins: 0, // a coin day: the least a trade must pay in coins to be sailed, 0 for any
 	// What the material list was seen to show today: { npcId, give, recv,
 	// took? }; `on` is the materials the run is for, which the sailor
 	// chooses -- a whole window read, or a board taken, shows far more than

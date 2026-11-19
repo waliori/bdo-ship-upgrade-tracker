@@ -147,7 +147,9 @@ export function silverParts(me, b) {
 	// the Great Ocean goods stay in.
 	const sideOn = o.side || {};
 	const side = { mats: !!sideOn.mats, boxes: !!sideOn.boxes, ocean: sideOn.ocean !== false };
-	const everything = spendUsed(chains(b.data, stock, dock, prof.barterCount, ceilingNow, coining, fill, side), b);
+	// A coin day's floor: a trade paying fewer coins than the sailor asks is not worth its Parley.
+	const paysEnough = c => { const top = c.rungs[c.rungs.length - 1]; return !coining || !(V.minCoins > 0) || top.item !== COIN || top.recvMin >= V.minCoins; };
+	const everything = spendUsed(chains(b.data, stock, dock, prof.barterCount, ceilingNow, coining, fill, side), b).filter(paysEnough);
 	// Goods on this board's ladders held in a harbour's storage the run
 	// does not sail from: a chain can only start from what it can load,
 	// so they are offered nowhere. Said, with the harbour to sail from.
@@ -222,7 +224,7 @@ export function silverParts(me, b) {
 	// BreezySail switched moves the calls for supplies, and a run kept
 	// across it kept the old calls until something else changed.
 	const drain = rationDrain(me);
-	const pkey = JSON.stringify([V.board.day, b.combo.id, V.board.answers, stock, dock, owned, [...land], o, V.port, V.stash, opts.bag, Object.values(prices).map(x => x.each), me.hold, ship, opts.parley, opts.seen, V.reach, prof.barterCount, aim, ceiling, b.shut, b.rolled || [], V.board.usedFor === b.combo.id ? V.board.used || {} : {}, drain.cal, drain.breezy]);
+	const pkey = JSON.stringify([V.minCoins, V.board.day, b.combo.id, V.board.answers, stock, dock, owned, [...land], o, V.port, V.stash, opts.bag, Object.values(prices).map(x => x.each), me.hold, ship, opts.parley, opts.seen, V.reach, prof.barterCount, aim, ceiling, b.shut, b.rolled || [], V.board.usedFor === b.combo.id ? V.board.used || {} : {}, drain.cal, drain.breezy]);
 	const search = { chains: all, opts, ship, timeCap: o.hours, aim };
 	// The search goes to the worker and the page draws meanwhile; asked
 	// again when the inputs change, or when an answer is owed and no
@@ -275,7 +277,7 @@ export function silverParts(me, b) {
 	const presetSeen = {};
 	Object.assign(presetSeen, boardPaid(), planSeen(sailing()));
 	const baseOrders = Object.fromEntries(Object.entries(o).filter(([k]) => !sailingKeys.has(k)));
-	const presetKey = JSON.stringify([V.board.day, b.combo.id, V.board.answers, stock, dock, owned, [...land], baseOrders, V.port, V.stash, Object.values(presetPrices).map(x => x.each), me.hold, ship, opts.parley, presetSeen, V.reach, prof.barterCount, aim, ceiling, b.shut]);
+	const presetKey = JSON.stringify([V.minCoins, V.board.day, b.combo.id, V.board.answers, stock, dock, owned, [...land], baseOrders, V.port, V.stash, Object.values(presetPrices).map(x => x.each), me.hold, ship, opts.parley, presetSeen, V.reach, prof.barterCount, aim, ceiling, b.shut]);
 	// Asked once the main search has answered, so the two never share
 	// the machine. The way already chosen is the main search itself: its
 	// answer is that card's figure, not a second search that might land
