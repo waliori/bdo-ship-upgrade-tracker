@@ -71,7 +71,7 @@ function historyHTML() {
 	const rows = runs.map((r, i) => {
 		const net = Number.isFinite(r.net) ? r.net : r.silver - r.cost;
 		const stops = (r.stops_ || []).map((s, k) => logRow(k, {
-			place: s.p, who: s.w || '', kind: s.k === 'w' ? T('a wharf call') : s.k === 'q' ? T('a quest handed in') : s.k === 'v' ? T('a wait for a voucher') : T('a barter'),
+			place: s.p, who: s.w || '', kind: s.k === 'w' ? T('a wharf call') : s.k === 'f' ? T('a quest picked up') : s.k === 'q' ? T('a quest handed in') : s.k === 'v' ? T('a wait for a voucher') : T('a barter'),
 			give: s.g || '', giveText: s.gn || '', item: s.i || '', recvText: s.r || '', times: s.t || 0, said: s.s || 0, sale: s.sale ? { n: s.sale.n, total: s.sale.silver } : null, cost: s.c || 0, wait: s.k === 'v' ? s.t : 0
 		})).join('');
 		const chains = (r.chains || []).map(c => `<span class="run-chain-tag"><i></i>${esc(c)}</span>`).join('');

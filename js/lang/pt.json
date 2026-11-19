@@ -3526,6 +3526,9 @@
 	"a pause, not a barter": "uma pausa, não uma permuta",
 	"a quest handed in": "uma missão entregue",
 	"a quest handed in here": "uma missão entregue aqui",
+	"Picked up": "Pega",
+	"a quest picked up": "uma missão pega",
+	"a quest picked up here": "uma missão pega aqui",
 	"a quest reward, which you have switched off": "uma recompensa de missão, que você desligou",
 	"a question, a thank-you, a correction to the data": "uma pergunta, um agradecimento, uma correção nos dados",
 	"a run pays by what it carries, and a weight crystal is worth several sailors of hold — the Rusalka one is the strongest in the game at +1,350 LT": "uma travessia paga pelo que carrega, e uma pedra de peso vale vários marinheiros de porão — a de Rusalka é a mais forte do jogo, com +1.350 LT",
@@ -6207,7 +6210,6 @@
 	"Load the goods at": "Carregar as mercadorias em",
 	"Made by waliori": "Feito por waliori",
 	"Move {place} up or down the route": "Mover {place} para cima ou para baixo na rota",
-	"Quests to pick up first": "Missões para pegar primeiro",
 	"The fewest Crow Coins a trade must pay": "O mínimo de Moedas Corvo que uma troca deve pagar",
 	"Trades that pay fewer Crow Coins than this are left out of the run": "Trocas que pagam menos Moedas Corvo do que isso ficam fora da viagem",
 	"Where the run leaves from, and whose storage it loads from": "De onde a viagem parte e de qual armazém ela carrega",
@@ -6215,7 +6217,6 @@
 	"a stop of your own": "uma parada sua",
 	"coins a trade, at least": "moedas por troca, no mínimo",
 	"pick up": "pegar",
-	"this run hands them in on its way": "esta viagem as entrega no caminho",
 	"walior.it — the rest of what I make": "walior.it — o resto do que eu faço",
 	"where it started": "onde começou"
 }

@@ -393,7 +393,7 @@ function stashRow(s, leg, k = -1, extra = '') {
 		<span class="map-stop-n stash" title="${questOnly ? T('A stop put in for a quest') : c.rations ? T('A call for rations') : T('A pause at a wharf')}">${ico(questOnly ? 'scroll' : c.rations ? 'bread' : 'anchor')}</span>
 		<span class="map-row-main">
 			<span class="map-row-name"><span class="map-row-name-t">${esc(gameName(c.name))}</span>${leg}</span>
-			<span class="map-row-sub">${T('stop {n}', { n: s.n })} · ${questOnly ? esc(gameName(c.at)) : T('{place} wharf', { place: esc(gameName(c.at)) })}${questOnly ? ` · ${T('a quest handed in here')}` : c.rations ? ` · ${T('rations bought here, the pool full again')}` : c.drops.length ? ` · ${T('the hold is lightened here')}` : ` · ${T('the hold is sold down here')}`}</span>
+			<span class="map-row-sub">${T('stop {n}', { n: s.n })} · ${questOnly ? esc(gameName(c.at)) : T('{place} wharf', { place: esc(gameName(c.at)) })}${questOnly ? ` · ${c.fetch ? T('a quest picked up here') : T('a quest handed in here')}` : c.rations ? ` · ${T('rations bought here, the pool full again')}` : c.drops.length ? ` · ${T('the hold is lightened here')}` : ` · ${T('the hold is sold down here')}`}</span>
 			${drops ? `<span class="map-drops">${drops}</span>` : ''}
 			${c.sale ? `<span class="map-row-sub ok">${c.silver ? T('sells {n} [Level 7] for {silver}', { n: n1(c.sale), silver: FC(c.silver) }) : T('sells {n} [Level 7]', { n: n1(c.sale) })}</span>` : ''}
 			${questsHere}${extra}
@@ -461,6 +461,8 @@ export function readStash(rows) {
 			rations: why === 'rations',
 			// A stop the sailor put in by hand, at a wharf or a habitat.
 			own: why === 'own',
+			// A call put in only to fetch a quest the run hands in later.
+			fetch: why === 'fetch',
 			// The quests handed in at this call, as the Barter tab laid
 			// them: a call put in for a quest carries them and nothing else.
 			quests: (Array.isArray(quests) ? quests : []).filter(q => typeof q === 'string' && q).map(q => q.slice(0, 80)).slice(0, 12),

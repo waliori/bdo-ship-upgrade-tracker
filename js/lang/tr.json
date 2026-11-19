@@ -3439,6 +3439,9 @@
 	"a pause, not a barter": "bir duraklama, takas değil",
 	"a quest handed in": "teslim edilen bir görev",
 	"a quest handed in here": "burada teslim edilen bir görev",
+	"Picked up": "Alındı",
+	"a quest picked up": "alınan bir görev",
+	"a quest picked up here": "burada alınan bir görev",
 	"a quest reward, which you have switched off": "bir görev ödülü, ki onu kapattın",
 	"a question, a thank-you, a correction to the data": "bir soru, bir teşekkür, veride bir düzeltme",
 	"a run pays by what it carries, and a weight crystal is worth several sailors of hold — the Rusalka one is the strongest in the game at +1,350 LT": "bir sefer taşıdığı kadar öder ve bir ağırlık kristali birkaç gemici kadar ambar eder — Rusalka olanı +1.350 LT ile oyundaki en güçlüsü",
@@ -6111,7 +6114,6 @@
 	"Load the goods at": "Malları şuradan yükle",
 	"Made by waliori": "waliori tarafından yapıldı",
 	"Move {place} up or down the route": "{place} yerini rotada yukarı veya aşağı taşı",
-	"Quests to pick up first": "Önce alınacak görevler",
 	"The fewest Crow Coins a trade must pay": "Bir takasın vermesi gereken en az Karga Parası",
 	"Trades that pay fewer Crow Coins than this are left out of the run": "Bundan az Karga Parası veren takaslar sefere alınmaz",
 	"Where the run leaves from, and whose storage it loads from": "Seferin çıktığı yer ve yük aldığı depo",
@@ -6119,7 +6121,6 @@
 	"a stop of your own": "kendi durağın",
 	"coins a trade, at least": "takas başına en az para",
 	"pick up": "al",
-	"this run hands them in on its way": "bu sefer yol üstünde teslim eder",
 	"walior.it — the rest of what I make": "walior.it — yaptığım diğer şeyler",
 	"where it started": "başladığı yer"
 }

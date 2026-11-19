@@ -2,6 +2,7 @@
 // time, the Parley and the clock at that stop, the hold slot by slot, and
 // the rest of the run under it. (Casting off, seen, is setsail.js.)
 
+import { handsIn, fetchOnly } from '../quest-places.js';
 import { esc, F, FC } from '../fmt.js';
 import { T, gameName } from '../i18n.js';
 import { img, iconSrc } from '../ui-bits.js';
@@ -94,7 +95,7 @@ export function stopNames(s) {
 	return {
 		place: s.quest ? gameName(place.name) : s.wharf ? T('{at} wharf', { at: gameName(place.at) }) : gameName(isleOf(place)),
 		who: s.quest ? gameName(place.who) : s.wharf ? gameName(place.name) : gameName(whoOf(place)),
-		kind: s.wait ? T('a wait for a voucher') : s.wharf ? T('a wharf call') : s.hunt ? T('a hunt on the way') : s.quest ? T('a quest handed in') : s.item === COIN ? T('pays Crow Coins') : T('a barter')
+		kind: s.wait ? T('a wait for a voucher') : s.wharf ? T('a wharf call') : s.hunt ? T('a hunt on the way') : fetchOnly(s) ? T('a quest picked up') : s.quest ? T('a quest handed in') : s.item === COIN ? T('pays Crow Coins') : T('a barter')
 	};
 }
 
@@ -376,7 +377,7 @@ export function cockpitHTML({ map = false } = {}) {
 	const at = stopAt(plan, on);
 	const along = holdAlong(plan, on);
 	const guessed = unsaid(plan, on).length;
-	const questsLeft = [...(plan.questsHome || []), ...stops.flatMap(s => s.quests || [])].map(x => x.q).filter(q => !questDone(q)).length;
+	const questsLeft = [...(plan.questsHome || []), ...stops.flatMap(s => s.quests || [])].filter(handsIn).map(x => x.q).filter(q => !questDone(q)).length;
 	const allAsk = V.sailAll.open ? `<div class="sail-all">
 		<span class="sail-all-k">${T('Tick off, all at once')}</span>
 		<label class="inline-check"><input type="checkbox" data-act="barter-sail-all-pick" data-id="stops"${V.sailAll.stops ? ' checked' : ''}> ${T('every stop, {n} still to go', { n: stops.length - doneN })}</label>

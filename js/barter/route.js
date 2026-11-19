@@ -16,7 +16,7 @@ import { pathLength, legLengths, sailRange, fmtRange, fmtDistance, METRES_PER_PX
 import { drainOver, RATION_RESERVE, fmtRations } from '../rations.js';
 import { quests, cadenceOf } from '../quests.js';
 import { questDone, wantedQuests } from '../screen-quests.js';
-import { layQuests } from '../quest-places.js';
+import { layQuests, fetchOnly, handsIn } from '../quest-places.js';
 import { QUEST_CHOICES } from '../barter-orders.js';
 import { levelOf } from '../barter.js';
 import { parleyLedger } from '../parley-ledger.js';
@@ -284,7 +284,7 @@ function questProgressOf(q) {
  * off; `off` the quests the run cannot take in, and why.
  */
 export function questPlan(stops, mode, hold, weightStart = 0) {
-	const none = { stops, at: () => [], home: [], off: [], skipped: [], pickups: [], count: 0, added: 0 };
+	const none = { stops, at: () => [], home: [], off: [], skipped: [], count: 0, added: 0 };
 	if (mode === 'no' || !stops.length) return none;
 	const from = fromPort();
 	const pts = [...(from ? [from] : []), ...stops.map(s => s.wharf || npcById.get(s.npcId))];
@@ -312,11 +312,8 @@ export function questPlan(stops, mode, hold, weightStart = 0) {
 		stops: out,
 		at: k => at[k] || [],
 		home, off: laid.off,
-		// Taken from someone other than whoever it is handed in to: said, or
-		// the run would hand in a quest the sailor never went to fetch.
-		pickups: [...new Map([...home, ...at.flat()].filter(x => x.q.at.length > 1 || x.q.at[0][3] === 'hand in').map(x => [x.q.id, x.q])).values()],
 		skipped: skipped.map(id => quests.find(q => q.id === id)).filter(q => q && !questDone(q)),
-		count: home.length + at.reduce((a, l) => a + l.length, 0),
+		count: [...home, ...at.flat()].filter(handsIn).length,
 		added: out.filter(s => s.quest).length,
 		trades: trades.reduce((a, n) => a + n, 0)
 	};
@@ -357,6 +354,7 @@ export function questChip(x, wanted, trades = 0, made = 0) {
 	const { q, step } = x;
 	const done = questDone(q);
 	const hunt = step.what === 'hunt';
+	if (step.what === 'take') return `<span class="run-quest${wanted.has(q.id) ? ' wanted' : ''}"><i>${ico('scroll')}</i><b>${T('pick up')}</b>${questLink(q)}<small>${esc(gameName(step.who))} · ${esc(gameName(step.place))}</small><span class="run-quest-acts"><button class="map-x" data-act="barter-quest-skip" data-quest="${esc(q.id)}" title="${T('Leave this quest out of today\'s runs')}" aria-label="${T('Leave this quest out')}">×</button></span></span>`;
 	return `<span class="run-quest${hunt ? ' hunt' : ''}${wanted.has(q.id) ? ' wanted' : ''}${done ? ' done' : ''}">
 		<i>${ico(hunt ? 'target' : 'scroll')}</i><b>${done ? T('done') : hunt ? T('hunt') : T('hand in')}</b>${questLink(q)}<small>${hunt ? esc(said(q.where).replace(/^[^—]*—\s*/, '')) : `${esc(gameName(step.who))} · ${esc(cadenceOf(q) === 'weekly' ? T('weekly') : cadenceOf(q) === 'daily' ? T('daily') : T('once'))}`}${q.barters ? ` · ${esc(questCount(q, trades, made))}` : ''}</small>
 		<span class="run-quest-acts">${done || hunt ? '' : `<button class="chip tiny" data-act="quest-claim" data-quest="${esc(q.id)}" title="${T('Record the reward as claimed')}">${T('claimed')}</button>`}<button class="map-x" data-act="barter-quest-skip" data-quest="${esc(q.id)}" title="${T('Leave this quest out of today\'s runs')}" aria-label="${T('Leave this quest out')}">×</button></span>
@@ -394,12 +392,10 @@ export function questsPanels(qp, from, { atSea = false } = {}) {
 	const wanted = questWanted();
 	// A run taken up at sea has cast off already: the home port's quests
 	// wait for the ship to come back there.
-	const home = qp.home.length && from ? `<section class="panel run-list run-quests-home"><div class="panel-head"><h2 class="panel-title">${T('Quests at {port}', { port: esc(gameName(from.name)) })}</h2><span class="panel-sub">${atSea ? T('handed in when the ship is back there') : T('handed in before casting off')}</span></div><div class="run-quests">${qp.home.map(x => questChip(x, wanted)).join('')}</div></section>` : '';
-	const pickupRow = q => { const take = q.at.length > 1 ? q.at[0] : null; return `<span class="run-quest"><i>${ico('scroll')}</i><b>${T('pick up')}</b>${questLink(q)}<small>${take ? `${esc(gameName(take[2]))} · ${esc(gameName(take[0] === 'wharf' ? (wharves.find(w => w.name === take[1]) || { at: take[1] }).at : take[1]))}` : esc(said(q.where))}</small></span>`; };
-	const pickups = (qp.pickups || []).length && !atSea ? `<section class="panel run-list run-quests-pickup"><div class="panel-head"><h2 class="panel-title">${T('Quests to pick up first')}</h2><span class="panel-sub">${T('this run hands them in on its way')}</span></div><div class="run-quests">${qp.pickups.map(pickupRow).join('')}</div></section>` : '';
+	const home = qp.home.length && from ? `<section class="panel run-list run-quests-home"><div class="panel-head"><h2 class="panel-title">${T('Quests at {port}', { port: esc(gameName(from.name)) })}</h2><span class="panel-sub">${atSea ? T('handed in when the ship is back there') : qp.home.some(x => x.step.what === 'take') ? T('before casting off') : T('handed in before casting off')}</span></div><div class="run-quests">${qp.home.map(x => questChip(x, wanted)).join('')}</div></section>` : '';
 	const offN = qp.off.length + qp.skipped.length;
 	const off = offN ? `<details class="panel run-list run-quests-off"><summary class="panel-head"><h2 class="panel-title">${T('Quests off the way')}</h2><span class="panel-sub">${T('{n} not taken in by this run · open to take one in', { n: offN })}</span></summary><div class="run-quests">${qp.off.map(questOff).join('')}${qp.skipped.map(questSkipped).join('')}</div></details>` : '';
-	return pickups + home + off;
+	return home + off;
 }
 
 export const n1 = v => F(Math.round(v * 10) / 10);
@@ -466,7 +462,7 @@ function underWay(stops) {
 export const runTime = (legs, book) => (book && book.waited ? legs.timeWith(book.waited) : legs.time);
 
 /** What pressing a stop done is called, by the sort of stop it is. */
-export const doneLabel = s => (s.wait ? T('Waited — voucher drawn') : s.refill ? T('Supplied') : s.wharf ? (s.loads && s.loads.length ? (s.sale ? T('Loaded and sold') : T('Loaded')) : T('Called here')) : s.hunt ? T('Hunted here') : s.quest ? T('Handed in') : T('Traded here'));
+export const doneLabel = s => (s.wait ? T('Waited — voucher drawn') : s.refill ? T('Supplied') : s.wharf ? (s.loads && s.loads.length ? (s.sale ? T('Loaded and sold') : T('Loaded')) : T('Called here')) : s.hunt ? T('Hunted here') : fetchOnly(s) ? T('Picked up') : s.quest ? T('Handed in') : T('Traded here'));
 
 /**
  * Which of its four [Level 7]s an island has paid, run after run: a
@@ -897,10 +893,10 @@ export function chartData(stops, pick) {
 	const trades = isles.map(s => [s.npcId, s.give, s.giveText, s.item, s.recvText, s.recvMin, s.giveN, s.times]);
 	const calls = [];
 	let n = 0;
-	const questsAt = s => (s.quests || []).map(x => `${x.step.what === 'hunt' ? 'hunt' : x.step.who}: ${questTitle(x.q)}`);
+	const questsAt = s => (s.quests || []).map(x => `${x.step.what === 'hunt' ? 'hunt' : x.step.what === 'take' ? `${x.step.who} (${T('pick up')})` : x.step.who}: ${questTitle(x.q)}`);
 	for (const s of stops) {
 		if (s.npcId) { n++; continue; }
-		if (s.quest) { calls.push(s.hunt ? [n, s.place.name, 'hunting grounds', s.place.x, s.place.y, [], 0, 0, questsAt(s)] : [n, s.place.who, s.place.name, s.place.x, s.place.y, [], 0, 0, questsAt(s)]); continue; }
+		if (s.quest) { calls.push(s.hunt ? [n, s.place.name, 'hunting grounds', s.place.x, s.place.y, [], 0, 0, questsAt(s)] : [n, s.place.who, s.place.name, s.place.x, s.place.y, [], 0, 0, questsAt(s), ...(fetchOnly(s) ? ['fetch'] : [])]); continue; }
 		// A call put in for supplies goes on the chart though it moves no
 		// goods: the Map marks it as its own rations call.
 		if (!s.wharf || (!s.refill && !s.dropped.length && !s.sale && !(s.loads && s.loads.length) && !(s.toBag && s.toBag.length) && !(s.fromBag && s.fromBag.length) && !questsAt(s).length)) continue;

@@ -3439,6 +3439,9 @@
 	"a pause, not a barter": "การหยุดพัก ไม่ใช่การแลกเปลี่ยน",
 	"a quest handed in": "เควสต์ที่ส่งแล้ว",
 	"a quest handed in here": "เควสต์ที่ส่งที่นี่",
+	"Picked up": "รับแล้ว",
+	"a quest picked up": "เควสต์ที่รับแล้ว",
+	"a quest picked up here": "เควสต์ที่รับที่นี่",
 	"a quest reward, which you have switched off": "รางวัลเควสต์ ที่คุณปิดไว้",
 	"a question, a thank-you, a correction to the data": "คำถาม คำขอบคุณ การแก้ข้อมูล",
 	"a run pays by what it carries, and a weight crystal is worth several sailors of hold — the Rusalka one is the strongest in the game at +1,350 LT": "การออกเรือจ่ายตามสิ่งที่มันขน และคริสตัลน้ำหนักมีค่าเท่าลูกเรือหลายคนของระวาง — อันรูซัลกาแรงที่สุดในเกมที่ +1,350 LT",
@@ -6111,7 +6114,6 @@
 	"Load the goods at": "ขนสินค้าที่",
 	"Made by waliori": "สร้างโดย waliori",
 	"Move {place} up or down the route": "เลื่อน {place} ขึ้นหรือลงในเส้นทาง",
-	"Quests to pick up first": "เควสต์ที่ต้องรับก่อน",
 	"The fewest Crow Coins a trade must pay": "จำนวนเหรียญตราอีกาดำขั้นต่ำต่อการแลกเปลี่ยน",
 	"Trades that pay fewer Crow Coins than this are left out of the run": "การแลกเปลี่ยนที่ได้เหรียญตราอีกาดำน้อยกว่านี้จะไม่อยู่ในเที่ยวนี้",
 	"Where the run leaves from, and whose storage it loads from": "จุดออกเรือของเที่ยว และคลังที่ใช้ขนสินค้า",
@@ -6119,7 +6121,6 @@
 	"a stop of your own": "จุดแวะของคุณเอง",
 	"coins a trade, at least": "เหรียญต่อการแลกเปลี่ยน อย่างน้อย",
 	"pick up": "รับเควสต์",
-	"this run hands them in on its way": "เที่ยวนี้จะส่งเควสต์ระหว่างทาง",
 	"walior.it — the rest of what I make": "walior.it — ผลงานอื่น ๆ ของฉัน",
 	"where it started": "จุดที่เริ่มต้น"
 }

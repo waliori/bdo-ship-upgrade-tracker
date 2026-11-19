@@ -3439,6 +3439,9 @@
 	"a pause, not a barter": "一次停留，不是一次物品交换",
 	"a quest handed in": "交付的任务",
 	"a quest handed in here": "在这里交付的一个任务",
+	"Picked up": "已接取",
+	"a quest picked up": "接取的任务",
+	"a quest picked up here": "在这里接取的一个任务",
 	"a quest reward, which you have switched off": "一个任务奖励，而你把它关掉了",
 	"a question, a thank-you, a correction to the data": "一个问题、一句感谢、一处数据更正",
 	"a run pays by what it carries, and a weight crystal is worth several sailors of hold — the Rusalka one is the strongest in the game at +1,350 LT": "航次按它所载来付钱，而一块重量结晶值好几名船员的船舱 — 露莎卡那块以 +1,350 LT 成为游戏中最强的",
@@ -6111,7 +6114,6 @@
 	"Load the goods at": "装货地点",
 	"Made by waliori": "由 waliori 制作",
 	"Move {place} up or down the route": "在航线中上下移动 {place}",
-	"Quests to pick up first": "先去接取的任务",
 	"The fewest Crow Coins a trade must pay": "每次交换至少获得的乌鸦硬币",
 	"Trades that pay fewer Crow Coins than this are left out of the run": "获得的乌鸦硬币少于此数的交换不计入航线",
 	"Where the run leaves from, and whose storage it loads from": "航线的出发地，以及装货所用的仓库",
@@ -6119,7 +6121,6 @@
 	"a stop of your own": "自定停靠点",
 	"coins a trade, at least": "每次交换至少获得硬币",
 	"pick up": "接取",
-	"this run hands them in on its way": "本次航线会在途中交付",
 	"walior.it — the rest of what I make": "walior.it — 我的其他作品",
 	"where it started": "出发的地方"
 }

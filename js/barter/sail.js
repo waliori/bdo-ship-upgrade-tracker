@@ -1,6 +1,7 @@
 // The run under way: its stops by key, what each island paid, the trip
 // the ticks come to and how it is written into the hold, and recording it.
 
+import { handsIn, fetchOnly } from '../quest-places.js';
 import { esc, F, FC } from '../fmt.js';
 import { T, gameName } from '../i18n.js';
 import * as store from '../state.js';
@@ -556,7 +557,7 @@ export function markDone(on, k) {
 	// to the end.
 	if (at >= 0) passedStop(at, runMarks(plan, legsOf(plan.stops), ledgerOf(plan.stops, legsOf(plan.stops))), plan.stops.length);
 	const stop = plan.stops[at];
-	const list = ((stop && stop.quests) || []).filter(x => x.step.what !== 'hunt').map(x => x.q).filter(q => !questDone(q) && rewardOf(q));
+	const list = ((stop && stop.quests) || []).filter(handsIn).map(x => x.q).filter(q => !questDone(q) && rewardOf(q));
 	if (list.length) {
 		store.claimQuests(list.map(q => ({ id: q.id, delta: rewardOf(q), key: periodKey(cadenceOf(q)) })), T('Handed in {what} at {where}', { what: list.length === 1 ? questTitle(list[0]) : T('{n} quests', { n: list.length }), where: stop.place ? stop.place.name : stop.wharf ? stop.wharf.at : isleOf(npcById.get(stop.npcId)) }));
 		toast(T('{what} handed in — the rewards are in the bags', { what: list.length === 1 ? questTitle(list[0]) : T('{n} quests', { n: list.length }) }), true);
@@ -869,7 +870,7 @@ export function recordTrip(plan, from, on = sailing(), { abandoned = false } = {
 		if (s.npcId) return { k: 'n', id: s.npcId, p: names.place, w: names.who, g: s.give, gn: s.giveText, i: s.item, r: s.recvText, t: s.times, s: (on.seen || {})[s.npcId] || 0, c: Math.round(Number(s.parley) || 0), v: bookOf.rows[k] && bookOf.rows[k].voucher ? 1 : 0 };
 		if (s.wharf) return { k: 'w', p: names.place, w: names.who, sale: s.sale && !ticked(on.kept, s, k, plan.stops) ? { n: Math.round(s.sale.n * 10) / 10, silver: Math.round(s.sale.total) } : null };
 		if (s.wait) return { k: 'v', p: names.place, t: Math.round(s.wait) };
-		return { k: 'q', p: names.place, w: names.who };
+		return { k: fetchOnly(s) ? 'f' : 'q', p: names.place, w: names.who };
 	}).filter(Boolean).slice(0, 300);
 	const said = plan.stops.reduce((n, s, k) => n + (ticked(on.done, s, k, plan.stops) ? (bookOf.rows[k] && bookOf.rows[k].drawn) || 0 : 0), 0);
 	// A stop ticked was traded, and a run that traded past the bar it

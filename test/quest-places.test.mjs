@@ -54,6 +54,20 @@ test('a loop from Velia by Baeza and Tinberra: deliveries handed in where the ru
 	assert.ok(!ids(entry('Baremi Island')).includes('supplies-iliya'));
 });
 
+test('a quest given by someone else is fetched before it is handed in: at the harbour when the giver is there, else a stop put in at the giver', () => {
+	const route = [ports[0], isle('Baeza Island'), isle('Tinberra Island'), ports[0]];
+	const { route: laid } = layQuests(daily, route, { trades: [0, 10, 12, 0], progress: () => 0 });
+	const at = (id, what) => laid.findIndex(e => e.steps.some(x => x.q.id === id && (what === 'take' ? x.step.what === 'take' : x.step.what !== 'take' && x.step.what !== 'hunt')));
+	assert.equal(at('goods-tinberra', 'take'), 0, 'Miya gives the goods at Velia, before casting off');
+	assert.ok(at('goods-tinberra') > 0, 'and they are handed in at Tinberra');
+	const q = questById['supplies-oquilla'];
+	const far = layQuests([q], [ports[0], isle('Tinberra Island'), ports[0]], { forced: new Set([q.id]) }).route;
+	const take = far.findIndex(e => e.steps.some(x => x.step.what === 'take'));
+	const give = far.findIndex(e => e.steps.some(x => x.step.what !== 'take'));
+	assert.ok(take > 0 && far[take].quest && far[take].place === 'Iliya Island wharf', 'a stop put in at Dario, Iliya');
+	assert.ok(take < give, 'before Ravikel takes it in');
+});
+
 test('a barter quest already part-way counts its progress, and a run that does not pass its taker puts a stop in only once it is made up', () => {
 	const q = questById['nexus'];
 	const route = [ports[0], isle('Baremi Island'), ports[0]];

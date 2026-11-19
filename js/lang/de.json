@@ -3466,6 +3466,9 @@
 	"a pause, not a barter": "eine Pause, kein Tausch",
 	"a quest handed in": "eine abgegebene Aufgabe",
 	"a quest handed in here": "eine hier abgegebene Quest",
+	"Picked up": "Abgeholt",
+	"a quest picked up": "eine abgeholte Aufgabe",
+	"a quest picked up here": "eine hier abgeholte Quest",
 	"a quest reward, which you have switched off": "eine Questbelohnung, die du abgeschaltet hast",
 	"a question, a thank-you, a correction to the data": "eine Frage, ein Dank, eine Korrektur an den Daten",
 	"a run pays by what it carries, and a weight crystal is worth several sailors of hold — the Rusalka one is the strongest in the game at +1,350 LT": "eine Fahrt zahlt nach dem, was sie trägt, und ein Gewichtskristall ist mehrere Seefahrer an Laderaum wert - der Rusalkameerkristall ist mit +1.350 LT der stärkste im Spiel",
@@ -6150,7 +6153,6 @@
 	"Load the goods at": "Waren laden in",
 	"Made by waliori": "Erstellt von waliori",
 	"Move {place} up or down the route": "{place} in der Route nach oben oder unten verschieben",
-	"Quests to pick up first": "Zuerst abzuholende Quests",
 	"The fewest Crow Coins a trade must pay": "Die wenigsten Krähenfußmünzen, die ein Tausch einbringen muss",
 	"Trades that pay fewer Crow Coins than this are left out of the run": "Tausche, die weniger Krähenfußmünzen einbringen, werden aus der Fahrt genommen",
 	"Where the run leaves from, and whose storage it loads from": "Wo die Fahrt beginnt und aus welchem Lager sie lädt",
@@ -6158,7 +6160,6 @@
 	"a stop of your own": "ein eigener Stopp",
 	"coins a trade, at least": "Münzen pro Tausch, mindestens",
 	"pick up": "abholen",
-	"this run hands them in on its way": "diese Fahrt gibt sie unterwegs ab",
 	"walior.it — the rest of what I make": "walior.it — alles andere, was ich mache",
 	"where it started": "wo sie begonnen hat"
 }

@@ -3439,6 +3439,9 @@
 	"a pause, not a barter": "物々交換ではなく、休止",
 	"a quest handed in": "納品した依頼",
 	"a quest handed in here": "ここで納品する依頼",
+	"Picked up": "受注済み",
+	"a quest picked up": "受注した依頼",
+	"a quest picked up here": "ここで受注する依頼",
 	"a quest reward, which you have switched off": "依頼の報酬（ただしあなたが無効にしています）",
 	"a question, a thank-you, a correction to the data": "質問、お礼、データの訂正",
 	"a run pays by what it carries, and a weight crystal is worth several sailors of hold — the Rusalka one is the strongest in the game at +1,350 LT": "航海は運んだ量で稼ぐので、重量の結晶は船員数人分の船倉に相当します — ルサールカのものが+1,350 LTでゲーム内最強です",
@@ -6111,7 +6114,6 @@
 	"Load the goods at": "商品の積み込み先",
 	"Made by waliori": "制作：waliori",
 	"Move {place} up or down the route": "{place}を航路の上下に移動",
-	"Quests to pick up first": "先に受ける依頼",
 	"The fewest Crow Coins a trade must pay": "1回の交換で得るカラスコインの下限",
 	"Trades that pay fewer Crow Coins than this are left out of the run": "これより少ないカラスコインしか得られない交換は航海から外します",
 	"Where the run leaves from, and whose storage it loads from": "航海の出発地と、積み込みに使う倉庫",
@@ -6119,7 +6121,6 @@
 	"a stop of your own": "自分で決めた寄港地",
 	"coins a trade, at least": "1回の交換あたりの最低コイン数",
 	"pick up": "受注",
-	"this run hands them in on its way": "この航海の途中で納品します",
 	"walior.it — the rest of what I make": "walior.it — 私が作っているほかのもの",
 	"where it started": "出発した場所"
 }

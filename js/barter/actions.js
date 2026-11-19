@@ -2,6 +2,7 @@
 // switch for the clicks, one for the fields, one for typing, each
 // returning whether the tab should be drawn again.
 
+import { handsIn } from '../quest-places.js';
 import { morphCockpit } from './morph.js';
 import { esc, F, FC, figure } from '../fmt.js';
 import { T, gameName } from '../i18n.js';
@@ -558,7 +559,7 @@ export function barterAction(act, el, redraw) {
 			// finds nothing more and the loop ends.
 			let claimed = 0;
 			for (let round = 0; V.sailAll.quests && round < 6; round++) {
-				const list = [...(plan.questsHome || []), ...plan.stops.flatMap(s => s.quests || [])].filter(x => x.step.what !== 'hunt').map(x => x.q).filter((q, i, a) => a.indexOf(q) === i && !questDone(q) && rewardOf(q));
+				const list = [...(plan.questsHome || []), ...plan.stops.flatMap(s => s.quests || [])].filter(handsIn).map(x => x.q).filter((q, i, a) => a.indexOf(q) === i && !questDone(q) && rewardOf(q));
 				if (!list.length) break;
 				store.claimQuests(list.map(q => ({ id: q.id, delta: rewardOf(q), key: periodKey(cadenceOf(q)) })), list.length === 1 ? T('Handed in {n} quest along the run', { n: list.length }) : T('Handed in {n} quests along the run', { n: list.length }));
 				claimed += list.length;

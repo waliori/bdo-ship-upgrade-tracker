@@ -3439,6 +3439,9 @@
 	"a pause, not a barter": "물물교환이 아니라 대기",
 	"a quest handed in": "제출한 의뢰",
 	"a quest handed in here": "여기서 제출하는 의뢰",
+	"Picked up": "수락함",
+	"a quest picked up": "수락한 의뢰",
+	"a quest picked up here": "여기서 수락하는 의뢰",
 	"a quest reward, which you have switched off": "의뢰 보상, 당신이 꺼 둔 것",
 	"a question, a thank-you, a correction to the data": "질문, 항로, 데이터 정정",
 	"a run pays by what it carries, and a weight crystal is worth several sailors of hold — the Rusalka one is the strongest in the game at +1,350 LT": "항해는 실은 것으로 값을 받고, 무게 결정 하나가 선원 여럿만큼의 적재량 값어치를 합니다 — 루살카 결정이 +1,350 LT로 게임에서 가장 강합니다",
@@ -6111,7 +6114,6 @@
 	"Load the goods at": "상품 적재 위치",
 	"Made by waliori": "제작: waliori",
 	"Move {place} up or down the route": "항로에서 {place} 위아래로 이동",
-	"Quests to pick up first": "먼저 받을 의뢰",
 	"The fewest Crow Coins a trade must pay": "교환 한 번에 받아야 할 까마귀 주화 최솟값",
 	"Trades that pay fewer Crow Coins than this are left out of the run": "이보다 까마귀 주화를 적게 주는 교환은 항해에서 제외됩니다",
 	"Where the run leaves from, and whose storage it loads from": "항해의 출발지이자 상품을 싣는 창고",
@@ -6119,7 +6121,6 @@
 	"a stop of your own": "직접 정한 정박지",
 	"coins a trade, at least": "교환당 최소 주화",
 	"pick up": "수락",
-	"this run hands them in on its way": "이번 항해 중에 제출합니다",
 	"walior.it — the rest of what I make": "walior.it — 제가 만든 다른 것들",
 	"where it started": "출발한 곳"
 }

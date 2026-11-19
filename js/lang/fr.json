@@ -3523,6 +3523,9 @@
 	"a pause, not a barter": "une pause, pas un troc",
 	"a quest handed in": "une quête rendue",
 	"a quest handed in here": "une quête rendue ici",
+	"Picked up": "Prise",
+	"a quest picked up": "une quête prise",
+	"a quest picked up here": "une quête prise ici",
 	"a quest reward, which you have switched off": "une récompense de quête, que vous avez coupée",
 	"a question, a thank-you, a correction to the data": "une question, un merci, une correction des données",
 	"a run pays by what it carries, and a weight crystal is worth several sailors of hold — the Rusalka one is the strongest in the game at +1,350 LT": "un circuit paie selon ce qu'il porte, et un cristal de poids vaut plusieurs marins de cale — celui de Rusalka est le plus fort du jeu avec +1 350 LT",
@@ -6234,7 +6237,6 @@
 	"Load the goods at": "Charger les marchandises à",
 	"Made by waliori": "Créé par waliori",
 	"Move {place} up or down the route": "Monter ou descendre {place} dans la route",
-	"Quests to pick up first": "Quêtes à prendre d’abord",
 	"The fewest Crow Coins a trade must pay": "Le minimum de Pièces des corbeaux qu’un échange doit rapporter",
 	"Trades that pay fewer Crow Coins than this are left out of the run": "Les échanges qui rapportent moins de Pièces des corbeaux que cela sont retirés de la tournée",
 	"Where the run leaves from, and whose storage it loads from": "Le port de départ de la tournée, et l’entrepôt où elle charge",
@@ -6242,7 +6244,6 @@
 	"a stop of your own": "une escale à vous",
 	"coins a trade, at least": "pièces par échange, au moins",
 	"pick up": "à prendre",
-	"this run hands them in on its way": "cette tournée les rend en chemin",
 	"walior.it — the rest of what I make": "walior.it — le reste de ce que je crée",
 	"where it started": "là où elle a commencé"
 }

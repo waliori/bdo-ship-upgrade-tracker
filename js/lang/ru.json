@@ -3984,6 +3984,9 @@
 	"a pause, not a barter": "остановка, не бартер",
 	"a quest handed in": "сданное задание",
 	"a quest handed in here": "задание, сданное здесь",
+	"Picked up": "Взято",
+	"a quest picked up": "взятое задание",
+	"a quest picked up here": "задание, взятое здесь",
 	"a quest reward, which you have switched off": "награда за задание, а они у вас выключены",
 	"a question, a thank-you, a correction to the data": "вопрос, благодарность, поправка к данным",
 	"a run pays by what it carries, and a weight crystal is worth several sailors of hold — the Rusalka one is the strongest in the game at +1,350 LT": "рейс платит по тому, что везёт, а камень на вес стоит трюма нескольких матросов — камень русалки самый сильный в игре, +1 350 LT",
@@ -8276,7 +8279,6 @@
 	"Load the goods at": "Загружать товары в",
 	"Made by waliori": "Создал waliori",
 	"Move {place} up or down the route": "Переместить {place} выше или ниже по маршруту",
-	"Quests to pick up first": "Сначала взять задания",
 	"The fewest Crow Coins a trade must pay": "Наименьшее число монет ворон за обмен",
 	"Trades that pay fewer Crow Coins than this are left out of the run": "Обмены, дающие меньше монет ворон, не войдут в рейс",
 	"Where the run leaves from, and whose storage it loads from": "Откуда выходит рейс и с какого склада он загружается",
@@ -8284,7 +8286,6 @@
 	"a stop of your own": "своя стоянка",
 	"coins a trade, at least": "монет за обмен, не меньше",
 	"pick up": "взять",
-	"this run hands them in on its way": "этот рейс сдаст их по пути",
 	"walior.it — the rest of what I make": "walior.it — всё остальное, что я делаю",
 	"where it started": "там, где начался"
 }
