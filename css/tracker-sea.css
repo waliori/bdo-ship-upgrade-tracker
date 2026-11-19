@@ -575,7 +575,9 @@
      two controls sit closer than their halos reach, the rows they sit in
      open up below so no two halos share a spot. */
   :where(button, a[href], summary, label, [role="button"], span[data-act]):where(:not(.sheet-grab, .tab, .tcaret, .map-io)) { position: relative; }
-  :where(button, a[href], summary, label, [role="button"], span[data-act]):where(:not(.sheet-grab, .tab, .tcaret, .map-io, .news-old > summary))::after {
+  /* Not on a label round a field: the halo lay over the field and took its
+     tap, so a phone could not type in the Total Barters or open the level. */
+  :where(button, a[href], summary, label, [role="button"], span[data-act]):where(:not(.sheet-grab, .tab, .tcaret, .map-io, .news-old > summary, label:has(select, textarea, input:not([type="checkbox"], [type="radio"]))))::after {
     content: '';
     position: absolute;
     inset: min(0px, calc(50% - 22px)) min(0px, calc(50% - 22px));
