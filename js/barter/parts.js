@@ -527,7 +527,7 @@ export function silverParts(me, b) {
 	const pin = castOffCaps(sailing(), opts.dock);
 	const bought = castOffLand(sailing(), o);
 	const laid = pin ? { ...opts, loadCap: pin, ...(bought ? { landCap: bought, bought } : {}) } : opts;
-	const plan = laidOnce(JSON.stringify([pkey, marketStatus().at, chosen.map(c => c.id), edits, spares, pin && [...pin], bought && [...bought]]), () => chainRun({ ...laid, chosen, ...edits }));
+	const plan = laidOnce(JSON.stringify([pkey, marketStatus().at, chosen.map(c => c.id), edits, spares, pin && [...pin], bought && [...bought]]), () => chainRun({ ...laid, chosen, ...edits, byHand: true }));
 	plan.spares = spares;
 	const payRange = payRangeHTML(plan, laid, chosen, edits, seen, coining, stocking, pkey);
 	// Two chains ticked on one pile: the Golden Fish Scales at Iliya start

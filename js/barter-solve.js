@@ -28,7 +28,7 @@ import { METRES_PER_PX, speedMs, BAND_MEASURED } from './sailing.js';
 // mean of the quick end and the slow, a shade slower than the speed itself.
 const MID_PACE = (1 / (1 + BAND_MEASURED) + 1 / (1 - BAND_MEASURED)) / 2;
 import { simulate, planPolicy } from './rpit/simulate.js';
-import { finish, indexOf, chainsOf, fillOfRun, trimLoads } from './rpit/common.js';
+import { finish, indexOf, chainsOf, fillOfRun, trimLoads, robustEval, MISSED } from './rpit/common.js';
 import { withChain, reorder, serial } from './rpit/insert.js';
 import { maximiseRate } from './rpit/ratio.js';
 import { search } from './rpit/alns.js';
@@ -341,8 +341,15 @@ export function solveRun(opts0 = {}) {
 	// The chains the search proposed, ticked as it proposed them: the plan
 	// it found, not a second laying that might land elsewhere.
 	const ids = chosen.map(c => c.id).sort().join('|');
-	const had = found.get(ids);
-	const plan = had && had.day === dayOf(I) ? asPacked(had.plan, had.hold, I) : planFor(I, chains, { effort: opts.effort ?? 2, seed: opts.seed ?? 1, session: opts.session || 0, way: (opts.orders || PLAIN_ORDERS).way });
+	const day = dayOf(I), hold = { ...I.initial.hold };
+	const had = [found.get(ids), opts.byHand && byHand.get(ids)].find(m => m && m.day === day);
+	const laying = { effort: opts.effort ?? 2, seed: opts.seed ?? 1, session: opts.session || 0, way: (opts.orders || PLAIN_ORDERS).way };
+	let plan;
+	if (had) plan = asPacked(had.plan, had.hold, I);
+	else if (opts.byHand) {
+		plan = handPlan(I, chains, laying);
+		keep(ids, { ids, plan, day, hold, hand: true });
+	} else plan = planFor(I, chains, laying);
 	const edited = edits(I, chains, chosen, plan, runOf(I, plan, how), opts);
 	return { ...runOf(I, edited, how), skippedWhole };
 }
@@ -391,7 +398,37 @@ function edits(I, chains, chosen, plan, run, opts) {
 // those chains to give back. Several: ticking goods aboard asks the search
 // again, and what it finds then must not push out the plan being packed.
 const found = new Map();
-const keep = (ids, x) => { found.delete(ids); found.set(ids, x); if (found.size > 8) found.delete(found.keys().next().value); };
+// The sailor's own sets of chains, apart: a few edits must not push out the
+// plan the search found, which the next edit starts from.
+const byHand = new Map();
+const keep = (ids, x) => { const shelf = x.hand ? byHand : found; shelf.delete(ids); shelf.set(ids, x); if (shelf.size > 8) shelf.delete(shelf.keys().next().value); };
+
+/**
+ * The chains the sailor changed by hand: laid afresh, and laid again from the
+ * plan they were cut from, the better of the two kept. Laid afresh alone, a
+ * chain taken off a nine-chain run cost more than half of what was left
+ * (2026-11-18, 1,220 real days); started from the plan alone, it was sometimes
+ * worse than the fresh lay, so neither stands in for the other.
+ */
+function handPlan(I, chains, how) {
+	const fresh = planFor(I, chains, how);
+	if (how.effort < 2 || how.way === 'chain') return fresh;
+	const on = new Set(I.stations.map(s => s.id));
+	const shared = m => m.plan.visits.filter(v => on.has(v.at));
+	// The latest of the plans closest to these chains: after a second edit, the first.
+	const from = [...found.values(), ...byHand.values()].reduce((a, m) => (shared(m).length && (!a || shared(m).length >= shared(a).length) ? m : a), null);
+	if (!from) return fresh;
+	let seq = shared(from).map(v => ({ at: v.at, a: v.a }));
+	for (const c of chains) seq = withChain(I, seq, c.rungs);
+	const must = chains.map(c => c.rungs[c.rungs.length - 1]);
+	const start = finish(I, seq, 0, { calls: from.calls || [], must });
+	const kept = trimLoads(I, search(I, { mu: 0, timeMs: Infinity, most: WORK, seed: how.seed, pool: chains, fixed: true, warm: { seq: start.visits, calls: start.calls } }).plan);
+	const worth = p => {
+		const e = robustEval(I, p), dealt = new Set(e.run.log.filter(x => x.kind === 'station' && x.a > 0).map(x => x.at));
+		return e.f - (must.filter(id => !dealt.has(id)).length + (e.run.deviations.starved || 0)) * MISSED;
+	};
+	return worth(kept) > worth(fresh) ? kept : fresh;
+}
 // The day it was found for -- the board, the hold, the rations, everything
 // but the chains -- with the goods aboard and the goods in the home
 // storage counted together: ticking the start's goods aboard moves them
@@ -503,7 +540,7 @@ export function newPropose(opts0, all0, { seed = 1, session = 0 } = {}) {
 		? { plan: planFor(lay, instanceOf({ ...opts, chosen: picked }).chains, { seed, session, way: 'chain' }) }
 		: finish(lay, best.seq.filter(v => on.has(v.at)), 0, { calls: (best.calls || []).filter(c => on.has(c.before)) });
 	kept.plan = trimLoads(lay, kept.plan);
-	const memo = { ids: picked.map(c => c.id).sort().join('|'), plan: kept.plan, day: dayOf(atPick), hold: { ...atPick.initial.hold } };
+	const memo = { ids: picked.map(c => c.id).sort().join('|'), plan: kept.plan, calls: kept.calls || [], day: dayOf(atPick), hold: { ...atPick.initial.hold } };
 	keep(memo.ids, memo);
 	const run = solveRun({ ...opts, chosen: picked });
 	const hours = run.hours;
@@ -524,12 +561,12 @@ export function newPropose(opts0, all0, { seed = 1, session = 0 } = {}) {
  *  packed stands, or its list would move under the sailor's hands. */
 export function rememberFound(memo) {
 	if (!memo || !memo.ids) return;
-	const had = found.get(memo.ids);
+	const had = (memo.hand ? byHand : found).get(memo.ids);
 	if (!had || had.day !== memo.day) keep(memo.ids, memo);
 }
 
 /** The plan remembered for these chains, for the page to keep across a reload. */
-export const foundFor = ids => found.get([...ids].sort().join('|')) || null;
+export const foundFor = ids => { const k = [...ids].sort().join('|'); return found.get(k) || byHand.get(k) || null; };
 
 // Nothing ticked: a run with no stops, as chainRun gives one.
 function emptyRun(opts) {

@@ -115,6 +115,21 @@ test('the worker answers for the new planner, and the plan it found, remembered 
 	assert.equal(solveRun({ ...base, chosen: ticked }).net, best.run.net);
 });
 
+test('a chain taken off the plan found: the rest is never laid worse than afresh, and stays put while packing', async () => {
+	const { newPropose, rememberFound } = await import('../js/barter-solve.js');
+	const { cutOf, cutAt } = await import('../js/barter-short.js');
+	const found = newPropose(base, all);
+	rememberFound(found.kept);
+	const picks = found.best.ids.map(id => { const { base: b, k } = cutOf(id); const c = all.find(x => x.id === b); return k >= 0 ? cutAt(c, k) : c; });
+	assert.ok(picks.length >= 2, 'the day has a chain to take off');
+	for (const gone of picks) {
+		const left = picks.filter(c => c !== gone);
+		const hand = solveRun({ ...base, chosen: left, byHand: true });
+		assert.ok(hand.net >= solveRun({ ...base, chosen: left }).net, 'no worse than the lay from nothing');
+		assert.deepEqual(isles(solveRun({ ...base, chosen: [...left].reverse(), byHand: true })), isles(hand), 'the same plan, whatever the order of the ticks');
+	}
+});
+
 test('the plan found is the plan laid whatever order the chains come in: the sailor ticking the list does not move it', async () => {
 	const { newPropose, rememberFound } = await import('../js/barter-solve.js');
 	const { cutOf, cutAt } = await import('../js/barter-short.js');
