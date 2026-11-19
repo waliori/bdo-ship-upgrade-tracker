@@ -475,6 +475,57 @@ export function describe(rgba, w, h, { cx, cy, side }, n = FINE) {
 	return out;
 }
 
+/**
+ * The light of a square, which the descriptor throws away on purpose:
+ * the mean luma of each cell over the top of the square, and -- for an
+ * icon, whose corners are transparent -- how much of each cell the
+ * drawing covers. Two icons that are one drawing at two brightnesses
+ * are one descriptor (Tide-Dyed and Deep Tide-Dyed Standardized Timber
+ * Square: the same square, the Deep one a fifth darker), and the light
+ * is what still tells them apart, once the screenshot's own dimming is
+ * measured off the squares that were named without doubt.
+ */
+export function lightOf(rgba, w, h, { cx, cy, side }, n = FINE) {
+	const rows = Math.max(1, Math.round(n * KEEP));
+	const step = side / n;
+	const x0 = cx - side / 2, y0 = cy - side / 2;
+	const plane = n * rows;
+	const luma = new Float32Array(plane), cover = new Float32Array(plane);
+	for (let j = 0; j < rows; j++) {
+		for (let i = 0; i < n; i++) {
+			let r = 0, g = 0, b = 0, a = 0, count = 0;
+			const sx = x0 + i * step, sy = y0 + j * step;
+			for (let y = Math.floor(sy); y < Math.max(Math.floor(sy) + 1, sy + step); y++) {
+				for (let x = Math.floor(sx); x < Math.max(Math.floor(sx) + 1, sx + step); x++) {
+					if (x < 0 || y < 0 || x >= w || y >= h) continue;
+					const p = (y * w + x) * 4;
+					const k = rgba[p + 3] / 255;
+					r += rgba[p] * k; g += rgba[p + 1] * k; b += rgba[p + 2] * k; a += k;
+					count++;
+				}
+			}
+			if (!count) count = 1;
+			const k = j * n + i;
+			luma[k] = (0.2126 * r + 0.7152 * g + 0.0722 * b) / count;
+			cover[k] = a / count;
+		}
+	}
+	return { luma, cover };
+}
+
+/** The mean light of a square under an icon's drawing: the cells the
+ *  icon covers, weighted by how much of each it covers, so a slot's glow
+ *  round the drawing counts for little. */
+export function shadeOf(luma, cover) {
+	let sum = 0, weight = 0;
+	for (let i = 0; i < luma.length; i++) {
+		if (cover[i] < 0.5) continue;
+		sum += luma[i] * cover[i];
+		weight += cover[i];
+	}
+	return weight ? sum / weight : 0;
+}
+
 /** How flat a square is, before anything is compared: an empty slot is
  *  a dark rectangle and nothing in the bank should be asked about it. */
 export function contrastOf(rgba, w, h, { cx, cy, side }) {
@@ -522,7 +573,7 @@ export function similarity(a, b) {
  */
 export function bankEntry(name, rgba, w, h) {
 	const at = { cx: w / 2, cy: h / 2, side: Math.min(w, h) };
-	return { name, coarse: describe(rgba, w, h, at, COARSE), fine: describe(rgba, w, h, at, FINE) };
+	return { name, coarse: describe(rgba, w, h, at, COARSE), fine: describe(rgba, w, h, at, FINE), light: lightOf(rgba, w, h, at, FINE) };
 }
 
 /**
@@ -763,10 +814,55 @@ export function readSlots(rgba, w, h, grid, bank, cal, { flat = 26 } = {}) {
 			name: hit ? hit.name : null,
 			score: ranked[0] ? ranked[0].score : 0,
 			runnerUp: ranked[1] ? ranked[1].score : 0,
-			second: ranked[1] ? ranked[1].name : null
+			second: ranked[1] ? ranked[1].name : null,
+			// a tie the light may settle below: the names within the margin
+			ties: !hit && ranked[0] && ranked[0].score >= TIE_FLOOR ? ranked.filter(r => ranked[0].score - r.score < TIE_MARGIN).slice(0, 4).map(r => r.name) : null,
+			light: lightOf(rgba, w, h, at, FINE)
 		});
 	}
+	settleByLight(out, bank);
 	return out;
+}
+
+// Only a square that plainly is one of a family is settled by its light: a
+// tie at 0.75 between four unrelated things is a thing the bank does not
+// know, not a timber square in another light.
+const TIE_FLOOR = 0.9, TIE_MARGIN = 0.06;
+
+/**
+ * A tie between icons that are one drawing in two lights, settled by
+ * the light. The screenshot's own dimming -- what was behind the window
+ * -- is measured first, as the median over the squares named without
+ * doubt of how bright each is against its own icon; then a tied square
+ * goes to the icon it is nearest to in that light, when it is close to
+ * one and clearly not the other. Two icons that are the same picture at
+ * the same brightness stay a tie, as they should.
+ */
+export function settleByLight(slots, bank, { sure = 0.85, near = 0.12, apart = 0.08 } = {}) {
+	const byName = new Map(bank.map(e => [e.name, e]));
+	const gains = [];
+	for (const s of slots) {
+		if (s.empty || !s.name || s.score < sure || !s.light) continue;
+		const e = byName.get(s.name);
+		if (!e || !e.light) continue;
+		const own = shadeOf(e.light.luma, e.light.cover), got = shadeOf(s.light.luma, e.light.cover);
+		if (own > 0 && got > 0) gains.push(got / own);
+	}
+	if (gains.length < 3) return;
+	gains.sort((a, b) => a - b);
+	const gain = gains[gains.length >> 1];
+	for (const s of slots) {
+		if (s.empty || s.name || !s.ties || s.ties.length < 2) continue;
+		const picks = s.ties.map(name => {
+			const e = byName.get(name);
+			if (!e || !e.light) return null;
+			const want = gain * shadeOf(e.light.luma, e.light.cover), got = shadeOf(s.light.luma, e.light.cover);
+			return want > 0 && got > 0 ? { name, err: Math.abs(Math.log(got / want)) } : null;
+		}).filter(Boolean).sort((a, b) => a.err - b.err);
+		if (picks.length < 2 || picks[0].err > near || picks[1].err - picks[0].err < apart) continue;
+		s.name = picks[0].name;
+		s.lit = true;
+	}
 }
 
 /* ------------------------------------------------------------------ *

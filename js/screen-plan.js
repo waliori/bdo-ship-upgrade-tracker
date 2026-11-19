@@ -32,8 +32,7 @@ export function renderPlan() {
 	const stats = [
 		{ k: T('Fleet progress'), v: `${pct}%`, sub: T('of all required units covered'), cls: 'teal' },
 		{ k: T('Units covered'), v: `${F(have)} / ${F(need)}`, sub: T('across every active build'), cls: '' },
-		{ k: T('Still missing'), v: F(totals.lines), sub: T('materials with nothing behind them'), cls: totals.lines ? 'amber' : 'teal' },
-		{ k: T('Craftable now'), v: F(ready.length), sub: T('recipes ready from stock'), cls: ready.length ? 'teal' : 'off' }
+		{ k: T('Still missing'), v: F(totals.lines), sub: T('materials with nothing behind them'), cls: totals.lines ? 'amber' : 'teal' }
 	];
 
 	const statHTML = `<div class="stats">${stats.map(s => `
@@ -50,6 +49,7 @@ export function renderPlan() {
 				${img(c.item, '')}${F(c.suggested)}× ${esc(gameName(c.item))}
 			</button>`).join('')}${ready.length > 8
 			? `<button class="ready-chip more" data-act="view" data-id="workshop" title="${T('The Workshop lists every one')}">${T('and {n} more…', { n: ready.length - 8 })}</button>` : ''}</div>
+		<button class="act quiet small readybar-go" data-act="view" data-id="workshop">${T('Open Workshop')}</button>
 	</div>` : '';
 
 	const filters = [
@@ -87,7 +87,7 @@ export function renderPlan() {
 		// stood above the steps that say how to start; the steps lead,
 		// and the figures wait for something to count.
 		if (nothingQueued) return startHere() + readyHTML;
-		return statHTML + readyHTML + controlsHTML(filters)
+		return (readyHTML || nextStep()) + statHTML + controlsHTML(filters)
 			+ `<div class="panel"><p class="empty">${T('Nothing matches that filter.')}</p></div>`;
 	}
 
@@ -99,7 +99,9 @@ export function renderPlan() {
 		${g.list.map(({ item, r, covered }) => planRow(item, r, covered)).join('')}
 	</div>`).join('');
 
-	return nextStep() + todayStrip() + statHTML + readyHTML + controlsHTML(filters) + groupHTML;
+	// What can be crafted is the next step whenever there is any: the
+	// strip names each recipe, so it stands where the banner would.
+	return (readyHTML || nextStep()) + todayStrip() + statHTML + controlsHTML(filters) + groupHTML;
 }
 
 /** One concrete thing to do next, based on where the plan actually stands. */

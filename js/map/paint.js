@@ -26,6 +26,7 @@ import { inBox, hostSize, paintMeasure, restore3D } from './view.js';
 import { drawTerrain, terrainOn, prefetch as prefetchTerrain } from './terrain.js';
 import { MAP_LOADING_DELAY } from '../loading.js';
 
+import { ico } from '../icons.js';
 /* ------------------------------------------------------------------ *
  * painting
  * ------------------------------------------------------------------ */
@@ -991,7 +992,7 @@ function paintHabitats(layer, size) {
 						: T('{who} — {n} spawn points here · click to show or hide them', { who: lead.sub, n: lead.n });
 				const pic = lead.art
 					? `<img class="map-habitat-pic" src="icons/${lead.art}" alt="">`
-					: `<span class="map-habitat-glyph" style="border-color:${lead.colour};color:${lead.colour}">${lead.kind === 'ship' ? '⛵' : '◎'}</span>`;
+					: `<span class="map-habitat-glyph" style="border-color:${lead.colour};color:${lead.colour}">${lead.kind === 'ship' ? ico('sail') : '◎'}</span>`;
 				const badge = many ? `<span class="map-habitat-count">${g.members.length}</span>` : '';
 				el.innerHTML = `<span class="map-habitat-art">${pic}${badge}</span>`
 					+ `<span class="map-habitat-name">${esc(many ? T('{n} habitats', { n: g.members.length }) : lead.name)}</span>`
@@ -1123,7 +1124,7 @@ function paintWharves(layer, size) {
 			el.className = `map-wharf ${w.kind}`;
 			el.dataset.i = i;
 			el.title = `${gameName(w.name)}${w.at ? ` — ${gameName(w.at)}` : ''} — ${w.kind === 'guild' ? T('guild wharf manager') : T('wharf manager: repair, rations, sailors')}`;
-			el.innerHTML = '<span class="map-wharf-dot">⚓</span><span class="map-wharf-name"></span>';
+			el.innerHTML = `<span class="map-wharf-dot">${ico('anchor')}</span><span class="map-wharf-name"></span>`;
 			el.querySelector('.map-wharf-name').textContent = gameName(w.name);
 			pool.set(i, el);
 			layer.appendChild(el);
@@ -1182,7 +1183,7 @@ function paintStash(layer, size, seq, current) {
 			el = document.createElement('button');
 			el.className = 'map-stash';
 			el.dataset.act = 'map-stash';
-			el.innerHTML = '<span class="map-stash-dot">⚓</span><span class="map-stash-badge"></span>'
+			el.innerHTML = `<span class="map-stash-dot">${ico('anchor')}</span><span class="map-stash-badge"></span>`
 				+ '<span class="map-stash-name"><span class="map-stash-who"></span><span class="map-stash-at"></span></span>';
 			el.addEventListener('pointerenter', () => { mv.hoverStash = Number(el.dataset.i); mv.hoverNpc = null; schedulePaint(); });
 			el.addEventListener('pointerleave', () => { mv.hoverStash = -1; schedulePaint(); });
@@ -1279,15 +1280,15 @@ function paintStashTip(host, tip, size, g, pinned) {
 				<span class="map-tip-side ashore" data-peek="${esc(d.item)}"><span class="map-io ashore">${img(d.item, 'map-icon')}</span><span>${esc(gameName(d.item))}</span></span>
 				<span class="map-tip-tries">${n1(d.n)}×</span>
 			</div>`).join('');
-			const questRows = (c.quests || []).map(q => `<div class="map-tip-sub quest">📜 ${esc(gameName(q))}</div>`).join('');
+			const questRows = (c.quests || []).map(q => `<div class="map-tip-sub quest">${ico('scroll')} ${esc(gameName(q))}</div>`).join('');
 			return `<div class="map-tip-call">
 				<div class="map-tip-call-head"><span class="map-tip-k stash">${T('Stop {n}', { n: s.n })}</span>${c.sale ? `<span class="map-tip-sub sell">${c.silver ? T('sells {n} [Level 7] for {silver}', { n: n1(c.sale), silver: FC(c.silver) }) : T('sells {n} [Level 7]', { n: n1(c.sale) })}</span>` : ''}</div>
 				${questRows}
-				${c.rations ? `<div class="map-tip-sub">🍞 ${T('rations bought here — the pool is full again')}</div>` : ''}
+				${c.rations ? `<div class="map-tip-sub">${ico('bread')} ${T('rations bought here — the pool is full again')}</div>` : ''}
 				${rows ? `<div class="map-tip-sub ashore-k">${T('leaves in storage')}</div><div class="map-tip-drops">${rows}</div>` : (c.sale || questRows || c.rations ? '' : `<div class="map-tip-sub none">${T('Nothing left ashore this time.')}</div>`)}
 			</div>`;
 		};
-		tip.innerHTML = `<div class="map-tip-head"><span class="map-tip-name">⚓ ${esc(gameName(g.name))}</span>
+		tip.innerHTML = `<div class="map-tip-head"><span class="map-tip-name">${ico('anchor')} ${esc(gameName(g.name))}</span>
 			${pinned ? `<button class="map-x" data-act="map-tip-close" aria-label="${T('Close')}">×</button>` : ''}</div>
 			<div class="map-tip-sub">${T('{at} wharf', { at: esc(gameName(g.at)) })} · ${g.calls.length > 1
 				? T('the run calls {n} times', { n: g.calls.length })

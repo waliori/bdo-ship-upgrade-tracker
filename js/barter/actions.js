@@ -12,7 +12,7 @@ import { npcById, ports, isleShort } from '../barter_npcs.js';
 import { noteLeg, LEARN_AT, timingLegs, setTimingLegs } from '../ship-pace.js';
 import { cadenceOf } from '../quests.js';
 import { questDone, rewardOf } from '../screen-quests.js';
-import { QUEST_CHOICES, PAUSE_MAX, AIM_CHOICES, STOCK_LEVELS, SAIL_PRESETS, sailPresetOf } from '../barter-orders.js';
+import { QUEST_CHOICES, PAUSE_MAX, AIM_CHOICES, ORDER_CHOICES, STOCK_LEVELS, SAIL_PRESETS, sailPresetOf } from '../barter-orders.js';
 import { PARLEY, COIN_LEVEL, levelOf } from '../barter.js';
 import { pickShots } from '../barter-import.js';
 import { pageName as matPageName } from '../material-book-view.js';
@@ -32,7 +32,7 @@ import { aboardStock, unloadTo, held, openSheet, shoreAboard } from './hold.js';
 import { fitAboard, refusedSaid, inHoldAt } from '../hold-room.js';
 import { matBoardNow, matFitNow, takeMatOffers, openMatBook, openMatRolls, pickGood, pickMaterial, matOn, openMatIsles, pickShipAt } from './material.js';
 import { packedNow, unloadMoves, packApply, toldOf } from './packing.js';
-import { parleyRefilled, retickIfAuto, ordersNow, setOrders, applySaved, dropSaved, askSaveOrders, sellFrom, keepFrom, readBagShot, chainStepsDialog, chainClaimDialog } from './plan.js';
+import { levelGoodsDialog, parleyRefilled, retickIfAuto, ordersNow, setOrders, applySaved, dropSaved, askSaveOrders, sellFrom, keepFrom, readBagShot, chainStepsDialog, chainClaimDialog } from './plan.js';
 import { STASHES, bagSet, legsOf, skippedToday, pulledToday, ledgerOf } from './route.js';
 import { sailKey, sailing, stopKey, ticked, runLabel, runMarks, owesCount, rangeOf, unsyncHold, abandonRun, markDone, sailRecord, planOfSail, stranded, sailedPlan, recordTrip } from './sail.js';
 import { proposeAsync, redrawSoon } from './search.js';
@@ -62,6 +62,9 @@ export function barterAction(act, el, redraw) {
 	V.lastRoute = null;
 	if (act.startsWith('barter-timer-')) return timerAction(act, el, redraw);
 	switch (act) {
+		// A choice made on the day card shuts its cell: the card says what
+		// was chosen, and the next thing to answer -- the board, until it is
+		// read -- opens in its place.
 		case 'barter-goal': V.goal = ['material', 'stock', 'coin'].includes(el.dataset.id) ? el.dataset.id : 'silver'; persist(); return true;
 		// Which of the four steps is on the page. Asked for by hand, it
 		// stays asked for: the page does not slide out from under a sailor
@@ -76,16 +79,40 @@ export function barterAction(act, el, redraw) {
 				bringUp('.barter-screen .steps');
 				return true;
 			}
+			if (V.sheetOpen === 'chains') { closeDialog(); V.sheetOpen = null; }
 			setStep(STEPS.includes(el.dataset.id) ? el.dataset.id : 'plan');
 			bringUp('.barter-screen .steps');
 			return true;
 		}
 		// Which part of the plan is open. Pressing the open one shuts it.
+		// A cell of the day card, opened ahead of its turn or back to one
+		// settled; pressed again, it shuts. The chains open over the page.
 		case 'barter-sec': {
 			const id = el.dataset.id;
-			V.planSec = id === 'all' || id === 'none' ? id : V.planSec === id ? 'none' : id;
-			if (V.planSec === id && id !== 'all' && id !== 'none') bringUp(`.plan-sec[data-sec="${id}"]`);
+			if (id === 'chains') { V.sheetAfter = 'chains'; V.planSec = V.planSec === 'all' ? 'all' : 'none'; persist(); return true; }
+			const open = el.getAttribute('aria-expanded') === 'true';
+			// From inside the chains (the board not read yet): back to the page.
+			if (V.sheetOpen === 'chains') { closeDialog(); V.sheetOpen = null; }
+			V.planSec = id === 'all' || id === 'none' ? id : open ? 'shut' : id;
+			if (V.planSec === id && id !== 'all' && id !== 'none') bringUp(`.barter-screen [data-sec="${id}"]`);
 			persist();
+			return true;
+		}
+		case 'barter-chains': openSheet('chains'); return false;
+		// A step settled: the card moves on to the first one still to do;
+		// with every one done, the chains open to be picked.
+		case 'barter-next': {
+			const day = barterKey(), id = el.dataset.id;
+			const ids = V.planDone.day === day ? V.planDone.ids : [];
+			V.planDone = { day, board: V.planDone.board, ids: [...new Set([...ids, id])] };
+			// Next is the next cell along, settled or not; past the last,
+			// the chains.
+			const order = V.planOrder || [];
+			const after = order[order.indexOf(id) + 1];
+			V.planSec = after || 'none';
+			if (!after) V.sheetAfter = 'chains';
+			persist();
+			bringUp('.barter-screen .day-card');
 			return true;
 		}
 		// "My own way" is a choice like the cards beside it: the first
@@ -109,6 +136,7 @@ export function barterAction(act, el, redraw) {
 			persist();
 			return true;
 		}
+		case 'barter-level-goods': levelGoodsDialog(Number(el.dataset.lv)); return false;
 		case 'barter-coin-node': V.goal = V.goal === 'coin' ? 'silver' : 'coin'; persist(); return true;
 		// Sold or kept, flipped on the rung itself.
 		case 'barter-fate': {
@@ -154,6 +182,7 @@ export function barterAction(act, el, redraw) {
 		case 'barter-saved': applySaved(el.dataset.name); return true;
 		case 'barter-saved-drop': dropSaved(el.dataset.name); return true;
 		case 'barter-aim': V.stockGoal = { ...V.stockGoal, aim: AIM_CHOICES.some(([a]) => a === el.dataset.id) ? el.dataset.id : 'fill' }; persist(); return true;
+		case 'barter-fill-from': V.stockGoal = { ...V.stockGoal, order: ORDER_CHOICES.some(([a]) => a === el.dataset.id) ? el.dataset.id : 'up' }; persist(); return true;
 		// A sailing preset lays over the orders rather than replacing
 		// them: what the ladder set stays exactly as the ladder left it.
 		case 'barter-sail-preset': {

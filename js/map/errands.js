@@ -24,6 +24,7 @@ import { openDialog } from '../dialogs.js';
 import { seaBent } from './marks.js';
 import { mv, persist } from './state.js';
 
+import { ico } from '../icons.js';
 /** Where a day can start: the harbours, and the two wharves every
  *  sailor of this sea passes through anyway. */
 export function harbours() {
@@ -296,7 +297,7 @@ export function errandsHTML() {
 		<div class="errand-set">${from}<span class="segs" role="group" aria-label="${T('Which repeatables to plan for')}">${kinds}</span></div>`;
 	if (!on) {
 		return `<div class="map-courses">${head}
-			<button class="ghost-btn wide" data-act="map-errands" title="${T("Pick a ground for every hunt and put the day's calls in order")}">⚓ ${T('Work out today’s loop')}</button>
+			<button class="ghost-btn wide" data-act="map-errands" title="${T("Pick a ground for every hunt and put the day's calls in order")}">${ico('anchor')} ${T('Work out today’s loop')}</button>
 		</div>`;
 	}
 	if (working) {

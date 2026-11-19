@@ -64,6 +64,51 @@ export const DATA = [
  */
 export const RELEASES = [
 	{
+		id: '1.6.1',
+		name: TT('From your reports'),
+		date: '2026-10-24',
+		blurb: TT('Four days after 1.6.0, what your questions on the server changed: the goal step says plainly what a day does with your stock, a stock can be filled from its top level down, each level of the ladder opens its goods one by one, and the screenshot readers take several pictures at once and ask about a row they are not sure of instead of guessing.'),
+		sum: TT('The goal step says what each day does with the stock, a stock can be filled from the top, each level opens its goods one by one, and the screenshot readers ask rather than guess.'),
+		thanks: {
+			text: TT('Four days of questions on the server — Kemeren’s screenshots and his reading of the goal step, Nerlion’s stock — and what they changed.'),
+			who: [
+				{
+					name: 'kemeren',
+					did: TT('Pasted thirteen pages of the barter window and found what the readers dropped: the second picture, the doubled island, a wreck cut to <i>Shipwrecked</i>, and three storage materials in two lights.')
+				},
+				{
+					name: 'Nerlion',
+					did: TT('Asked for a stock filled from the end: the high targets met first, and the low stock what is left below once they are.')
+				}
+			]
+		},
+		sections: [
+			{
+				title: TT('The goal step and the stock'),
+				text: TT('What each day does with what you hold, said where you choose it.'),
+				points: [
+					TT('<b>The goal step says what each day does with the stock.</b> The silver card keeps and fills a floor of each level, the stock card fills a target of every good and sells nothing, and a <i>Which day is which?</i> table under the cards puts the three side by side. A floor reads <i>keep 10 each</i> and <i>10 of each [Level 1] good</i>, since <i>keeping 10 of Level 1</i> read as a total. Under a floored level, how many goods sit under the floor and how many stand above it; under a stock level, how many of the exchanges paying it your barter count opens.'),
+					TT('<b>A stock filled from the top.</b> Beside the stock run’s aim, <i>from the bottom</i> or <i>from the top</i>. From the top, a lower level’s target holds as a floor only once every targeted level above it is full, so its goods climb freely until then: with the 1:2 and 1:3 rolls, the order that fills [Level 4] and [Level 5] first.'),
+					TT('<b>A quest finished whose reward is in the storage already:</b> <i>reward counted already</i>, on the row and on the batch, ticks the quest and adds nothing to the stock.'),
+					TT('<b>The bag.</b> A run laid by the new planner said nothing went into the bag, whatever it carried; what goes into the bag is said again.'),
+					TT('Under each level of the ladder, the count held opens every good of that level: its icon, how many you hold, a bar to the keep number, and how many are short or spare.')
+				]
+			},
+			{
+				title: TT('The screenshot readers'),
+				text: TT('Several pictures at once, and a row the reader is not sure of is asked, never guessed.'),
+				points: [
+					TT('<b>The barter window reader</b> says which two names it could not tell apart — Supreme Bear Hide from Supreme Boar Hide — and the warning gives way to <i>yours</i> once you have picked; a row read as an island another row of the same picture already is stays apart and unticked; and when no layout in the book fits what was read, the chains step offers <i>Sail what you saw</i>.'),
+					TT('<b>The storage reader</b> tells one drawing in two lights apart — Tide-Dyed and Deep Tide-Dyed Standardized Timber Square, Cobalt and Jade Coral Ingot, Island Tree Coated Plywood plain and Enhanced — by the square’s light against the screenshot’s own dimming, where it threw the three away as ties; and a second storage screenshot pasted adds to the first instead of starting over.'),
+					TT('A screenshot pasted at the Inventory or the Ship tab, with no dialog open, opens its reader with the picture in hand, as a paste at the Barter tab does: several pictures at once, for the readers that take them.'),
+					TT('A screenshot pasted while another is being read is read after it, in every reader: a second paste a moment after the first cut the first one’s reading short, and only the last paste was in the table.'),
+					TT('The paste zones say which browsers paste several screenshots at once: Chrome, Edge, Opera and the other Chromium browsers hand over every file copied, Firefox one a paste — drop or choose the files there.'),
+					TT('A row whose name the column cut to a word several islands share — <i>Shipwrecked</i> opens five wrecks — went under the row above, whose offer it muddled. It is a row of its own now, and it asks: which island, from the ones that begin so. A name read only nearly — a letter off — is shown as read but left unticked until you confirm it. The reader guesses no island.')
+				]
+			}
+		]
+	},
+	{
 		id: '1.6.0',
 		name: TT('A new run planner'),
 		date: '2026-10-20',
@@ -1148,6 +1193,16 @@ export const RELEASES = [
 export const RELEASE = RELEASES[0].id;
 
 export const CHANGES = [
+	{
+		date: '2026-10-24',
+		title: TT('1.6.1: the goal step in plain words, a stock filled from the top, the readers'),
+		notes: [
+			TT('<b>The goal step.</b> Each card says what it does with the stock; a <i>Which day is which?</i> table puts the three days side by side; a floor reads <i>keep 10 each</i>; under a level, how many goods sit under its floor, or how many of its exchanges your barter count opens.'),
+			TT('<b>Stock.</b> Filled from the top, when you say so: a lower target holds only once every target above it is full. A quest whose reward is in the storage already is ticked without adding it.'),
+			TT('<b>Readers.</b> The barter window reader names the two it could not tell apart and keeps a doubled island apart; the storage reader tells one drawing in two lights apart; a second storage screenshot adds to the first; with no layout to fit, <i>Sail what you saw</i>.'),
+			TT('<b>Fixes.</b> A run laid by the new planner said nothing went into the bag.')
+		]
+	},
 	{
 		date: '2026-10-20',
 		title: TT('A new run planner, and the runs it proposes kept'),

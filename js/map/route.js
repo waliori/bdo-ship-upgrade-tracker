@@ -29,6 +29,7 @@ import { paintMap } from './paint.js';
 import { iconStrip, refreshSide } from './render.js';
 import { applyTraceObject } from './trace.js';
 
+import { ico } from '../icons.js';
 // The run sheet the Barter tab draws for a run being sailed, handed in
 // by ui.js (the Barter screen cannot be imported here without a cycle).
 // It takes the chart's islands in order and answers with the sheet when
@@ -378,10 +379,10 @@ export const n1 = v => F(Math.round(v * 10) / 10);
 function stashRow(s, leg, k = -1, extra = '') {
 	const c = s.place;
 	const drops = c.drops.map(d => `<span class="map-drop">${img(d.item, 'map-icon')}<b>${n1(d.n)}×</b>${esc(gameName(d.item))}</span>`).join('');
-	const questsHere = (c.quests || []).length ? `<span class="map-quests">${c.quests.map(q => `<span class="map-quest">📜 ${esc(gameName(q))}</span>`).join('')}</span>` : '';
+	const questsHere = (c.quests || []).length ? `<span class="map-quests">${c.quests.map(q => `<span class="map-quest">${ico('scroll')} ${esc(gameName(q))}</span>`).join('')}</span>` : '';
 	const questOnly = questsHere && !c.drops.length && !c.sale;
 	return `<div class="map-stop-row stash${questOnly ? ' quest' : ''}${k === mv.stepIdx ? ' on' : ''}"${k >= 0 ? ` data-act="map-step" data-i="${k}" data-step-row role="button" tabindex="0" title="${T('Step to {place}', { place: esc(gameName(c.at)) })}"` : ''}>
-		<span class="map-stop-n stash" title="${questOnly ? T('A stop put in for a quest') : c.rations ? T('A call for rations') : T('A pause at a wharf')}">${questOnly ? '📜' : c.rations ? '🍞' : '⚓'}</span>
+		<span class="map-stop-n stash" title="${questOnly ? T('A stop put in for a quest') : c.rations ? T('A call for rations') : T('A pause at a wharf')}">${ico(questOnly ? 'scroll' : c.rations ? 'bread' : 'anchor')}</span>
 		<span class="map-row-main">
 			<span class="map-row-name"><span class="map-row-name-t">${esc(gameName(c.name))}</span>${leg}</span>
 			<span class="map-row-sub">${T('stop {n}', { n: s.n })} · ${questOnly ? esc(gameName(c.at)) : T('{place} wharf', { place: esc(gameName(c.at)) })}${questOnly ? ` · ${T('a quest handed in here')}` : c.rations ? ` · ${T('rations bought here, the pool full again')}` : c.drops.length ? ` · ${T('the hold is lightened here')}` : ` · ${T('the hold is sold down here')}`}</span>

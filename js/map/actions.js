@@ -22,6 +22,7 @@ import { refreshSide } from './render.js';
 import { stashRoute, stashLive, routeSeq } from './route.js';
 import { endWriting, markTraceHost, applyTraceObject } from './trace.js';
 
+import { ico } from '../icons.js';
 /* What the shell's event handling steers. */
 
 export function setMapPick(value) {
@@ -166,7 +167,7 @@ export function openMapPicker() {
 	const rest = names.filter(n => !(snapshot.missing[n] > 0)).sort();
 	const kindWord = { material: T('material'), trade: T('trade good'), coin: T('crow coin') };
 	const items = [
-		{ id: '', label: T('Everything I am short of'), icon: '<span class="row-icon sm map-pick-all">⚓</span>', meta: T('{n} goods', { n: short.length }) },
+		{ id: '', label: T('Everything I am short of'), icon: `<span class="row-icon sm map-pick-all">${ico('anchor')}</span>`, meta: T('{n} goods', { n: short.length }) },
 		...short.map(n => ({ id: n, label: gameName(n), icon: img(n, ''), meta: T('{n} short', { n: F(snapshot.missing[n]) }), group: T('On your build list') })),
 		...rest.map(n => ({ id: n, label: gameName(n), icon: img(n, ''), sub: kindWord[barterKind(n)], group: T('The rest of the sea') })),
 		...monsters.filter(m => m.points.length || m.zones).map(m => ({

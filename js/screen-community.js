@@ -34,6 +34,7 @@ import { openSailorSheet } from './screen-crew.js';
 import { T, said, gameName } from './i18n.js';
 import { loadingNote } from './loading.js';
 
+import { ico, icoFor } from './icons.js';
 let data = null;          // the last answer from /api/community
 let fetchedAt = 0;
 let loading = null;
@@ -176,7 +177,7 @@ const day = ms => (ms ? new Date(ms).toISOString().slice(0, 10) : '');
 
 /** A board's icon: the game's own silver for the silver board, else
  *  the sign it carries. */
-const boardIcon = b => (b && b.id === 'silver' ? img(SILVER, 'comm-silver') : (b && b.icon) || '');
+const boardIcon = b => (b && b.id === 'silver' ? img(SILVER, 'comm-silver') : (b && b.icon ? icoFor(b.icon) : ''));
 
 /** An item's icon, or nothing when the mapping has none. */
 const pic = (name, cls = '', title = '') => {
@@ -189,7 +190,7 @@ const face = (type, cls = '', title = '') => pic(type, `${cls} face`, title || g
 /** A monster's picture, or its glyph. */
 const monsterPic = (key, cls = '') => (monsterArt[key]
 	? `<img class="comm-pic ${cls} beast" src="icons/${esc(monsterArt[key])}" alt="" title="${esc(gameName(monsterName(key)))}" decoding="sync">`
-	: `<span class="comm-pic glyph ${cls}" title="${esc(gameName(monsterName(key)))}">🦈</span>`);
+	: `<span class="comm-pic glyph ${cls}" title="${esc(gameName(monsterName(key)))}">${ico('fin')}</span>`);
 
 /** A crystal by id: its icon, its name and the one number it is chosen for, in its grade's colour. */
 function crystalHTML(id, { icon = true, name = true } = {}) {
@@ -322,7 +323,7 @@ function boardHTML(board) {
 			${b.note ? `<button class="comm-how" data-act="community-how" data-id="${esc(board.id)}" title="${T('How this is counted')}" aria-label="${T('How {board} is counted', { board: esc(said(board.title)) })}">?</button>` : ''}
 		</div>
 		${rows.length ? `<ol class="comm-rank">${rows.map(e => rowHTML(board, e, top)).join('')}${mine ? rowHTML(board, mine, top, true) : ''}</ol>` : `<div class="comm-empty"><p>${T('Nobody has earned a place here yet.')}</p>${b.how ? `<small>${esc(said(b.how))}${who && who.share ? '' : ' ' + T('Then take part.')}</small>` : ''}</div>`}
-		${board.n > rows.length ? `<button class="comm-more" data-act="community-board" data-id="${esc(board.id)}">${T('Show all {n} →', { n: board.n })}</button>` : ''}
+		${board.n > rows.length ? `<button class="comm-more" data-act="community-board" data-id="${esc(board.id)}">${T('Show all {n}', { n: board.n })}</button>` : ''}
 	</section>`;
 }
 
@@ -390,13 +391,13 @@ function fameHTML() {
 		const boards = data.fame.filter(f => (boardById[f.id] || {}).section === s.id);
 		if (!boards.length) return '';
 		return `<div class="comm-section">
-			<div class="comm-section-head"><h3><span aria-hidden="true">${s.icon}</span> ${esc(said(s.title))}</h3><span>${boards.length === 1 ? T('{n} board', { n: boards.length }) : T('{n} boards', { n: boards.length })}</span><i></i></div>
+			<div class="comm-section-head"><h3><span aria-hidden="true">${icoFor(s.icon)}</span> ${esc(said(s.title))}</h3><span>${boards.length === 1 ? T('{n} board', { n: boards.length }) : T('{n} boards', { n: boards.length })}</span><i></i></div>
 			<div class="comm-boards">${boards.map(boardHTML).join('')}</div>
 		</div>`;
 	}).join('');
 	return `<div class="comm-fame">
 		<div class="comm-numbar">
-			<div class="chips comm-cats" role="tablist" aria-label="${T('Sections')}">${chips.map(c => `<button class="chip${fameSec === c.id ? ' active' : ''}" role="tab" aria-selected="${fameSec === c.id}" data-act="community-sec" data-id="${c.id}"><span aria-hidden="true">${c.icon}</span> ${esc(said(c.title))}</button>`).join('')}</div>
+			<div class="chips comm-cats" role="tablist" aria-label="${T('Sections')}">${chips.map(c => `<button class="chip${fameSec === c.id ? ' active' : ''}" role="tab" aria-selected="${fameSec === c.id}" data-act="community-sec" data-id="${c.id}"><span aria-hidden="true">${icoFor(c.icon)}</span> ${esc(said(c.title))}</button>`).join('')}</div>
 			<span class="comm-numbar-note">${T('Top {n} on each board · your own place always shown · press a sailor for the card', { n: TOP })}</span>
 		</div>
 		${sections}
@@ -433,7 +434,7 @@ function bars({ id, cat, icon, title, note, table, name = k => k, sub = null, pi
 	const open = numOpen.has(id);
 	const shown = open || rows.length <= LIM ? rows : rows.slice(0, LIM);
 	return `<section class="panel comm-bars" data-cat="${esc(cat)}" data-id="${esc(id)}">
-		<div class="comm-board-head"><span class="comm-board-icon" aria-hidden="true">${icon}</span><div class="comm-board-t"><h3 class="comm-board-title">${esc(title)}</h3><span class="comm-board-desc">${esc(note)}</span></div><span class="comm-board-n">${rows.length ? F(total) : ''}</span></div>
+		<div class="comm-board-head"><span class="comm-board-icon" aria-hidden="true">${icoFor(icon)}</span><div class="comm-board-t"><h3 class="comm-board-title">${esc(title)}</h3><span class="comm-board-desc">${esc(note)}</span></div><span class="comm-board-n">${rows.length ? F(total) : ''}</span></div>
 		${rows.length ? `<div class="comm-bar-list">${shown.map(([k, c], i) => `
 			<div class="comm-bar-row${link && link(k) ? ' comm-go' : ''}"${door(k)}${link && link(k) ? ' role="button" tabindex="0"' : ''} title="${esc(gameName(name(k)))}${sub && sub(k) ? ` — ${esc(sub(k))}` : ''}">
 				<span class="comm-bar-name">${picture ? picture(k) : `<span class="comm-bar-i">${i + 1}</span>`}<span class="comm-bar-text"><span>${esc(gameName(name(k)))}</span>${sub && sub(k) ? `<small>${sub(k)}</small>` : ''}</span>${link && link(k) ? ' <i class="comm-door" aria-hidden="true">›</i>' : ''}</span>
@@ -459,7 +460,7 @@ function columns({ cat, icon, title, note, counts, labels, tip = (n, label) => `
 	const max = Math.max(...counts, 0);
 	const total = counts.reduce((a, b) => a + b, 0);
 	return `<section class="panel comm-bars" data-cat="${esc(cat)}">
-		<div class="comm-board-head"><span class="comm-board-icon" aria-hidden="true">${icon}</span><div class="comm-board-t"><h3 class="comm-board-title">${esc(title)}</h3><span class="comm-board-desc">${esc(note)}</span></div><span class="comm-board-n">${total ? F(total) : ''}</span></div>
+		<div class="comm-board-head"><span class="comm-board-icon" aria-hidden="true">${icoFor(icon)}</span><div class="comm-board-t"><h3 class="comm-board-title">${esc(title)}</h3><span class="comm-board-desc">${esc(note)}</span></div><span class="comm-board-n">${total ? F(total) : ''}</span></div>
 		${max ? `<div class="comm-cols">${counts.map((c, i) => `
 			<div class="comm-col" title="${tip(F(c), esc(labels[i]))}">
 				<b>${c ? F(c) : ''}</b><i style="height:${Math.max(2, Math.round((c / max) * 60))}px"></i><span>${esc(labels[i])}</span>
@@ -487,7 +488,7 @@ const questPic = id => {
 function numbersHTML() {
 	const s = data.stats;
 	const t = s.totals;
-	const tile = (icon, k, v, sub = '', cls = '') => `<div class="stat comm-stat"><span class="comm-stat-i" aria-hidden="true">${icon}</span><div><div class="stat-k">${esc(k)}</div><div class="stat-v${cls ? ` ${cls}` : ''}">${v}</div>${sub ? `<div class="stat-sub">${esc(sub)}</div>` : ''}</div></div>`;
+	const tile = (icon, k, v, sub = '', cls = '') => `<div class="stat comm-stat"><span class="comm-stat-i" aria-hidden="true">${icoFor(icon)}</span><div><div class="stat-k">${esc(k)}</div><div class="stat-v${cls ? ` ${cls}` : ''}">${v}</div>${sub ? `<div class="stat-sub">${esc(sub)}</div>` : ''}</div></div>`;
 	const panels = [
 		bars({ id: 'sailing', cat: 'ships', icon: '⛵', title: T('Hulls most sailed'), note: T('the ship each sailor is sailing now'), table: s.sailing, unit: T('sailors'), picture: k => pic(k, 'sm'), link: item }),
 		bars({ id: 'hulls', cat: 'ships', icon: '🚢', title: T('Hulls owned'), note: T('across every setup'), table: s.hulls, unit: T('sailors'), picture: k => pic(k, 'sm'), link: item }),
@@ -518,7 +519,7 @@ function numbersHTML() {
 			${tile('✎', T('Traces drawn'), F(t.traces), T('{n} points', { n: F(t.points) }))}
 		</div>
 		<div class="comm-numbar">
-			<div class="chips comm-cats" role="tablist" aria-label="${T('Categories')}">${CATS().map(([id, icon, label]) => `<button class="chip${numCat === id ? ' active' : ''}" role="tab" aria-selected="${numCat === id}" data-act="community-cat" data-id="${id}"><span aria-hidden="true">${icon}</span> ${label}</button>`).join('')}</div>
+			<div class="chips comm-cats" role="tablist" aria-label="${T('Categories')}">${CATS().map(([id, icon, label]) => `<button class="chip${numCat === id ? ' active' : ''}" role="tab" aria-selected="${numCat === id}" data-act="community-cat" data-id="${id}"><span aria-hidden="true">${icoFor(icon)}</span> ${label}</button>`).join('')}</div>
 			<input class="field comm-numq" type="search" value="${esc(numQ)}" placeholder="${T('Find a hull, a part, a crystal, a quest, an island…')}" aria-label="${T('Find a row')}" data-act="community-numq">
 			<div class="chips comm-sort"><span class="comm-sort-k">${T('sort')}</span><button class="chip tiny${numSort === 'count' ? ' active' : ''}" data-act="community-sort" data-id="count">${T('most first')}</button><button class="chip tiny${numSort === 'name' ? ' active' : ''}" data-act="community-sort" data-id="name">${T('A–Z')}</button></div>
 		</div>
@@ -694,7 +695,7 @@ function paintCard(host, c, section) {
 				<div class="comm-hull-sub">${on ? T('{n} of 4 parts fitted', { n: on }) : T('bare hull')}${h.skins ? ` · ${T('{n} of 4 appearance slots', { n: h.skins })}` : ''}</div>
 				<div class="comm-hull-fit">${slotsHTML(h.parts, fitted)}${h.crystal ? crystalHTML(h.crystal) : `<span class="comm-crystal off" title="${T('No sea crystal in the slot')}">${T('no crystal')}</span>`}</div>
 			</div>
-			${look(T('Look ›'), ` data-hull="${esc(h.ship)}"`, T('The Ship tab on this hull, to look at and not to keep'))}
+			${look(T('Look'), ` data-hull="${esc(h.ship)}"`, T('The Ship tab on this hull, to look at and not to keep'))}
 		</div>`;
 	};
 	const sailor = m => `<div class="comm-sailor">
@@ -705,10 +706,10 @@ function paintCard(host, c, section) {
 			<span class="comm-lv-bar"><i style="width:${m.lv * 10}%"></i></span>
 		</div>
 		<b class="comm-lv${m.lv >= 10 ? ' max' : ''}">${T('Lv {n}', { n: m.lv })}</b>
-		${m.id ? `<button class="chip tiny primary" data-act="community-sailor-sheet" data-ref="${esc(c.ref)}" data-sailor="${esc(m.id)}" title="${T("The sailor's sheet: growths, condition, the seat and what it does with them")}">${T('Look ›')}</button>` : ''}
+		${m.id ? `<button class="chip tiny primary" data-act="community-sailor-sheet" data-ref="${esc(c.ref)}" data-sailor="${esc(m.id)}" title="${T("The sailor's sheet: growths, condition, the seat and what it does with them")}">${T('Look')}</button>` : ''}
 	</div>`;
 	const fig = (k, v, sub = '', cls = '') => `<div class="comm-fig"><span>${esc(k)}</span><b${cls ? ` class="${cls}"` : ''}>${v}</b>${sub ? `<small>${esc(sub)}</small>` : ''}</div>`;
-	const h3 = (id, icon, text, sub = '') => `<h3 class="comm-card-h" id="card-${id}"><span aria-hidden="true">${icon}</span> ${text}${sub ? ` <small>· ${esc(sub)}</small>` : ''}</h3>`;
+	const h3 = (id, icon, text, sub = '') => `<h3 class="comm-card-h" id="card-${id}"><span aria-hidden="true">${icoFor(icon)}</span> ${text}${sub ? ` <small>· ${esc(sub)}</small>` : ''}</h3>`;
 	const questRows = Object.entries(d.quests.byId).filter(([id]) => !(questById[id] && questById[id].monster)).map(([id, n]) => `<button class="comm-tag" data-act="view" data-id="quests" data-quest="${esc(id)}" title="${T('Open the quest on the Quests tab')}">${questPic(id)}${esc(questName(id))}<b>×${F(n)}</b></button>`).join('');
 	const huntRows = Object.entries(d.quests.hunts).map(([m, n]) => `<button class="comm-tag hunt" data-act="quest-map" data-monster="${esc(m)}" title="${T('Show the grounds on the chart')}">${monsterPic(m, 'sm')}${esc(gameName(monsterName(m)))}<b>×${F(n)}</b></button>`).join('');
 	const madeRows = Object.entries(d.yard.shipsMade).map(([m, n]) => `<button class="comm-tag" data-act="community-item" data-item="${esc(m)}" title="${T("The item's card")}">${pic(m, 'sm')}${esc(gameName(m))}<b>×${F(n)}</b></button>`).join('');
@@ -737,7 +738,7 @@ function paintCard(host, c, section) {
 			<div class="comm-card-cols">
 				<div>
 					${h3('ship', '⚓', d.fleet.n > 1 ? T('The ship and the fleet') : T('The ship'), d.fleet.n ? (d.fleet.n === 1 ? T('{n} hull', { n: d.fleet.n }) : T('{n} hulls', { n: d.fleet.n })) : '')}
-					${canLook ? `<button class="act small comm-look" data-act="community-look" data-ref="${esc(c.ref)}" title="${T("The Ship tab on this sailor's boat: hull, parts, crystal, seats and roster, to look at and not to keep")}">⚓ ${T('Look at the ship')}</button>` : ''}
+					${canLook ? `<button class="act small comm-look" data-act="community-look" data-ref="${esc(c.ref)}" title="${T("The Ship tab on this sailor's boat: hull, parts, crystal, seats and roster, to look at and not to keep")}">${ico('anchor')} ${T('Look at the ship')}</button>` : ''}
 					${d.fleet.list.length ? `<div class="comm-hulls">${d.fleet.list.map(hull).join('')}</div>` : `<p class="comm-empty">${T('No hull recorded.')}</p>`}
 					${h3('crew', '👥', T('The crew'), d.crew.n ? `${d.crew.n === 1 ? T('{n} sailor', { n: d.crew.n }) : T('{n} sailors', { n: d.crew.n })}${d.crew.avgLv ? ` · ${T('average Lv {n}', { n: d.crew.avgLv })}` : ''}` : '')}
 					${d.crew.top.length ? `<div class="comm-sailors">${d.crew.top.map(sailor).join('')}${d.crew.n > d.crew.top.length ? `<p class="comm-empty">${T('and {n} more — {where}', { n: d.crew.n - d.crew.top.length, where: canLook ? T('all on the Ship tab') : T('not shared') })}</p>` : ''}</div>` : `<p class="comm-empty">${T('Nobody hired yet.')}</p>`}
@@ -827,7 +828,7 @@ function openFind() {
 			if (input.value.trim() !== q) return;
 			const hits = res && res.ok ? res.body.sailors : [];
 			list.innerHTML = hits.length
-				? `<ol class="comm-rank">${hits.map(h => `<li class="comm-row" data-act="community-sailor" data-ref="${esc(h.ref)}" role="button" tabindex="0"><span class="comm-pos">·</span>${avatarHTML({ ...h, named: true })}<span class="comm-who"><span class="comm-name">${esc(h.name)}</span></span><b class="comm-val">${T('card →')}</b></li>`).join('')}</ol>`
+				? `<ol class="comm-rank">${hits.map(h => `<li class="comm-row" data-act="community-sailor" data-ref="${esc(h.ref)}" role="button" tabindex="0"><span class="comm-pos">·</span>${avatarHTML({ ...h, named: true })}<span class="comm-who"><span class="comm-name">${esc(h.name)}</span></span><b class="comm-val">${T('card')}</b></li>`).join('')}</ol>`
 				: `<p class="comm-empty">${T('Nobody by that name on the boards.')}</p>`;
 		}, 250);
 	});

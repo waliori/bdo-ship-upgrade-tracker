@@ -296,7 +296,21 @@ export function yardsticks(silver, parleyUsed, hours) {
  * before the run climbs from it and only the surplus goes up. The
  * defaults are the old preset's floors, which came from the guide.
  */
-export const DEFAULT_STOCK = { targets: { 1: 10, 2: 30, 3: 30, 4: 40, 5: 0, 6: 0, 7: 0 }, ceiling: 4, aim: 'fill' };
+export const DEFAULT_STOCK = { targets: { 1: 10, 2: 30, 3: 30, 4: 40, 5: 0, 6: 0, 7: 0 }, ceiling: 4, aim: 'fill', order: 'up' };
+
+/**
+ * Which end the stock is filled from. From the bottom, a target is a
+ * floor from the first run: a level fills before anything climbs from
+ * it, and the ladder is fed only by the surplus. From the top -- Nerlion's
+ * ask, with the 1:2 and 1:3 rolls in mind -- the high targets come
+ * first: a low level's floor holds only once every targeted level
+ * above it is full, so until then its goods climb freely and what is
+ * left below is the low stock.
+ */
+export const ORDER_CHOICES = [
+	['up', TT('from the bottom'), TT('A level fills before anything climbs from it; only the surplus goes up')],
+	['down', TT('from the top'), TT('The high targets first: a lower floor holds only once every target above it is met, and the goods below climb freely until then')]
+];
 
 /** The levels a stock can be kept at. */
 export const STOCK_LEVELS = [1, 2, 3, 4, 5, 6, 7];
@@ -322,6 +336,7 @@ export function readStock(raw) {
 	}
 	if (STOCK_LEVELS.includes(Number(raw.ceiling))) out.ceiling = Number(raw.ceiling);
 	if (AIM_CHOICES.some(([a]) => a === raw.aim)) out.aim = raw.aim;
+	if (ORDER_CHOICES.some(([a]) => a === raw.order)) out.order = raw.order;
 	return out;
 }
 
@@ -331,6 +346,15 @@ export function readStock(raw) {
  * way round, the quests, the hours -- is left as it was set, since a
  * stock run is sailed the same way a silver one is.
  */
-export function stockOrders(orders, stock) {
-	return { ...orders, sell: NOTHING, floors: { ...stock.targets } };
+export function stockOrders(orders, stock, fullAt = null) {
+	const floors = { ...stock.targets };
+	// Filled from the top: a floor holds only under levels already full.
+	if (stock.order === 'down' && fullAt) {
+		for (const lv of STOCK_LEVELS) {
+			if (!floors[lv]) continue;
+			const above = STOCK_LEVELS.filter(m => m > lv && m <= stock.ceiling && stock.targets[m] > 0);
+			if (above.some(m => !fullAt(m))) floors[lv] = 0;
+		}
+	}
+	return { ...orders, sell: NOTHING, floors };
 }

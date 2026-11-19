@@ -38,6 +38,7 @@ import { RELEASE } from './release.js';
 import { whileLoading, loadingNote } from './loading.js';
 import { renderMarkup, renderPlain, fileURL, MAX_MARKUP } from './markup.js';
 
+import { ico } from './icons.js';
 const ISSUES = 'https://github.com/waliori/bdo-ship-upgrade-tracker/issues';
 
 const KINDS = [
@@ -347,7 +348,7 @@ export function openFeedback(kind = 'bug') {
 				<button type="button" class="fb-mark" data-mark="quote" title="${T('Something quoted')}" aria-label="${T('Quote')}">❝</button>
 				<button type="button" class="fb-mark" data-act="link" title="${T('A link (Ctrl+K)')}" aria-label="${T('Link')}">↗</button>
 				<span class="fb-bar-gap"></span>
-				<button type="button" class="fb-mark fb-attach" data-act="attach" title="${T('A screenshot')}">🖼<span class="btn-label"> ${T('Image')}</span></button>
+				<button type="button" class="fb-mark fb-attach" data-act="attach" title="${T('A screenshot')}">${ico('image')}<span class="btn-label"> ${T('Image')}</span></button>
 				<button type="button" class="fb-mark fb-eye" data-act="preview" aria-pressed="false">${T('Preview')}</button>
 			</div>
 			<textarea class="field fb-text" rows="8" maxlength="${MAX_MARKUP}"

@@ -24,6 +24,7 @@ import { openDialog, closeDialog, toast } from './dialogs.js';
 import { img, codexName } from './ui-bits.js';
 import { CROW_COIN } from './ui-state.js';
 
+import { ico } from './icons.js';
 /** Where the coins are spent, for a dialog that should say so. */
 export const SHOP = TT('the Crow Coin Shop at Oquilla’s Eye');
 
@@ -45,7 +46,7 @@ export function coinBuyButton(item, want = 1, { small = true, label = null } = {
 	const n = Math.max(1, Math.floor(Number(want) || 1));
 	return `<button class="act quiet${small ? ' small' : ''} coin-buy" data-act="coin-buy"
 		data-item="${esc(item)}" data-n="${n}"
-		title="${T('Record buying {item} at {shop} — the coins come off your purse', { item: esc(gameName(item)), shop: esc(said(SHOP)) })}">🪙 ${esc(label || T('Buy with coins'))}</button>`;
+		title="${T('Record buying {item} at {shop} — the coins come off your purse', { item: esc(gameName(item)), shop: esc(said(SHOP)) })}">${ico('coins')} ${esc(label || T('Buy with coins'))}</button>`;
 }
 
 /**

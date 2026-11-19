@@ -20,8 +20,9 @@ import { T, said } from './i18n.js';
 import * as store from './state.js';
 import { openDialog, closeDialog, toast } from './dialogs.js';
 import { anyType, pool, mateTypes, SAILOR_CAP, logLevel, STAT_NAMES, statBand } from './sailors.js';
-import { LIMITS, triage, readShots, wireShotIntake, close as closeReader, shotLang, shotLangNote } from './shot-reader.js';
+import { LIMITS, triage, readShots, wireShotIntake, close as closeReader, shotLang, shotLangNote, queuedNote, pasteManyNote } from './shot-reader.js';
 
+import { ico } from './icons.js';
 const MOVES = ['speed', 'accel', 'turn', 'brake'];
 const CANNON = ['patience', 'force', 'focus', 'vision'];
 
@@ -43,7 +44,7 @@ const TYPE_OPTIONS = [...pool.map(t => t.type).sort(), ...mateTypes.map(t => t.t
  * the dialog
  * ------------------------------------------------------------------ */
 
-export function openSailorImport(after = () => {}) {
+export function openSailorImport(after = () => {}, files = null) {
 	let stop = null;          // an AbortController while a batch is being read
 	let rows = [];            // what was read, as the review table has it
 	let skipped = [];         // files that were not read, and why
@@ -83,10 +84,11 @@ export function openSailorImport(after = () => {}) {
 		<p class="dialog-note quiet">${T("Whichever it is, keep the sailor's name at the top and the last growth at the bottom inside the crop: the name, the condition, the appetite, the cabin cost, the weight and the growths are all read off it.")}</p>
 		${shotLangNote()}
 		<div class="shot-drop" data-drop tabindex="0" role="button" aria-label="${T('Choose screenshots to read')}">
-			<div class="shot-drop-mark">⛵</div>
+			<div class="shot-drop-mark">${ico('sail')}</div>
 			<div><b>${T('Drop screenshots here, or paste one')}</b></div>
 			<div class="row-sub">${T('{paste}, or {link}', { paste: `<b>${T('Ctrl+V')}</b>`, link: `<button class="link-btn" data-choose>${T('choose files')}</button>` })}</div>
 			<div class="row-sub quiet">${T('A shot taken with Shift+Win+S goes to the clipboard — paste it straight in, no file to save first.')}</div>
+			<div class="row-sub quiet">${pasteManyNote()}</div>
 			<input type="file" accept="image/png,image/jpeg,image/webp" multiple hidden data-files>
 		</div>
 		<p class="dialog-note quiet">${T('Up to {files} at a time, {mb} MB each, PNG, JPEG or WebP.', { files: LIMITS.files, mb: Math.round(LIMITS.bytes / 1024 / 1024) })}
@@ -148,10 +150,21 @@ export function openSailorImport(after = () => {}) {
 	};
 
 	/* --- doing it ---------------------------------------------------- */
+	let pending = [];        // pasted while a batch was being read: read after it
+	let adding = false;      // this batch follows one already in the table
+	// A paste while a batch is being read is read after it, not instead
+	// of it: a second screenshot pasted a moment after the first cut the
+	// first one's reading short, and only the last paste was in the table.
 	async function run(files) {
+		if (stop) { pending.push(...files); queuedNote(host()); return; }
+		await read(files);
+		if (pending.length && !host().hidden) { const more = pending; pending = []; adding = true; try { await run(more); } finally { adding = false; } }
+		else pending = [];
+	}
+	async function read(files) {
 		const { take, skipped: out } = await triage([...files]);
-		skipped = out.map(s => ({ name: s.file.name, why: s.why }));
-		if (!take.length) { rows = []; draw(reviewView()); return; }
+		skipped = [...(adding ? skipped : []), ...out.map(s => ({ name: s.file.name, why: s.why }))];
+		if (!take.length) { if (!adding) rows = []; draw(reviewView()); return; }
 		stop = new AbortController();
 		draw(readingView(0, T('Fetching the reader…')));
 		const onProgress = p => {
@@ -175,7 +188,7 @@ export function openSailorImport(after = () => {}) {
 			stop = null;
 		}
 		const list = roster();
-		rows = [];
+		if (!adding) rows = [];
 		for (const r of results) {
 			if (!r.sailor) { skipped.push({ name: r.file, why: r.why }); continue; }
 			const s = r.sailor;
@@ -246,5 +259,6 @@ export function openSailorImport(after = () => {}) {
 		});
 	}
 
-	draw(pickView());
+	if (files && files.length) run(files);
+	else draw(pickView());
 }

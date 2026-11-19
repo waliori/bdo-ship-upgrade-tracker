@@ -13,6 +13,7 @@
 // material layouts, as the trade board is one of its forty.
 
 import { T } from './i18n.js';
+import { esc } from './fmt.js';
 import { loadingNote } from './loading.js';
 import * as store from './state.js';
 import { img } from './ui-bits.js';
@@ -21,10 +22,10 @@ import { currentShip } from './ship.js';
 import { V } from './barter/state.js';
 import { boardNow, boardHTML, pinnedHTML, rolledHTML } from './barter/board.js';
 import { stepNow, stepperHTML, underWayHTML, recordedHTML, sailHTML } from './barter/cockpit.js';
-import { holdBarHTML, refreshSheet } from './barter/hold.js';
-import { materialParts } from './barter/material.js';
+import { holdBarHTML, refreshSheet, openSheet } from './barter/hold.js';
+import { materialParts, matBoardNow, matPageNow } from './barter/material.js';
 import { silverParts } from './barter/parts.js';
-import { dayStep, goalCardsHTML, planSection } from './barter/plan.js';
+import { dayCardHTML, goalCardsHTML, goalSaid } from './barter/plan.js';
 import { resultsHTML } from './barter/results.js';
 import { sailing, strandedHTML } from './barter/sail.js';
 import { shapeBarHTML } from './barter/short.js';
@@ -56,21 +57,37 @@ export function renderBarter() {
 	// Laid from the hold as it cast off, while a run is under way: its
 	// ticked stops are in the Inventory already.
 	const parts = store.readingAsWas(V.sail && V.sail.applied, () => (V.goal === 'material' ? materialParts(me, b.data) : silverParts(me, b)));
-	setTimeout(refreshSheet, 0);
+	setTimeout(() => {
+		if (V.sheetAfter && V.chainsSheet) openSheet(V.sheetAfter);
+		V.sheetAfter = null;
+		refreshSheet();
+	}, 0);
 	const now = stepNow();
 	const on = sailing();
-	const secs = parts.secs.map(([id, title, summary, body], i) => planSection(i + 1, id, title, summary, body)).join('');
-	// Three steps, in the order they are answered: what the day is for,
-	// then what the game is showing -- the board or the material list,
-	// whichever that answer reads -- then the run.
-	const planStep = `${dayStep(1, T('What is today for?'), T('It decides which list of the barter window is read next'))}
-		${goalCardsHTML()}
-		${dayStep(2, V.goal === 'material' ? T('Read today’s material list') : T('Read today’s board'), V.goal === 'material' ? T('A screenshot of the barter window: its rows paying ship materials are read') : T('A screenshot of the barter window: the layout is found from a few islands'))}
-		${rolledHTML()}${pinnedHTML(b)}${boardHTML(b)}${parts.cont || ''}
-		${dayStep(3, T('Plan the run'), T('Four parts · each opens when the one before is settled'), `<button class="linky" data-act="barter-sec" data-id="all">${T('show all')}</button><button class="linky" data-act="barter-sec" data-id="none">${T('collapse all')}</button>`)}
-		${shapeBarHTML()}
-		${secs}${parts.dock || ''}`;
-	const loadFoot = `<div class="load-dock"><button class="linky" data-act="barter-step" data-id="plan">‹ ${T('Back to the plan')}</button><span class="run-dock-figs"><span>${parts.things.all ? (parts.things.later ? T('Trip 1: {n} of {of} aboard', { n: parts.things.done, of: parts.things.all }) : T('{n} of {of} aboard', { n: parts.things.done, of: parts.things.all })) : ''}</span>${parts.things.later ? `<span>${T('{n} picked up on the way', { n: parts.things.later })}</span>` : ''}</span>${on ? `<button class="act" data-act="barter-step" data-id="sail">${T('Back to the run')} ›</button>` : `<button class="act" data-act="barter-cast-off"${V.shownPlan && V.shownPlan.stops && V.shownPlan.stops.length ? '' : ' disabled'} title="${T('Each stop goes into the hold as you tick it; at the end the run is recorded')}">${img(currentShip().name, 'ship-ico')} ${T('Cast off')}</button>`}</div>`;
+	// The day card: every choice the run is laid from, in the order a day
+	// is settled -- what it is for, the board, how much of it, the Parley,
+	// where it ends, how it is sailed -- each cell saying what it is set
+	// to. The first step not yet settled is the one open; Next settles it
+	// and opens the one after, and any cell can be opened ahead of its
+	// turn. The chains are the answer to all of it: folded to a line
+	// while a step is open, in full once the card is done or shut.
+	const material = V.goal === 'material';
+	const matPage = material ? matPageNow() : null;
+	const boardRead = material ? matBoardNow().answers.length > 0 : Boolean(b.combo);
+	const boardSaid = material
+		? (matPage ? T('Material layout {id}', { id: esc(matPage.id) }) : boardRead ? T('looked at') : T('the board is not read yet'))
+		: b.combo ? T('Layout {id}', { id: esc(b.combo.id) }) : T('the board is not read yet');
+	const cells = [
+		['goal', T('What is today for?'), goalSaid(), goalCardsHTML()],
+		['board', material ? T('Today’s material list') : T('Today’s board'), boardSaid, `${pinnedHTML(b)}${boardHTML(b)}`],
+		...(material || V.reach ? [] : [['shape', T('How much of the board'), V.shape === 'short' ? T('Short trip') : T('Full run'), shapeBarHTML()]]),
+		...parts.secs.filter(([id]) => id !== 'chains')
+	];
+	const chains = parts.secs.find(([id]) => id === 'chains');
+	V.chainsSheet = chains ? `<div class="panel-head"><h2 class="panel-title">${chains[1]}</h2><span class="panel-sub">${chains[2]}</span></div>${chains[3]}${parts.dock || ''}` : '';
+	const planStep = `${rolledHTML()}${parts.cont || ''}
+		${dayCardHTML(cells, chains, boardRead, `${V.goal}|${material ? (matPage ? matPage.id : boardRead ? 'read' : '') : b.combo ? b.combo.id : ''}`)}${parts.dock || ''}`;
+	const loadFoot = `<div class="load-dock"><button class="linky" data-act="barter-step" data-id="plan">${T('Back to the plan')}</button><span class="run-dock-figs"><span>${parts.things.all ? (parts.things.later ? T('Trip 1: {n} of {of} aboard', { n: parts.things.done, of: parts.things.all }) : T('{n} of {of} aboard', { n: parts.things.done, of: parts.things.all })) : ''}</span>${parts.things.later ? `<span>${T('{n} picked up on the way', { n: parts.things.later })}</span>` : ''}</span>${on ? `<button class="act" data-act="barter-step" data-id="sail">${T('Back to the run')}</button>` : `<button class="act" data-act="barter-cast-off"${V.shownPlan && V.shownPlan.stops && V.shownPlan.stops.length ? '' : ' disabled'} title="${T('Each stop goes into the hold as you tick it; at the end the run is recorded')}">${img(currentShip().name, 'ship-ico')} ${T('Cast off')}</button>`}</div>`;
 	// While a run is under way the step leads with what it said at the
 	// wharf, kept with the run: the live list below is laid again from
 	// the hold as it is now.
