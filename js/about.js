@@ -64,14 +64,30 @@ export const DATA = [
  */
 export const RELEASES = [
 	{
-		id: '1.6.1',
-		name: TT('From your reports'),
-		date: '2026-10-24',
-		blurb: TT('Four days after 1.6.0, what your questions on the server changed: the goal step says plainly what a day does with your stock, a stock can be filled from its top level down, each level of the ladder opens its goods one by one, and the screenshot readers take several pictures at once and ask about a row they are not sure of instead of guessing.'),
-		sum: TT('The goal step says what each day does with the stock, a stock can be filled from the top, each level opens its goods one by one, and the screenshot readers ask rather than guess.'),
+		id: '1.7.0',
+		name: TT('What you asked for on the server'),
+		date: '2026-11-19',
+		blurb: TT('A month of your messages on the server and in the box, and what they changed. A run you edit by hand keeps the plan it had found; a run can load at one port and end at another; a quest given by someone else is picked up on the way; the stops you plot on the Map move by hand and can sit at a wharf or a habitat; a coin day can leave out the trades that pay too few Crow Coins. The Barter tab reads as steps, and a phone takes your barter count again.'),
+		sum: TT('A run you edit keeps its plan, can load at one port and end at another, and picks its quests up; the Map’s stops move by hand; a floor of Crow Coins a trade; the Barter tab as steps; the phone’s fields fixed.'),
 		thanks: {
-			text: TT('Four days of questions on the server — Kemeren’s screenshots and his reading of the goal step, Nerlion’s stock — and what they changed.'),
+			text: TT('A month of questions, reports and wishes on the server and in the box: each of these is in this release because one of you wrote it down.'),
 			who: [
+				{
+					name: 'Liara',
+					did: TT('Asked for five things in one message: the goods loaded at one port and the run ended at another, where to pick the quests up, the Map’s stops dragged up or down, and a stop at a habitat or a wharf. All five are in.')
+				},
+				{
+					name: 'Simple maid',
+					did: TT('Showed a run that loaded goods only to drop them a few stops later: a plan no longer loads what it brings back unused, and keeps itself while you tick the load list.')
+				},
+				{
+					name: 'Aku',
+					did: TT('Could not set the barter count or the level on a phone: an invisible touch zone lay over both fields. A tap reaches them again.')
+				},
+				{
+					name: 'Final',
+					did: TT('Put Kemeren’s question about Crow Coin trades in one line, <i>at least X crow coins per trade as a setting</i>: it is one now, on a coin day.')
+				},
 				{
 					name: 'kemeren',
 					did: TT('Pasted thirteen pages of the barter window and found what the readers dropped: the second picture, the doubled island, a wreck cut to <i>Shipwrecked</i>, and three storage materials in two lights.')
@@ -80,9 +96,52 @@ export const RELEASES = [
 					name: 'Nerlion',
 					did: TT('Asked for a stock filled from the end: the high targets met first, and the low stock what is left below once they are.')
 				}
-			]
+			],
+			foot: TT('The box is under <b>Menu \u2192 Feedback</b>. It reaches whoever runs the site.')
 		},
 		sections: [
+			{
+				title: TT('A chain taken off keeps the plan'),
+				media: 'docs/media/small/a-chain-off.png',
+				alt: TT('The same day in 1.6.0 and in 1.7.0, one chain taken off by hand: the silver the run brings in each'),
+				before: TT('Taking a chain off the plan laid the whole run again from nothing, and the run could come back hundreds of millions poorer than the plan it was cut from.'),
+				text: TT('The run is now laid twice, afresh and from the plan already found with the chain left out, and the better of the two is kept. On 1,285 of your days kept by the study, taking one chain off now brings 5 % more silver and 8 % more stock than before.')
+			},
+			{
+				title: TT('Quests picked up on the way'),
+				media: 'docs/media/small/quests-picked-up.png',
+				alt: TT('A run from Iliya with a stop at Velia to pick up the delivery quests, handed in later at Baremi and Narvo'),
+				before: TT('A run handed in the quests on its way but took it that you had them already: nothing said where they were given.'),
+				text: TT('A quest given by someone other than whoever takes it in is picked up on the run: at a stop the run makes anyway, else at a stop of its own before the hand-in. It is on the sailing plan and on the Map, ticked as <i>Picked up</i>, and pays nothing until it is handed in.')
+			},
+			{
+				title: TT('Your own stops on the Map'),
+				media: 'docs/media/small/stops-by-hand.gif',
+				alt: TT('A route on the Map: a stop dragged down the list, and a stop added at a wharf'),
+				text: TT('On a route you plot on the Map, drag a stop up or down the list by its handle, or move it with the arrow keys, and add a stop at a wharf or a habitat, picked from a list. Your stops are kept with the route, and stay when you change its islands.')
+			},
+			{
+				title: TT('The Barter tab, step by step'),
+				media: 'docs/media/small/barter-steps.png',
+				alt: TT('The Barter tab in 1.6.0 and in 1.7.0'),
+				text: TT('The Barter tab is laid out as steps taken in order, and <i>Next</i> takes you to the next one; the chains open in a sheet of their own, the route reads as a list, and the tabs fit on one row.')
+			},
+			{
+				title: TT('Where a run loads, where it ends, and what a coin trade must pay'),
+				points: [
+					TT('<b>Two ports.</b> <i>Load the goods at</i> is the port whose storage the run loads from, <i>Finish the run at</i> the storage it ends at: Iliya’s goods, and a run that ends at home in Velia.'),
+					TT('<b>A floor of Crow Coins.</b> On a coin day, <i>coins a trade, at least</i>: a trade paying fewer Crow Coins than that is left off the run.')
+				]
+			},
+			{
+				title: TT('Fixes from your reports'),
+				points: [
+					TT('Ticking the load list no longer throws the plan away and lays another, and a plan no longer loads goods it brings back unused.'),
+					TT('A page reloaded while you load keeps the plan it had found.'),
+					TT('A good handed over partway up a chain stays on the load list once it is aboard.'),
+					TT('On a phone, the barter count and the barter level take a tap again.')
+				]
+			},
 			{
 				title: TT('The goal step and the stock'),
 				text: TT('What each day does with what you hold, said where you choose it.'),
@@ -1194,8 +1253,19 @@ export const RELEASE = RELEASES[0].id;
 
 export const CHANGES = [
 	{
+		date: '2026-11-19',
+		title: TT('1.7.0: a run you edit keeps its plan, quests picked up, your own stops on the Map'),
+		notes: [
+			TT('<b>Barter runs.</b> A chain taken off is laid afresh and from the plan already found, the better kept; ticking the load list or reloading keeps the plan; nothing is loaded only to come back unused; a run loads at one port and can end at another; a coin day can set a floor of Crow Coins a trade.'),
+			TT('<b>Quests.</b> One given by someone other than its taker is picked up on the run, at a stop before the hand-in, on the plan and on the Map.'),
+			TT('<b>Map.</b> A plotted route’s stops move by drag or by the arrow keys, and a stop can be added at a wharf or a habitat.'),
+			TT('<b>Barter tab.</b> Laid out as steps; the chains in a sheet; the route as a list.'),
+			TT('<b>Phone.</b> The barter count and the level take a tap again.')
+		]
+	},
+	{
 		date: '2026-10-24',
-		title: TT('1.6.1: the goal step in plain words, a stock filled from the top, the readers'),
+		title: TT('After 1.6.0: the goal step in plain words, a stock filled from the top, the readers'),
 		notes: [
 			TT('<b>The goal step.</b> Each card says what it does with the stock; a <i>Which day is which?</i> table puts the three days side by side; a floor reads <i>keep 10 each</i>; under a level, how many goods sit under its floor, or how many of its exchanges your barter count opens.'),
 			TT('<b>Stock.</b> Filled from the top, when you say so: a lower target holds only once every target above it is full. A quest whose reward is in the storage already is ticked without adding it.'),

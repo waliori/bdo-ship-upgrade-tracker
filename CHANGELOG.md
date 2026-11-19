@@ -5,18 +5,64 @@ someone who has been away. The same notes are in the app itself, under
 **Menu → What's new** — this file is generated from them by
 `node tools/build-changelog.mjs`, so the two cannot drift apart.
 
-## 1.6.1 — From your reports
+## 1.7.0 — What you asked for on the server
 
-*2026-10-24*
+*2026-11-19*
 
-Four days after 1.6.0, what your questions on the server changed: the goal step says plainly what a day does with your stock, a stock can be filled from its top level down, each level of the ladder opens its goods one by one, and the screenshot readers take several pictures at once and ask about a row they are not sure of instead of guessing.
+A month of your messages on the server and in the box, and what they changed. A run you edit by hand keeps the plan it had found; a run can load at one port and end at another; a quest given by someone else is picked up on the way; the stops you plot on the Map move by hand and can sit at a wharf or a habitat; a coin day can leave out the trades that pay too few Crow Coins. The Barter tab reads as steps, and a phone takes your barter count again.
 
 ### Asked for by you
 
-Four days of questions on the server — Kemeren’s screenshots and his reading of the goal step, Nerlion’s stock — and what they changed.
+A month of questions, reports and wishes on the server and in the box: each of these is in this release because one of you wrote it down.
 
+- **Liara** — Asked for five things in one message: the goods loaded at one port and the run ended at another, where to pick the quests up, the Map’s stops dragged up or down, and a stop at a habitat or a wharf. All five are in.
+- **Simple maid** — Showed a run that loaded goods only to drop them a few stops later: a plan no longer loads what it brings back unused, and keeps itself while you tick the load list.
+- **Aku** — Could not set the barter count or the level on a phone: an invisible touch zone lay over both fields. A tap reaches them again.
+- **Final** — Put Kemeren’s question about Crow Coin trades in one line, *at least X crow coins per trade as a setting*: it is one now, on a coin day.
 - **kemeren** — Pasted thirteen pages of the barter window and found what the readers dropped: the second picture, the doubled island, a wreck cut to *Shipwrecked*, and three storage materials in two lights.
 - **Nerlion** — Asked for a stock filled from the end: the high targets met first, and the low stock what is left below once they are.
+
+The box is under **Menu → Feedback**. It reaches whoever runs the site.
+
+### A chain taken off keeps the plan
+
+![The same day in 1.6.0 and in 1.7.0, one chain taken off by hand: the silver the run brings in each](docs/media/small/a-chain-off.png)
+
+**Before:** Taking a chain off the plan laid the whole run again from nothing, and the run could come back hundreds of millions poorer than the plan it was cut from.
+
+**Now:** The run is now laid twice, afresh and from the plan already found with the chain left out, and the better of the two is kept. On 1,285 of your days kept by the study, taking one chain off now brings 5 % more silver and 8 % more stock than before.
+
+### Quests picked up on the way
+
+![A run from Iliya with a stop at Velia to pick up the delivery quests, handed in later at Baremi and Narvo](docs/media/small/quests-picked-up.png)
+
+**Before:** A run handed in the quests on its way but took it that you had them already: nothing said where they were given.
+
+**Now:** A quest given by someone other than whoever takes it in is picked up on the run: at a stop the run makes anyway, else at a stop of its own before the hand-in. It is on the sailing plan and on the Map, ticked as *Picked up*, and pays nothing until it is handed in.
+
+### Your own stops on the Map
+
+![A route on the Map: a stop dragged down the list, and a stop added at a wharf](docs/media/small/stops-by-hand.gif)
+
+On a route you plot on the Map, drag a stop up or down the list by its handle, or move it with the arrow keys, and add a stop at a wharf or a habitat, picked from a list. Your stops are kept with the route, and stay when you change its islands.
+
+### The Barter tab, step by step
+
+![The Barter tab in 1.6.0 and in 1.7.0](docs/media/small/barter-steps.png)
+
+The Barter tab is laid out as steps taken in order, and *Next* takes you to the next one; the chains open in a sheet of their own, the route reads as a list, and the tabs fit on one row.
+
+### Where a run loads, where it ends, and what a coin trade must pay
+
+- **Two ports.** *Load the goods at* is the port whose storage the run loads from, *Finish the run at* the storage it ends at: Iliya’s goods, and a run that ends at home in Velia.
+- **A floor of Crow Coins.** On a coin day, *coins a trade, at least*: a trade paying fewer Crow Coins than that is left off the run.
+
+### Fixes from your reports
+
+- Ticking the load list no longer throws the plan away and lays another, and a plan no longer loads goods it brings back unused.
+- A page reloaded while you load keeps the plan it had found.
+- A good handed over partway up a chain stays on the load list once it is aboard.
+- On a phone, the barter count and the barter level take a tap again.
 
 ### The goal step and the stock
 
