@@ -5769,7 +5769,6 @@
 	},
 	"{name}: +{n}% top speed at sea — legs are timed at {sea}%": "{name}: +{n}% макс. скорости в море — переходы считаются при {sea}%",
 	"{name}s": "{name}",
-	"{name}s you carry": "{name} при вас",
 	"{npc} hands it over for {give}": "{npc} отдаёт это за {give}",
 	"{n} Crow Coins each": {
 		"few": "{n} Монеты ворон за штуку",

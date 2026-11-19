@@ -724,7 +724,7 @@ export function silverParts(me, b) {
 		}
 		const segs = oneRoute ? (plan.stops.length ? `<section class="panel run-seg run-seg-all" style="--tier:${TIER(Math.max(...plan.order.map(c => c.top)))}">
 				<div class="run-seg-head"><i></i><b>${plan.lots.length > 1 ? T('One route, {n} lots', { n: plan.lots.length }) : T('One route, every chain at once')}</b><span>${islands === 1 ? T('{n} island', { n: islands }) : T('{n} islands', { n: islands })}${wharfs ? `, ${wharfs === 1 ? T('{n} wharf call', { n: wharfs }) : T('{n} wharf calls', { n: wharfs })}` : ''}${supplyN ? `, ${supplyN === 1 ? T('{n} call for supplies', { n: supplyN }) : T('{n} calls for supplies', { n: supplyN })}` : ''} · ${T('the nearest rung the ship holds the give for, whatever its chain')}${plan.lots.length > 1 ? ` · ${T('as many chains at once as the hold carries, the tops sold before the next lot')}` : ''}</span></div>
-				<div class="run-seg-chains">${plan.lots.map(lot => lot.map(k => {
+				<div class="run-seg-chains">${plan.lots.filter(lot => lot.length).map(lot => lot.map(k => {
 					const c = plan.order[k];
 					const isl = plan.stops.filter(s => s.chain === k && s.npcId).length;
 					const cutHere = plan.cut.some(x => x.chain === k);

@@ -4999,7 +4999,6 @@
 	"{name} — {n} stops, kept {when}.": "{name} — 寄港地{n}件、{when}に保存。",
 	"{name}: +{n}% top speed at sea — legs are timed at {sea}%": "{name}：海上の最高速度 +{n}% — 区間は {sea}% で計算",
 	"{name}s": "{name}",
-	"{name}s you carry": "持ち歩いている{name}",
 	"{npc} hands it over for {give}": "{npc}が{give}と引き換えに渡します",
 	"{n} Crow Coins each": "1個につきカラスコイン{n}枚",
 	"{n} Crow Coins, and nothing else to carry": "カラスコイン{n}枚、他に運ぶものはありません",
