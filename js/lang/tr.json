@@ -6152,5 +6152,8 @@
 	"Ticking the load list no longer throws the plan away and lays another, and a plan no longer loads goods it brings back unused.": "Yükleme listesini işaretlemek artık planı atıp yenisini kurmuyor ve plan artık kullanılmadan geri getirdiği malları yüklemiyor.",
 	"What you asked for on the server": "Sunucuda istedikleriniz",
 	"Where a run loads, where it ends, and what a coin trade must pay": "Seferin nerede yüklediği, nerede bittiği ve bir para takasının ne getirmesi gerektiği",
-	"Your own stops on the Map": "Harita’da kendi durakların"
+	"Your own stops on the Map": "Harita’da kendi durakların",
+	"Level {lv} goods": "{lv}. seviye mallar",
+	"The most in {n} h": "{n} saatte en çok",
+	"The most the board gives": "Panonun verebileceği en çok"
 }

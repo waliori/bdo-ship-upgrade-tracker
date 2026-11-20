@@ -174,6 +174,9 @@ async function wantedNames() {
 	npcs.forEach(n => { places.add(n.at); places.add(n.region); });
 	const { isleOf } = await import('../js/barter_npcs.js');
 	npcs.forEach(n => places.add(isleOf(n)));
+	// The two storages named by their keeper's village, not their pier
+	// (STORE_NAMES in js/barter/route.js, which does not load in node).
+	["Nampo's Moodle Village", "Nopsae's Byeot County"].forEach(p => places.add(p));
 
 	const nodeRows = await list('nodes', 'us');
 	const nodeHits = new Map();

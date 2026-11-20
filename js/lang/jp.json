@@ -6152,5 +6152,8 @@
 	"Ticking the load list no longer throws the plan away and lays another, and a plan no longer loads goods it brings back unused.": "積み込みリストをチェックしても計画を捨てて別の計画を引くことはなくなり、使わずに持ち帰る商品も積まなくなった。",
 	"What you asked for on the server": "サーバーで頼まれたこと",
 	"Where a run loads, where it ends, and what a coin trade must pay": "航海がどこで積み、どこで終わり、コイン交換がいくら払うべきか",
-	"Your own stops on the Map": "マップに自分の寄港地"
+	"Your own stops on the Map": "マップに自分の寄港地",
+	"Level {lv} goods": "{lv}段階の品",
+	"The most in {n} h": "{n}時間で最も多い",
+	"The most the board gives": "ボードで得られる最大"
 }

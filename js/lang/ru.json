@@ -8317,5 +8317,8 @@
 	"Ticking the load list no longer throws the plan away and lays another, and a plan no longer loads goods it brings back unused.": "Отметки в списке погрузки больше не выбрасывают план ради нового, а план больше не грузит товары, которые везёт обратно неиспользованными.",
 	"What you asked for on the server": "То, о чём вы просили на сервере",
 	"Where a run loads, where it ends, and what a coin trade must pay": "Где рейс грузится, где заканчивается и сколько должен давать обмен на монеты",
-	"Your own stops on the Map": "Свои стоянки на Карте"
+	"Your own stops on the Map": "Свои стоянки на Карте",
+	"Level {lv} goods": "товары {lv} ур.",
+	"The most in {n} h": "Больше всего за {n} ч",
+	"The most the board gives": "Максимум, что даёт доска"
 }

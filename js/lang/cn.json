@@ -6152,5 +6152,8 @@
 	"Ticking the load list no longer throws the plan away and lays another, and a plan no longer loads goods it brings back unused.": "勾选装货清单不再丢弃计划另作规划，计划也不再装上会原样带回的货物。",
 	"What you asked for on the server": "你们在服务器上提出的需求",
 	"Where a run loads, where it ends, and what a coin trade must pay": "航次在哪儿装货、在哪儿结束，以及硬币交换至少要给多少",
-	"Your own stops on the Map": "地图上的自定停靠点"
+	"Your own stops on the Map": "地图上的自定停靠点",
+	"Level {lv} goods": "{lv} 级货物",
+	"The most in {n} h": "{n} 小时内最多",
+	"The most the board gives": "面板能给的最多"
 }

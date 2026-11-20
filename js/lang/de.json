@@ -6191,5 +6191,8 @@
 	"Ticking the load list no longer throws the plan away and lays another, and a plan no longer loads goods it brings back unused.": "Die Ladeliste abzuhaken wirft den Plan nicht mehr weg, um einen anderen zu legen, und ein Plan lädt keine Waren mehr, die er ungenutzt zurückbringt.",
 	"What you asked for on the server": "Was ihr auf dem Server gewünscht habt",
 	"Where a run loads, where it ends, and what a coin trade must pay": "Wo eine Fahrt lädt, wo sie endet, und was ein Münztausch bringen muss",
-	"Your own stops on the Map": "Eigene Stopps auf der Karte"
+	"Your own stops on the Map": "Eigene Stopps auf der Karte",
+	"Level {lv} goods": "Waren der Stufe {lv}",
+	"The most in {n} h": "Das meiste in {n} Std.",
+	"The most the board gives": "Das meiste, was die Tafel hergibt"
 }

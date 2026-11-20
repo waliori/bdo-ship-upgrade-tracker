@@ -6152,5 +6152,8 @@
 	"Ticking the load list no longer throws the plan away and lays another, and a plan no longer loads goods it brings back unused.": "적재 목록을 체크해도 더 이상 계획을 버리고 새로 짜지 않으며, 계획은 쓰지 않고 다시 가져올 상품을 싣지 않는다.",
 	"What you asked for on the server": "서버에서 부탁한 것들",
 	"Where a run loads, where it ends, and what a coin trade must pay": "항해가 어디서 싣고 어디서 끝나는지, 주화 교환이 얼마를 줘야 하는지",
-	"Your own stops on the Map": "지도에 나만의 정박지"
+	"Your own stops on the Map": "지도에 나만의 정박지",
+	"Level {lv} goods": "레벨 {lv} 물품",
+	"The most in {n} h": "{n}시간 안에 최다",
+	"The most the board gives": "보드가 주는 최다"
 }

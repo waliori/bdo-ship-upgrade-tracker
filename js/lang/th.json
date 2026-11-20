@@ -6152,5 +6152,8 @@
 	"Ticking the load list no longer throws the plan away and lays another, and a plan no longer loads goods it brings back unused.": "การติ๊กรายการขนสินค้าไม่ทิ้งแผนแล้ววางใหม่อีกต่อไป และแผนไม่ขนสินค้าที่จะขนกลับโดยไม่ได้ใช้อีกแล้ว",
 	"What you asked for on the server": "สิ่งที่พวกคุณขอบนเซิร์ฟเวอร์",
 	"Where a run loads, where it ends, and what a coin trade must pay": "เที่ยวขนของที่ไหน จบที่ไหน และการแลกเหรียญต้องให้เท่าไร",
-	"Your own stops on the Map": "จุดแวะของคุณเองบนแผนที่"
+	"Your own stops on the Map": "จุดแวะของคุณเองบนแผนที่",
+	"Level {lv} goods": "สินค้าระดับ {lv}",
+	"The most in {n} h": "มากสุดใน {n} ชั่วโมง",
+	"The most the board gives": "มากสุดที่กระดานให้ได้"
 }

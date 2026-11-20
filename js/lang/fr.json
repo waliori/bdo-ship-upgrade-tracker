@@ -6275,5 +6275,8 @@
 	"Ticking the load list no longer throws the plan away and lays another, and a plan no longer loads goods it brings back unused.": "Cocher la liste de chargement ne jette plus le plan pour en tracer un autre, et un plan ne charge plus de marchandises qu’il ramène inutilisées.",
 	"What you asked for on the server": "Ce que vous avez demandé sur le serveur",
 	"Where a run loads, where it ends, and what a coin trade must pay": "Où une tournée charge, où elle finit, et ce qu’un échange en pièces doit rapporter",
-	"Your own stops on the Map": "Vos propres escales sur la Carte"
+	"Your own stops on the Map": "Vos propres escales sur la Carte",
+	"Level {lv} goods": "marchandises de niveau {lv}",
+	"The most in {n} h": "Le plus en {n} h",
+	"The most the board gives": "Le plus que donne le tableau"
 }
