@@ -1,10 +1,12 @@
 // What a guided tour cut short leaves in this browser, put back.
 //
-// The tour shows example data and never saves it, but two of the
+// The tour shows example data and never saves it, but the
 // screens it walks keep a thing of their own in localStorage beside the
-// save: the Barter tab's step, and the chart's preferences (the tour
-// unfolds the chart's panel on a phone, and the fold is written down).
-// The tour puts both back when it ends -- but a reload, or a tab that
+// save: the Barter tab's step and the plan it found for the day (the
+// example's, written while the tour shows it), and the chart's
+// preferences (the tour unfolds the chart's panel on a phone, and the
+// fold is written down).
+// The tour puts them back when it ends -- but a reload, or a tab that
 // dies, ends it without that. So when it starts it notes what they said
 // in this tab's sessionStorage, which outlives a reload and nothing
 // more, and this, the first module the page runs, puts them back if the
@@ -16,7 +18,7 @@
 // It imports nothing, so that it runs before every module that does.
 
 /** The keys the tour's screens may write; a value of null is "not there". */
-export const TOUR_KEYS = ['barter-step', 'bdo-tracker/map-view'];
+export const TOUR_KEYS = ['barter-step', 'bdo-tracker/barter-found', 'bdo-tracker/map-view'];
 const NOTE = 'bdo-tracker/tour-running';
 
 /** What the keys say now, noted for a tour about to start. */
