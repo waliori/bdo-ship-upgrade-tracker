@@ -116,7 +116,7 @@ export function openMaterialBook({ pages = [], answers = [], ticked = [], onTake
 		const agreed = [...page.offers].filter(([npcId, o]) => { const a = mine.get(npcId); return a && a.give === o.give && a.recv === o.recv; }).length;
 		const parted = [...page.offers].filter(([npcId, o]) => { const a = mine.get(npcId); return a && (a.give !== o.give || a.recv !== o.recv); });
 		const unanswered = [...page.offers.keys()].filter(npcId => !mine.has(npcId) && !onList.has(npcId)).length;
-		return `<div class="lb-head"><button class="ghost-btn sm" data-mb-back>← ${T('the book')}</button>
+		return `<div class="lb-head"><button class="ghost-btn sm" data-mb-back>${T('the book')}</button>
 			<h2>${T('Material layout {id}', { id: esc(page.id) })} ${badge(st)}</h2></div>
 		<div class="lb-facts">
 			<span>${T('<b>{n}</b> islands', { n: F(page.offers.size) })}</span>

@@ -33,6 +33,7 @@ import { theWay, getOrders, questDoneNow } from './get-way.js';
 import { todayFor, sailToday } from './barter/get-today.js';
 import { openDialog } from './dialogs.js';
 
+import { ico } from './icons.js';
 // Which of its two readings the screen gives: the way to get each
 // thing -- one route an item, chosen against the others -- or every
 // way, grouped by source. A preference, kept between sessions.
@@ -542,7 +543,7 @@ function todayHTML(q) {
 	if (!t.layout) {
 		return `<div class="panel way-step get-today">
 			${stepHead('◎', 'blue', T('Today’s board'), T('Read today’s board on the Barter tab and what it deals toward this list shows here.'), '', id)}
-			${folded.has(id) ? '' : `<div class="way-step-body"><p class="get-today-empty">${T('No board read today — the material list or the trade board, whichever you refreshed. One screenshot of the barter window is enough. Until then the barter figures below are estimates.')} <button class="chip tiny primary" data-act="view" data-id="barter">${T('Read it on the Barter tab')} ›</button></p></div>`}
+			${folded.has(id) ? '' : `<div class="way-step-body"><p class="get-today-empty">${T('No board read today — the material list or the trade board, whichever you refreshed. One screenshot of the barter window is enough. Until then the barter figures below are estimates.')} <button class="chip tiny primary" data-act="view" data-id="barter">${T('Read it on the Barter tab')}</button></p></div>`}
 		</div>`;
 	}
 	const rows = q ? t.rows.filter(r => nameHas(r.item, q)) : t.rows;
@@ -552,7 +553,7 @@ function todayHTML(q) {
 		const key = `${d.npcId}|${r.item}`;
 		const done = ticks.has(key);
 		const range = d.todayMin === d.todayMax ? F(d.todayMax) : `${F(d.todayMin)}–${F(d.todayMax)}`;
-		const how = d.state === 'draw' ? `<em class="get-today-roll" title="${esc(d.gives.map(gameName).join(', '))}">${d.fleet ? T('drawn: the fleet saw it pay this {pct}% of {n} times — say what it shows under 🎲 on the Barter tab', { pct: F(d.fleet.pct), n: F(d.fleet.total) }) : T('drawn: {k} of its {n} offers pay this — say what it shows under 🎲 on the Barter tab', { k: F(d.hits), n: F(d.draw) })}</em>`
+		const how = d.state === 'draw' ? `<em class="get-today-roll" title="${esc(d.gives.map(gameName).join(', '))}">${d.fleet ? T('drawn: the fleet saw it pay this {pct}% of {n} times — say what it shows under {dice} on the Barter tab', { dice: ico('dice'), pct: F(d.fleet.pct), n: F(d.fleet.total) }) : T('drawn: {k} of its {n} offers pay this — say what it shows under {dice} on the Barter tab', { dice: ico('dice'), k: F(d.hits), n: F(d.draw) })}</em>`
 			: d.held >= d.giveN ? T('{n} held', { n: F(d.held) })
 			: d.shore ? T('bought ashore')
 			: d.climb ? (d.climb.from === 'land' ? T('climbed to on this board from the shore, {n} islands', { n: F(d.climb.rungs) }) : T('climbed to on this board from your {item}', { item: esc(gameName(d.climb.item)) }))
@@ -573,8 +574,8 @@ function todayHTML(q) {
 		</div>`;
 	}).join('');
 	const off = t.off.length ? `<p class="get-today-off">${T('Not on today’s layout: {list} — their other ways are in the steps below.', { list: t.off.slice(0, 8).map(x => esc(gameName(x))).join(', ') + (t.off.length > 8 ? ` ${T('and {n} more', { n: t.off.length - 8 })}` : '') })}</p>` : '';
-	const blocked = t.blocked.length ? `<button class="chip tiny warn" data-act="get-today-blocked">${t.blocked.length === 1 ? T('{n} island can’t be done today', { n: F(t.blocked.length) }) : T('{n} islands can’t be done today', { n: F(t.blocked.length) })} ›</button>` : '';
-	const sail = rows.some(r => r.deals.some(d => d.state === 'ok')) ? `<button class="chip tiny primary" data-act="view" data-id="barter" data-sail="${t.layout.list}">${T('Sail it on the Barter tab')} ›</button>` : '';
+	const blocked = t.blocked.length ? `<button class="chip tiny warn" data-act="get-today-blocked">${t.blocked.length === 1 ? T('{n} island can’t be done today', { n: F(t.blocked.length) }) : T('{n} islands can’t be done today', { n: F(t.blocked.length) })}</button>` : '';
+	const sail = rows.some(r => r.deals.some(d => d.state === 'ok')) ? `<button class="chip tiny primary" data-act="view" data-id="barter" data-sail="${t.layout.list}">${T('Sail it on the Barter tab')}</button>` : '';
 	const done = t.done ? `<p class="get-today-done">${T('Today’s board is traded out for your list. The barter figures below are estimates from every layout on record until the next refresh is read.')}</p>` : '';
 	const right = rows.length === 1 ? T('{n} thing today', { n: F(rows.length) }) : T('{n} things today', { n: F(rows.length) });
 	return `<div class="panel way-step get-today">
@@ -588,7 +589,7 @@ function todayHTML(q) {
  *  done today, each with why, over the page. */
 function blockedDialog() {
 	const t = today();
-	const why = d => (d.state === 'gate' ? `🔒 ${T('opens at {n} Total Barters', { n: F(d.gate) })}`
+	const why = d => (d.state === 'gate' ? `${ico('lock')} ${T('opens at {n} Total Barters', { n: F(d.gate) })}`
 		: d.state === 'done' ? `✓ ${T('traded out today')}`
 		: `${T('takes {n}× {give} — you hold {held}', { n: F(d.giveN), give: esc(gameName(d.give)), held: F(d.held) })}${t.layout.list === 'trade' ? `, ${T('and no chain of today’s board climbs to it')}` : `, ${T('and the material list makes none')}`}`);
 	openDialog(`<h2>${T('Can’t be done today')}</h2>

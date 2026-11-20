@@ -18,6 +18,7 @@ import { openPicker } from './picker.js';
 import { KINDS, kindOf } from './kinds.js';
 import { whileLoading } from './loading.js';
 
+import { ico } from './icons.js';
 let known = null;
 function names() {
 	if (!known) {
@@ -165,7 +166,7 @@ export function openTripLog(focusRow = null) {
 			<span class="trip-shot-k">${T('From a screenshot')}</span>
 			<button class="chip${shotSign > 0 ? ' active' : ''}" data-trip-sign="1" aria-pressed="${shotSign > 0}" title="${T('What the shot shows is what you gained')}">＋ ${T('adds')}</button>
 			<button class="chip${shotSign < 0 ? ' active' : ''}" data-trip-sign="-1" aria-pressed="${shotSign < 0}" title="${T('What the shot shows is what you handed over')}">−  ${T('takes away')}</button>
-			<button class="ghost-btn" data-trip-shot>📷 ${T('Read one')}</button>
+			<button class="ghost-btn" data-trip-shot>${ico('camera')} ${T('Read one')}</button>
 		</div>
 		<div class="dialog-actions">
 			<button class="ghost-btn" data-trip-more>${T('+ another line')}</button>

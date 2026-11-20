@@ -23,7 +23,7 @@
 // search.
 
 import { rng } from './simulate.js';
-import { chainsOf, finish, indexOf } from './common.js';
+import { chainsOf, finish, indexOf, trimLoads } from './common.js';
 import { cheapestPos, growByChains, reorder, serial, bare, quick } from './insert.js';
 import { build as greedy, byTrips } from './greedy.js';
 import { maximiseRate } from './ratio.js';
@@ -167,5 +167,5 @@ export function search(I, { mu = 0, timeMs = 10000, warm = null, seed = 1, most 
 
 export function solve(I, { timeMs = 10000, seed = 1, mu = null } = {}) {
 	const best = maximiseRate(I, (inst, o) => search(inst, o), { timeMs, mu, seed });
-	return { plan: best.plan, info: { mu: best.mu, R: best.R, T: best.T, iterations: best.iterations } };
+	return { plan: trimLoads(I, best.plan), info: { mu: best.mu, R: best.R, T: best.T, iterations: best.iterations } };
 }

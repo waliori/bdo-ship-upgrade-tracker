@@ -123,6 +123,8 @@ const SHELL = [
 	'/js/barter_seen.js',
 	'/js/boot.js',
 	'/js/cheer.js',
+	'/js/sep.js',
+	'/js/icons.js',
 	'/js/clock.js',
 	'/js/coin-shop.js',
 	'/js/count-net.js',

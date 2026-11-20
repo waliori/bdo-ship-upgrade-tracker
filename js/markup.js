@@ -246,7 +246,7 @@ function card(video) {
 	return `<div class="mk-video" data-embed="${esc(video.embed)}" data-host="${esc(video.host)}">
 		${thumb}
 		<button type="button" class="mk-play" aria-label="${T('Play this {host} video', { host: esc(video.host) })}">▶</button>
-		<a class="mk-video-out" href="${esc(video.url)}" target="_blank" rel="noopener noreferrer">${esc(video.host)} ↗</a>
+		<a class="mk-video-out" href="${esc(video.url)}" target="_blank" rel="noopener noreferrer">${esc(video.host)}</a>
 	</div>`;
 }
 

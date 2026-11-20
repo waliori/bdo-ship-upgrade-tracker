@@ -21,7 +21,7 @@
 import { esc, F } from './fmt.js';
 import { T, said, gameName, gameNamesFor } from './i18n.js';
 import { openDialog, closeDialog, toast } from './dialogs.js';
-import { triage, readWords, wireShotIntake, close as closeReader, shotLang } from './shot-reader.js';
+import { triage, readWords, wireShotIntake, close as closeReader, shotLang, queuedNote } from './shot-reader.js';
 import { npcs, isleOf, whoOf } from './barter_npcs.js';
 import { img } from './ui-bits.js';
 import * as store from './state.js';
@@ -128,16 +128,25 @@ export function openBarterImport({ files, deals, onAnswers = () => {} } = {}) {
 	const rowHTML = (r, i) => {
 		const pick = choices(r);
 		const chosen = r.keep ? pick.findIndex(d => d.give === r.keep.give && d.item === r.keep.item) : -1;
+		const isle = r.isle ? gameName(isleOf(r.isle)) : T('— which island?');
+		// A row the reader could not name: the islands it could be, and
+		// the player says which. Nothing is read for it until then.
+		const who = r.fits
+			? `<select class="purse-inline" data-isle="${i}" aria-label="${T('Which island this row is')}">
+				<option value=""${r.isle ? '' : ' selected'}>${T('— which island?')}</option>
+				${r.fits.map((f, k) => `<option value="${k}"${r.isle && f.isle.id === r.isle.id ? ' selected' : ''}>${esc(gameName(isleOf(f.isle)))}</option>`).join('')}
+			</select>`
+			: `<span><b>${esc(isle)}</b><span class="row-sub">${esc(gameName(whoOf(r.isle)))}</span></span>`;
 		return `<tr class="shot-row${r.keep ? '' : ' off'}">
 			<td><input type="checkbox" data-take="${i}"${r.keep ? ' checked' : ''}${pick.length ? '' : ' disabled'} aria-label="${T('Use this row')}"></td>
-			<td class="shot-item">${img(r.keep ? r.keep.item : '', 'row-icon')}<span><b>${esc(gameName(isleOf(r.isle)))}</b><span class="row-sub">${esc(gameName(whoOf(r.isle)))}</span></span></td>
+			<td class="shot-item">${img(r.keep ? r.keep.item : '', 'row-icon')}${who}</td>
 			<td>${pick.length
-		? `<select class="purse-inline" data-offer="${i}" aria-label="${T('What {isle} is showing', { isle: esc(gameName(isleOf(r.isle))) })}">
+		? `<select class="purse-inline" data-offer="${i}" aria-label="${T('What {isle} is showing', { isle: esc(isle) })}">
 				${pick.map((d, k) => `<option value="${k}"${k === chosen ? ' selected' : ''}>${esc(gameName(d.give))} → ${esc(gameName(d.item))}</option>`).join('')}
 				<option value="">${T('— none of these')}</option>
 			</select>`
-		: `<span class="quiet">${T('nothing the codex lists fits that row')}</span>`}</td>
-			<td class="shot-note">${paysRange(r) ? paidBox(r, i) : r.offer ? `<span class="quiet">${T('read')}</span>` : `<span class="shot-warn" title="${esc(said(r.why) || '')}">⚠ ${esc(said(r.why) || T('unsure'))}</span>`}</td>
+		: r.fits && !r.isle ? '' : `<span class="quiet">${T('nothing the codex lists fits that row')}</span>`}</td>
+			<td class="shot-note">${paysRange(r) ? paidBox(r, i) : r.picked ? `<span class="quiet">${T('yours')}</span>` : r.why ? `<span class="shot-warn" title="${esc(said(r.why))}">⚠ ${esc(said(r.why))}</span>` : r.offer ? `<span class="quiet">${T('read')}</span>` : `<span class="shot-warn">⚠ ${T('unsure')}</span>`}</td>
 		</tr>`;
 	};
 
@@ -199,10 +208,20 @@ export function openBarterImport({ files, deals, onAnswers = () => {} } = {}) {
 	};
 
 	/* --- doing it ---------------------------------------------------- */
+	let pending = [];        // pasted while a batch was being read: read after it
+	let adding = false;      // this batch follows one already in the table
+	// A paste while a batch is being read is read after it, not instead
+	// of it: a second screenshot pasted a moment after the first cut the
+	// first one's reading short, and only the last paste was in the table.
 	async function run(files) {
-		if (stop) stop.abort();
+		if (stop) { pending.push(...files); queuedNote(host()); return; }
+		await read(files);
+		if (pending.length && !host().hidden) { const more = pending; pending = []; adding = true; try { await run(more); } finally { adding = false; } }
+		else pending = [];
+	}
+	async function read(files) {
 		const { take, skipped: out } = await triage([...files]);
-		skipped = out.map(x => ({ name: x.file.name, why: x.why }));
+		skipped = [...(adding ? skipped : []), ...out.map(x => ({ name: x.file.name, why: x.why }))];
 		if (!take.length) { rows = [...seen.values()]; draw(reviewView()); return; }
 		const me = stop = new AbortController();
 		draw(readingView(0, T('Fetching the reader…')));
@@ -243,7 +262,7 @@ export function openBarterImport({ files, deals, onAnswers = () => {} } = {}) {
 				const reads = offersFrom(words, tables);
 				// What the range islands pay, off their icons -- and with it
 				// which of an island's look-alike exchanges the row is.
-				const paid = image ? paidFrom(image, words, reads, scale, tables.deals) : new Map();
+				const paid = image ? paidFrom(image, words, reads.filter(r => r.isle), scale, tables.deals) : new Map();
 				// Each icon as the screenshot had it, figure and all, so a count
 				// is checked here rather than back in the game.
 				const sheet = paid.size ? document.createElement('canvas') : null;
@@ -261,6 +280,10 @@ export function openBarterImport({ files, deals, onAnswers = () => {} } = {}) {
 					return cut.toDataURL('image/png');
 				};
 				for (const read of reads) {
+					// A row the reader could not name: the player picks the
+					// island from the ones it could be, and nothing is settled
+					// until then.
+					if (!read.isle) { seen.set(`?#${seen.size}`, { ...inEnglish(read), keep: null, paid: 0, icon: '', shot: i }); continue; }
 					const got = paid.get(read.isle.id);
 					const row = inEnglish(got ? { ...read, offer: got.deal } : read);
 					// An island read twice takes the later reading: the
@@ -268,8 +291,18 @@ export function openBarterImport({ files, deals, onAnswers = () => {} } = {}) {
 					// a count it could not make out -- a row cut by the
 					// shot's edge -- over one an earlier shot read whole.
 					const was = seen.get(row.isle.id);
+					// Two rows of one picture cannot be one island: a name cut
+					// short by the column was read as a neighbour's -- the
+					// wrecks all begin "Shipwrecked" -- and fed as that island's
+					// second offer, no layout fits. Kept apart, unticked, so the
+					// player sees the clash instead of a board that fits nothing.
+					if (was && was.shot === i && was.offer && row.offer && (was.offer.give !== row.offer.give || was.offer.item !== row.offer.item)) {
+						seen.set(`${row.isle.id}#${seen.size}`, { ...row, keep: null, paid: 0, icon: '', shot: i, why: T('read as {isle} too, but another row of this picture already is: one of the two is some other island', { isle: isleOf(row.isle) }) });
+						continue;
+					}
 					const kept = !(got && got.n) && was && was.paid > 0 && row.offer && was.keep && was.keep.give === row.offer.give && was.keep.item === row.offer.item;
-					seen.set(row.isle.id, kept ? was : { ...row, keep: row.offer || null, paid: got ? got.n : 0, icon: got ? iconOf(got.icon) : '' });
+					// A name read only nearly is left unticked: the player confirms it.
+					seen.set(row.isle.id, kept ? was : { ...row, keep: row.guessed ? null : row.offer || null, paid: got ? got.n : 0, icon: got ? iconOf(got.icon) : '', shot: i });
 				}
 			} catch (err) {
 				skipped.push({ name: take[i].name, why: err && err.message ? err.message : T('could not be read') });
@@ -280,7 +313,9 @@ export function openBarterImport({ files, deals, onAnswers = () => {} } = {}) {
 		stop = null;
 		// The dialog shut while reading: nothing to show it in.
 		if (host().hidden) return;
-		rows = [...seen.values()].sort((a, b) => isleOf(a.isle).localeCompare(isleOf(b.isle)));
+		// The rows still to be named first: they are the ones to look at.
+		const nm = r => r.isle ? isleOf(r.isle) : '';
+		rows = [...seen.values()].sort((a, b) => nm(a).localeCompare(nm(b)));
 		draw(reviewView());
 	}
 
@@ -318,6 +353,16 @@ export function openBarterImport({ files, deals, onAnswers = () => {} } = {}) {
 		on('[data-take]', 'change', e => {
 			const r = rows[Number(e.target.dataset.take)];
 			r.keep = e.target.checked ? (r.keep || choices(r)[0] || null) : null;
+			// Ticked by hand: a name read only nearly is confirmed.
+			if (e.target.checked && r.guessed) r.picked = true;
+			draw(reviewView());
+		});
+		on('[data-isle]', 'change', e => {
+			const r = rows[Number(e.target.dataset.isle)];
+			const f = r.fits[Number(e.target.value)];
+			// The island said: the row is that island's reading of the
+			// exchange, ticked when it was sure of it, asked when it tied.
+			Object.assign(r, f ? { isle: f.isle, offer: f.offer, near: f.near, keep: f.offer || null, picked: !!f.offer, why: f.why } : { isle: null, offer: null, near: [], keep: null, picked: false, why: T('a name several islands begin with — pick which') });
 			draw(reviewView());
 		});
 		on('[data-paid]', 'change', e => { rows[Number(e.target.dataset.paid)].paid = Math.floor(Number(e.target.value)) || 0; });
@@ -325,6 +370,8 @@ export function openBarterImport({ files, deals, onAnswers = () => {} } = {}) {
 			const r = rows[Number(e.target.dataset.offer)];
 			const pick = choices(r);
 			r.keep = e.target.value === '' ? null : pick[Number(e.target.value)] || null;
+			// Chosen by hand: the reader's doubt is settled, and the row says so.
+			r.picked = true;
 			draw(reviewView());
 		});
 	}

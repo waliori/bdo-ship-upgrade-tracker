@@ -88,6 +88,9 @@ and the refills laid last, as a shortest path over where the pool was last
 filled (`refuel`, the fixed-route charging problem of electric-vehicle
 routing), every wharf tried when the nearest five cannot feed the ship.
 
+On the search's answer, once, `trimLoads` leaves ashore what the plan loads and
+brings back unused, as long as the run gives up no trade and no value for it.
+
 ## From the plan to the tab
 
 - The search runs in the worker (`js/barter-worker.js`, `planner: 'new'`), as
@@ -97,7 +100,9 @@ routing), every wharf tried when the nearest five cannot feed the ship.
 - Ticking goods aboard asks the tab for the run again with the goods moved
   from the storage to the hold; a found plan is matched on the goods its
   islands use, aboard and ashore counted together, so the packed run is the
-  proposed run.
+  proposed run. A later search of the same day does not replace it, and the
+  plan for the chains ticked is kept in this device's storage, so a reload
+  while loading lays the same run.
 - An island the plan deals at whose climb stops short of the top is proposed
   as that climb cut there (`<chain>><k>`, as a short trip's are).
 - The sailor's edits from the wharf step -- islands taken off the route, the

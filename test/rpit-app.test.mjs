@@ -115,6 +115,56 @@ test('the worker answers for the new planner, and the plan it found, remembered 
 	assert.equal(solveRun({ ...base, chosen: ticked }).net, best.run.net);
 });
 
+test('a chain taken off the plan found: the rest is never laid worse than afresh, and stays put while packing', async () => {
+	const { newPropose, rememberFound } = await import('../js/barter-solve.js');
+	const { cutOf, cutAt } = await import('../js/barter-short.js');
+	const found = newPropose(base, all);
+	rememberFound(found.kept);
+	const picks = found.best.ids.map(id => { const { base: b, k } = cutOf(id); const c = all.find(x => x.id === b); return k >= 0 ? cutAt(c, k) : c; });
+	assert.ok(picks.length >= 2, 'the day has a chain to take off');
+	for (const gone of picks) {
+		const left = picks.filter(c => c !== gone);
+		const hand = solveRun({ ...base, chosen: left, byHand: true });
+		assert.ok(hand.net >= solveRun({ ...base, chosen: left }).net, 'no worse than the lay from nothing');
+		assert.deepEqual(isles(solveRun({ ...base, chosen: [...left].reverse(), byHand: true })), isles(hand), 'the same plan, whatever the order of the ticks');
+	}
+});
+
+test('the plan found is the plan laid whatever order the chains come in: the sailor ticking the list does not move it', async () => {
+	const { newPropose, rememberFound } = await import('../js/barter-solve.js');
+	const { cutOf, cutAt } = await import('../js/barter-short.js');
+	const aim = { kind: 'fill', targets: { 1: 40, 2: 40, 3: 40, 4: 40, 5: 20, 6: 20 }, held: Object.entries({ ...stock, ...dock }) };
+	// Floors, as a stock's presets have them: the keys follow the chains' order.
+	const opts = { ...base, aim, orders: { ...PLAIN_ORDERS, floors: { 3: 1, 4: 1, 5: 1 } } };
+	const found = newPropose(opts, all);
+	rememberFound(found.kept);
+	const picks = found.best.ids.map(id => { const { base: b, k } = cutOf(id); const c = all.find(x => x.id === b); return k >= 0 ? cutAt(c, k) : c; });
+	assert.ok(picks.length > 1 && picks.every(Boolean));
+	// The search's day is built in the order of its picks, the page's in the order of the board.
+	const trips = run => run.stops.filter(x => x.npcId).map(x => [x.npcId, x.times]);
+	assert.deepEqual(trips(solveRun({ ...opts, chosen: [...picks].reverse() })), trips(solveRun({ ...opts, chosen: picks })));
+	assert.deepEqual(trips(solveRun({ ...opts, chosen: picks })), trips(found.best.run));
+});
+
+test('the plan found survives a reload, and a later search of the same day does not move the plan being packed', async () => {
+	const { newPropose, rememberFound, foundFor } = await import('../js/barter-solve.js');
+	const { cutOf, cutAt } = await import('../js/barter-short.js');
+	const found = newPropose(base, all);
+	const trips = run => run.stops.filter(x => x.npcId).map(x => [x.npcId, x.times]);
+	const picks = found.best.ids.map(id => { const { base: b, k } = cutOf(id); const c = all.find(x => x.id === b); return k >= 0 ? cutAt(c, k) : c; });
+	rememberFound(JSON.parse(JSON.stringify(found.kept)));
+	const saved = foundFor(found.best.ids);
+	assert.ok(saved);
+	assert.deepEqual(trips(solveRun({ ...base, chosen: picks })), trips(found.best.run));
+	// The same day asked again, its plan empty so a move would show.
+	rememberFound({ ...saved, plan: { visits: [{ at: base.home }] } });
+	assert.equal(foundFor(found.best.ids), saved);
+	// Another day is another plan.
+	const other = { ...saved, day: 'another day' };
+	rememberFound(other);
+	assert.equal(foundFor(found.best.ids), other);
+});
+
 test('the stock goal: the run proposed fills the stock -- each good to its level\'s target, as chainRun\'s fillOf counts it', async () => {
 	const { newPropose } = await import('../js/barter-solve.js');
 	const { fillOf } = await import('../js/barter-optimizer.js');
@@ -134,4 +184,13 @@ test('the stock goal: the run proposed fills the stock -- each good to its level
 	// The app's own count of the same run agrees.
 	const app = fillOf(found.best.run, { targetOf: g => targets[levelOf(g)] || 0, held: new Map(held), stock });
 	assert.ok(app >= found.best.value - 1e-6, `fillOf ${app} against ${found.best.value}`);
+});
+
+test('a run loaded at one port finishes at the storage asked for', () => {
+	const velia = stashes.find(w => w.at === 'Velia');
+	const run = solveRun({ ...base, prefer: velia });
+	const last = run.stops[run.stops.length - 1];
+	assert.ok(run.stops.some(s => s.npcId), 'the run sails');
+	assert.equal(last.wharf && last.wharf.at, 'Velia', 'the last call is the storage asked for');
+	assert.notEqual(base.start.name, 'Velia', 'and it is not where the run set out from');
 });

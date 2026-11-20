@@ -22,6 +22,7 @@ import { refreshSide } from './render.js';
 import { stashRoute, stashLive, routeSeq } from './route.js';
 import { endWriting, markTraceHost, applyTraceObject } from './trace.js';
 
+import { ico } from '../icons.js';
 /* What the shell's event handling steers. */
 
 export function setMapPick(value) {
@@ -90,8 +91,9 @@ export function toggleMapStop(npcId) {
 		delete mv.runTrades[npcId];
 	}
 	// The wharf calls were a planned run's, pinned to its order; edit
-	// the stops and they no longer describe the route, so they go.
-	mv.runStash = [];
+	// the stops and they no longer describe the route, so they go. The
+	// sailor's own stops are not the plan's, and stay.
+	mv.runStash = mv.runStash.filter(c => c.own).map(c => ({ ...c, i: Math.min(c.i, mv.stops.length) }));
 	mv.stopsPick = mv.mapPick || '';
 	persist();
 	refreshSide();
@@ -111,7 +113,7 @@ export function useSuggestedRoute() {
 
 export function reverseMapRoute() {
 	mv.stops = [...mv.stops].reverse();
-	mv.runStash = [];
+	mv.runStash = mv.runStash.filter(c => c.own).map(c => ({ ...c, i: mv.stops.length - c.i })).sort((a, b) => a.i - b.i);
 	persist();
 	refreshSide();
 	paintMap();
@@ -166,7 +168,7 @@ export function openMapPicker() {
 	const rest = names.filter(n => !(snapshot.missing[n] > 0)).sort();
 	const kindWord = { material: T('material'), trade: T('trade good'), coin: T('crow coin') };
 	const items = [
-		{ id: '', label: T('Everything I am short of'), icon: '<span class="row-icon sm map-pick-all">⚓</span>', meta: T('{n} goods', { n: short.length }) },
+		{ id: '', label: T('Everything I am short of'), icon: `<span class="row-icon sm map-pick-all">${ico('anchor')}</span>`, meta: T('{n} goods', { n: short.length }) },
 		...short.map(n => ({ id: n, label: gameName(n), icon: img(n, ''), meta: T('{n} short', { n: F(snapshot.missing[n]) }), group: T('On your build list') })),
 		...rest.map(n => ({ id: n, label: gameName(n), icon: img(n, ''), sub: kindWord[barterKind(n)], group: T('The rest of the sea') })),
 		...monsters.filter(m => m.points.length || m.zones).map(m => ({

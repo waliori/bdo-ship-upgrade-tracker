@@ -14,6 +14,7 @@ import assert from 'node:assert/strict';
 
 import { simulate, evaluate, planPolicy } from '../tools/rpit/simulate.mjs';
 import { validateInstance, validatePlan } from '../tools/rpit/schema.mjs';
+import { robustEval, trimLoads } from '../js/rpit/common.js';
 
 const tiny = (over = {}) => {
 	const I = {
@@ -72,7 +73,7 @@ test('robust: the climb scores what it scores on paper', () => {
 	assert.ok(Math.abs(r.T - (400 + 3 * 45 + 120) / 3600) < 1e-9);
 	assert.equal(r.calls, 1);
 	assert.equal(r.P, 30);
-	assert.deepEqual(r.pointless, { loadThenDrop: 0, storedTwice: 0, idleCalls: 0, consecutiveCalls: 0, emptyVisits: 0 });
+	assert.deepEqual(r.pointless, { loadThenDrop: 0, loadedBack: 0, storedTwice: 0, idleCalls: 0, consecutiveCalls: 0, emptyVisits: 0 });
 });
 
 test('sample: an island pays the same at every attempt, drawn once for the board', () => {
@@ -165,6 +166,36 @@ test('a drop away from home is refused when the rules keep goods at home only', 
 	// And the call home after it did nothing, straight after another call.
 	assert.equal(any.pointless.idleCalls, 1);
 	assert.equal(any.pointless.consecutiveCalls, 1);
+});
+
+test('what comes back unused is counted by the unit, and what was aboard before the start is not the plan\'s', () => {
+	const back = (plan, over) => simulate(tiny(over), planPolicy(plan), { mode: 'robust' }).pointless.loadedBack;
+	// Five L2 taken, one trade of two, three put ashore: one trade does not clear them.
+	const some = { load: { L2: 5 }, visits: [{ at: 's3', a: 1 }, { at: 'D', drop: { L2: 3 } }, { at: 'H' }] };
+	assert.equal(back(some), 3);
+	assert.equal(simulate(tiny(), planPolicy(some), { mode: 'robust' }).pointless.loadThenDrop, 0);
+	// All of it dealt: nothing back.
+	assert.equal(back({ load: { L2: 4 }, visits: [{ at: 's3', a: 2 }, { at: 'H' }] }), 0);
+	// Aboard already: the island takes from those first, and the rest was not taken.
+	const aboard = { initial: { hold: { L2: 5 }, floors: {} } };
+	assert.equal(back({ visits: [{ at: 's3', a: 1 }, { at: 'D', drop: { L2: 3 } }, { at: 'H' }] }, aboard), 0);
+	// Aboard and loaded besides: what was loaded is what comes back.
+	assert.equal(back({ load: { L2: 3 }, visits: [{ at: 's3', a: 2 }, { at: 'D', drop: { L2: 4 } }, { at: 'H' }] }, { ...aboard, depots: [{ id: 'H', storage: { L2: 5 } }, { id: 'D', storage: {} }] }), 3);
+});
+
+test('a plan\'s loads are trimmed to what it deals, and never below', () => {
+	const I = tiny();
+	const plan = { load: { L2: 5 }, visits: [{ at: 's3', a: 1 }, { at: 'D', drop: 'spare' }, { at: 'H', sell: 'all' }] };
+	const was = robustEval(I, plan);
+	assert.equal(was.run.pointless.loadedBack, 3);
+	const trimmed = trimLoads(I, plan);
+	const now = robustEval(I, trimmed);
+	assert.deepEqual(trimmed.load, { L2: 2 });
+	assert.equal(now.run.pointless.loadedBack, 0);
+	assert.equal(now.run.trades, was.run.trades);
+	assert.equal(now.R, was.R);
+	assert.deepEqual(plan.load, { L2: 5 }, 'the plan given is left as it was');
+	assert.equal(trimLoads(I, trimmed), trimmed, 'nothing to trim, the same plan');
 });
 
 test('an island sailed to that deals nothing is a pointless stop', () => {

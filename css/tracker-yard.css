@@ -47,7 +47,7 @@
 .bar .take { background: var(--teal); }
 .bar .make { background: var(--blue-bar); }
 .bar .lack { background: var(--red); }
-.bar .fill { background: linear-gradient(90deg, #3a89c9, #4ec9ae); }
+.bar .fill { background: linear-gradient(90deg, var(--night-blue-bar), var(--night-teal)); }
 
 .bar-legend { display: flex; justify-content: space-between; gap: 10px; font-size: 11px; color: var(--ink-faint); margin-top: 4px; }
 .bar-legend .n { font-family: var(--font-display); color: var(--ink-dim); }
@@ -75,8 +75,6 @@
   font-family: var(--font-display);
   font-size: 15px;
   font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
   color: var(--ink-hi);
 }
 
@@ -98,7 +96,7 @@
 .build-main { flex: 1 1 260px; min-width: 0; }
 .build-titles { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
 .build-name { font-weight: 700; font-size: 15px; color: var(--ink-hi); }
-.build-state { font-size: 11.5px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--blue); }
+.build-state { font-size: 11.5px; font-weight: 600; color: var(--blue); }
 .build-state.done { color: var(--teal); }
 .build-state.paused { color: var(--ink-off); }
 .build-state.held { color: var(--teal-hi); }
@@ -107,8 +105,8 @@
 .build-held {
   display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px;
   margin-top: 8px; padding: 7px 10px;
-  border: 1px solid rgba(78, 201, 174, 0.3); border-radius: var(--r-sm);
-  background: rgba(78, 201, 174, 0.08);
+  border: 1px solid rgba(var(--teal-rgb), 0.3); border-radius: var(--r-sm);
+  background: rgba(var(--teal-rgb), 0.08);
   font-size: 12px; color: var(--ink);
 }
 .build-held span { flex: 1 1 180px; }
@@ -163,7 +161,7 @@
 .inv-band { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; margin-top: 6px; padding: 4px 0 2px; border-bottom: 1px solid color-mix(in srgb, var(--tier, var(--line)) 45%, transparent); font-size: 12px; color: var(--ink-mute); }
 .inv-band:first-child { margin-top: 0; }
 .inv-band > i { display: inline-flex; align-items: center; justify-content: center; min-width: 26px; height: 20px; padding: 0 6px; border-radius: 5px; font-family: var(--font-display); font-style: normal; font-size: 11px; font-weight: 700; color: var(--tier); background: color-mix(in srgb, var(--tier) 14%, transparent); border: 1px solid color-mix(in srgb, var(--tier) 55%, transparent); }
-.inv-band > b { font-family: var(--font-display); font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--tier, var(--ink-mid)); }
+.inv-band > b { font-family: var(--font-display); font-size: 13px; color: var(--tier, var(--ink-mid)); }
 .inv-band.plain { --tier: var(--ink-mute); }
 .tile.tiered { border-top: 2px solid color-mix(in srgb, var(--tier) 75%, transparent); }
 
@@ -182,7 +180,7 @@
 }
 
 .tile:hover { border-color: rgba(var(--blue-rgb), 0.6); }
-.tile.short { border-color: rgba(232, 122, 109, 0.4); }
+.tile.short { border-color: rgba(var(--red-rgb), 0.4); }
 .tile.selected { border-color: rgba(var(--blue-rgb), 0.85); }
 .tile img { width: 38px; height: 38px; border-radius: var(--r-icon); object-fit: contain; }
 .tile-qty { font-family: var(--font-display); font-size: 14px; font-weight: 700; color: var(--ink-hi); }
@@ -273,7 +271,7 @@
 
 .lvl:hover { color: var(--ink-hi); border-color: var(--line-btn-hi); }
 .lvl.wanted { border-color: rgba(var(--blue-rgb), 0.35); color: var(--blue); }
-.lvl.has { color: var(--teal-hi); border-color: var(--teal-edge); background: rgba(78, 201, 174, 0.1); }
+.lvl.has { color: var(--teal-hi); border-color: var(--teal-edge); background: rgba(var(--teal-rgb), 0.1); }
 .lvl.on { color: var(--ink-hi); border-color: var(--blue-edge); background: rgba(var(--blue-rgb), 0.16); }
 
 .lvl-n {
@@ -299,7 +297,7 @@
   line-height: 1;
   padding: 3px 5px;
   border-radius: 6px;
-  background: rgba(78, 201, 174, 0.16);
+  background: rgba(var(--teal-rgb), 0.16);
   border: 1px solid var(--teal-edge);
   color: var(--teal-hi);
 }
@@ -316,7 +314,7 @@
 .kv-row .n.red { color: var(--red); }
 .kv-row .n.faint { color: var(--ink-faint); }
 
-.detail-label { font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-mute); margin-bottom: 8px; }
+.detail-label { font-size: 12px; color: var(--ink-mute); margin-bottom: 8px; }
 .detail-block { margin-bottom: 14px; }
 .detail-line { display: flex; justify-content: space-between; gap: 10px; font-size: 12.5px; padding: 4px 0; }
 .detail-line span:first-child { color: var(--ink-mid); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -336,7 +334,7 @@
 
 .craft-card {
   background: var(--panel-inset);
-  border: 1px solid rgba(78, 201, 174, 0.25);
+  border: 1px solid rgba(var(--teal-rgb), 0.25);
   border-radius: var(--r-tile);
   padding: 14px;
 }
@@ -408,8 +406,6 @@
   font-family: var(--font-display);
   font-size: 14px;
   font-weight: 600;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
   color: var(--ink-hi);
 }
 
@@ -464,14 +460,14 @@
   padding: 10px 16px;
   border-radius: var(--r-btn);
   border: 1px solid var(--red-edge);
-  background: rgba(232, 122, 109, 0.14);
+  background: rgba(var(--red-rgb), 0.14);
   color: var(--red);
   font-size: 13px;
   font-weight: 600;
 }
 .save-badge .ghost-btn { color: var(--red); border-color: var(--red-edge); }
 .dialog-copy.warn { color: var(--amber); }
-.summary-k { font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-mute); }
+.summary-k { font-size: 12px; color: var(--ink-mute); }
 .summary-v { font-family: var(--font-display); font-size: 17px; font-weight: 600; color: var(--ink); }
 .summary-v.amber { color: var(--amber); }
 .summary-v.blue { color: var(--blue-hi); }
@@ -498,9 +494,9 @@
 .coin-buy { flex: none; white-space: nowrap; }
 .buy-head { display: flex; align-items: center; gap: 12px; margin: 6px 0 14px; }
 .buy-name { font-family: var(--font-display); font-size: 15px; font-weight: 600; color: var(--ink-hi); }
-.buy-sum { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 10px 0 4px; padding: 10px 12px; border-radius: var(--r-btn); background: rgba(232, 182, 97, 0.1); border: 1px solid rgba(232, 182, 97, 0.28); font-size: 12.5px; color: var(--ink-mute); }
+.buy-sum { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 10px 0 4px; padding: 10px 12px; border-radius: var(--r-btn); background: rgba(var(--amber-rgb), 0.1); border: 1px solid rgba(var(--amber-rgb), 0.28); font-size: 12.5px; color: var(--ink-mute); }
 .buy-sum b { font-family: var(--font-display); font-size: 16px; color: var(--amber); }
-.buy-sum.over { background: rgba(232, 122, 109, 0.1); border-color: var(--red-edge); }
+.buy-sum.over { background: rgba(var(--red-rgb), 0.1); border-color: var(--red-edge); }
 .buy-sum.over b { color: var(--red); }
 .coin-block .coin-buy { width: 100%; justify-content: center; margin-top: 6px; }
 
@@ -550,7 +546,7 @@
 .est-badge { display: inline-flex; align-items: center; margin-left: 6px; padding: 0 7px; border-radius: 999px; border: 1px dashed color-mix(in srgb, var(--amber) 55%, transparent); color: var(--amber); font-size: 10.5px; font-weight: 600; letter-spacing: 0.02em; vertical-align: 2px; }
 /* The slots the goods take, storage by storage (Inventory). */
 .inv-slots { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin: 6px 0 2px; font-size: 12px; color: var(--ink-mute); }
-.inv-slots-k { font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
+.inv-slots-k { font-size: 12px; color: var(--ink-faint); }
 .inv-slot-at { display: inline-flex; gap: 5px; align-items: baseline; }
 .inv-slot-at > b { font-family: var(--font-display); color: var(--ink-mid); }
 .inv-slot-at.warn > b { color: var(--red); }

@@ -9,7 +9,7 @@ import { currentShip, aboardWhat, rationDrain, setRationCal } from '../ship.js';
 import { paceNow, LEARN_AT } from '../ship-pace.js';
 import { img, tierName } from '../ui-bits.js';
 import { npcById, ports } from '../barter_npcs.js';
-import { nearestWharf } from '../wharves.js';
+import { nearestWharf, wharves } from '../wharves.js';
 import { gradeById } from '../crystals.js';
 import { openDialog, closeDialog, toast } from '../dialogs.js';
 import * as store from '../state.js';
@@ -25,10 +25,11 @@ import { barterData, barterProfile } from '../ui-state.js';
 import { mv, persist, restore } from './state.js';
 import { gameImportRead, openGameImport } from './game-map.js';
 import { stopsLive, seaBent, routeWorld, straightLegs, barterKind, goodsOf, marksNow, routeIds } from './marks.js';
-import { paintMap } from './paint.js';
+import { paintMap, habitatMarkers } from './paint.js';
 import { iconStrip, refreshSide } from './render.js';
 import { applyTraceObject } from './trace.js';
 
+import { ico } from '../icons.js';
 // The run sheet the Barter tab draws for a run being sailed, handed in
 // by ui.js (the Barter screen cannot be imported here without a cycle).
 // It takes the chart's islands in order and answers with the sheet when
@@ -152,7 +153,7 @@ export function routeHTML(marks) {
 				${mv.runTrades[id] ? runLine(mv.runTrades[id]) : cargoLine(id, has)}${holdAfter(ledger.stops[isle], me.hold)}${lowHere}${over ? `<span class="map-row-sub warn">${T('past what your Parley covers')}</span>` : ''}
 			</span>
 			<span class="map-row-right">${mv.runTrades[id] ? img(mv.runTrades[id].item, 'map-icon') : has ? iconStrip([...has.items.keys()]) : ''}</span>
-			<button class="map-x" data-act="map-stop" data-npc="${id}"
+			${gripHTML(k, gameName(n.at))}<button class="map-x" data-act="map-stop" data-npc="${id}"
 				aria-label="${T('Remove {place} from the route', { place: esc(gameName(n.at)) })}">×</button>
 		</div>`;
 	}).join('');
@@ -247,7 +248,7 @@ export function routeHTML(marks) {
 		<details class="map-run-fold tools"><summary>${T('Route tools')}</summary>${stats}${savedHTML()}</details>`;
 	}
 	return `${empty}${sailingAs}
-		${startRow}${seedBtn}<div class="map-list">${list}</div>${stats}${savedHTML()}`;
+		${startRow}${seedBtn}<div class="map-list">${list}</div>${mv.stops.length ? `<button class="ghost-btn wide" data-act="map-own-add">+ ${T('A stop at a wharf or a habitat')}</button>` : ''}${stats}${savedHTML()}`;
 }
 
 /* ------------------------------------------------------------------ *
@@ -377,14 +378,22 @@ export const n1 = v => F(Math.round(v * 10) / 10);
  *  furniture -- there is nothing to trade at a wharf. */
 function stashRow(s, leg, k = -1, extra = '') {
 	const c = s.place;
-	const drops = c.drops.map(d => `<span class="map-drop">${img(d.item, 'map-icon')}<b>${n1(d.n)}×</b>${esc(gameName(d.item))}</span>`).join('');
-	const questsHere = (c.quests || []).length ? `<span class="map-quests">${c.quests.map(q => `<span class="map-quest">📜 ${esc(gameName(q))}</span>`).join('')}</span>` : '';
-	const questOnly = questsHere && !c.drops.length && !c.sale;
-	return `<div class="map-stop-row stash${questOnly ? ' quest' : ''}${k === mv.stepIdx ? ' on' : ''}"${k >= 0 ? ` data-act="map-step" data-i="${k}" data-step-row role="button" tabindex="0" title="${T('Step to {place}', { place: esc(gameName(c.at)) })}"` : ''}>
-		<span class="map-stop-n stash" title="${questOnly ? T('A stop put in for a quest') : c.rations ? T('A call for rations') : T('A pause at a wharf')}">${questOnly ? '📜' : c.rations ? '🍞' : '⚓'}</span>
+	if (c.own) return `<div class="map-stop-row stash${k === mv.stepIdx ? ' on' : ''}" data-act="map-step" data-i="${k}" data-step-row role="button" tabindex="0" title="${T('Step to {place}', { place: esc(gameName(c.name)) })}">
+		<span class="map-stop-n stash" title="${T('A stop of your own')}">${ico('anchor')}</span>
 		<span class="map-row-main">
 			<span class="map-row-name"><span class="map-row-name-t">${esc(gameName(c.name))}</span>${leg}</span>
-			<span class="map-row-sub">${T('stop {n}', { n: s.n })} · ${questOnly ? esc(gameName(c.at)) : T('{place} wharf', { place: esc(gameName(c.at)) })}${questOnly ? ` · ${T('a quest handed in here')}` : c.rations ? ` · ${T('rations bought here, the pool full again')}` : c.drops.length ? ` · ${T('the hold is lightened here')}` : ` · ${T('the hold is sold down here')}`}</span>
+			<span class="map-row-sub">${T('stop {n}', { n: s.n })} · ${T('a stop of your own')}</span>${extra}
+		</span>
+		${gripHTML(k, gameName(c.name))}<button class="map-x" data-act="map-own-del" data-k="${s.k}" aria-label="${T('Remove {place} from the route', { place: esc(gameName(c.name)) })}">×</button>
+	</div>`;
+	const drops = c.drops.map(d => `<span class="map-drop">${img(d.item, 'map-icon')}<b>${n1(d.n)}×</b>${esc(gameName(d.item))}</span>`).join('');
+	const questsHere = (c.quests || []).length ? `<span class="map-quests">${c.quests.map(q => `<span class="map-quest">${ico('scroll')} ${esc(gameName(q))}</span>`).join('')}</span>` : '';
+	const questOnly = questsHere && !c.drops.length && !c.sale;
+	return `<div class="map-stop-row stash${questOnly ? ' quest' : ''}${k === mv.stepIdx ? ' on' : ''}"${k >= 0 ? ` data-act="map-step" data-i="${k}" data-step-row role="button" tabindex="0" title="${T('Step to {place}', { place: esc(gameName(c.at)) })}"` : ''}>
+		<span class="map-stop-n stash" title="${questOnly ? T('A stop put in for a quest') : c.rations ? T('A call for rations') : T('A pause at a wharf')}">${ico(questOnly ? 'scroll' : c.rations ? 'bread' : 'anchor')}</span>
+		<span class="map-row-main">
+			<span class="map-row-name"><span class="map-row-name-t">${esc(gameName(c.name))}</span>${leg}</span>
+			<span class="map-row-sub">${T('stop {n}', { n: s.n })} · ${questOnly ? esc(gameName(c.at)) : T('{place} wharf', { place: esc(gameName(c.at)) })}${questOnly ? ` · ${c.fetch ? T('a quest picked up here') : T('a quest handed in here')}` : c.rations ? ` · ${T('rations bought here, the pool full again')}` : c.drops.length ? ` · ${T('the hold is lightened here')}` : ` · ${T('the hold is sold down here')}`}</span>
 			${drops ? `<span class="map-drops">${drops}</span>` : ''}
 			${c.sale ? `<span class="map-row-sub ok">${c.silver ? T('sells {n} [Level 7] for {silver}', { n: n1(c.sale), silver: FC(c.silver) }) : T('sells {n} [Level 7]', { n: n1(c.sale) })}</span>` : ''}
 			${questsHere}${extra}
@@ -450,6 +459,10 @@ export function readStash(rows) {
 			// A call put in for rations: nothing is dropped or sold, the
 			// pool is filled, and the row says so.
 			rations: why === 'rations',
+			// A stop the sailor put in by hand, at a wharf or a habitat.
+			own: why === 'own',
+			// A call put in only to fetch a quest the run hands in later.
+			fetch: why === 'fetch',
 			// The quests handed in at this call, as the Barter tab laid
 			// them: a call put in for a quest carries them and nothing else.
 			quests: (Array.isArray(quests) ? quests : []).filter(q => typeof q === 'string' && q).map(q => q.slice(0, 80)).slice(0, 12),
@@ -470,7 +483,7 @@ export function readStash(rows) {
 /** The wharf calls as readStash takes them back: what a link, a saved
  *  route and the browser's own copy all carry. */
 function stashRows() {
-	return mv.runStash.map(c => [c.i, c.name, c.at, c.x, c.y, c.drops.map(d => [d.item, d.n]), c.sale, c.silver, c.quests || [], c.rations ? 'rations' : '']);
+	return mv.runStash.map(c => [c.i, c.name, c.at, c.x, c.y, c.drops.map(d => [d.item, d.n]), c.sale, c.silver, c.quests || [], c.own ? 'own' : c.rations ? 'rations' : '']);
 }
 
 /** Whether the run's wharf calls belong to the route as it stands.
@@ -922,6 +935,114 @@ export function putRationsCall(k) {
 	refreshSide();
 	paintMap();
 	toast(T('A call at {name} for rations, after stop {n}', { name: gameName(wharf.name), n: row.n }));
+}
+
+/** The handle a stop is moved by: dragged, or with the arrow keys. */
+const gripHTML = (k, place) => `<button class="map-grip" data-act="map-grip" data-k="${k}" aria-label="${T('Move {place} up or down the route', { place: esc(place) })}">${ico('grip')}</button>`;
+
+/**
+ * A stop moved from row `from` to row `to` of the route as sailed. The
+ * islands take their new order and the sailor's own stops their new place
+ * among them; the wharf calls of a planned run are pinned to the old order
+ * and go, as they do when the route is reversed.
+ */
+export function moveRouteRow(from, to) {
+	const seq = routeSeq(marksNow());
+	const movable = r => r.kind === 'npc' || r.place.own;
+	const rows = seq.filter(movable), a = rows.indexOf(seq[from]), b = rows.indexOf(seq[to]);
+	if (a < 0 || b < 0 || a === b) return false;
+	rows.splice(b, 0, rows.splice(a, 1)[0]);
+	let isles = 0;
+	const own = [];
+	for (const r of rows) { if (r.kind === 'npc') isles++; else own.push({ ...r.place, i: isles }); }
+	mv.stops = rows.filter(r => r.kind === 'npc').map(r => r.id);
+	mv.runStash = own;
+	persist();
+	refreshSide();
+	paintMap();
+	return true;
+}
+
+/** Every wharf and habitat a stop can be put at, named as the chart names them. */
+const ownPlaces = () => [
+	...wharves.map(w => ({ name: w.name, at: w.at || '', x: w.x, y: w.y, sub: w.at ? gameName(w.at) : T('wharf') })),
+	...habitatMarkers().map(h => ({ name: h.name, at: '', x: h.x, y: h.y, sub: h.sub.replace(/ · about here$/, '') }))
+];
+
+/** Ask where, and put the stop in after the last one. */
+export function openOwnStop() {
+	const all = ownPlaces();
+	const host = openDialog(`<h2>${T('A stop at a wharf or a habitat')}</h2>
+		<input class="field" type="search" placeholder="${T('Type to find…')}" aria-label="${T('Find a wharf or a habitat')}" data-own-q>
+		<div class="map-own-list" data-own-list></div>
+		<div class="dialog-actions"><button class="act" data-close>${T('Cancel')}</button></div>`);
+	const list = host.querySelector('[data-own-list]'), q = host.querySelector('[data-own-q]');
+	const paint = () => {
+		const s = q.value.trim().toLowerCase();
+		const hits = all.map((p, i) => ({ p, i })).filter(({ p }) => !s || `${gameName(p.name)} ${p.sub}`.toLowerCase().includes(s)).slice(0, 40);
+		list.innerHTML = hits.map(({ p, i }) => `<button class="ghost-btn wide" data-own-i="${i}"><b>${esc(gameName(p.name))}</b> <small>${esc(p.sub)}</small></button>`).join('') || `<p class="map-hint">${T('Nothing by that name.')}</p>`;
+	};
+	q.addEventListener('input', paint);
+	list.addEventListener('click', evt => {
+		const b = evt.target.closest('[data-own-i]');
+		if (!b) return;
+		const p = all[Number(b.dataset.ownI)];
+		const call = readStash([[mv.stops.length, p.name, p.at, p.x, p.y, [], 0, 0, [], 'own']])[0];
+		if (!call) return;
+		mv.runStash = [...mv.runStash, call].sort((x, y) => x.i - y.i);
+		closeDialog();
+		persist();
+		refreshSide();
+		paintMap();
+	});
+	paint();
+	q.focus({ preventScroll: true });
+}
+
+/** A stop of the sailor's own taken off the route. */
+export function removeOwnStop(k) {
+	mv.runStash = mv.runStash.filter((_, i) => i !== k);
+	persist();
+	refreshSide();
+	paintMap();
+}
+
+// The handle: a press on it holds the pointer, the row under the finger is
+// lit, and letting go there moves the stop. The arrow keys do the same a row
+// at a time, and the handle keeps the focus.
+if (typeof document !== 'undefined') {
+	let drag = null;
+	const rowAt = evt => { const el = document.elementFromPoint(evt.clientX, evt.clientY); return el && el.closest('.map-list [data-step-row]'); };
+	const light = row => { document.querySelectorAll('.map-stop-row.drop').forEach(r => r.classList.remove('drop')); if (row) row.classList.add('drop'); };
+	document.addEventListener('pointerdown', evt => {
+		const grip = evt.target.closest && evt.target.closest('.map-grip');
+		if (!grip) return;
+		evt.preventDefault();
+		grip.setPointerCapture(evt.pointerId);
+		drag = { from: Number(grip.dataset.k), to: null };
+	});
+	document.addEventListener('pointermove', evt => {
+		if (!drag) return;
+		const row = rowAt(evt);
+		drag.to = row ? Number(row.dataset.i) : null;
+		light(row);
+	});
+	const end = evt => {
+		if (!drag) return;
+		const { from, to } = drag;
+		drag = null;
+		light(null);
+		if (evt.type === 'pointerup' && to !== null && to !== from) moveRouteRow(from, to);
+	};
+	document.addEventListener('pointerup', end);
+	document.addEventListener('pointercancel', end);
+	document.addEventListener('keydown', evt => {
+		const grip = evt.target.closest && evt.target.closest('.map-grip');
+		if (!grip || (evt.key !== 'ArrowUp' && evt.key !== 'ArrowDown')) return;
+		evt.preventDefault();
+		const from = Number(grip.dataset.k), to = from + (evt.key === 'ArrowUp' ? -1 : 1);
+		if (moveRouteRow(from, to)) document.querySelector(`.map-grip[data-k="${to}"]`)?.focus();
+	});
 }
 
 /** The ration drain, calibrated: the pool fell N over a leg of M

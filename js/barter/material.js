@@ -38,6 +38,7 @@ import { persist, editsBy, redrawTab } from './view.js';
 import { fleetRolls } from './fleet.js';
 import { coinPrice } from '../coin-shop.js';
 
+import { ico } from '../icons.js';
 /**
  * The run for a material, in the silver run's two panels: the ladder
  * on the left -- every rung from the shore to the material, with what
@@ -295,7 +296,7 @@ export function openMatRolls(redraw) {
 				return `<button class="roll-option mini${on ? ' on' : ''}${likely ? ' likely' : ''}" data-act="barter-mat-roll-pick" data-npc="${x.npcId}" data-give="${esc(o.give)}" data-recv="${esc(o.recv)}" aria-pressed="${on}" title="${esc(gameName(o.give))} → ${esc(gameName(o.recv))}">
 					${img(o.give, 'row-icon sm')}
 					<span class="roll-name">${o.giveN > 1 ? `${F(o.giveN)}× ` : ''}${esc(gameName(o.give))}</span>
-					<span class="roll-meta">🎲${Math.round(o.odds * 100)}%${pct !== null ? ` · <i class="pay-fleet">⚓${pct}%</i>` : ''}${likely ? ` · ${T('likely')}` : ''}</span>
+					<span class="roll-meta">${ico('dice')}${Math.round(o.odds * 100)}%${pct !== null ? ` · <i class="pay-fleet">${ico('anchor')}${pct}%</i>` : ''}${likely ? ` · ${T('likely')}` : ''}</span>
 				</button>`;
 			};
 			const pays = new Map();
@@ -313,7 +314,7 @@ export function openMatRolls(redraw) {
 			</div>`;
 		};
 		return `<h2>${T('Today’s rolls')}</h2>
-			<p class="dialog-copy">${T('This is {board}, but on it these islands are filled at random: one of a few exchanges each, a different one each day. Look at each on the window and tap what it shows. 🎲 is the game’s odds, ⚓ what the fleet saw; until an island is said it stays out of the run.', { board: esc(matPageName(page)) })}</p>
+			<p class="dialog-copy">${T('This is {board}, but on it these islands are filled at random: one of a few exchanges each, a different one each day. Look at each on the window and tap what it shows. {dice} is the game’s odds, {anchor} what the fleet saw; until an island is said it stays out of the run.', { dice: ico('dice'), anchor: ico('anchor'), board: esc(matPageName(page)) })}</p>
 			<div class="rolls">${asks.map(row).join('')}</div>
 			<div class="dialog-actions"><button class="act" data-close>${T('Done')}</button></div>`;
 	};
@@ -336,8 +337,8 @@ export function openMatRolls(redraw) {
 function matRollsChipHTML(asks) {
 	const left = asks.filter(x => !x.said).length;
 	return left
-		? `<button class="chip tiny rolls-chip warn" data-act="barter-mat-rolls" title="${T('These islands show one of a few exchanges, a different one each day; until said they stay out of the run')}">🎲 ${left === 1 ? T('{n} island is filled at random — which exchange?', { n: F(left) }) : T('{n} islands are filled at random — which exchanges?', { n: F(left) })}</button>`
-		: `<button class="chip tiny rolls-chip ok" data-act="barter-mat-rolls" title="${T('What the islands filled at random showed today')}">🎲 ${T('rolls said')}</button>`;
+		? `<button class="chip tiny rolls-chip warn" data-act="barter-mat-rolls" title="${T('These islands show one of a few exchanges, a different one each day; until said they stay out of the run')}">${ico('dice')} ${left === 1 ? T('{n} island is filled at random — which exchange?', { n: F(left) }) : T('{n} islands are filled at random — which exchanges?', { n: F(left) })}</button>`
+		: `<button class="chip tiny rolls-chip ok" data-act="barter-mat-rolls" title="${T('What the islands filled at random showed today')}">${ico('dice')} ${T('rolls said')}</button>`;
 }
 
 /**
@@ -351,7 +352,7 @@ export function matBarHTML() {
 	const st = matStage();
 	const { fit, kind } = st;
 	const { pages } = matBookNow();
-	const book = `<button class="ghost-btn sm" data-act="barter-mat-book" title="${T('Every layout of the material list, from the game’s own files, and what each pays')}">📖 ${T('The material book')} · ${pages.length === 1 ? T('{n} board', { n: F(pages.length) }) : T('{n} boards', { n: F(pages.length) })}</button>`;
+	const book = `<button class="ghost-btn sm" data-act="barter-mat-book" title="${T('Every layout of the material list, from the game’s own files, and what each pays')}">${ico('book')} ${T('The material book')} · ${pages.length === 1 ? T('{n} board', { n: F(pages.length) }) : T('{n} boards', { n: F(pages.length) })}</button>`;
 	const drop = (big, lead, sub) => `<button class="board-drop${big ? '' : ' slim'}" data-act="barter-shot"><b class="by-key">${lead}</b><b class="by-touch">${lead}</b><span>${sub}</span></button>`;
 	const nameOf = page => `<button class="linky" data-act="barter-mat-book" title="${T('Open it in the material book')}"><b>${matPageName(page)}</b></button>`;
 
@@ -370,7 +371,7 @@ export function matBarHTML() {
 			? T('Today’s list is {board}, from the material book: {n} islands filled in.', { board: nameOf(page), n: F(st.taken) })
 			: T('{n} filled in', { n: F(st.taken) });
 		body = `<p class="mat-say known">✓ ${line} ${T('They show dashed below. A page read off the window checks them and puts right any that differ.')}</p>
-			<div class="mat-acts"><button class="ghost-btn sm" data-act="barter-shot">📷 ${T('Check it with a screenshot')}</button></div>`;
+			<div class="mat-acts"><button class="ghost-btn sm" data-act="barter-shot">${ico('camera')} ${T('Check it with a screenshot')}</button></div>`;
 	} else if (kind === 'split') {
 		const at = fit.splitter ? npcById.get(fit.splitter) : null;
 		body = `<p class="mat-say">${T('What you read fits <b>{n} boards</b> in the book so far.', { n: F(st.fits) })} ${at ? T('One more page tells them apart — the one with <b>{isle}</b> on it.', { isle: esc(gameName(isleOf(at))) }) : T('One more page tells them apart.')}</p>
@@ -467,7 +468,7 @@ function matNeedHTML(mats) {
 				${img(m.it, 'row-icon md')}
 				<div class="mat-need-text"><b>${esc(gameName(m.it))}</b><small>${figs}</small>${need || m.saved ? `<small>${[need, m.saved ? T('less {n} for what this run brings of the rest', { n: F(Math.round(m.saved)) }) : '', m.it === CROW_COIN && coinWorth() && Number.isFinite(m.qty) ? T('worth ≈ {silver} at the coin shop’s best rate', { silver: FC(Math.round(coinWorth().each * m.qty)) }) : ''].filter(Boolean).join(' · ')}</small>` : ''}</div>
 				<label class="mat-want"><span class="run-pick-k">${T('wanted')}</span>${input}${m.typed ? `<button class="chip tiny" data-act="barter-mat-want-reset" data-item="${esc(m.it)}" title="${T('Back to what your builds need')}">↺</button>` : ''}</label>
-				${rowsN(m.it) ? `<button class="ghost-btn sm" data-act="barter-mat-isles" data-item="${esc(m.it)}" title="${T('Every island of today’s list that deals it, and whether you can trade there')}">${T('the islands')} ›</button>` : ''}
+				${rowsN(m.it) ? `<button class="ghost-btn sm" data-act="barter-mat-isles" data-item="${esc(m.it)}" title="${T('Every island of today’s list that deals it, and whether you can trade there')}">${T('the islands')}</button>` : ''}
 			</div>
 			${can.length ? '' : `<p class="mat-none">${T('No island today deals it for a give you hold.')}</p>`}
 		</section>`;
@@ -492,7 +493,7 @@ function matRowHTML(r) {
 	const npc = npcById.get(r.a.npcId), d = r.deal;
 	const got = d ? (d.recvMin === d.recvMax ? F(d.recvMin) : `${F(d.recvMin)}–${F(d.recvMax)}`) : '';
 	const giveN = d && d.qty && d.qty !== '1' ? `${esc(d.qty)}× ` : '';
-	const state = !r.open ? `<span class="mat-row-state shut">🔒 ${T('opens at {barters} Total Barters', { barters: F(gateOf(r.a.npcId, r.a.give, r.a.recv)) })}</span>`
+	const state = !r.open ? `<span class="mat-row-state shut">${ico('lock')} ${T('opens at {barters} Total Barters', { barters: F(gateOf(r.a.npcId, r.a.give, r.a.recv)) })}</span>`
 		: !(r.left > 0) ? `<span class="mat-row-state none">✓ ${T('traded today')}</span>`
 		: `<span class="mat-row-state${r.can ? ' ok' : ' none'}">${esc(heldSaid(r.a.give))}</span>`;
 	return `<div class="mat-row${r.can && r.open ? '' : ' off'}${r.a.took ? ' took' : ''}">
@@ -620,7 +621,7 @@ export function materialParts(me, data) {
 		${orderRow('barter-mat-quests', T('quests on the way'), V.matOrders.quests, QUEST_CHOICES, T('The dailies and weeklies already taken, handed in where the run passes their taker or at a stop put in a short way off the route; the hunts only when their grounds lie on the way'))}
 		${breezyRow()}
 		${orderRow('barter-mat-calls', T('goods to give, stored at another harbour'), V.matOrders.calls ? 'true' : 'false', [['true', T('stop there on the way'), T('The run puts in at that harbour and loads them from its storage before the island that takes them')], ['false', T('I move them home first'), T('You carry them to the home port’s storage before casting off: the run does not stop for them')]], T('A good an island wants in exchange, kept in the storage of a harbour other than the one the run sails from'))}
-		<div class="order-row" title="${T('Where the ship is: taken up again at sea, the run starts at that island with what is aboard, and the home port stays home -- its storage is still what the run comes back to')}"><span class="order-k">${T('the ship is now')}</span><div class="order-v"><span class="chips"><button class="chip tiny active" data-act="barter-mat-at-pick">${atSea ? `📍 ${esc(T('at {isle}', { isle: gameName(isleShort(npcById.get(V.matAt))) }))}` : esc(T('at the home port'))} ▾</button>${atSea ? `<button class="chip tiny" data-act="barter-mat-at-home">${T('back at the home port')}</button>` : ''}</span></div></div>
+		<div class="order-row" title="${T('Where the ship is: taken up again at sea, the run starts at that island with what is aboard, and the home port stays home -- its storage is still what the run comes back to')}"><span class="order-k">${T('the ship is now')}</span><div class="order-v"><span class="chips"><button class="chip tiny active" data-act="barter-mat-at-pick">${atSea ? `${ico('pin')} ${esc(T('at {isle}', { isle: gameName(isleShort(npcById.get(V.matAt))) }))}` : esc(T('at the home port'))} ▾</button>${atSea ? `<button class="chip tiny" data-act="barter-mat-at-home">${T('back at the home port')}</button>` : ''}</span></div></div>
 		${orderRow('barter-port', T('home port'), V.port, [[0, T('the first stop')], ...ports.map(p => [p.id, gameName(p.name)])])}
 	</div>`;
 	// What the run comes to: each material against its want, as a bar;
@@ -643,9 +644,9 @@ export function materialParts(me, data) {
 	const fig = (icon, v, sub, cls = '') => `<span class="mat-fig${cls ? ` ${cls}` : ''}"><i>${icon}</i><span class="mat-fig-text"><b>${v}</b>${sub ? `<small>${sub}</small>` : ''}</span></span>`;
 	const figs = plan.stops.length ? `<div class="mat-figs">
 		${fig(img(currentShip().name, 'ship-ico'), plan.islands === 1 ? T('{n} island', { n: plan.islands }) : T('{n} islands', { n: plan.islands }), plan.trades === 1 ? T('{n} trade', { n: plan.trades }) : T('{n} trades', { n: plan.trades }))}
-		${plan.calls ? fig('⚓', plan.calls === 1 ? T('{n} harbour call', { n: plan.calls }) : T('{n} harbour calls', { n: plan.calls }), plan.returns ? T('{n} departures: the hold cannot carry every give at once', { n: plan.returns + 1 }) : T('to load from storage')) : ''}
+		${plan.calls ? fig(ico('anchor'), plan.calls === 1 ? T('{n} harbour call', { n: plan.calls }) : T('{n} harbour calls', { n: plan.calls }), plan.returns ? T('{n} departures: the hold cannot carry every give at once', { n: plan.returns + 1 }) : T('to load from storage')) : ''}
 		${fig('⚖', `${esc(peakM.text)}${slotsM ? ` · ${esc(slotsM.text)}` : ''}`, `${T('at its fullest')} · ${holdCls === 'ok' ? T('under the limit') : holdCls === 'amber' ? T('over the limit: sailing slower') : T('over {n}: too heavy to barter', { n: F(peakM.deal) })}`, holdCls)}
-		${(n => (n ? fig('🍞', n === 1 ? T('{n} call for supplies', { n }) : T('{n} calls for supplies', { n }), T('put in where the rations would run low')) : ''))(plan.stops.filter(s => s.refill).length)}
+		${(n => (n ? fig(ico('bread'), n === 1 ? T('{n} call for supplies', { n }) : T('{n} calls for supplies', { n }), T('put in where the rations would run low')) : ''))(plan.stops.filter(s => s.refill).length)}
 		${legs.total ? fig('⏱', esc(runTime(legs, book)), `${T('{dist} at {speed}%', { dist: esc(fmtDistance(legs.total)), speed: me.speed.total })}${from ? ` ${T('from {port}', { port: esc(gameName(from.name)) })}` : ''}`) : ''}
 		${plan.cost ? fig(img(SILVER, 'row-icon xs'), FC(plan.cost), T('to buy ashore first')) : ''}
 		${fig('◈', T('{n} Parley', { n: F(book.spent) }), [T('{n} left', { n: F(book.end) }), book.vouchersUsed ? (book.vouchersUsed === 1 ? T('{n} voucher drawn', { n: book.vouchersUsed }) : T('{n} vouchers drawn', { n: book.vouchersUsed })) : '', book.waited ? T('waits {n} min for a cooldown', { n: F(book.waited) }) : '', plan.dry ? (plan.dry === 1 ? T('{n} trade more wanted than the Parley pays for', { n: plan.dry }) : T('{n} trades more wanted than the Parley pays for', { n: plan.dry })) : ''].filter(Boolean).join(' · '), plan.dry || book.short ? 'amber' : '')}
@@ -679,7 +680,7 @@ export function materialParts(me, data) {
 	// none is held anywhere. The route is laid out with it all the same,
 	// so the sailor sees what the day would bring and what it takes.
 	const missing = toClimb.length ? `<section class="panel run-list orange mat-goods"><div class="panel-head"><h2 class="panel-title">${T('To get first')}</h2><span class="panel-sub">${T('not held, or not enough of it · the run goes without')}</span></div>
-		${toClimb.map(m => good(m.give, m.climb, `${T('for {isles}', { isles: esc(m.islands.map(n => isleShort(n)).join(', ')) })} · ${m.kind === 'good' ? T('a trade good: climbed for on an item refresh, another day') : m.kind === 'land' ? T('a land good, bought ashore') : T('a ship material the table deals: tick islands for it too')}`, m.kind === 'material' && materials().some(x => x.name === m.give) ? `<button class="chip" data-act="barter-mat-go" data-item="${esc(m.give)}" title="${T('Tick the islands showing it today')}">${T('tick it')} →</button>` : '')).join('')}
+		${toClimb.map(m => good(m.give, m.climb, `${T('for {isles}', { isles: esc(m.islands.map(n => isleShort(n)).join(', ')) })} · ${m.kind === 'good' ? T('a trade good: climbed for on an item refresh, another day') : m.kind === 'land' ? T('a land good, bought ashore') : T('a ship material the table deals: tick islands for it too')}`, m.kind === 'material' && materials().some(x => x.name === m.give) ? `<button class="chip" data-act="barter-mat-go" data-item="${esc(m.give)}" title="${T('Tick the islands showing it today')}">${T('tick it')}</button>` : '')).join('')}
 	</section>` : '';
 	// Gives held that the run could not take aboard: on a fast run, the
 	// full pace would go back for them; on a full run, one island asks
@@ -704,7 +705,7 @@ export function materialParts(me, data) {
 		...mats.filter(m => !nothing.includes(m)).slice(0, 4).map(m => { const g = plan.got.get(m.it); return `${img(m.it, 'row-icon xs')}${T('{got} of {want}', { got: `<b class="${g.min >= m.qty ? 'teal' : ''}">${gotText(m)}</b>`, want: wantSaid(m.qty) })}`; }),
 		plan.stops.length ? `${plan.islands === 1 ? T('<b>{n}</b> island', { n: plan.islands }) : T('<b>{n}</b> islands', { n: plan.islands })}${plan.calls ? `, ${plan.calls === 1 ? T('{n} call', { n: plan.calls }) : T('{n} calls', { n: plan.calls })}` : ''}` : '',
 		legs.total ? `≈ <b>${esc(runTime(legs, book))}</b>` : '',
-		qp.count ? `📜 ${qp.count === 1 ? T('<b>{n}</b> quest', { n: qp.count }) : T('<b>{n}</b> quests', { n: qp.count })}` : '',
+		qp.count ? `${ico('scroll')} ${qp.count === 1 ? T('<b>{n}</b> quest', { n: qp.count }) : T('<b>{n}</b> quests', { n: qp.count })}` : '',
 		holdCls === 'warn' ? `<b class="warn">${T('too heavy')}</b>` : holdCls === 'amber' ? `<b class="amber">${T('over the limit')}</b>` : ''
 	]) : '';
 	if (plan.stops.length) keepRoute(plan, legs, book, segs, it || (mats[0] && mats[0].it) || '');
@@ -715,8 +716,8 @@ export function materialParts(me, data) {
 	return {
 		secs: [
 			['parley', T('Before you sail'), esc(parleyLine(barterProfile())), parleyHTML(barterProfile())],
-			['ladder', T('The materials wanted'), esc(matsSaid), `${listPanel}<div class="plan-next"><span class="panel-spacer"></span><button class="act" data-act="barter-sec" data-id="how">${T('OK, that’s the goal')} ›</button></div>`],
-			['how', T('How to sail it'), esc([V.matOrders.reach === 'all' ? T('every island I can trade with') : T('the wants, then home'), atSea ? T('from {port}', { port: gameName(isleShort(npcById.get(V.matAt))) }) : from ? T('from {port}', { port: gameName(from.name) }) : ''].filter(Boolean).join(' · ')), `${ordersRow}<div class="plan-next"><span class="panel-spacer"></span><button class="act" data-act="barter-sec" data-id="chains">${T('OK, see what comes of it')} ›</button></div>`],
+			['ladder', T('The materials wanted'), esc(matsSaid), `${listPanel}<div class="plan-next"><span class="panel-spacer"></span><button class="act" data-act="barter-next" data-id="ladder">${T('OK, that’s the goal')}</button></div>`],
+			['how', T('How to sail it'), esc([V.matOrders.reach === 'all' ? T('every island I can trade with') : T('the wants, then home'), atSea ? T('from {port}', { port: gameName(isleShort(npcById.get(V.matAt))) }) : from ? T('from {port}', { port: gameName(from.name) }) : ''].filter(Boolean).join(' · ')), `${ordersRow}<div class="plan-next"><span class="panel-spacer"></span><button class="act" data-act="barter-next" data-id="how">${T('OK, see what comes of it')}</button></div>`],
 			['chains', T('What comes of it'), esc(comes), summary || `<p class="empty">${T('Nothing ticked. Open a material and tap each island showing it today — the run lays itself out here.')}</p>`]
 		],
 		load: `${heavyStart}${empty}${packing}${before}${missing}${ashore}${after}${questsPanels(qp, from, { atSea })}${routeFold}`,
@@ -793,14 +794,14 @@ export function pickShipAt(then) {
 	const item = n => {
 		const a = today.get(n.id);
 		return {
-			id: String(n.id), label: gameName(isleShort(n)), icon: a ? img(a.recv, '') : '⚓',
+			id: String(n.id), label: gameName(isleShort(n)), icon: a ? img(a.recv, '') : ico('anchor'),
 			sub: [gameName(whoOf(n)), gameName(n.region || ''), a ? `${gameName(a.give)} → ${gameName(a.recv)}` : ''].filter(Boolean).join(' · '),
 			meta: used[n.id] ? `✓ ${T('traded today')}` : '',
 			group: n.id === lastId ? T('Where your last run stopped') : gameName(n.region || T('Elsewhere'))
 		};
 	};
 	const all = [...npcById.values()].sort((a, b) => Number(b.id === lastId) - Number(a.id === lastId) || String(a.region).localeCompare(String(b.region)) || isleShort(a).localeCompare(isleShort(b)));
-	const home = { id: '0', label: T('at the home port'), icon: '🏠', sub: fromPort() ? gameName(fromPort().name) : T('the first stop'), group: T('Home') };
+	const home = { id: '0', label: T('at the home port'), icon: ico('home'), sub: fromPort() ? gameName(fromPort().name) : T('the first stop'), group: T('Home') };
 	const lists = {
 		all: () => [home, ...all.map(item)],
 		today: () => [home, ...all.filter(n => today.has(n.id)).map(item)],

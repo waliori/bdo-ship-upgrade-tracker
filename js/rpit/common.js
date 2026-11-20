@@ -371,6 +371,47 @@ export function finish(I, stationVisits, mu = 0, { calls = [], must = null } = {
 	return { plan, f: best.f, R: best.R, T: best.T, visits, calls: cs };
 }
 
+/**
+ * A plan found, with what it loads and brings back unused left ashore, while
+ * the run gives up nothing for it. Done once on the search's answer and not on
+ * every trial: a rule for the search to avoid the waste gave up whole climbs
+ * (2026-11-03, 137 real days: 4 to 8 % of the stock), and trimming as it
+ * searched sent it elsewhere for no gain.
+ */
+export function trimLoads(I, plan0) {
+	let best = robustEval(I, plan0);
+	if (!(best.run.pointless.loadedBack > 0)) return plan0;
+	const plan = { ...plan0, ...(plan0.load ? { load: { ...plan0.load } } : {}), visits: plan0.visits.map(v => (v.load ? { ...v, load: { ...v.load } } : v)) };
+	// The biggest cut first: taking one of five can leave a call's spare storing
+	// the good twice where taking all five does not.
+	const cut = (holder, g, was) => {
+		for (let n = 0; n < was; n++) {
+			holder.load[g] = n;
+			const e = robustEval(I, plan);
+			if (e.run.pointless.loadedBack < best.run.pointless.loadedBack && e.f >= best.f - 1e-6 && e.run.trades >= best.run.trades && e.run.deviations.starved <= best.run.deviations.starved) { best = e; return true; }
+		}
+		holder.load[g] = was;
+		return false;
+	};
+	for (const holder of [plan, ...plan.visits]) {
+		for (const g of Object.keys(holder.load || {})) {
+			if (!(best.run.pointless.loadedBack > 0)) break;
+			// First with the islands taking it held to the attempts they made: one
+			// the weight stopped at five of ten would deal a sixth once the hold is
+			// lighter, for Parley and no gain.
+			const asked = plan.visits;
+			const made = new Map(best.run.log.filter(e => e.kind === 'station' && e.in === g && e.a > 0).map(e => [e.at, e.a]));
+			plan.visits = asked.map(v => (made.has(v.at) ? { ...v, a: made.get(v.at) } : v));
+			if (!cut(holder, g, holder.load[g])) {
+				plan.visits = asked;
+				cut(holder, g, holder.load[g]);
+			}
+			if (!(holder.load[g] > 0)) delete holder.load[g];
+		}
+	}
+	return plan;
+}
+
 /** Whether `id` may stand at position `pos` of `seq`: its good can be had there. */
 export function insertOK(I, seq, id, pos) {
 	const { station, storage } = indexOf(I);

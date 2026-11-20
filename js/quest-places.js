@@ -6,8 +6,9 @@
 // or a wharf (by its manager, 'wharf'), all of them placed on the
 // chart already. The sailor is taken to have accepted every quest
 // already -- they are given at Velia, Iliya and Oquilla's Eye, where
-// every run passes -- so only the last step counts: where it is
-// handed in. A hunt names the species whose grounds the Map draws: the
+// every run passes -- so the last step is where it is handed in, and a
+// quest whose first step names another giver gets a stop at that giver
+// before it (a 'take' step). A hunt names the species whose grounds the Map draws: the
 // run gets a stop at the grounds and hands the hunt in after; a barter quest asks
 // for a number of barters, and is handed in only once the run's trades
 // have made the number up.
@@ -49,6 +50,11 @@ export function handIn(q) {
 	const steps = placesOf(q);
 	return steps.length ? steps[steps.length - 1] : null;
 }
+
+/** A stop put in only to fetch quests, nothing handed in there. */
+export const fetchOnly = s => !!(s && s.quest && !s.hunt && (s.quests || []).length && s.quests.every(x => x.step.what === 'take'));
+/** A step that hands a quest in, so earns its reward: not a hunt, not a fetch. */
+export const handsIn = x => x.step.what !== 'hunt' && x.step.what !== 'take';
 
 const d2 = (a, b) => (a.x - b.x) ** 2 + (a.y - b.y) ** 2;
 const dist = (a, b) => Math.sqrt(d2(a, b));
@@ -182,6 +188,26 @@ export function layQuests(quests, points, { near = 1200, detour = 8000, share = 
 		}
 		if (!forced.has(w.q.id)) budget -= at.cost;
 		route = [...route.slice(0, at.where), { x: w.step.x, y: w.step.y, quest: true, place: w.step.place, who: w.step.who, steps: [{ q: w.q, step: w.step }] }, ...route.slice(at.where)];
+	}
+	// A quest given by someone other than its taker is fetched first: at
+	// an entry near the giver before the quest is worked, else a stop of
+	// its own at the cheapest place before it, whatever the way round,
+	// since the hand-in counts on it. One handed in where the run starts
+	// cannot be fetched before it, and is taken as fetched already.
+	for (const q of quests) {
+		const steps = placesOf(q);
+		if (steps.length < 2) continue;
+		const first = route.findIndex(e => e.steps.some(x => x.q === q));
+		if (first < 0) continue;
+		const give = { ...steps[0], what: 'take' };
+		const k = route.findIndex((e, idx) => idx <= first && !e.hunt && d2(e, give) <= near * near);
+		if (k >= 0) { route[k].steps.unshift({ q, step: give }); continue; }
+		let best = Infinity, where = -1;
+		for (let j = 1; j <= first; j++) {
+			const cost = dist(route[j - 1], give) + dist(give, route[j]) - dist(route[j - 1], route[j]);
+			if (cost < best) { best = cost; where = j; }
+		}
+		if (where > 0) route = [...route.slice(0, where), { x: give.x, y: give.y, quest: true, place: give.place, who: give.who, steps: [{ q, step: give }] }, ...route.slice(where)];
 	}
 	return { route, off: skipped, legs: new Map([...legs].map(([end, list]) => [route.indexOf(end), list])) };
 }

@@ -36,6 +36,7 @@ import { anyType } from './sailors.js';
 import { openDialog, closeDialog } from './dialogs.js';
 import { REGIONS as MARKET_REGIONS, region as marketRegion, priceAge } from './market.js';
 
+import { ico } from './icons.js';
 /** Open for typing, or folded into the line that reports it. Kept. */
 const open = () => store.getSetting('sailBarOpen', false) === true;
 export const toggleSailBar = () => store.setSetting('sailBarOpen', !open(), true);
@@ -246,7 +247,7 @@ export function profileHTML({ sheet = false } = {}) {
 			T('both refill in <b data-until="barter"></b>'),
 			T('{trade} draws of the trade-goods list and {material} of the ship-materials list a day — each list has its own free draw and its own refreshes, and neither can lend the other a press', { trade: F(day.lists.trade), material: F(day.lists.material) })),
 
-		chip('mastery', '⚓', T('Sailing mastery'),
+		chip('mastery', ico('anchor'), T('Sailing mastery'),
 			num('crew-mastery', mastery, T('Sailing mastery'), ' data-from="bar"'),
 			mastery ? T('+{n}% speed, acceleration, turn, brake', { n: masteryBonus(mastery) }) : T('adds to speed, acceleration, turn and brake'),
 			T('Sailing Mastery as the game shows it: half a point of speed, acceleration, turn and brake per fifty up to 2,000, a quarter-point per fifty to 3,000')),

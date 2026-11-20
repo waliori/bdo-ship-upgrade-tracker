@@ -5,6 +5,114 @@ someone who has been away. The same notes are in the app itself, under
 **Menu → What's new** — this file is generated from them by
 `node tools/build-changelog.mjs`, so the two cannot drift apart.
 
+## 1.7.0 — What you asked for on the server
+
+*2026-11-19*
+
+A month of your messages on the server and in the box, and what they changed. A run you edit by hand keeps the plan it had found; a run can load at one port and end at another; a quest given by someone else is picked up on the way; the stops you plot on the Map move by hand and can sit at a wharf or a habitat; a coin day can leave out the trades that pay too few Crow Coins. The Barter tab reads as steps, and a phone takes your barter count again.
+
+### Asked for by you
+
+A month of questions, reports and wishes on the server and in the box: each of these is in this release because one of you wrote it down.
+
+- **Liara** — Asked for five things in one message: the goods loaded at one port and the run ended at another, where to pick the quests up, the Map’s stops dragged up or down, and a stop at a habitat or a wharf. All five are in.
+- **Simple maid** — Showed a run that loaded goods only to drop them a few stops later: a plan no longer loads what it brings back unused, and keeps itself while you tick the load list.
+- **Aku** — Could not set the barter count or the level on a phone: an invisible touch zone lay over both fields. A tap reaches them again.
+- **Final** — Put Kemeren’s question about Crow Coin trades in one line, *at least X crow coins per trade as a setting*: it is one now, on a coin day.
+- **kemeren** — Pasted thirteen pages of the barter window and found what the readers dropped: the second picture, the doubled island, a wreck cut to *Shipwrecked*, and three storage materials in two lights.
+- **Nerlion** — Asked for a stock filled from the end: the high targets met first, and the low stock what is left below once they are.
+
+The box is under **Menu → Feedback**. It reaches whoever runs the site.
+
+### A chain taken off keeps the plan
+
+![The same day in 1.6.0 and in 1.7.0, one chain taken off by hand: the silver the run brings in each](docs/media/small/a-chain-off.png)
+
+**Before:** Taking a chain off the plan laid the whole run again from nothing, and the run could come back hundreds of millions poorer than the plan it was cut from.
+
+**Now:** The run is now laid twice, afresh and from the plan already found with the chain left out, and the better of the two is kept. On 1,285 of your days kept by the study, taking one chain off now brings 5 % more silver and 8 % more stock than before.
+
+### Quests picked up on the way
+
+![A run from Iliya with a stop at Velia to pick up the delivery quests, handed in later at Baremi and Narvo](docs/media/small/quests-picked-up.png)
+
+**Before:** A run handed in the quests on its way but took it that you had them already: nothing said where they were given.
+
+**Now:** A quest given by someone other than whoever takes it in is picked up on the run: at a stop the run makes anyway, else at a stop of its own before the hand-in. It is on the sailing plan and on the Map, ticked as *Picked up*, and pays nothing until it is handed in.
+
+### Your own stops on the Map
+
+![A route on the Map: a stop dragged down the list, and a stop added at a wharf](docs/media/small/stops-by-hand.gif)
+
+**Before:** A route on the Map sailed its stops in the order they were clicked, and a stop could only be a barterer.
+
+**Now:** On a route you plot on the Map, drag a stop up or down the list by its handle, or move it with the arrow keys, and add a stop at a wharf or a habitat, picked from a list. Your stops are kept with the route, and stay when you change its islands.
+
+### The Barter tab, step by step
+
+![The Barter tab in 1.6.0 and in 1.7.0](docs/media/small/barter-steps.png)
+
+The Barter tab is laid out as steps taken in order, and *Next* takes you to the next one; the chains open in a sheet of their own, the route reads as a list, and the tabs fit on one row.
+
+### Load at one port, end at another
+
+![One home port in 1.6.0; in 1.7.0, where the goods are loaded and where the run ends](docs/media/small/two-ports.png)
+
+**Before:** A run had one home port: it loaded from that storage and came back to it.
+
+**Now:** **Two ports.** *Load the goods at* is the port whose storage the run loads from, *Finish the run at* the storage it ends at: Iliya’s goods, and a run that ends at home in Velia.
+
+### A floor of Crow Coins a trade
+
+![A coin day in 1.6.0, and in 1.7.0 with a floor of 120 coins a trade: one chain fewer](docs/media/small/a-coin-floor.png)
+
+**Before:** A coin day took every coin trade on the board, however few coins it paid.
+
+**Now:** **A floor of Crow Coins.** On a coin day, *coins a trade, at least*: a trade paying fewer Crow Coins than that is left off the run.
+
+### What each day does with the stock
+
+![The goal step in 1.6.0, and in 1.7.0 with the table of what each day does](docs/media/small/which-day.png)
+
+**The goal step says what each day does with the stock.** The silver card keeps and fills a floor of each level, the stock card fills a target of every good and sells nothing, and a *Which day is which?* table under the cards puts the three side by side. A floor reads *keep 10 each* and *10 of each [Level 1] good*, since *keeping 10 of Level 1* read as a total. Under a floored level, how many goods sit under the floor and how many stand above it; under a stock level, how many of the exchanges paying it your barter count opens.
+
+### A stock filled from the top
+
+![A stock day in 1.6.0, and in 1.7.0 with the choice to fill from the bottom or from the top](docs/media/small/filled-from-the-top.png)
+
+**A stock filled from the top.** Beside the stock run’s aim, *from the bottom* or *from the top*. From the top, a lower level’s target holds as a floor only once every targeted level above it is full, so its goods climb freely until then: with the 1:2 and 1:3 rolls, the order that fills [Level 4] and [Level 5] first.
+
+### Every good of a level
+
+![The ladder in 1.6.0, and in 1.7.0 every good held at Level 4](docs/media/small/a-level-held.png)
+
+Under each level of the ladder, the count held opens every good of that level: its icon, how many you hold, a bar to the keep number, and how many are short or spare.
+
+### Reward counted already
+
+![A quest row in 1.6.0, and in 1.7.0 with reward counted already](docs/media/small/reward-counted.png)
+
+**A quest finished whose reward is in the storage already:** *reward counted already*, on the row and on the batch, ticks the quest and adds nothing to the stock.
+
+### Fixes from your reports
+
+- Ticking the load list no longer throws the plan away and lays another, and a plan no longer loads goods it brings back unused.
+- A page reloaded while you load keeps the plan it had found.
+- A good handed over partway up a chain stays on the load list once it is aboard.
+- On a phone, the barter count and the barter level take a tap again.
+- **The bag.** A run laid by the new planner said nothing went into the bag, whatever it carried; what goes into the bag is said again.
+
+### The screenshot readers
+
+Several pictures at once, and a row the reader is not sure of is asked, never guessed.
+
+- **The barter window reader** says which two names it could not tell apart — Supreme Bear Hide from Supreme Boar Hide — and the warning gives way to *yours* once you have picked; a row read as an island another row of the same picture already is stays apart and unticked; and when no layout in the book fits what was read, the chains step offers *Sail what you saw*.
+- **The storage reader** tells one drawing in two lights apart — Tide-Dyed and Deep Tide-Dyed Standardized Timber Square, Cobalt and Jade Coral Ingot, Island Tree Coated Plywood plain and Enhanced — by the square’s light against the screenshot’s own dimming, where it threw the three away as ties; and a second storage screenshot pasted adds to the first instead of starting over.
+- A screenshot pasted at the Inventory or the Ship tab, with no dialog open, opens its reader with the picture in hand, as a paste at the Barter tab does: several pictures at once, for the readers that take them.
+- A screenshot pasted while another is being read is read after it, in every reader: a second paste a moment after the first cut the first one’s reading short, and only the last paste was in the table.
+- The paste zones say which browsers paste several screenshots at once: Chrome, Edge, Opera and the other Chromium browsers hand over every file copied, Firefox one a paste — drop or choose the files there.
+- A row whose name the column cut to a word several islands share — *Shipwrecked* opens five wrecks — went under the row above, whose offer it muddled. It is a row of its own now, and it asks: which island, from the ones that begin so. A name read only nearly — a letter off — is shown as read but left unticked until you confirm it. The reader guesses no island.
+
 ## 1.6.0 — A new run planner
 
 *2026-10-20*

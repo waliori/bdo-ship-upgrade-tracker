@@ -29,6 +29,7 @@ import { roleOf, CRYSTAL_FOR, SAILOR_NOTE, PART_PATH } from './ship_roles.js';
 import { encodeAny, shipLink } from './share.js';
 import { buildLink, copyLink } from './links.js';
 import { enhancedName } from './planner.js';
+import { ico } from './icons.js';
 import {
 	pool, mateTypes, anyType, care, rations, expSplit, firstMates, slotSources, statBand, rollRank,
 	contract, SAILOR_CAP, seatsFor, fitSeats, hasSeats, statOf, crewTotals, autoAssign, logLevel, levelSteps, STAT_KEYS, STAT_NAMES, statLabel, CREW_GOALS } from './sailors.js';
@@ -272,7 +273,7 @@ function rosterPanel(ship) {
 				<span class="roster-name">${esc(s.name)} <span class="crew-race" style="color:${RACE[t.race] || 'inherit'}">${esc(t.race || '')}</span></span>
 				<span class="roster-sub">${t.mate ? T('{type} · Lv {lv} · first mate', { type: esc(gameName(s.type)), lv: s.lv }) : T('{type} · Lv {lv}', { type: esc(gameName(s.type)), lv: s.lv })}${by
 		? `<b class="roster-stat" title="${esc(growthLabel(by))}">${statOf(s, by)}%</b>` : ''}</span>
-				<span class="roster-pos ${where ? 'on' : ''}">${where ? `⚓ ${esc(seatName ? said(seatName.label) : where)}` : T('(idle)')}</span>
+				<span class="roster-pos ${where ? 'on' : ''}">${where ? `${ico('anchor')} ${esc(seatName ? said(seatName.label) : where)}` : T('(idle)')}</span>
 			</span>
 		</div>`;
 	}).join('');
@@ -298,7 +299,7 @@ function rosterPanel(ship) {
 			<span class="panel-spacer"></span>
 			<div class="chips">${tabs}</div>
 			<button class="act quiet small" data-act="crew-recover-all" ${n ? '' : 'disabled'} title="${T('Marks every sailor\'s condition back at 100')}">${T('Recover all')}</button>
-			<button class="act quiet small" data-act="crew-import" title="${T('Read a crew off screenshots of the game\'s own Manage Sailors window — in this browser; nothing is uploaded')}">${T('📷 Read screenshots')}</button>
+			<button class="act quiet small" data-act="crew-import" title="${T('Read a crew off screenshots of the game\'s own Manage Sailors window — in this browser; nothing is uploaded')}">${ico('camera')} ${T('Read screenshots')}</button>
 			<button class="act small" data-act="crew-hire" ${n >= SAILOR_CAP ? 'disabled' : ''}>${T('+ Hire')}</button>
 		</div>
 		<p class="crew-note">${esc(said(SAILOR_NOTE[roleOf(ship) && roleOf(ship).role === 'bartering' ? 'barter' : 'hunt']))}</p>
@@ -373,7 +374,7 @@ function sailorSheet(s, { ship, where = null, readOnly = false } = {}) {
 				${readOnly ? `<div class="sel-name still">${esc(s.name)}</div>` : `<input class="field sel-name" value="${esc(s.name)}" data-act="crew-name" data-id="${esc(s.id)}" aria-label="${T('Name')}" maxlength="30">`}
 				<div class="roster-sub">${esc(gameName(s.type))} · <span style="color:${RACE[t.race] || 'inherit'}">${esc(t.race || '')}</span> · ${T('Lv')}
 					${readOnly ? `<b>${s.lv}</b>` : `<input class="purse-inline narrow" type="text" inputmode="numeric" value="${s.lv}" data-act="crew-lv" data-id="${esc(s.id)}" aria-label="${T('Level')}">`}</div>
-				<div class="roster-pos ${where ? 'on' : ''}">${where ? T('⚓ seated at the {seat}', { seat: esc(seat ? said(seat.label) : where) }) : readOnly ? T('(idle)') : hasSeats(ship) ? T('(idle) — tap a seat on the ship to place') : T('(idle) — tap a cabin on the ship to place')}</div>
+				<div class="roster-pos ${where ? 'on' : ''}">${where ? `${ico('anchor')} ${T('seated at the {seat}', { seat: esc(seat ? said(seat.label) : where) })}` : readOnly ? T('(idle)') : hasSeats(ship) ? T('(idle) — tap a seat on the ship to place') : T('(idle) — tap a cabin on the ship to place')}</div>
 			</div>
 		</div>
 		<div class="sel-cond"><span><span>${T('Condition')}</span><b style="color:${condColor(s.cond)}">${readOnly ? s.cond : `<input class="purse-inline narrow" type="text" inputmode="numeric" value="${s.cond}" data-act="crew-cond" data-id="${esc(s.id)}" aria-label="${T('Condition')}">`}%</b></span>
@@ -520,7 +521,7 @@ const TEMPLATES = [
  * The hull as fitted: the best part you hold in each slot, and what the
  * four of them add to the hull's own numbers.
  */
-const SLOT_GLYPH = { cannon: '⁂', sail: '⛵', figurehead: '❖', plating: '▣' };
+const SLOT_GLYPH = { cannon: '⁂', sail: '△', figurehead: '❖', plating: '▣' };
 const SLOT_LABEL = { cannon: TT('part|Cannon'), sail: TT('part|Sail'), figurehead: TT('Figurehead'), plating: TT('Black plating') };
 
 /** One slot: what is on it, where that came from, and the ways to change it. */
@@ -761,7 +762,7 @@ function setupsRow() {
 	const hulls = new Set(list.map(s => s.ship)).size;
 
 	const sailing = now && sum
-		? `<span class="fleet-now"><span class="setup-flag">⚓</span>${esc(now.name)}
+		? `<span class="fleet-now"><span class="setup-flag">${ico('anchor')}</span>${esc(now.name)}
 			<span class="setup-fig">${T('speed <b>{n}%</b>', { n: sum.speed })}</span>
 			<span class="setup-fig">${T('hold <b>{n} LT</b>', { n: F(sum.hold) })}</span>
 			<span class="setup-fig">${T('fitted <b>{n}/{slots}</b>', { n: sum.fittedCount, slots: sum.slots })}</span>
@@ -838,7 +839,7 @@ export function renderCrew() {
 		</div>
 		${shipSpecs(me, stats)}
 		<div class="ship-card-btns">
-			<button class="act quiet small" data-act="crew-ship-pick" title="${T('Which hull you sail — the Map and the Plan follow it')}">${T('⚓ Change ship')}</button>
+			<button class="act quiet small" data-act="crew-ship-pick" title="${T('Which hull you sail — the Map and the Plan follow it')}">${ico('anchor')} ${T('Change ship')}</button>
 			<button class="act quiet small" data-act="crew-setup-save" title="${T('Keep this hull with its parts, crystal and seating under a name, to come back to')}">${T('Save as setup…')}</button>
 			<button class="act quiet small" data-act="crew-link" title="${T('A link that carries this hull, its parts and its crew')}">${T('Copy link')}</button>
 		</div>
@@ -850,6 +851,15 @@ export function renderCrew() {
 	</div>`;
 	if (!stats.crew) {
 		return head + setupsRow() + `<div class="panel"><p class="empty">${T('{ship} carries no sailors. Pick a crewed hull to plan one.', { ship: esc(gameName(ship)) })}</p></div>` + loadoutPanel(ship);
+	}
+	// Nobody hired: the seats, the crew's figures and the presets would all
+	// read zero, so the list with its Hire button comes straight under the
+	// ship, and the rest waits for the first sailor.
+	if (!roster().length) {
+		return head + setupsRow() + `<div class="crew-grid">
+			<div class="crew-main">${rosterPanel(ship)}${guidePanels()}</div>
+			<div class="crew-side">${loadoutPanel(ship)}</div>
+		</div>`;
 	}
 	return head + setupsRow() + statCards(ship, stats, totals) + `<div class="crew-grid">
 		<div class="crew-main">${board(ship, stats, totals)}${rosterPanel(ship)}${guidePanels()}</div>

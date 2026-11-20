@@ -808,7 +808,7 @@ test('a ship in a link can be looked at on the Ship tab, and the bar brings your
 	await context.close();
 });
 
-test('the day rides under the pouch on every tab but the Plan, and the More menu opens and closes', async () => {
+test('the day rides under the pouch on the tabs that do not say it themselves, and the More menu opens and closes', async () => {
 	const { page, context, errors } = await open('#builds');
 	await seed(page); await wait(300);
 	assert.match(await text(page, '#status'), /Epheria Carrack: Valor/);
@@ -1671,7 +1671,7 @@ test('Find opens a card for an item, even one nobody owns', async () => {
 	const wanted = await card('Tidal Black Stone');
 	assert.ok(wanted, 'no card opened at all');
 	assert.match(wanted.title, /Tidal Black Stone/i);
-	assert.ok(wanted.sections.includes('WHERE IT STANDS'), 'the card never says where it stands');
+	assert.ok(wanted.sections.some(s => /^where it stands$/i.test(s)), 'the card never says where it stands');
 	assert.ok(wanted.sections.some(s => /BARTER/i.test(s)), 'a bartered item does not say where to barter for it');
 	await page.keyboard.press('Escape'); await wait(400);
 
@@ -2146,6 +2146,12 @@ async function laidOut(page) {
 	await wait(200);
 }
 
+/** One cell of the Barter plan's day card opened, if it is shut. */
+async function openCell(page, id) {
+	await page.evaluate(i => { const c = document.querySelector(`.day-cell[data-sec="${i}"]:not(.open) > [data-act="barter-sec"]`); if (c) c.click(); }, id);
+	await wait(600);
+}
+
 /** Back to the plan. The tests seed `planSec: 'all'`, so all four of
  *  its parts are open and every control is on the page at once. */
 async function toPlan(page) {
@@ -2203,6 +2209,9 @@ test('the material book is the game’s own layouts, every one, and a page read 
 	await page.waitForSelector('.barter-screen', { timeout: 15000 }); await wait(600);
 	await page.evaluate(async () => { const store = await import('/js/state.js'); store.setView('barter', { goal: 'material' }); store.flush(); });
 	await page.reload({ waitUntil: 'domcontentloaded' });
+	// The plan opens on its first step, what the day is for: the list is the next.
+	await page.waitForSelector('.day-cell[data-sec="board"]', { timeout: 20000 });
+	await openCell(page, 'board');
 	await page.waitForSelector('[data-act="barter-mat-book"]', { timeout: 20000 });
 	const said = Number((await text(page, '[data-act="barter-mat-book"]')).match(/(\d+) boards/)[1]);
 	await page.evaluate(() => document.querySelector('[data-act="barter-mat-book"]').click());
@@ -2222,6 +2231,7 @@ test('the material book is the game’s own layouts, every one, and a page read 
 		takeRead([[58904, '[Level 4] Green Salt Lump'], [58901, '[Level 2] Urchin Spine'], [58903, '[Level 4] Opulent Thread Spool'], [58902, '[Level 3] Scout Binoculars'], [58964, '[Level 2] Pirate Gold Coin'], [58963, '[Level 2] Monster Tentacle']].map(([npcId, give]) => ({ npcId, give, recv: 'Crow Coin' })));
 		ui.render();
 	}); await wait(800);
+	await openCell(page, 'board');
 	assert.match(await text(page, '.mat-say'), /layout M11/, 'the coin rows found their material layout');
 	assert.equal(await count(page, '.mat-steps, [data-act="barter-mat-tell"], [data-act="barter-mat-fleet-take"]'), 0, 'no steps to share it by');
 	// The islands M11 fills at random are asked about as it is found:
@@ -2229,7 +2239,8 @@ test('the material book is the game’s own layouts, every one, and a page read 
 	await page.waitForSelector('.dialog .rolls', { timeout: 5000 });
 	const asked = await count(page, '.dialog .roll-row');
 	assert.ok(asked >= 2, `the rolled islands asked about: ${asked}`);
-	assert.match(await text(page, '.dialog .roll-option .roll-meta'), /🎲\d+%/);
+	assert.match(await text(page, '.dialog .roll-option .roll-meta'), /^\d+%/);
+	assert.ok(await page.$('.dialog .roll-option .roll-meta svg.ico'), 'the odds carry the dice mark');
 	await page.evaluate(() => document.querySelector('.dialog [data-act="barter-mat-roll-pick"][data-npc="50817"]').click()); await wait(200);
 	const picked = await page.evaluate(async () => {
 		const { V } = await import('/js/barter/state.js'); const store = await import('/js/state.js');
@@ -2421,6 +2432,7 @@ test('the hold is a line across the Barter tab that opens over the page, and the
 	assert.equal(await count(page, '.barter-screen > .barter-hold'), 0, 'the full hold is not on the page');
 	// The plan says what is held rung by rung, so the ladder carries the
 	// counts; the weight is the wharf's question, and the bar is there.
+	await openCell(page, 'ladder');
 	assert.match(await text(page, '.ladder'), /L(evel )?7[\s\S]*2 held/i);
 	await laidOut(page);
 	// Waited for rather than slept on: the tab redraws when the stock
@@ -2634,12 +2646,12 @@ test('a selling call left unticked is said on the results step, with the tick to
 	// Straight to the results with nothing ticked: the call that sells is
 	// named, and the goods it sells are still aboard.
 	await page.evaluate(() => [...document.querySelectorAll('[data-act="barter-step"][data-id="results"]')].find(e => e.getBoundingClientRect().width > 0).click()); await wait(1500);
-	const note = await text(page, '.receipt-acts');
+	const note = await text(page, '.receipt-owed');
 	assert.match(note, /still aboard: the call at .+ that sells them is not ticked/);
-	const tick = await page.$('.receipt-acts [data-act="barter-stop-done"]');
+	const tick = await page.$('.receipt-owed [data-act="barter-stop-done"]');
 	assert.ok(tick, 'the tick is to hand');
 	await tick.evaluate(e => e.click()); await wait(1200);
-	const after = await text(page, '.receipt-acts');
+	const after = await page.evaluate(() => document.querySelector('.receipt-owed')?.innerText || '');
 	assert.doesNotMatch(after, /still aboard/);
 	assert.match(await text(page, '.run-tiles'), /sold at the wharf call/);
 	assert.deepEqual(errors, []);

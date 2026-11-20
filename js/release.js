@@ -5,8 +5,8 @@
 // themselves stay in about.js, imported when they are opened.
 
 /** The release this build is; what the What's New dialog is keyed on. */
-export const RELEASE = "1.6.0";
+export const RELEASE = "1.7.0";
 
 /** The newest diary entry, as the "seen" key and as its title. */
-export const LATEST = "2026-10-20:A new run planner, and the runs it proposes kept";
-export const LATEST_TITLE = "A new run planner, and the runs it proposes kept";
+export const LATEST = "2026-11-19:1.7.0: a run you edit keeps its plan, quests picked up, your own stops on the Map";
+export const LATEST_TITLE = "1.7.0: a run you edit keeps its plan, quests picked up, your own stops on the Map";

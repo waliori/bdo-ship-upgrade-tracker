@@ -64,6 +64,132 @@ export const DATA = [
  */
 export const RELEASES = [
 	{
+		id: '1.7.0',
+		name: TT('What you asked for on the server'),
+		date: '2026-11-19',
+		blurb: TT('A month of your messages on the server and in the box, and what they changed. A run you edit by hand keeps the plan it had found; a run can load at one port and end at another; a quest given by someone else is picked up on the way; the stops you plot on the Map move by hand and can sit at a wharf or a habitat; a coin day can leave out the trades that pay too few Crow Coins. The Barter tab reads as steps, and a phone takes your barter count again.'),
+		sum: TT('A run you edit keeps its plan, can load at one port and end at another, and picks its quests up; the Map’s stops move by hand; a floor of Crow Coins a trade; the Barter tab as steps; the phone’s fields fixed.'),
+		thanks: {
+			text: TT('A month of questions, reports and wishes on the server and in the box: each of these is in this release because one of you wrote it down.'),
+			who: [
+				{
+					name: 'Liara',
+					did: TT('Asked for five things in one message: the goods loaded at one port and the run ended at another, where to pick the quests up, the Map’s stops dragged up or down, and a stop at a habitat or a wharf. All five are in.')
+				},
+				{
+					name: 'Simple maid',
+					did: TT('Showed a run that loaded goods only to drop them a few stops later: a plan no longer loads what it brings back unused, and keeps itself while you tick the load list.')
+				},
+				{
+					name: 'Aku',
+					did: TT('Could not set the barter count or the level on a phone: an invisible touch zone lay over both fields. A tap reaches them again.')
+				},
+				{
+					name: 'Final',
+					did: TT('Put Kemeren’s question about Crow Coin trades in one line, <i>at least X crow coins per trade as a setting</i>: it is one now, on a coin day.')
+				},
+				{
+					name: 'kemeren',
+					did: TT('Pasted thirteen pages of the barter window and found what the readers dropped: the second picture, the doubled island, a wreck cut to <i>Shipwrecked</i>, and three storage materials in two lights.')
+				},
+				{
+					name: 'Nerlion',
+					did: TT('Asked for a stock filled from the end: the high targets met first, and the low stock what is left below once they are.')
+				}
+			],
+			foot: TT('The box is under <b>Menu \u2192 Feedback</b>. It reaches whoever runs the site.')
+		},
+		sections: [
+			{
+				title: TT('A chain taken off keeps the plan'),
+				media: 'docs/media/small/a-chain-off.png',
+				alt: TT('The same day in 1.6.0 and in 1.7.0, one chain taken off by hand: the silver the run brings in each'),
+				before: TT('Taking a chain off the plan laid the whole run again from nothing, and the run could come back hundreds of millions poorer than the plan it was cut from.'),
+				text: TT('The run is now laid twice, afresh and from the plan already found with the chain left out, and the better of the two is kept. On 1,285 of your days kept by the study, taking one chain off now brings 5 % more silver and 8 % more stock than before.')
+			},
+			{
+				title: TT('Quests picked up on the way'),
+				media: 'docs/media/small/quests-picked-up.png',
+				alt: TT('A run from Iliya with a stop at Velia to pick up the delivery quests, handed in later at Baremi and Narvo'),
+				before: TT('A run handed in the quests on its way but took it that you had them already: nothing said where they were given.'),
+				text: TT('A quest given by someone other than whoever takes it in is picked up on the run: at a stop the run makes anyway, else at a stop of its own before the hand-in. It is on the sailing plan and on the Map, ticked as <i>Picked up</i>, and pays nothing until it is handed in.')
+			},
+			{
+				title: TT('Your own stops on the Map'),
+				media: 'docs/media/small/stops-by-hand.gif',
+				alt: TT('A route on the Map: a stop dragged down the list, and a stop added at a wharf'),
+				before: TT('A route on the Map sailed its stops in the order they were clicked, and a stop could only be a barterer.'),
+				text: TT('On a route you plot on the Map, drag a stop up or down the list by its handle, or move it with the arrow keys, and add a stop at a wharf or a habitat, picked from a list. Your stops are kept with the route, and stay when you change its islands.')
+			},
+			{
+				title: TT('The Barter tab, step by step'),
+				media: 'docs/media/small/barter-steps.png',
+				alt: TT('The Barter tab in 1.6.0 and in 1.7.0'),
+				text: TT('The Barter tab is laid out as steps taken in order, and <i>Next</i> takes you to the next one; the chains open in a sheet of their own, the route reads as a list, and the tabs fit on one row.')
+			},
+			{
+				title: TT('Load at one port, end at another'),
+				media: 'docs/media/small/two-ports.png',
+				alt: TT('One home port in 1.6.0; in 1.7.0, where the goods are loaded and where the run ends'),
+				before: TT('A run had one home port: it loaded from that storage and came back to it.'),
+				text: TT('<b>Two ports.</b> <i>Load the goods at</i> is the port whose storage the run loads from, <i>Finish the run at</i> the storage it ends at: Iliya’s goods, and a run that ends at home in Velia.')
+			},
+			{
+				title: TT('A floor of Crow Coins a trade'),
+				media: 'docs/media/small/a-coin-floor.png',
+				alt: TT('A coin day in 1.6.0, and in 1.7.0 with a floor of 120 coins a trade: one chain fewer'),
+				before: TT('A coin day took every coin trade on the board, however few coins it paid.'),
+				text: TT('<b>A floor of Crow Coins.</b> On a coin day, <i>coins a trade, at least</i>: a trade paying fewer Crow Coins than that is left off the run.')
+			},
+			{
+				title: TT('What each day does with the stock'),
+				media: 'docs/media/small/which-day.png',
+				alt: TT('The goal step in 1.6.0, and in 1.7.0 with the table of what each day does'),
+				text: TT('<b>The goal step says what each day does with the stock.</b> The silver card keeps and fills a floor of each level, the stock card fills a target of every good and sells nothing, and a <i>Which day is which?</i> table under the cards puts the three side by side. A floor reads <i>keep 10 each</i> and <i>10 of each [Level 1] good</i>, since <i>keeping 10 of Level 1</i> read as a total. Under a floored level, how many goods sit under the floor and how many stand above it; under a stock level, how many of the exchanges paying it your barter count opens.')
+			},
+			{
+				title: TT('A stock filled from the top'),
+				media: 'docs/media/small/filled-from-the-top.png',
+				alt: TT('A stock day in 1.6.0, and in 1.7.0 with the choice to fill from the bottom or from the top'),
+				text: TT('<b>A stock filled from the top.</b> Beside the stock run’s aim, <i>from the bottom</i> or <i>from the top</i>. From the top, a lower level’s target holds as a floor only once every targeted level above it is full, so its goods climb freely until then: with the 1:2 and 1:3 rolls, the order that fills [Level 4] and [Level 5] first.')
+			},
+			{
+				title: TT('Every good of a level'),
+				media: 'docs/media/small/a-level-held.png',
+				alt: TT('The ladder in 1.6.0, and in 1.7.0 every good held at Level 4'),
+				text: TT('Under each level of the ladder, the count held opens every good of that level: its icon, how many you hold, a bar to the keep number, and how many are short or spare.')
+			},
+			{
+				title: TT('Reward counted already'),
+				media: 'docs/media/small/reward-counted.png',
+				alt: TT('A quest row in 1.6.0, and in 1.7.0 with reward counted already'),
+				text: TT('<b>A quest finished whose reward is in the storage already:</b> <i>reward counted already</i>, on the row and on the batch, ticks the quest and adds nothing to the stock.')
+			},
+			{
+				title: TT('Fixes from your reports'),
+				points: [
+					TT('Ticking the load list no longer throws the plan away and lays another, and a plan no longer loads goods it brings back unused.'),
+					TT('A page reloaded while you load keeps the plan it had found.'),
+					TT('A good handed over partway up a chain stays on the load list once it is aboard.'),
+					TT('On a phone, the barter count and the barter level take a tap again.'),
+					TT('<b>The bag.</b> A run laid by the new planner said nothing went into the bag, whatever it carried; what goes into the bag is said again.')
+				]
+			},
+			{
+				title: TT('The screenshot readers'),
+				text: TT('Several pictures at once, and a row the reader is not sure of is asked, never guessed.'),
+				points: [
+					TT('<b>The barter window reader</b> says which two names it could not tell apart — Supreme Bear Hide from Supreme Boar Hide — and the warning gives way to <i>yours</i> once you have picked; a row read as an island another row of the same picture already is stays apart and unticked; and when no layout in the book fits what was read, the chains step offers <i>Sail what you saw</i>.'),
+					TT('<b>The storage reader</b> tells one drawing in two lights apart — Tide-Dyed and Deep Tide-Dyed Standardized Timber Square, Cobalt and Jade Coral Ingot, Island Tree Coated Plywood plain and Enhanced — by the square’s light against the screenshot’s own dimming, where it threw the three away as ties; and a second storage screenshot pasted adds to the first instead of starting over.'),
+					TT('A screenshot pasted at the Inventory or the Ship tab, with no dialog open, opens its reader with the picture in hand, as a paste at the Barter tab does: several pictures at once, for the readers that take them.'),
+					TT('A screenshot pasted while another is being read is read after it, in every reader: a second paste a moment after the first cut the first one’s reading short, and only the last paste was in the table.'),
+					TT('The paste zones say which browsers paste several screenshots at once: Chrome, Edge, Opera and the other Chromium browsers hand over every file copied, Firefox one a paste — drop or choose the files there.'),
+					TT('A row whose name the column cut to a word several islands share — <i>Shipwrecked</i> opens five wrecks — went under the row above, whose offer it muddled. It is a row of its own now, and it asks: which island, from the ones that begin so. A name read only nearly — a letter off — is shown as read but left unticked until you confirm it. The reader guesses no island.')
+				]
+			}
+		]
+	},
+	{
 		id: '1.6.0',
 		name: TT('A new run planner'),
 		date: '2026-10-20',
@@ -1148,6 +1274,27 @@ export const RELEASES = [
 export const RELEASE = RELEASES[0].id;
 
 export const CHANGES = [
+	{
+		date: '2026-11-19',
+		title: TT('1.7.0: a run you edit keeps its plan, quests picked up, your own stops on the Map'),
+		notes: [
+			TT('<b>Barter runs.</b> A chain taken off is laid afresh and from the plan already found, the better kept; ticking the load list or reloading keeps the plan; nothing is loaded only to come back unused; a run loads at one port and can end at another; a coin day can set a floor of Crow Coins a trade.'),
+			TT('<b>Quests.</b> One given by someone other than its taker is picked up on the run, at a stop before the hand-in, on the plan and on the Map.'),
+			TT('<b>Map.</b> A plotted route’s stops move by drag or by the arrow keys, and a stop can be added at a wharf or a habitat.'),
+			TT('<b>Barter tab.</b> Laid out as steps; the chains in a sheet; the route as a list.'),
+			TT('<b>Phone.</b> The barter count and the level take a tap again.')
+		]
+	},
+	{
+		date: '2026-10-24',
+		title: TT('After 1.6.0: the goal step in plain words, a stock filled from the top, the readers'),
+		notes: [
+			TT('<b>The goal step.</b> Each card says what it does with the stock; a <i>Which day is which?</i> table puts the three days side by side; a floor reads <i>keep 10 each</i>; under a level, how many goods sit under its floor, or how many of its exchanges your barter count opens.'),
+			TT('<b>Stock.</b> Filled from the top, when you say so: a lower target holds only once every target above it is full. A quest whose reward is in the storage already is ticked without adding it.'),
+			TT('<b>Readers.</b> The barter window reader names the two it could not tell apart and keeps a doubled island apart; the storage reader tells one drawing in two lights apart; a second storage screenshot adds to the first; with no layout to fit, <i>Sail what you saw</i>.'),
+			TT('<b>Fixes.</b> A run laid by the new planner said nothing went into the bag.')
+		]
+	},
 	{
 		date: '2026-10-20',
 		title: TT('A new run planner, and the runs it proposes kept'),
