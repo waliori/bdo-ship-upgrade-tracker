@@ -44,7 +44,9 @@ The box is under **Menu → Feedback**. It reaches whoever runs the site.
 
 ![A route on the Map: a stop dragged down the list, and a stop added at a wharf](docs/media/small/stops-by-hand.gif)
 
-On a route you plot on the Map, drag a stop up or down the list by its handle, or move it with the arrow keys, and add a stop at a wharf or a habitat, picked from a list. Your stops are kept with the route, and stay when you change its islands.
+**Before:** A route on the Map sailed its stops in the order they were clicked, and a stop could only be a barterer.
+
+**Now:** On a route you plot on the Map, drag a stop up or down the list by its handle, or move it with the arrow keys, and add a stop at a wharf or a habitat, picked from a list. Your stops are kept with the route, and stay when you change its islands.
 
 ### The Barter tab, step by step
 
@@ -52,10 +54,45 @@ On a route you plot on the Map, drag a stop up or down the list by its handle, o
 
 The Barter tab is laid out as steps taken in order, and *Next* takes you to the next one; the chains open in a sheet of their own, the route reads as a list, and the tabs fit on one row.
 
-### Where a run loads, where it ends, and what a coin trade must pay
+### Load at one port, end at another
 
-- **Two ports.** *Load the goods at* is the port whose storage the run loads from, *Finish the run at* the storage it ends at: Iliya’s goods, and a run that ends at home in Velia.
-- **A floor of Crow Coins.** On a coin day, *coins a trade, at least*: a trade paying fewer Crow Coins than that is left off the run.
+![One home port in 1.6.0; in 1.7.0, where the goods are loaded and where the run ends](docs/media/small/two-ports.png)
+
+**Before:** A run had one home port: it loaded from that storage and came back to it.
+
+**Now:** **Two ports.** *Load the goods at* is the port whose storage the run loads from, *Finish the run at* the storage it ends at: Iliya’s goods, and a run that ends at home in Velia.
+
+### A floor of Crow Coins a trade
+
+![A coin day in 1.6.0, and in 1.7.0 with a floor of 120 coins a trade: one chain fewer](docs/media/small/a-coin-floor.png)
+
+**Before:** A coin day took every coin trade on the board, however few coins it paid.
+
+**Now:** **A floor of Crow Coins.** On a coin day, *coins a trade, at least*: a trade paying fewer Crow Coins than that is left off the run.
+
+### What each day does with the stock
+
+![The goal step in 1.6.0, and in 1.7.0 with the table of what each day does](docs/media/small/which-day.png)
+
+**The goal step says what each day does with the stock.** The silver card keeps and fills a floor of each level, the stock card fills a target of every good and sells nothing, and a *Which day is which?* table under the cards puts the three side by side. A floor reads *keep 10 each* and *10 of each [Level 1] good*, since *keeping 10 of Level 1* read as a total. Under a floored level, how many goods sit under the floor and how many stand above it; under a stock level, how many of the exchanges paying it your barter count opens.
+
+### A stock filled from the top
+
+![A stock day in 1.6.0, and in 1.7.0 with the choice to fill from the bottom or from the top](docs/media/small/filled-from-the-top.png)
+
+**A stock filled from the top.** Beside the stock run’s aim, *from the bottom* or *from the top*. From the top, a lower level’s target holds as a floor only once every targeted level above it is full, so its goods climb freely until then: with the 1:2 and 1:3 rolls, the order that fills [Level 4] and [Level 5] first.
+
+### Every good of a level
+
+![The ladder in 1.6.0, and in 1.7.0 every good held at Level 4](docs/media/small/a-level-held.png)
+
+Under each level of the ladder, the count held opens every good of that level: its icon, how many you hold, a bar to the keep number, and how many are short or spare.
+
+### Reward counted already
+
+![A quest row in 1.6.0, and in 1.7.0 with reward counted already](docs/media/small/reward-counted.png)
+
+**A quest finished whose reward is in the storage already:** *reward counted already*, on the row and on the batch, ticks the quest and adds nothing to the stock.
 
 ### Fixes from your reports
 
@@ -63,16 +100,7 @@ The Barter tab is laid out as steps taken in order, and *Next* takes you to the 
 - A page reloaded while you load keeps the plan it had found.
 - A good handed over partway up a chain stays on the load list once it is aboard.
 - On a phone, the barter count and the barter level take a tap again.
-
-### The goal step and the stock
-
-What each day does with what you hold, said where you choose it.
-
-- **The goal step says what each day does with the stock.** The silver card keeps and fills a floor of each level, the stock card fills a target of every good and sells nothing, and a *Which day is which?* table under the cards puts the three side by side. A floor reads *keep 10 each* and *10 of each [Level 1] good*, since *keeping 10 of Level 1* read as a total. Under a floored level, how many goods sit under the floor and how many stand above it; under a stock level, how many of the exchanges paying it your barter count opens.
-- **A stock filled from the top.** Beside the stock run’s aim, *from the bottom* or *from the top*. From the top, a lower level’s target holds as a floor only once every targeted level above it is full, so its goods climb freely until then: with the 1:2 and 1:3 rolls, the order that fills [Level 4] and [Level 5] first.
-- **A quest finished whose reward is in the storage already:** *reward counted already*, on the row and on the batch, ticks the quest and adds nothing to the stock.
 - **The bag.** A run laid by the new planner said nothing went into the bag, whatever it carried; what goes into the bag is said again.
-- Under each level of the ladder, the count held opens every good of that level: its icon, how many you hold, a bar to the keep number, and how many are short or spare.
 
 ### The screenshot readers
 

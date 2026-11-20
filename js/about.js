@@ -118,6 +118,7 @@ export const RELEASES = [
 				title: TT('Your own stops on the Map'),
 				media: 'docs/media/small/stops-by-hand.gif',
 				alt: TT('A route on the Map: a stop dragged down the list, and a stop added at a wharf'),
+				before: TT('A route on the Map sailed its stops in the order they were clicked, and a stop could only be a barterer.'),
 				text: TT('On a route you plot on the Map, drag a stop up or down the list by its handle, or move it with the arrow keys, and add a stop at a wharf or a habitat, picked from a list. Your stops are kept with the route, and stay when you change its islands.')
 			},
 			{
@@ -127,11 +128,42 @@ export const RELEASES = [
 				text: TT('The Barter tab is laid out as steps taken in order, and <i>Next</i> takes you to the next one; the chains open in a sheet of their own, the route reads as a list, and the tabs fit on one row.')
 			},
 			{
-				title: TT('Where a run loads, where it ends, and what a coin trade must pay'),
-				points: [
-					TT('<b>Two ports.</b> <i>Load the goods at</i> is the port whose storage the run loads from, <i>Finish the run at</i> the storage it ends at: Iliya’s goods, and a run that ends at home in Velia.'),
-					TT('<b>A floor of Crow Coins.</b> On a coin day, <i>coins a trade, at least</i>: a trade paying fewer Crow Coins than that is left off the run.')
-				]
+				title: TT('Load at one port, end at another'),
+				media: 'docs/media/small/two-ports.png',
+				alt: TT('One home port in 1.6.0; in 1.7.0, where the goods are loaded and where the run ends'),
+				before: TT('A run had one home port: it loaded from that storage and came back to it.'),
+				text: TT('<b>Two ports.</b> <i>Load the goods at</i> is the port whose storage the run loads from, <i>Finish the run at</i> the storage it ends at: Iliya’s goods, and a run that ends at home in Velia.')
+			},
+			{
+				title: TT('A floor of Crow Coins a trade'),
+				media: 'docs/media/small/a-coin-floor.png',
+				alt: TT('A coin day in 1.6.0, and in 1.7.0 with a floor of 120 coins a trade: one chain fewer'),
+				before: TT('A coin day took every coin trade on the board, however few coins it paid.'),
+				text: TT('<b>A floor of Crow Coins.</b> On a coin day, <i>coins a trade, at least</i>: a trade paying fewer Crow Coins than that is left off the run.')
+			},
+			{
+				title: TT('What each day does with the stock'),
+				media: 'docs/media/small/which-day.png',
+				alt: TT('The goal step in 1.6.0, and in 1.7.0 with the table of what each day does'),
+				text: TT('<b>The goal step says what each day does with the stock.</b> The silver card keeps and fills a floor of each level, the stock card fills a target of every good and sells nothing, and a <i>Which day is which?</i> table under the cards puts the three side by side. A floor reads <i>keep 10 each</i> and <i>10 of each [Level 1] good</i>, since <i>keeping 10 of Level 1</i> read as a total. Under a floored level, how many goods sit under the floor and how many stand above it; under a stock level, how many of the exchanges paying it your barter count opens.')
+			},
+			{
+				title: TT('A stock filled from the top'),
+				media: 'docs/media/small/filled-from-the-top.png',
+				alt: TT('A stock day in 1.6.0, and in 1.7.0 with the choice to fill from the bottom or from the top'),
+				text: TT('<b>A stock filled from the top.</b> Beside the stock run’s aim, <i>from the bottom</i> or <i>from the top</i>. From the top, a lower level’s target holds as a floor only once every targeted level above it is full, so its goods climb freely until then: with the 1:2 and 1:3 rolls, the order that fills [Level 4] and [Level 5] first.')
+			},
+			{
+				title: TT('Every good of a level'),
+				media: 'docs/media/small/a-level-held.png',
+				alt: TT('The ladder in 1.6.0, and in 1.7.0 every good held at Level 4'),
+				text: TT('Under each level of the ladder, the count held opens every good of that level: its icon, how many you hold, a bar to the keep number, and how many are short or spare.')
+			},
+			{
+				title: TT('Reward counted already'),
+				media: 'docs/media/small/reward-counted.png',
+				alt: TT('A quest row in 1.6.0, and in 1.7.0 with reward counted already'),
+				text: TT('<b>A quest finished whose reward is in the storage already:</b> <i>reward counted already</i>, on the row and on the batch, ticks the quest and adds nothing to the stock.')
 			},
 			{
 				title: TT('Fixes from your reports'),
@@ -139,18 +171,8 @@ export const RELEASES = [
 					TT('Ticking the load list no longer throws the plan away and lays another, and a plan no longer loads goods it brings back unused.'),
 					TT('A page reloaded while you load keeps the plan it had found.'),
 					TT('A good handed over partway up a chain stays on the load list once it is aboard.'),
-					TT('On a phone, the barter count and the barter level take a tap again.')
-				]
-			},
-			{
-				title: TT('The goal step and the stock'),
-				text: TT('What each day does with what you hold, said where you choose it.'),
-				points: [
-					TT('<b>The goal step says what each day does with the stock.</b> The silver card keeps and fills a floor of each level, the stock card fills a target of every good and sells nothing, and a <i>Which day is which?</i> table under the cards puts the three side by side. A floor reads <i>keep 10 each</i> and <i>10 of each [Level 1] good</i>, since <i>keeping 10 of Level 1</i> read as a total. Under a floored level, how many goods sit under the floor and how many stand above it; under a stock level, how many of the exchanges paying it your barter count opens.'),
-					TT('<b>A stock filled from the top.</b> Beside the stock run’s aim, <i>from the bottom</i> or <i>from the top</i>. From the top, a lower level’s target holds as a floor only once every targeted level above it is full, so its goods climb freely until then: with the 1:2 and 1:3 rolls, the order that fills [Level 4] and [Level 5] first.'),
-					TT('<b>A quest finished whose reward is in the storage already:</b> <i>reward counted already</i>, on the row and on the batch, ticks the quest and adds nothing to the stock.'),
-					TT('<b>The bag.</b> A run laid by the new planner said nothing went into the bag, whatever it carried; what goes into the bag is said again.'),
-					TT('Under each level of the ladder, the count held opens every good of that level: its icon, how many you hold, a bar to the keep number, and how many are short or spare.')
+					TT('On a phone, the barter count and the barter level take a tap again.'),
+					TT('<b>The bag.</b> A run laid by the new planner said nothing went into the bag, whatever it carried; what goes into the bag is said again.')
 				]
 			},
 			{
