@@ -6167,5 +6167,12 @@
 	"The goal step in 1.6.0, and in 1.7.0 with the table of what each day does": "1.6.0 的目標步驟，以及 1.7.0 中說明每種日子做什麼的表格",
 	"A stock day in 1.6.0, and in 1.7.0 with the choice to fill from the bottom or from the top": "1.6.0 的存貨日，以及 1.7.0 中從底部或從頂部填滿的選擇",
 	"The ladder in 1.6.0, and in 1.7.0 every good held at Level 4": "1.6.0 的階梯，以及 1.7.0 中第 4 階段持有的每種物品",
-	"A quest row in 1.6.0, and in 1.7.0 with reward counted already": "1.6.0 的任務列，以及 1.7.0 中帶有「獎勵已計入」的任務列"
+	"A quest row in 1.6.0, and in 1.7.0 with reward counted already": "1.6.0 的任務列，以及 1.7.0 中帶有「獎勵已計入」的任務列",
+	"Set out from": "出發地",
+	"where the goods are loaded": "與裝貨地點相同",
+	"The harbour the day begins at, quests taken there before casting off; the ship sails from it to where the goods are loaded": "一天開始的港口：出航前在那裡接受任務，船從那裡駛往裝貨地點",
+	"Set out from {out}, then {port} for the goods": "從 {out} 出發，再到 {port} 裝貨",
+	"≈ {time} to {port}, then the hold as the lines are let go": "到 {port} 約 {time}，然後是解纜時的船艙",
+	"when the goods come aboard": "貨物裝船時",
+	"{place} added to the route, stop {n}": "已將 {place} 加入航線，第 {n} 站"
 }

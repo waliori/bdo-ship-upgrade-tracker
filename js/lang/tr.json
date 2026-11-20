@@ -6167,5 +6167,12 @@
 	"The goal step in 1.6.0, and in 1.7.0 with the table of what each day does": "1.6.0’da hedef adımı, 1.7.0’da her günün ne yaptığını gösteren tabloyla",
 	"A stock day in 1.6.0, and in 1.7.0 with the choice to fill from the bottom or from the top": "1.6.0’da bir stok günü, 1.7.0’da alttan ya da üstten doldurma seçeneğiyle",
 	"The ladder in 1.6.0, and in 1.7.0 every good held at Level 4": "1.6.0’da merdiven, 1.7.0’da 4. seviyede elde olan her mal",
-	"A quest row in 1.6.0, and in 1.7.0 with reward counted already": "1.6.0’da bir görev satırı, 1.7.0’da “ödül zaten sayıldı” ile"
+	"A quest row in 1.6.0, and in 1.7.0 with reward counted already": "1.6.0’da bir görev satırı, 1.7.0’da “ödül zaten sayıldı” ile",
+	"Set out from": "Yola çıkış yeri",
+	"where the goods are loaded": "malların yüklendiği yer",
+	"The harbour the day begins at, quests taken there before casting off; the ship sails from it to where the goods are loaded": "Günün başladığı liman: görevler orada, yola çıkmadan alınır; gemi oradan malların yüklendiği yere gider",
+	"Set out from {out}, then {port} for the goods": "{out} limanından çık, sonra mallar için {port}",
+	"≈ {time} to {port}, then the hold as the lines are let go": "{port} limanına ≈ {time}, sonra halatlar çözülürken ambar",
+	"when the goods come aboard": "mallar gemiye alınınca",
+	"{place} added to the route, stop {n}": "{place} rotaya eklendi, durak {n}"
 }

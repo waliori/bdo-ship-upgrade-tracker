@@ -140,6 +140,20 @@ export function toggleMapDone(npcId) {
 export function closeMapTip() {
 	mv.pinnedNpc = null;
 	mv.pinnedStash = -1;
+	mv.pinnedPlace = null;
+	paintMap();
+}
+
+/** A wharf manager or a habitat clicked on the chart: its card opens, with a
+ *  stop there to put on the route (Liara, 2026-11-20). A habitat's click
+ *  shows its spawns as before, and opens the card only while a route is
+ *  being plotted (`onRoute`). */
+export function pinPlace(el, { onRoute = false } = {}) {
+	const d = el && el.dataset;
+	if (!d || !d.name || (onRoute && !stopsLive())) return;
+	mv.pinnedPlace = { name: d.name, at: d.at || '', x: Number(d.x), y: Number(d.y), sub: d.sub || '' };
+	mv.pinnedNpc = null;
+	mv.pinnedStash = -1;
 	paintMap();
 }
 

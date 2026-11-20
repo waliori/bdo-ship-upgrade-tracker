@@ -567,7 +567,7 @@ export function silverParts(me, b) {
 	// off the route: the run's stops from here on are those.
 	const qp = questPlan(plan.stops, o.quests, me.hold, plan.weightStart);
 	plan.stops = withRations(withWaits(qp.stops, plan.weightStart), plan.weightStart);
-	plan.questsHome = qp.home;
+	plan.questsHome = [...(qp.setOut || []), ...qp.home];
 	V.shownPlan = plan;
 	const legs = legsOf(plan.stops);
 	// The Parley bar, stop by stop, for the whole run at once -- the
@@ -733,7 +733,7 @@ export function silverParts(me, b) {
 						: isl === 1 ? T('{n} island', { n: isl }) : T('{n} islands', { n: isl });
 					return `<span class="run-chain-tag" style="--tier:${TIER(c.top)}"><i></i>${chainName(c)}<em>L${c.top}</em><small${cutHere ? ` class="short" title="${T('This chain does not get to the top — see the note under the tiles')}"` : ''}>${count}</small><button class="map-x" data-act="barter-chain" data-id="${esc(c.id)}" aria-label="${T('Untick this chain')}">×</button></span>`;
 				}).join('')).join(`<span class="run-lot-sep">${T('then')}</span>`)}</div>
-				${rationsLine(plan.stops)}${routeEditBar(plan)}<div class="run-stops">${castOffRow(plan, from)}${stopRows(plan.stops, legs, { board: true, sailing: sailing(), edit: !sailing(), notes: qp, ledger: book, trip: tripHead, tag: s => (s.npcId ? `<em class="run-chain-tag sm" style="--tier:${TIER(plan.order[s.chain].top)}"><i></i>${chainName(plan.order[s.chain])}</em>` : '') })}</div>
+				${rationsLine(plan.stops)}${routeEditBar(plan)}<div class="run-stops">${castOffRow(plan, from, legs)}${stopRows(plan.stops, legs, { board: true, sailing: sailing(), edit: !sailing(), notes: qp, ledger: book, trip: tripHead, tag: s => (s.npcId ? `<em class="run-chain-tag sm" style="--tier:${TIER(plan.order[s.chain].top)}"><i></i>${chainName(plan.order[s.chain])}</em>` : '') })}</div>
 			</section>` : '') : plan.order.map((c, k) => {
 			const first = plan.stops.findIndex(s => s.chain === k);
 			const mine = plan.stops.filter(s => s.chain === k);
@@ -744,7 +744,7 @@ export function silverParts(me, b) {
 				${mine.length ? `<div class="run-stops">${stopRows(mine, legs, { k0: first, before: first > 0 ? plan.stops[first - 1] : null, board: true, sailing: sailing(), edit: !sailing(), notes: qp, ledger: book, trip: tripHead })}</div>` : ''}
 			</section>`;
 		}).join('');
-		const routeFold = plan.stops.length ? `<details class="panel route-fold"${sailing() || narrow() ? '' : ' open'}><summary><b>${T('The route, stop by stop')}</b><span class="panel-sub">${plan.stops.length === 1 ? T('{n} stop', { n: plan.stops.length }) : T('{n} stops', { n: plan.stops.length })}${legs.total ? ` · ${esc(fmtDistance(legs.total))} · ≈ ${esc(runTime(legs, book))}` : ''}${from ? ` · ${T('from {port}', { port: esc(gameName(from.name)) })}` : ''}</span>${questsLine(qp, o.quests)}<span class="panel-spacer"></span>${chartButton(plan.stops, '')}</summary>${segs}</details>` : '';
+		const routeFold = plan.stops.length ? `<details class="panel route-fold"${sailing() || narrow() ? '' : ' open'}><summary><b>${T('The route, stop by stop')}</b><span class="panel-sub">${plan.stops.length === 1 ? T('{n} stop', { n: plan.stops.length }) : T('{n} stops', { n: plan.stops.length })}${legs.total ? ` · ${esc(fmtDistance(legs.total))} · ≈ ${esc(runTime(legs, book))}` : ''}${from ? ` · ${legs.pre ? T('Set out from {out}, then {port} for the goods', { out: esc(gameName(legs.pre.from.name)), port: esc(gameName(from.name)) }) : T('from {port}', { port: esc(gameName(from.name)) })}` : ''}</span>${questsLine(qp, o.quests)}<span class="panel-spacer"></span>${chartButton(plan.stops, '')}</summary>${segs}</details>` : '';
 		keepRoute(plan, legs, book, segs, '');
 		return routeFold;
 	};
@@ -785,7 +785,7 @@ export function silverParts(me, b) {
 		for (const x of rPlan.stops) x.hold = me.hold;
 		rQp = questPlan(rPlan.stops, o.quests, me.hold, rPlan.weightStart);
 		rPlan.stops = withRations(withWaits(rQp.stops, rPlan.weightStart), rPlan.weightStart);
-		rPlan.questsHome = rQp.home;
+		rPlan.questsHome = [...(rQp.setOut || []), ...rQp.home];
 		rLegs = legsOf(rPlan.stops);
 		rBook = ledgerOf(rPlan.stops, rLegs);
 	}

@@ -984,6 +984,7 @@ function paintHabitats(layer, size) {
 				el.dataset.key = key;
 				el.dataset.act = 'map-hunt';
 				el.dataset.id = keys.join(',');
+				Object.assign(el.dataset, { name: lead.name, x: lead.x, y: lead.y, sub: lead.sub.replace(/ · about here$/, '') });
 				const subs = g.members.map(m => m.sub.replace(/ · about here$/, ''));
 				el.title = many
 					? T('{who} — click to show or hide their spawn points', { who: subs.join(' · ') })
@@ -1123,6 +1124,7 @@ function paintWharves(layer, size) {
 			el = document.createElement('div');
 			el.className = `map-wharf ${w.kind}`;
 			el.dataset.i = i;
+			Object.assign(el.dataset, { act: 'map-place', name: w.name, at: w.at || '', x: w.x, y: w.y, sub: w.at ? gameName(w.at) : T('wharf') });
 			el.title = `${gameName(w.name)}${w.at ? ` — ${gameName(w.at)}` : ''} — ${w.kind === 'guild' ? T('guild wharf manager') : T('wharf manager: repair, rations, sailors')}`;
 			el.innerHTML = `<span class="map-wharf-dot">${ico('anchor')}</span><span class="map-wharf-name"></span>`;
 			el.querySelector('.map-wharf-name').textContent = gameName(w.name);
@@ -1307,6 +1309,30 @@ function paintStashTip(host, tip, size, g, pinned) {
 	tip.style.top = `${Math.max(10, Math.min(maxTop, at.top - 12))}px`;
 }
 
+/** A wharf manager or a habitat clicked: its name, and a stop there once a
+ *  route is being plotted. */
+function paintPlaceTip(host, tip, size, p) {
+	const live = stopsLive();
+	const key = ['place', p.name, p.x, p.y, live].join('|');
+	if (tip._for !== key) {
+		tip._for = key;
+		tip.innerHTML = `<div class="map-tip-head"><span class="map-tip-name">${esc(gameName(p.name))}</span>
+			<button class="map-x" data-act="map-tip-close" aria-label="${T('Close')}">×</button></div>
+			${p.sub ? `<div class="map-tip-sub">${esc(p.sub)}</div>` : ''}
+			<div class="map-tip-btns">${live
+		? `<button class="ghost-btn" data-act="map-own-at">+ ${T('Add stop')}</button>`
+		: `<span class="map-tip-sub none">${T('Click a pin, then “Add stop”. The numbers sail in this order.')}</span>`}</div>`;
+	}
+	tip.classList.add('pinned');
+	tip.hidden = false;
+	const at = project(mv.mapState, size, p.x, p.y);
+	const w = tip.offsetWidth || 264, h = tip.offsetHeight || 140;
+	const steps = host.querySelector('[data-map-steps]');
+	const floor = steps && !steps.hidden ? steps.offsetTop - 8 : size.h - 10;
+	tip.style.left = `${Math.max(10, Math.min(size.w - w - 10, at.left + 16))}px`;
+	tip.style.top = `${Math.max(10, Math.min(Math.max(10, floor - h), at.top - 12))}px`;
+}
+
 function paintTip(host, size, marks) {
 	const tip = host.querySelector('[data-map-tip]');
 	if (!tip) return;
@@ -1326,6 +1352,10 @@ function paintTip(host, size, marks) {
 	}
 	const id = mv.hoverNpc || mv.pinnedNpc;
 	const npc = id && npcById.get(id);
+	if (!npc && mv.pinnedPlace) {
+		paintPlaceTip(host, tip, size, mv.pinnedPlace);
+		return;
+	}
 	if (!npc) {
 		tip.hidden = true;
 		tip._for = null;
@@ -1370,8 +1400,12 @@ function paintTip(host, size, marks) {
 		const sub = `${esc(gameName(npc.name))} · ${rate}`
 			+ (pool > 1 ? ` · ${T('draws 1 of its {n} offers a refresh', { n: pool })}` : '');
 		const onRoute = stopsLive() && mv.stops.includes(id);
+		// The island's wharf manager stands under the barterer's pin, so the
+		// pin's card offers a stop at the wharf too.
+		const pier = stopsLive() ? wharves.find(w => Math.hypot(w.x - npc.x, w.y - npc.y) < 1500) : null;
 		const btns = `<div class="map-tip-btns">
 			<button class="ghost-btn" data-act="map-stop" data-npc="${id}">${onRoute ? `− ${T('Remove stop')}` : `+ ${T('Add stop')}`}</button>
+			${pier ? `<button class="ghost-btn" data-act="map-own-at" data-name="${esc(pier.name)}" data-at="${esc(pier.at || '')}" data-x="${pier.x}" data-y="${pier.y}">${ico('anchor')} + ${T('Add stop')} · ${esc(gameName(pier.name))}</button>` : ''}
 			${m ? `<button class="ghost-btn" data-act="map-done" data-npc="${id}">${dn.has(id) ? `✓ ${T('Sailed')}` : T('Mark sailed')}</button>` : ''}
 		</div>`;
 		tip.innerHTML = `<div class="map-tip-head"><span class="map-tip-name">${esc(gameName(npc.at))}</span>

@@ -69,7 +69,7 @@ export function restore() {
 	V.goal = 'silver'; V.climb = 0; V.item = null; V.qty = 1; V.wants = {};
 	V.stockGoal = { ...DEFAULT_STOCK, targets: { ...DEFAULT_STOCK.targets } };
 	V.matOrders = { reach: 'want', calls: true, pace: 'full', quests: 'near' };
-	V.port = 0; V.routes = { key: '', ids: [] }; V.shape = 'full'; V.routesOther = { key: '', ids: [] }; V.stash = ''; V.sail = null; V.reach = ''; V.minCoins = 0; V.planSec = 'none'; V.planDone = { day: '', board: '', ids: [] }; V.ownWay = false;
+	V.port = 0; V.routes = { key: '', ids: [] }; V.shape = 'full'; V.routesOther = { key: '', ids: [] }; V.stash = ''; V.setOut = 0; V.sail = null; V.reach = ''; V.minCoins = 0; V.planSec = 'none'; V.planDone = { day: '', board: '', ids: [] }; V.ownWay = false;
 	V.board = { day: '', answers: [], own: false }; V.matBoard = { day: '', answers: [], on: [] };
 	V.questSkip = { day: '', ids: [] }; V.questPull = { day: '', ids: [] }; V.routeEdit = { key: '', skip: [], nudge: {}, trips: [] }; V.advOpen = false; V.packed = new Set(); V.packLog = { delta: {}, moves: [] };
 	if (!s) return;
@@ -94,6 +94,7 @@ export function restore() {
 		if (s.matOrders && typeof s.matOrders === 'object') V.matOrders = { reach: s.matOrders.reach === 'all' ? 'all' : 'want', calls: s.matOrders.calls !== false, pace: s.matOrders.pace === 'fast' ? 'fast' : 'full', quests: QUEST_CHOICES.some(([q]) => q === s.matOrders.quests) ? s.matOrders.quests : 'near', order: ['rich', 'tiers'].includes(s.matOrders.order) ? s.matOrders.order : 'short' };
 		if (ports.some(p => p.id === Number(s.port))) V.port = Number(s.port);
 		if (STASHES.includes(s.stash)) V.stash = s.stash;
+		if (ports.some(p => p.id === Number(s.setOut))) V.setOut = Number(s.setOut);
 		if (s.routes && typeof s.routes.key === 'string' && Array.isArray(s.routes.ids)) V.routes = { key: s.routes.key, ids: s.routes.ids.filter(id => typeof id === 'string') };
 		if (s.shape === 'short') V.shape = 'short';
 		if (s.routesOther && typeof s.routesOther.key === 'string' && Array.isArray(s.routesOther.ids)) V.routesOther = { key: s.routesOther.key, ids: s.routesOther.ids.filter(id => typeof id === 'string') };
@@ -265,7 +266,7 @@ function logBoard() {
 /** The view as memory holds it, for a write. The bag's packing marks
  *  ride with it: a reload before casting off kept every hold row's tick
  *  (they read the hold) and lost the bag's. */
-export const viewNow = () => ({ goal: V.goal, climb: V.climb, planSec: V.planSec, planDone: V.planDone, ownWay: V.ownWay, routeEdit: V.routeEdit, stock: V.stockGoal, item: V.item, qty: V.qty, wants: V.wants, matOrders: V.matOrders, port: V.port, routes: V.routes, shape: V.shape, routesOther: V.routesOther, stash: V.stash, board: V.board, matBoard: V.matBoard, matAt: V.matAt, sail: V.sail, reach: V.reach, minCoins: V.minCoins, questSkip: V.questSkip, questPull: V.questPull, packed: [...V.packed].slice(0, 60), packLog: V.packLog });
+export const viewNow = () => ({ goal: V.goal, climb: V.climb, planSec: V.planSec, planDone: V.planDone, ownWay: V.ownWay, routeEdit: V.routeEdit, stock: V.stockGoal, item: V.item, qty: V.qty, wants: V.wants, matOrders: V.matOrders, port: V.port, routes: V.routes, shape: V.shape, routesOther: V.routesOther, stash: V.stash, setOut: V.setOut, board: V.board, matBoard: V.matBoard, matAt: V.matAt, sail: V.sail, reach: V.reach, minCoins: V.minCoins, questSkip: V.questSkip, questPull: V.questPull, packed: [...V.packed].slice(0, 60), packLog: V.packLog });
 
 /**
  * The view written now, as a change Undo can take back: an edit to the

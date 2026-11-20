@@ -17,7 +17,7 @@ export {
 	renderMap
 } from './map/render.js';
 export {
-	saveRouteDialog, openOwnStop, removeOwnStop, loadPreviousRoute, deletePreviousRoute, loadSavedRoute, deleteSavedRoute, setTradesMode, trimRouteToParley, routeLink, routeObject, applyMapLink, applyPackedMapLink, plainMapLink, applyMapObject, openSailCal, setRationsAboard, putRationsCall, openRationCal, exportRoute, importRoute, setRunSheet
+	saveRouteDialog, openOwnStop, addOwnStop, removeOwnStop, loadPreviousRoute, deletePreviousRoute, loadSavedRoute, deleteSavedRoute, setTradesMode, trimRouteToParley, routeLink, routeObject, applyMapLink, applyPackedMapLink, plainMapLink, applyMapObject, openSailCal, setRationsAboard, putRationsCall, openRationCal, exportRoute, importRoute, setRunSheet
 } from './map/route.js';
 export {
 	setTraceTool, traceAction, openTraceLibrary, traceChange, currentMapData, traceLink, applyTraceLink, applyTraceObject, unpackTrace
@@ -42,7 +42,7 @@ export {
 	setStepHook, mapStepToStop
 } from './map/actions.js';
 export {
-	setMapPick, mapShowItem, mapFit, mapZoomStep, mapCentreOn, setMapMode, toggleMapPanel, toggleMapStop, useSuggestedRoute, reverseMapRoute, clearMapRoute, toggleMapDone, closeMapTip, mapCentreOnStash, openMapPicker, mapStep, mapStepTo, mapFollowToggle, mapNextOnlyToggle, setMapStart, setMapHabitats, setMapLabels, setMapPins, toggleMapLayers, setMapTraces, flipMapSide, setMapWharves, setMapCourse, setMapErrands, setMapErrandFrom, setMapErrandKinds, openMapErrand, setMapErrandSkip, skipMapErrandCall, drawMapErrands, setMapHunt, showHunt, setMapReturn, mapPortClick, reviveMapRoute, setMapKind
+	setMapPick, mapShowItem, mapFit, mapZoomStep, mapCentreOn, setMapMode, toggleMapPanel, toggleMapStop, useSuggestedRoute, reverseMapRoute, clearMapRoute, toggleMapDone, closeMapTip, pinPlace, mapCentreOnStash, openMapPicker, mapStep, mapStepTo, mapFollowToggle, mapNextOnlyToggle, setMapStart, setMapHabitats, setMapLabels, setMapPins, toggleMapLayers, setMapTraces, flipMapSide, setMapWharves, setMapCourse, setMapErrands, setMapErrandFrom, setMapErrandKinds, openMapErrand, setMapErrandSkip, skipMapErrandCall, drawMapErrands, setMapHunt, showHunt, setMapReturn, mapPortClick, reviveMapRoute, setMapKind
 } from './map/actions.js';
 export {
 	gameImportRead, gameImportApply, openGameImport, gameImportAction, gameBookmarks, setGameWrite, setGameLine, openGameExport

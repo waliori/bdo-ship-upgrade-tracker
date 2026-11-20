@@ -139,6 +139,9 @@ export function shutNow(prof = barterProfile()) {
 }
 
 export const fromPort = () => ports.find(p => p.id === V.port) || null;
+/** The harbour the day begins at when it is not where the goods are loaded:
+ *  the ship sails from it to `fromPort()` first. */
+export const setOutPort = () => { const p = ports.find(x => x.id === V.setOut), f = fromPort(); return p && f && p.id !== f.id ? p : null; };
 
 /**
  * The board bar: which layout the sea is showing, or the question that

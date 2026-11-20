@@ -20,6 +20,7 @@ export const V = {
 	stockGoal: { ...DEFAULT_STOCK, targets: { ...DEFAULT_STOCK.targets } }, // the stock run: what to keep of every good at a level, where the climbs stop, what the day is for
 	matOrders: { reach: 'want', calls: true, pace: 'full', quests: 'near' }, // sail for the wants, or every island ticked; call at a harbour for a give held there; one departure, or as many as the hold needs
 	port: 0, // the wharf the run sails from, 0 for none
+	setOut: 0, // the harbour the day begins at, before sailing to `port` for the goods; 0 for `port` itself (Liara)
 	routes: { key: '', ids: [] }, // the chains ticked, for one board (day|layout)
 	shape: 'full', // full | short: the board's chains searched and climbed, or one trade and what fits round it
 	routesOther: { key: '', ids: [] }, // the other shape's ticks, kept while this one is on

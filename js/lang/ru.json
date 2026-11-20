@@ -8332,5 +8332,12 @@
 	"The goal step in 1.6.0, and in 1.7.0 with the table of what each day does": "Шаг цели в 1.6.0, и в 1.7.0 с таблицей того, что делает каждый день",
 	"A stock day in 1.6.0, and in 1.7.0 with the choice to fill from the bottom or from the top": "День запаса в 1.6.0, и в 1.7.0 с выбором, заполнять снизу или сверху",
 	"The ladder in 1.6.0, and in 1.7.0 every good held at Level 4": "Лестница в 1.6.0, и в 1.7.0 все товары 4-го уровня в наличии",
-	"A quest row in 1.6.0, and in 1.7.0 with reward counted already": "Строка задания в 1.6.0, и в 1.7.0 с «награда уже учтена»"
+	"A quest row in 1.6.0, and in 1.7.0 with reward counted already": "Строка задания в 1.6.0, и в 1.7.0 с «награда уже учтена»",
+	"Set out from": "Выход из",
+	"where the goods are loaded": "там, где грузятся товары",
+	"The harbour the day begins at, quests taken there before casting off; the ship sails from it to where the goods are loaded": "Порт, где начинается день: задания берутся там до отплытия, а оттуда корабль идёт туда, где грузятся товары",
+	"Set out from {out}, then {port} for the goods": "Выход из {out}, затем {port} за товарами",
+	"≈ {time} to {port}, then the hold as the lines are let go": "≈ {time} до {port}, затем трюм при отдаче швартовов",
+	"when the goods come aboard": "когда товары поднимают на борт",
+	"{place} added to the route, stop {n}": "{place} — в маршруте, стоянка {n}"
 }

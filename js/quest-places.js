@@ -8,7 +8,7 @@
 // already -- they are given at Velia, Iliya and Oquilla's Eye, where
 // every run passes -- so the last step is where it is handed in, and a
 // quest whose first step names another giver gets a stop at that giver
-// before it (a 'take' step). A hunt names the species whose grounds the Map draws: the
+// before it (a 'take' step), as does a hunt given where it is handed in. A hunt names the species whose grounds the Map draws: the
 // run gets a stop at the grounds and hands the hunt in after; a barter quest asks
 // for a number of barters, and is handed in only once the run's trades
 // have made the number up.
@@ -193,10 +193,12 @@ export function layQuests(quests, points, { near = 1200, detour = 8000, share = 
 	// an entry near the giver before the quest is worked, else a stop of
 	// its own at the cheapest place before it, whatever the way round,
 	// since the hand-in counts on it. One handed in where the run starts
-	// cannot be fetched before it, and is taken as fetched already.
+	// cannot be fetched before it, and is taken as fetched already. A hunt
+	// taken and handed in at one place is fetched there too, before the
+	// grounds: kills made before it is accepted do not count.
 	for (const q of quests) {
 		const steps = placesOf(q);
-		if (steps.length < 2) continue;
+		if (steps.length < 2 && !(q.monster && steps.length && /take/.test(steps[0].what))) continue;
 		const first = route.findIndex(e => e.steps.some(x => x.q === q));
 		if (first < 0) continue;
 		const give = { ...steps[0], what: 'take' };

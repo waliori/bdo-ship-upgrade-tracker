@@ -28,7 +28,7 @@ export function wireMap() {
 	// The panel, the card, the minimap: furniture on top of the sea.
 	// A gesture that starts on them is for them, not for the chart.
 	const CHROME = '.map-side, .map-side-pill, .map-tip, .map-mini, .map-steps, .map-trace-write, .map-full-bar, .map-tilt';
-const MARKERS = '[data-act="map-pin"], [data-act="map-port"], [data-act="map-stash"], .map-habitat';
+const MARKERS = '[data-act="map-pin"], [data-act="map-port"], [data-act="map-stash"], .map-habitat, .map-wharf';
 		// Tracing, the markers are scenery: a line drawn across a barterer
 	// must not stop dead there and open his trades instead.
 	// The markers used to be furniture too, and a drag that began on one

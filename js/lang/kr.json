@@ -6167,5 +6167,12 @@
 	"The goal step in 1.6.0, and in 1.7.0 with the table of what each day does": "1.6.0의 목표 단계와, 날마다 하는 일을 보여 주는 표가 있는 1.7.0",
 	"A stock day in 1.6.0, and in 1.7.0 with the choice to fill from the bottom or from the top": "1.6.0의 재고의 날과, 아래부터 또는 위부터 채우기를 고르는 1.7.0",
 	"The ladder in 1.6.0, and in 1.7.0 every good held at Level 4": "1.6.0의 사다리와, 1.7.0에서 4단계의 보유 물품 전부",
-	"A quest row in 1.6.0, and in 1.7.0 with reward counted already": "1.6.0의 퀘스트 줄과, ‘보상은 이미 계산됨’이 있는 1.7.0"
+	"A quest row in 1.6.0, and in 1.7.0 with reward counted already": "1.6.0의 퀘스트 줄과, ‘보상은 이미 계산됨’이 있는 1.7.0",
+	"Set out from": "출발지",
+	"where the goods are loaded": "상품을 싣는 곳",
+	"The harbour the day begins at, quests taken there before casting off; the ship sails from it to where the goods are loaded": "하루가 시작되는 항구. 퀘스트는 출항 전에 그곳에서 받고, 배는 그곳에서 상품을 싣는 곳으로 갑니다",
+	"Set out from {out}, then {port} for the goods": "{out}에서 출발한 뒤 상품을 실으러 {port}로",
+	"≈ {time} to {port}, then the hold as the lines are let go": "{port}까지 약 {time}, 그다음 출항 시 선창",
+	"when the goods come aboard": "상품을 실을 때",
+	"{place} added to the route, stop {n}": "{place}을(를) 항로에 추가, 정박지 {n}"
 }

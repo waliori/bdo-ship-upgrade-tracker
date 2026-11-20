@@ -6167,5 +6167,12 @@
 	"The goal step in 1.6.0, and in 1.7.0 with the table of what each day does": "ขั้นเป้าหมายใน 1.6.0 และใน 1.7.0 ที่มีตารางบอกว่าแต่ละวันทำอะไร",
 	"A stock day in 1.6.0, and in 1.7.0 with the choice to fill from the bottom or from the top": "วันสะสมของใน 1.6.0 และใน 1.7.0 ที่เลือกเติมจากล่างหรือจากบนได้",
 	"The ladder in 1.6.0, and in 1.7.0 every good held at Level 4": "บันไดใน 1.6.0 และใน 1.7.0 สินค้าทุกชิ้นที่มีในระดับ 4",
-	"A quest row in 1.6.0, and in 1.7.0 with reward counted already": "แถวเควสต์ใน 1.6.0 และใน 1.7.0 ที่มี “รางวัลนับไว้แล้ว”"
+	"A quest row in 1.6.0, and in 1.7.0 with reward counted already": "แถวเควสต์ใน 1.6.0 และใน 1.7.0 ที่มี “รางวัลนับไว้แล้ว”",
+	"Set out from": "ออกเดินทางจาก",
+	"where the goods are loaded": "ที่เดียวกับที่ขนสินค้า",
+	"The harbour the day begins at, quests taken there before casting off; the ship sails from it to where the goods are loaded": "ท่าเรือที่วันเริ่มต้น รับเควสต์ที่นั่นก่อนออกเรือ แล้วเรือจึงแล่นไปยังที่ขนสินค้า",
+	"Set out from {out}, then {port} for the goods": "ออกจาก {out} แล้วไป {port} เพื่อขนสินค้า",
+	"≈ {time} to {port}, then the hold as the lines are let go": "ถึง {port} ≈ {time} จากนั้นระวางเรือตอนปลดเชือก",
+	"when the goods come aboard": "ตอนขนสินค้าขึ้นเรือ",
+	"{place} added to the route, stop {n}": "เพิ่ม {place} ในเส้นทางแล้ว จุดที่ {n}"
 }

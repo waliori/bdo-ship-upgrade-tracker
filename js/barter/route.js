@@ -26,7 +26,7 @@ import { bagRoom } from '../bag-shot.js';
 import { wharves } from '../wharves.js';
 import { V } from './state.js';
 import { fleetSevens } from './fleet.js';
-import { fromPort, sailCal, sailLag } from './board.js';
+import { fromPort, setOutPort, sailCal, sailLag } from './board.js';
 import { parleyNotes } from './cockpit.js';
 import { aboardStock } from './hold.js';
 import { ordersNow } from './plan.js';
@@ -261,10 +261,15 @@ export function legsOf(stops) {
 	const lag = sailLag();
 	const range = m => { const [a, b] = sailRange(m, me.speed.sea, sailCal(), measured); return [a + lag, b + lag]; };
 	const n = legs.filter(m => m > 0).length;
-	const [fast, slow] = (([a, b]) => [a + lag * n, b + lag * n])(sailRange(total, me.speed.sea, sailCal(), measured));
+	// A day that sets out from another harbour sails to the goods first: its
+	// time is the run's too, not a leg of the stops.
+	const out = from && V.goal !== 'material' ? setOutPort() : null;
+	const preM = out ? pathLength(seaRoute([{ x: out.x, y: out.y }, { x: from.x, y: from.y }])) : 0;
+	const pre = out ? { from: out, m: preM, time: fmtRange(...range(preM)) } : null;
+	const [fast, slow] = (([a, b]) => [a + lag * (n + (pre ? 1 : 0)), b + lag * (n + (pre ? 1 : 0))])(sailRange(total + preM, me.speed.sea, sailCal(), measured));
 	// `timeWith` is the same range with minutes stood still added --
 	// the waits the Parley ledger puts in for a voucher's cooldown.
-	return { total, legs, from, time: fmtRange(fast, slow), mid: (fast + slow) / 2, timeOf: m => fmtRange(...range(m)), secondsOf: m => { const [a, b] = range(m); return (a + b) / 2; }, timeWith: min => fmtRange(fast + min * 60, slow + min * 60) };
+	return { total, legs, from, pre, time: fmtRange(fast, slow), mid: (fast + slow) / 2, timeOf: m => fmtRange(...range(m)), secondsOf: m => { const [a, b] = range(m); return (a + b) / 2; }, timeWith: min => fmtRange(fast + min * 60, slow + min * 60) };
 }
 
 /** How far a barter quest has come in its period. */
@@ -284,21 +289,22 @@ function questProgressOf(q) {
  * off; `off` the quests the run cannot take in, and why.
  */
 export function questPlan(stops, mode, hold, weightStart = 0) {
-	const none = { stops, at: () => [], home: [], off: [], skipped: [], count: 0, added: 0 };
+	const none = { stops, at: () => [], home: [], setOut: [], off: [], skipped: [], count: 0, added: 0 };
 	if (mode === 'no' || !stops.length) return none;
-	const from = fromPort();
-	const pts = [...(from ? [from] : []), ...stops.map(s => s.wharf || npcById.get(s.npcId))];
+	const from = fromPort(), outPort = setOutPort();
+	const pts = [...(outPort ? [outPort] : []), ...(from ? [from] : []), ...stops.map(s => s.wharf || npcById.get(s.npcId))];
 	if (pts.some(p => !p)) return none;
 	const skipped = skippedToday();
 	const live = quests.filter(q => !questDone(q) && !skipped.includes(q.id) && (cadenceOf(q) === 'daily' || cadenceOf(q) === 'weekly') && (mode === 'hunts' || !q.monster));
-	const o = from ? 1 : 0;
+	const o = (from ? 1 : 0) + (outPort ? 1 : 0);
 	const trades = pts.map((p, i) => (i < o ? 0 : stops[i - o].times || 0));
 	// On the way only: no stop put in, except for a taker asked for by name.
 	const laid = layQuests(live, pts.map(p => ({ x: p.x, y: p.y })), { trades, progress: questProgressOf, detour: mode === 'near' ? 0 : 8000, forced: new Set(pulledToday()) });
 	const out = [], at = [];
-	let home = [], weight = weightStart, slots, chain = 0;
+	let home = [], setOut = [], weight = weightStart, slots, chain = 0;
 	laid.route.forEach((e, r) => {
-		if (e.fixed && e.i < o) { home = e.steps; return; }
+		// Setting out from another harbour: its quests before the goods' port's.
+		if (e.fixed && e.i < o) { if (outPort && e.i === 0) setOut = e.steps; else home = e.steps; return; }
 		if (e.fixed) {
 			const s = stops[e.i - o];
 			s.quests = e.steps;
@@ -311,9 +317,9 @@ export function questPlan(stops, mode, hold, weightStart = 0) {
 	return {
 		stops: out,
 		at: k => at[k] || [],
-		home, off: laid.off,
+		home, setOut, out: outPort, off: laid.off,
 		skipped: skipped.map(id => quests.find(q => q.id === id)).filter(q => q && !questDone(q)),
-		count: [...home, ...at.flat()].filter(handsIn).length,
+		count: [...setOut, ...home, ...at.flat()].filter(handsIn).length,
 		added: out.filter(s => s.quest).length,
 		trades: trades.reduce((a, n) => a + n, 0)
 	};
@@ -392,7 +398,13 @@ export function questsPanels(qp, from, { atSea = false } = {}) {
 	const wanted = questWanted();
 	// A run taken up at sea has cast off already: the home port's quests
 	// wait for the ship to come back there.
-	const home = qp.home.length && from ? `<section class="panel run-list run-quests-home"><div class="panel-head"><h2 class="panel-title">${T('Quests at {port}', { port: esc(gameName(from.name)) })}</h2><span class="panel-sub">${atSea ? T('handed in when the ship is back there') : qp.home.some(x => x.step.what === 'take') ? T('before casting off') : T('handed in before casting off')}</span></div><div class="run-quests">${qp.home.map(x => questChip(x, wanted)).join('')}</div></section>` : '';
+	const panel = (list, port, sub) => (list.length && port ? `<section class="panel run-list run-quests-home"><div class="panel-head"><h2 class="panel-title">${T('Quests at {port}', { port: esc(gameName(port.name)) })}</h2><span class="panel-sub">${sub(list)}</span></div><div class="run-quests">${list.map(x => questChip(x, wanted)).join('')}</div></section>` : '');
+	const before = list => (atSea ? T('handed in when the ship is back there') : list.some(x => x.step.what === 'take') ? T('before casting off') : T('handed in before casting off'));
+	// Set out from another harbour: its quests before casting off, the goods'
+	// port's when the ship puts in there for them.
+	const home = qp.out
+		? panel(qp.setOut || [], qp.out, before) + panel(qp.home, from, () => (atSea ? T('handed in when the ship is back there') : T('when the goods come aboard')))
+		: panel(qp.home, from, before);
 	const offN = qp.off.length + qp.skipped.length;
 	const off = offN ? `<details class="panel run-list run-quests-off"><summary class="panel-head"><h2 class="panel-title">${T('Quests off the way')}</h2><span class="panel-sub">${T('{n} not taken in by this run · open to take one in', { n: offN })}</span></summary><div class="run-quests">${qp.off.map(questOff).join('')}${qp.skipped.map(questSkipped).join('')}</div></details>` : '';
 	return home + off;
@@ -636,7 +648,8 @@ function storeSlotsNote(goods) {
 	return n ? `<em class="faint run-leave-slots">${n === 1 ? T('{n} slot in the storage', { n: F(n) }) : T('{n} slots in the storage', { n: F(n) })}</em>` : '';
 }
 
-export function castOffRow(plan, from) {
+export function castOffRow(plan, from, legs = null) {
+	const pre = legs && legs.pre;
 	const goods = [...(plan.loaded || []).map(l => ({ item: l.item, n: l.n, how: from ? T('from {town}', { town: gameName(from.name) }) : T('from the storage') })),
 		...(plan.bought || []).filter(b => b.n > 0).map(b => ({ item: b.item, n: b.n, how: T('bought ashore') })),
 		...(plan.taken || []).filter(t => t.n > 0).map(t => ({ item: t.item, n: t.n, how: T('from your pile') }))];
@@ -645,7 +658,7 @@ export function castOffRow(plan, from) {
 	const stock = aboardStock();
 	const inHoldNow = [...new Set(plan.stops.filter(x => x.npcId && x.give).map(x => x.give))].filter(g => stock[g] > 0).map(g => ({ item: g, n: stock[g] }));
 	const bagged = [...(plan.bagLoaded || []), ...(plan.bagFromHold || [])].filter(l => l.n > 0);
-	if (!goods.length && !inHoldNow.length && !(plan.weightStart > 0) && !(plan.spares || []).length && !bagged.length) return '';
+	if (!pre && !goods.length && !inHoldNow.length && !(plan.weightStart > 0) && !(plan.spares || []).length && !bagged.length) return '';
 	const hold0 = (plan.stops[0] && plan.stops[0].hold) || currentShip().hold;
 	const w = shownHold(hold0, plan.weightStart || 0);
 	const sl = Number.isFinite(plan.slotsStart) ? shownSlots(Number.isFinite(hold0.slots) ? hold0 : currentShip().hold, plan.slotsStart) : null;
@@ -653,7 +666,7 @@ export function castOffRow(plan, from) {
 	return `<div class="run-stop start">
 		<div class="run-rail"><i></i><b>${ico('anchor')}</b><i></i></div>
 		<div class="run-main">
-			<div class="run-stop-head"><b>${from ? T('Cast off from {port}', { port: esc(gameName(from.name)) }) : T('Cast off')}</b><span>${T('the hold as the lines are let go')}</span></div>
+			<div class="run-stop-head"><b>${pre ? T('Set out from {out}, then {port} for the goods', { out: esc(gameName(pre.from.name)), port: esc(gameName(from.name)) }) : from ? T('Cast off from {port}', { port: esc(gameName(from.name)) }) : T('Cast off')}</b><span>${pre ? T('≈ {time} to {port}, then the hold as the lines are let go', { time: esc(pre.time), port: esc(gameName(from.name)) }) : T('the hold as the lines are let go')}</span></div>
 			${inHoldNow.length ? `<div class="run-leave"><span class="run-leave-k">${T('In the hold')}</span>${inHoldNow.map(g => `<span class="run-leave-good">${img(g.item, 'row-icon sm')}<b>${F(g.n)}×</b> ${esc(gameName(g.item))}</span>`).join('')}</div>` : ''}
 			${(plan.spares || []).length && from ? `<div class="run-leave left-home"><span class="run-leave-k">${T('Left at {port} before casting off', { port: esc(gameName(from.name)) })}</span>${plan.spares.map(g => `<span class="run-leave-good">${img(g.item, 'row-icon sm')}<b>${F(g.n)}×</b> ${esc(gameName(g.item))}<span class="faint">${g.sell ? T('sold at the wharf') : T('into storage')}</span></span>`).join('')}${storeSlotsNote(plan.spares.filter(g => !g.sell))}</div>` : ''}
 			${goods.length ? `<div class="run-leave"><span class="run-leave-k">${from ? T('Taken aboard at {port} before casting off', { port: esc(gameName(from.name)) }) : T('Taken aboard before casting off')}</span>${goods.map(g => `<span class="run-leave-good">${img(g.item, 'row-icon sm')}<b>${n1(g.n)}×</b> ${esc(gameName(g.item))} <em class="faint">· ${esc(g.how)}</em></span>`).join('')}</div>` : ''}
@@ -906,6 +919,9 @@ export function chartData(stops, pick) {
 			s.sale ? Math.round(s.sale.total) : 0,
 			questsAt(s), ...(s.refill ? ['rations'] : [])]);
 	}
+	// Set out from another harbour: the goods' port is the chart's first call.
+	const out = setOutPort(), from = fromPort();
+	if (out && from) calls.unshift([0, from.name, from.name, from.x, from.y, [], 0, 0, []]);
 	return { ids, pick: pick || '', trades, calls };
 }
 
@@ -913,7 +929,8 @@ export function chartData(stops, pick) {
 export function chartFragmentOf(data) {
 	if (!data || !data.ids.length) return null;
 	const parts = [`r=${data.ids.join('.')}`];
-	if (V.port) parts.push(`s=${V.port}`);
+	const start = setOutPort() || fromPort();
+	if (start) parts.push(`s=${start.id}`);
 	if (data.pick) parts.push(`p=${encodeURIComponent(data.pick)}`);
 	if (data.trades.length) parts.push(`x=${encodeURIComponent(JSON.stringify(data.trades))}`);
 	if (data.calls.length) parts.push(`w=${encodeURIComponent(JSON.stringify(data.calls))}`);

@@ -6206,5 +6206,12 @@
 	"The goal step in 1.6.0, and in 1.7.0 with the table of what each day does": "Der Zielschritt in 1.6.0, und in 1.7.0 mit der Tabelle, was jeder Tag tut",
 	"A stock day in 1.6.0, and in 1.7.0 with the choice to fill from the bottom or from the top": "Ein Lagertag in 1.6.0, und in 1.7.0 mit der Wahl, von unten oder von oben zu füllen",
 	"The ladder in 1.6.0, and in 1.7.0 every good held at Level 4": "Die Leiter in 1.6.0, und in 1.7.0 jede gehaltene Ware der Stufe 4",
-	"A quest row in 1.6.0, and in 1.7.0 with reward counted already": "Eine Questzeile in 1.6.0, und in 1.7.0 mit „Belohnung schon gezählt“"
+	"A quest row in 1.6.0, and in 1.7.0 with reward counted already": "Eine Questzeile in 1.6.0, und in 1.7.0 mit „Belohnung schon gezählt“",
+	"Set out from": "Aufbrechen in",
+	"where the goods are loaded": "wo die Waren geladen werden",
+	"The harbour the day begins at, quests taken there before casting off; the ship sails from it to where the goods are loaded": "Der Hafen, in dem der Tag beginnt, mit den Quests, die dort vor dem Ablegen angenommen werden; von dort segelt das Schiff dorthin, wo die Waren geladen werden",
+	"Set out from {out}, then {port} for the goods": "Aufbruch in {out}, dann {port} für die Waren",
+	"≈ {time} to {port}, then the hold as the lines are let go": "≈ {time} bis {port}, dann der Laderaum, wenn die Leinen losgemacht werden",
+	"when the goods come aboard": "wenn die Waren an Bord kommen",
+	"{place} added to the route, stop {n}": "{place} zur Route hinzugefügt, Halt {n}"
 }
