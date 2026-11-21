@@ -80,6 +80,7 @@ export function toggleMapPanel() {
 
 export function toggleMapStop(npcId) {
 	if (!npcById.has(npcId)) return;
+	let gone = -1;
 	if (mv.stops.length && !stopsLive()) {
 		// Plotting under a new view starts a new plot; the old one is
 		// kept as "Previous route" rather than lost.
@@ -87,13 +88,16 @@ export function toggleMapStop(npcId) {
 		mv.stops = [npcId];
 		mv.runTrades = {};
 	} else {
-		mv.stops = mv.stops.includes(npcId) ? mv.stops.filter(id => id !== npcId) : [...mv.stops, npcId];
+		gone = mv.stops.indexOf(npcId);
+		mv.stops = gone >= 0 ? mv.stops.filter(id => id !== npcId) : [...mv.stops, npcId];
 		delete mv.runTrades[npcId];
 	}
 	// The wharf calls were a planned run's, pinned to its order; edit
 	// the stops and they no longer describe the route, so they go. The
-	// sailor's own stops are not the plan's, and stay.
-	mv.runStash = mv.runStash.filter(c => c.own).map(c => ({ ...c, i: Math.min(c.i, mv.stops.length) }));
+	// sailor's own stops are not the plan's, and stay between the islands
+	// they were put between: one after the island taken off moves up with
+	// the rest (Liara, 2026-11-21: it kept its number and sat a stop late).
+	mv.runStash = mv.runStash.filter(c => c.own).map(c => ({ ...c, i: Math.min(gone >= 0 && c.i > gone ? c.i - 1 : c.i, mv.stops.length) }));
 	mv.stopsPick = mv.mapPick || '';
 	persist();
 	refreshSide();

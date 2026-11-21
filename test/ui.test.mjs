@@ -2160,6 +2160,27 @@ async function toPlan(page) {
 	await page.waitForSelector('.barter-screen.step-plan', { timeout: 10000 });
 }
 
+test('an island taken off the route leaves a stop of the sailor\'s own between the islands it was put between', async () => {
+	const { page, context, errors } = await open('#map');
+	await page.waitForSelector('.map-wrap, .map-screen, #map', { timeout: 15000 }); await wait(600);
+	const got = await page.evaluate(async () => {
+		const { mv } = await import('/js/map/state.js'); const A = await import('/js/map/actions.js'); const R = await import('/js/map/route.js');
+		const { npcs } = await import('/js/barter_npcs.js');
+		const ids = npcs.slice(0, 4).map(n => n.id);
+		mv.stops = ids.slice(); mv.stopsPick = mv.mapPick || '';
+		// Put in after the third island, before the fourth.
+		mv.runStash = R.readStash([[3, 'Velia', '', 1, 1, [], 0, 0, [], 'own']]);
+		A.toggleMapStop(ids[1]);
+		const afterOff = mv.runStash.map(c => c.i);
+		A.toggleMapStop(ids[3]);
+		return { afterOff, afterLast: mv.runStash.map(c => c.i), stops: mv.stops.length };
+	});
+	assert.deepEqual(got.afterOff, [2], 'the second island off: still after the third, now the second');
+	assert.deepEqual(got.afterLast, [2], 'the last island off: after the one it followed');
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
 test('a day set out from Velia with the goods at Iliya: the sail between comes off the search\'s hours', async () => {
 	const { page, context, errors } = await open('#barter');
 	await page.waitForSelector('.barter-screen', { timeout: 15000 }); await wait(600);
