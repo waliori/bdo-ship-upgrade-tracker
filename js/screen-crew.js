@@ -302,7 +302,7 @@ function rosterPanel(ship) {
 			<button class="act quiet small" data-act="crew-import" title="${T('Read a crew off screenshots of the game\'s own Manage Sailors window — in this browser; nothing is uploaded')}">${ico('camera')} ${T('Read screenshots')}</button>
 			<button class="act small" data-act="crew-hire" ${n >= SAILOR_CAP ? 'disabled' : ''}>${T('+ Hire')}</button>
 		</div>
-		<p class="crew-note">${esc(said(SAILOR_NOTE[roleOf(ship) && roleOf(ship).role === 'bartering' ? 'barter' : 'hunt']))}</p>
+		<p class="crew-note">${esc(said(SAILOR_NOTE[roleOf(ship) && roleOf(ship).role.startsWith('bartering') ? 'barter' : 'hunt']))}</p>
 		${bulk}${n ? `<div class="roster-grid">${cards}</div>` : `<p class="empty">${T('Nobody hired yet. A sailor costs a {item} ({silver} silver) at {where}.', { item: esc(gameName(contract.item)), silver: F(contract.silver), where: esc(said(contract.hireAt)) })}</p>`}
 		${n ? `<div class="crew-actions"><button class="act quiet small" data-act="crew-queue" title="${T('Queues one certificate per sailor, so the silver shows in To Get')}">${n === 1 ? T('Put {n} {item} on the list', { n, item: esc(gameName(contract.item)) }) : T('Put {n} {item}s on the list', { n, item: esc(gameName(contract.item)) })}</button></div>` : ''}
 	</div>`;
@@ -684,7 +684,10 @@ function loadoutPanel(ship) {
 		const worn = new Set(Object.values(fit.slots).map(x => x.part && families[x.part]).filter(Boolean));
 		if (!roleOf(ship) || worn.has('yellow')) return '';
 		const next = PART_PATH.find(step => !worn.has(step.family));
-		return next ? `<p class="fit-path">${esc(said(next.line))}</p>` : '';
+		// The path is the Carrack's and the Panokseon's sets: a Caravel was
+		// told what takes an Advance past 20,000 LT.
+		const wears = next && fit.slots.some(x => partsForSlot(ship, x.slot).some(p => families[p] === next.family));
+		return wears ? `<p class="fit-path">${esc(said(next.line))}</p>` : '';
 	})()}
 		${rows}
 		<div class="sel-facts">${same && me.crew.seated ? T('with parts and crew:') : T('with parts:')} ${T('speed <b>{n}%</b>', { n: same ? me.speed.total : s.speed + (Number(fit.total.speed) || 0) })} · ${T('accel <b>{n}%</b>', { n: same ? me.accel : s.accel + (Number(fit.total.accel) || 0) })} · ${T('turn <b>{n}%</b>', { n: same ? me.turn : s.turn + (Number(fit.total.turn) || 0) })} · ${T('brake <b>{n}%</b>', { n: same ? me.brake : s.brake + (Number(fit.total.brake) || 0) })}
