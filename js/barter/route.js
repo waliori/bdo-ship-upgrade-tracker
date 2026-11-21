@@ -237,6 +237,15 @@ export function startPlace() {
 	return ports.find(p => p.id === V.port) || null;
 }
 
+/** The sail from the set-out harbour to the goods, in hours (0 with none):
+ * the search takes it off the session, since the day spends it first. */
+export function preLegHours() {
+	const out = V.goal !== 'material' ? setOutPort() : null, from = fromPort();
+	if (!out || !from) return 0;
+	const [a, b] = sailRange(pathLength(seaRoute([{ x: out.x, y: out.y }, { x: from.x, y: from.y }])), currentShip().speed.sea, sailCal(), true);
+	return ((a + b) / 2 + sailLag()) / 3600;
+}
+
 export function legsOf(stops) {
 	const from = startPlace();
 	const pts = [...(from ? [from] : []), ...stops.map(placeOf).filter(Boolean)];

@@ -2160,6 +2160,25 @@ async function toPlan(page) {
 	await page.waitForSelector('.barter-screen.step-plan', { timeout: 10000 });
 }
 
+test('a day set out from Velia with the goods at Iliya: the sail between comes off the search\'s hours', async () => {
+	const { page, context, errors } = await open('#barter');
+	await page.waitForSelector('.barter-screen', { timeout: 15000 }); await wait(600);
+	const got = await page.evaluate(async () => {
+		const R = await import('/js/barter/route.js'); const { V } = await import('/js/barter/state.js'); const { ports } = await import('/js/barter_npcs.js');
+		const velia = ports.find(p => p.name === 'Velia'), iliya = ports.find(p => p.name === 'Iliya Island');
+		V.port = iliya.id; V.setOut = 0; const none = R.preLegHours();
+		V.setOut = iliya.id; const same = R.preLegHours();
+		V.setOut = velia.id; const h = R.preLegHours();
+		V.setOut = 0;
+		return { none, same, h };
+	});
+	assert.equal(got.none, 0, 'no set-out harbour, nothing taken off');
+	assert.equal(got.same, 0, 'set out where the goods are, nothing taken off');
+	assert.ok(got.h > 0.05 && got.h < 0.3, `Velia to Iliya is minutes, not hours: ${got.h}`);
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
 test('a run long enough to eat the rations puts in at a sea wharf for supplies, and BreezySail eats more', async () => {
 	const { page, context, errors } = await open('#barter');
 	await page.waitForSelector('.barter-screen', { timeout: 15000 }); await wait(600);
