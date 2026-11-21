@@ -93,5 +93,8 @@ export function startPresence() {
 	});
 }
 
+/** Paint the last count again, in the language now chosen. */
+export const repaint = () => { if (last) paint(last); };
+
 /** What the last answer said, for anything else that wants it. */
 export const crowd = () => (last ? { ...last } : null);
