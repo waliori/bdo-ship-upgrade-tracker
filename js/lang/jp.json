@@ -6175,5 +6175,13 @@
 	"Set out from {out}, then {port} for the goods": "{out}を出発し、商品のために{port}へ",
 	"≈ {time} to {port}, then the hold as the lines are let go": "{port}まで約{time}、その後出航時の船倉",
 	"when the goods come aboard": "商品を積み込むとき",
-	"{place} added to the route, stop {n}": "{place}を航路に追加（寄港地{n}）"
+	"{place} added to the route, stop {n}": "{place}を航路に追加（寄港地{n}）",
+	"After the release, from your reports": "リリース後、皆さんの報告から",
+	"Liara tried 1.7.0 the evening it came out and wrote back what was still missing and what broke. Here is what that changed.": "Liara さんは 1.7.0 が出たその夜に試して、まだ足りないことと壊れていることを書いてくれました。それで変わったのは次のとおりです。",
+	"<b>Set out from one port, load at another.</b> <i>Set out from</i> comes before <i>Load the goods at</i>: the quests of the port you set out from are taken before casting off, the sail to the goods counts in the run’s time and comes off the hours you give, and the Map starts where you set out.": "<b>ある港から出発し、別の港で積み込む。</b><i>出発地</i>は<i>商品の積み込み先</i>の前にあります。出発港のクエストは出航前に受け、商品のある港までの航海は航海時間に含まれて指定した時間から差し引かれ、マップも出発地から始まります。",
+	"A hunt given and handed in at Proix, <i>Wanted: Cox Scouts in Disguise</i>, is picked up before its grounds, at a stop of its own when the run does not start in Velia.": "プラワで受けて報告する討伐クエスト<i>指名手配：潜入したコックス偵察兵</i>は、狩場の前に受けます。ベリア村から出発しない航海では、そのための寄港地が入ります。",
+	"On the Map, a wharf or a habitat clicked opens a card with <i>Add stop</i>, and a barterer’s card offers the wharf of its island, which its pin covers.": "マップで港や生息地をクリックすると<i>寄港地を追加</i>のあるカードが開きます。交易商のカードでは、そのピンに隠れている島の港も選べます。",
+	"A stop of your own on the Map stays between the islands it was put between when an island before it is taken off.": "マップに自分で入れた寄港地は、その前の島を外しても、置いた島と島のあいだに残ります。",
+	"Goods aboard past what the hull moves under no longer stop the run: the surplus is put in the harbour’s storage before casting off, for the run to load again. Left aboard, the ship never sailed and every ticked chain read <i>nothing left to hand over</i>.": "船体が動かせる重さを超えて積んでいても、航海が止まらなくなりました。超えた分は出航前に港の倉庫へ入れ、あとで積み直せます。以前は積んだままだと船が出航せず、チェックしたチェーンがすべて<i>渡すものはもう残っていません</i>と表示されていました。",
+	"On a narrow screen, the handle that moves a stop is larger and easier to see.": "狭い画面では、寄港地を動かすハンドルが大きく、見やすくなりました。"
 }

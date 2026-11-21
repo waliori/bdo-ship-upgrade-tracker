@@ -6175,5 +6175,13 @@
 	"Set out from {out}, then {port} for the goods": "ออกจาก {out} แล้วไป {port} เพื่อขนสินค้า",
 	"≈ {time} to {port}, then the hold as the lines are let go": "ถึง {port} ≈ {time} จากนั้นระวางเรือตอนปลดเชือก",
 	"when the goods come aboard": "ตอนขนสินค้าขึ้นเรือ",
-	"{place} added to the route, stop {n}": "เพิ่ม {place} ในเส้นทางแล้ว จุดที่ {n}"
+	"{place} added to the route, stop {n}": "เพิ่ม {place} ในเส้นทางแล้ว จุดที่ {n}",
+	"After the release, from your reports": "หลังออกเวอร์ชัน จากรายงานของคุณ",
+	"Liara tried 1.7.0 the evening it came out and wrote back what was still missing and what broke. Here is what that changed.": "Liara ลองใช้ 1.7.0 ในคืนที่ออกเลย แล้วเขียนมาบอกว่ายังขาดอะไรและอะไรพัง นี่คือสิ่งที่เปลี่ยนไปจากนั้น",
+	"<b>Set out from one port, load at another.</b> <i>Set out from</i> comes before <i>Load the goods at</i>: the quests of the port you set out from are taken before casting off, the sail to the goods counts in the run’s time and comes off the hours you give, and the Map starts where you set out.": "<b>ออกเดินทางจากท่าหนึ่ง ขนสินค้าที่อีกท่า</b> <i>ออกเดินทางจาก</i> อยู่ก่อน <i>ขนสินค้าที่</i>: เควสต์ของท่าที่ออกเดินทางรับก่อนออกเรือ การเดินเรือไปยังสินค้านับรวมในเวลาของการออกเรือและหักออกจากชั่วโมงที่คุณกำหนด และแผนที่เริ่มจากที่ที่คุณออกเดินทาง",
+	"A hunt given and handed in at Proix, <i>Wanted: Cox Scouts in Disguise</i>, is picked up before its grounds, at a stop of its own when the run does not start in Velia.": "เควสต์ล่าที่รับและส่งกับพลาวา <i>ประกาศหาคน : ทหารพรานค็อกซ์ที่ลักลอบเข้ามา</i> จะรับก่อนไปถึงจุดล่า โดยมีจุดแวะของมันเองเมื่อการออกเรือไม่ได้เริ่มที่หมู่บ้านเวเรีย",
+	"On the Map, a wharf or a habitat clicked opens a card with <i>Add stop</i>, and a barterer’s card offers the wharf of its island, which its pin covers.": "บนแผนที่ การคลิกท่าเรือหรือแหล่งที่อยู่ของมอนสเตอร์จะเปิดการ์ดที่มี <i>เพิ่มจุด</i> และการ์ดของพ่อค้าแลกเปลี่ยนจะเสนอท่าเรือของเกาะนั้น ซึ่งหมุดของพ่อค้าบังอยู่",
+	"A stop of your own on the Map stays between the islands it was put between when an island before it is taken off.": "จุดแวะที่คุณเพิ่มเองบนแผนที่จะอยู่ระหว่างเกาะเดิมที่วางไว้ เมื่อมีการเอาเกาะที่อยู่ก่อนหน้าออก",
+	"Goods aboard past what the hull moves under no longer stop the run: the surplus is put in the harbour’s storage before casting off, for the run to load again. Left aboard, the ship never sailed and every ticked chain read <i>nothing left to hand over</i>.": "สินค้าบนเรือที่หนักเกินกว่าตัวเรือจะเคลื่อนได้ ไม่ทำให้การออกเรือหยุดอีกต่อไป: ส่วนที่เกินจะเก็บไว้ในคลังของท่าก่อนออกเรือ เพื่อให้กลับมาขนได้ภายหลัง เมื่อก่อนถ้าทิ้งไว้บนเรือ เรือจะไม่ออกเลย และทุกเชนที่ติ๊กไว้ขึ้นว่า <i>ไม่มีอะไรเหลือให้มอบ</i>",
+	"On a narrow screen, the handle that moves a stop is larger and easier to see.": "บนหน้าจอแคบ ที่จับสำหรับย้ายจุดแวะใหญ่ขึ้นและมองเห็นง่ายขึ้น"
 }

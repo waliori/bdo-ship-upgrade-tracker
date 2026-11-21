@@ -8340,5 +8340,13 @@
 	"Set out from {out}, then {port} for the goods": "Выход из {out}, затем {port} за товарами",
 	"≈ {time} to {port}, then the hold as the lines are let go": "≈ {time} до {port}, затем трюм при отдаче швартовов",
 	"when the goods come aboard": "когда товары поднимают на борт",
-	"{place} added to the route, stop {n}": "{place} — в маршруте, стоянка {n}"
+	"{place} added to the route, stop {n}": "{place} — в маршруте, стоянка {n}",
+	"After the release, from your reports": "После выхода, по вашим сообщениям",
+	"Liara tried 1.7.0 the evening it came out and wrote back what was still missing and what broke. Here is what that changed.": "Liara опробовала 1.7.0 в тот же вечер, когда версия вышла, и написала, чего ещё не хватает и что сломалось. Вот что это изменило.",
+	"<b>Set out from one port, load at another.</b> <i>Set out from</i> comes before <i>Load the goods at</i>: the quests of the port you set out from are taken before casting off, the sail to the goods counts in the run’s time and comes off the hours you give, and the Map starts where you set out.": "<b>Выйти из одного порта, грузиться в другом.</b> <i>Выход из</i> стоит перед <i>Загружать товары в</i>: задания порта выхода берутся до отплытия, переход к товарам входит во время рейса и вычитается из указанных часов, а Карта начинается там, откуда вы выходите.",
+	"A hunt given and handed in at Proix, <i>Wanted: Cox Scouts in Disguise</i>, is picked up before its grounds, at a stop of its own when the run does not start in Velia.": "Охота, которую выдаёт и принимает Фрава, <i>Разыскиваются: разведчики Вако</i>, берётся до места охоты, на отдельной стоянке, если рейс начинается не в Велии.",
+	"On the Map, a wharf or a habitat clicked opens a card with <i>Add stop</i>, and a barterer’s card offers the wharf of its island, which its pin covers.": "На Карте щелчок по причалу или месту обитания открывает карточку с кнопкой <i>Добавить стоянку</i>, а карточка торговца предлагает причал его острова, который закрывает его метка.",
+	"A stop of your own on the Map stays between the islands it was put between when an island before it is taken off.": "Ваша собственная стоянка на Карте остаётся между теми же островами, когда убирают остров перед ней.",
+	"Goods aboard past what the hull moves under no longer stop the run: the surplus is put in the harbour’s storage before casting off, for the run to load again. Left aboard, the ship never sailed and every ticked chain read <i>nothing left to hand over</i>.": "Товары на борту сверх того, что может сдвинуть корпус, больше не останавливают рейс: излишек оставляют на складе порта до отплытия, чтобы рейс мог потом его забрать. Если его оставляли на борту, корабль так и не выходил, а у каждой отмеченной цепочки было написано <i>отдавать уже нечего</i>.",
+	"On a narrow screen, the handle that moves a stop is larger and easier to see.": "На узком экране ручка, которой двигают стоянку, крупнее и лучше видна."
 }

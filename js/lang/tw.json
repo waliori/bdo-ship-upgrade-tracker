@@ -6175,5 +6175,13 @@
 	"Set out from {out}, then {port} for the goods": "從 {out} 出發，再到 {port} 裝貨",
 	"≈ {time} to {port}, then the hold as the lines are let go": "到 {port} 約 {time}，然後是解纜時的船艙",
 	"when the goods come aboard": "貨物裝船時",
-	"{place} added to the route, stop {n}": "已將 {place} 加入航線，第 {n} 站"
+	"{place} added to the route, stop {n}": "已將 {place} 加入航線，第 {n} 站",
+	"After the release, from your reports": "發布之後，來自你們的反饋",
+	"Liara tried 1.7.0 the evening it came out and wrote back what was still missing and what broke. Here is what that changed.": "Liara 在 1.7.0 發布當晚就試用了，並寫下了還缺什麼、哪裡壞了。以下是由此帶來的改動。",
+	"<b>Set out from one port, load at another.</b> <i>Set out from</i> comes before <i>Load the goods at</i>: the quests of the port you set out from are taken before casting off, the sail to the goods counts in the run’s time and comes off the hours you give, and the Map starts where you set out.": "<b>從一個港口出發，在另一個港口裝貨。</b><i>出發地</i>位於<i>裝貨地點</i>之前：出發港的任務在啟航前接取，前往貨物所在地的航程計入航次時間，並從你給出的小時數中扣除，地圖也從你出發的地方開始。",
+	"A hunt given and handed in at Proix, <i>Wanted: Cox Scouts in Disguise</i>, is picked up before its grounds, at a stop of its own when the run does not start in Velia.": "在普拉沃接取並交付的狩獵任務<i>懸賞 : 潛入的酷斯偵察兵</i>，會在前往狩獵地點之前接取；航次不從貝爾利亞村莊出發時，會單獨安排一站。",
+	"On the Map, a wharf or a habitat clicked opens a card with <i>Add stop</i>, and a barterer’s card offers the wharf of its island, which its pin covers.": "在地圖上點擊碼頭或棲息地，會打開帶有<i>添加一站</i>的卡片；以物易物商人的卡片會提供其島上的碼頭，因為那個碼頭被它的標記蓋住了。",
+	"A stop of your own on the Map stays between the islands it was put between when an island before it is taken off.": "地圖上你自己添加的一站，在它前面的某個島嶼被移除時，會留在原來所在的兩座島嶼之間。",
+	"Goods aboard past what the hull moves under no longer stop the run: the surplus is put in the harbour’s storage before casting off, for the run to load again. Left aboard, the ship never sailed and every ticked chain read <i>nothing left to hand over</i>.": "船上貨物超過船體能承載的重量時，不會再讓航次無法出發：多出的部分在啟航前放進港口倉庫，航次之後可以回來再裝。以前留在船上時，船永遠不會出發，每條勾選的鏈都顯示<i>已經沒有可交出的東西了</i>。",
+	"On a narrow screen, the handle that moves a stop is larger and easier to see.": "在窄螢幕上，用來移動一站的拖動把手更大，也更醒目。"
 }

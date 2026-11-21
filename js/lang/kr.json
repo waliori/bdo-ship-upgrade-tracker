@@ -6175,5 +6175,13 @@
 	"Set out from {out}, then {port} for the goods": "{out}에서 출발한 뒤 상품을 실으러 {port}로",
 	"≈ {time} to {port}, then the hold as the lines are let go": "{port}까지 약 {time}, 그다음 출항 시 선창",
 	"when the goods come aboard": "상품을 실을 때",
-	"{place} added to the route, stop {n}": "{place}을(를) 항로에 추가, 정박지 {n}"
+	"{place} added to the route, stop {n}": "{place}을(를) 항로에 추가, 정박지 {n}",
+	"After the release, from your reports": "출시 이후, 여러분의 제보로",
+	"Liara tried 1.7.0 the evening it came out and wrote back what was still missing and what broke. Here is what that changed.": "Liara 님이 1.7.0이 나온 그날 저녁에 써 보고, 아직 빠진 것과 망가진 것을 알려 주었습니다. 그래서 바뀐 것은 다음과 같습니다.",
+	"<b>Set out from one port, load at another.</b> <i>Set out from</i> comes before <i>Load the goods at</i>: the quests of the port you set out from are taken before casting off, the sail to the goods counts in the run’s time and comes off the hours you give, and the Map starts where you set out.": "<b>한 항구에서 출발하고 다른 항구에서 싣기.</b> <i>출발지</i>가 <i>상품 적재 위치</i> 앞에 옵니다. 출발 항구의 퀘스트는 출항 전에 받고, 상품이 있는 곳까지의 항해는 항해 시간에 들어가 입력한 시간에서 빠지며, 지도도 출발하는 곳에서 시작합니다.",
+	"A hunt given and handed in at Proix, <i>Wanted: Cox Scouts in Disguise</i>, is picked up before its grounds, at a stop of its own when the run does not start in Velia.": "프라와에게서 받고 완료하는 사냥 퀘스트 <i>현상 수배 : 잠입한 콕스정찰병</i>은 사냥터에 가기 전에 받습니다. 벨리아 마을에서 출발하지 않는 항해라면 그 퀘스트를 위한 정박지가 따로 들어갑니다.",
+	"On the Map, a wharf or a habitat clicked opens a card with <i>Add stop</i>, and a barterer’s card offers the wharf of its island, which its pin covers.": "지도에서 선착장이나 서식지를 누르면 <i>정박지 추가</i>가 있는 카드가 열리고, 교역 상인 카드에서는 그 표시에 가려진 섬의 선착장을 고를 수 있습니다.",
+	"A stop of your own on the Map stays between the islands it was put between when an island before it is taken off.": "지도에 직접 넣은 정박지는 그 앞의 섬을 빼도 원래 넣었던 섬과 섬 사이에 그대로 남습니다.",
+	"Goods aboard past what the hull moves under no longer stop the run: the surplus is put in the harbour’s storage before casting off, for the run to load again. Left aboard, the ship never sailed and every ticked chain read <i>nothing left to hand over</i>.": "선체가 움직일 수 있는 무게를 넘는 상품을 싣고 있어도 이제 항해가 막히지 않습니다. 넘는 만큼은 출항 전에 항구 창고에 넣어 두고, 나중에 다시 실을 수 있습니다. 예전에는 그대로 실어 두면 배가 출항하지 못했고, 체크한 체인마다 <i>건네줄 것이 남지 않았습니다</i>라고 나왔습니다.",
+	"On a narrow screen, the handle that moves a stop is larger and easier to see.": "좁은 화면에서는 정박지를 옮기는 손잡이가 더 크고 잘 보입니다."
 }
