@@ -82,7 +82,7 @@ import {
 	renderMap, paintMap, wireMap, setMapPick, mapZoomStep, mapCentreOn, mapCentreOnStash,
 	mapShowItem, mapFit, setMapMode, toggleMapPanel, toggleMapStop,
 	useSuggestedRoute, reverseMapRoute, clearMapRoute, setMapCourse, setMapErrands, setMapErrandFrom, setMapErrandKinds, openMapErrand, setMapErrandSkip, skipMapErrandCall, drawMapErrands, setMapHunt, showHunt, toggleMapDone, closeMapTip,
-	saveRouteDialog, loadSavedRoute, deleteSavedRoute, mapWritingView, loadPreviousRoute, deletePreviousRoute, openRationCal, putRationsCall, openOwnStop, removeOwnStop, setRationsAboard, pinArea, forgetPinned, setTradesMode, trimRouteToParley, routeLink, routeObject, applyMapLink, applyPackedMapLink, plainMapLink, applyMapObject, applyTraceObject, unpackTrace, toggleMeasure, openSailCal, setMapWharves, toggleMini, setMapHabitats, setMapLabels, setMapPins, setMapTraces, toggleMapLayers, flipMapSide, traceAction, traceChange, applyTraceLink,
+	saveRouteDialog, loadSavedRoute, deleteSavedRoute, mapWritingView, loadPreviousRoute, deletePreviousRoute, openRationCal, putRationsCall, openOwnStop, addOwnStop, pinPlace, removeOwnStop, setRationsAboard, pinArea, forgetPinned, setTradesMode, trimRouteToParley, routeLink, routeObject, applyMapLink, applyPackedMapLink, plainMapLink, applyMapObject, applyTraceObject, unpackTrace, toggleMeasure, openSailCal, setMapWharves, toggleMini, setMapHabitats, setMapLabels, setMapPins, setMapTraces, toggleMapLayers, flipMapSide, traceAction, traceChange, applyTraceLink,
 	openMapPicker, mapStep, mapStepTo, mapFollowToggle, mapNextOnlyToggle, setMapStart, setMapReturn, mapPortClick,
 	reviveMapRoute, setMapKind, exportRoute, importRoute, openGameExport, gameBookmarks, setGameWrite, setGameLine,
 	toggleFull, exitFull, mapIsFull, gameImportAction, setRunSheet, setStepHook, setLiveShip, mapStepToStop, routeIds, marksNow,
@@ -1240,6 +1240,8 @@ function wire() {
 			case 'map-rations-call': putRationsCall(Number(el.dataset.k)); return;
 			case 'map-grip': return;
 			case 'map-own-add': return openOwnStop();
+			case 'map-place': pinPlace(el); return;
+			case 'map-own-at': addOwnStop(el.dataset.name ? { name: el.dataset.name, at: el.dataset.at, x: Number(el.dataset.x), y: Number(el.dataset.y) } : undefined); return;
 			case 'map-own-del': removeOwnStop(Number(el.dataset.k)); return;
 			case 'map-pin-area': pinArea(); return;
 			case 'map-pin-forget': forgetPinned(); return;
@@ -1279,7 +1281,7 @@ function wire() {
 			case 'map-layers': toggleMapLayers(); return;
 			case 'map-setup-pick': openSetupPicker(() => render()); return;
 			case 'map-side-flip': flipMapSide(); return;
-			case 'map-hunt': setMapHunt(el.dataset.id); return;
+			case 'map-hunt': setMapHunt(el.dataset.id); pinPlace(el, { onRoute: true }); return;
 			case 'quest-map': showHunt(el.dataset.monster); return showView('map');
 			// An island named on the community boards: the chart, flown there
 			// once it has drawn itself.

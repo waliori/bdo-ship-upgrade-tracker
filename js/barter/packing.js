@@ -134,7 +134,7 @@ function packChange(x, want, from) {
  * its storage -- rather than carried round the route to a call later
  * on, weighing the ship down all the way. Each is { item, n, sell }.
  */
-export function sparesOf(chosen, from, o, stocking = false) {
+export function sparesOf(chosen, from, o, stocking = false, max = Infinity) {
 	if (!from || sailing()) return [];
 	const demand = new Map();
 	for (const c of chosen) {
@@ -157,6 +157,24 @@ export function sparesOf(chosen, from, o, stocking = false) {
 		const sell = !stocking && rankOf(item) >= o.sell && sellOf(item) > 0 ? spare - keep : 0;
 		if (sell > 0) out.push({ item, n: sell, sell: true });
 		if (spare - sell > 0) out.push({ item, n: spare - sell, sell: false });
+	}
+	// What the chains want, aboard past what the ship moves under: put
+	// ashore here too, a unit at a time off the heaviest pile, so the run
+	// casts off and calls back for it. Left aboard, the ship never left the
+	// harbour and every ticked chain read "nothing left to hand over"
+	// (Liara, 2026-11-21: twelve coin chains, their goods all aboard).
+	const kept = new Map(Object.entries(aboardStock()).filter(([item, n]) => levelOf(item) && n > 0).map(([item, n]) => [item, n - out.filter(x => x.item === item).reduce((a, x) => a + x.n, 0)]));
+	let over = [...kept].reduce((a, [item, n]) => a + n * weightOf(item), 0) - max;
+	const ashore = new Map();
+	while (over > 1e-9) {
+		const [item, n] = [...kept].filter(([, k]) => k > 0).sort((a, b) => b[1] * weightOf(b[0]) - a[1] * weightOf(a[0]))[0] || [];
+		if (!item || !(weightOf(item) > 0)) break;
+		const k = Math.min(n, Math.ceil(over / weightOf(item)));
+		kept.set(item, n - k); ashore.set(item, (ashore.get(item) || 0) + k); over -= k * weightOf(item);
+	}
+	for (const [item, n] of ashore) {
+		const had = out.find(x => x.item === item && !x.sell);
+		if (had) { had.n += n; had.over = true; } else out.push({ item, n, sell: false, over: true });
 	}
 	return out;
 }
@@ -274,10 +292,12 @@ export function packingOf(plan, from, chosen = []) {
 	// before the lines are let go. A row goes once it is done.
 	const town = from ? from.name : '';
 	const ashore = town ? (plan.spares || []).map(x => ({
-		item: x.item, n: x.n, key: `${x.sell ? 's' : 'u'}|${x.item}`, per: '',
+		item: x.item, n: x.n, key: `${x.sell ? 's' : 'u'}|${x.item}`, per: '', over: !!x.over,
 		where: x.sell
 			? T('the run does not use it · sell it at {town} wharf for {silver}', { town: gameName(town), silver: FC(x.n * sellOf(x.item)) })
-			: T('the run does not use it · put it in the storage at {town}', { town: gameName(town) })
+			: x.over
+				? T('too heavy to take it all · put it in the storage at {town}', { town: gameName(town) })
+				: T('the run does not use it · put it in the storage at {town}', { town: gameName(town) })
 	})) : [];
 	// What goes into the sailor's bag is a group of its own: it is not
 	// the hold's, and it is loaded in the Inventory window, not the ship's.
@@ -471,7 +491,7 @@ export function packingHTML(plan, from, chosen = [], only = null) {
 	};
 	const group = (title, sub, list, none) => `<section class="panel pack-group"><div class="panel-head"><h2 class="panel-title">${title}</h2><span class="panel-sub">${sub}</span><span class="panel-spacer"></span>${all(list)}</div>${list.length ? list.map(row).join('') : `<p class="empty">${none}</p>`}</section>`;
 	const where = from ? gameName(from.name) : '';
-	if (only) return `<div class="pack-groups pack-first">${group(T('Before casting off'), esc(T('aboard at {at}, and not used by this run', { at: where })), only, '')}</div>`;
+	if (only) return `<div class="pack-groups pack-first">${group(T('Before casting off'), esc(only.some(x => x.over) ? T('aboard at {at}: what this run does not use, or cannot carry at once', { at: where }) : T('aboard at {at}, and not used by this run', { at: where })), only, '')}</div>`;
 	return `<div class="pack-groups">
 		${group(T('Buy at the Market'), `${plan.cost ? T('{silver} to buy', { silver: FC(Math.round(plan.cost)) }) : T('before casting off')}${p.market.length ? ` · ${T('{lt} LT to carry', { lt: FD(p.market.reduce((w, x) => w + x.n * weightOf(x.item), 0), 1) })}` : ''}`, p.market, T('nothing to buy — the run starts from what is held'))}
 		${group(T('Take from storage'), where ? esc(T('{at} wharf', { at: where })) : T('before casting off'), p.storage, T('nothing in storage is needed'))}

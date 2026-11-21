@@ -2160,6 +2160,71 @@ async function toPlan(page) {
 	await page.waitForSelector('.barter-screen.step-plan', { timeout: 10000 });
 }
 
+test('goods the chains want, aboard past what the hull moves under, are put ashore at the harbour: the heaviest pile first, no more than the weight over (Liara, 2026-11-21)', async () => {
+	const { page, context, errors } = await open('#barter');
+	await page.waitForSelector('.barter-screen', { timeout: 15000 }); await wait(600);
+	const got = await page.evaluate(async () => {
+		const store = await import('/js/state.js'); const P = await import('/js/barter/packing.js'); const { ports } = await import('/js/barter_npcs.js');
+		const { ordersNow } = await import('/js/barter/plan.js');
+		const pan = '[Level 4] Panacea', box = "[Level 3] Pirates' Supply Box";
+		store.setStockAt(pan, store.ABOARD, 5); store.setStockAt(box, store.ABOARD, 20);
+		const chain = (item, n) => ({ from: 'hold', item, rungs: [{ give: item, tries: n, giveN: 1 }] });
+		const chosen = [chain(pan, 5), chain(box, 20)], iliya = ports.find(p => p.name === 'Iliya Island');
+		return { none: P.sparesOf(chosen, iliya, ordersNow()), over: P.sparesOf(chosen, iliya, ordersNow(), false, 20000) };
+	});
+	// 5,000 LT of Panacea and 18,000 of the boxes: 3,000 over a 20,000 limit,
+	// four boxes (900 each) the fewest that make it up.
+	assert.deepEqual(got.none, [], 'under no limit, nothing the chains want goes ashore');
+	assert.deepEqual(got.over, [{ item: "[Level 3] Pirates' Supply Box", n: 4, sell: false, over: true }]);
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
+test('an island taken off the route leaves a stop of the sailor\'s own between the islands it was put between', async () => {
+	const { page, context, errors } = await open('#map');
+	await page.waitForSelector('.map-wrap, .map-screen, #map', { timeout: 15000 }); await wait(600);
+	const got = await page.evaluate(async () => {
+		const { mv } = await import('/js/map/state.js'); const A = await import('/js/map/actions.js'); const R = await import('/js/map/route.js');
+		const { npcs } = await import('/js/barter_npcs.js');
+		const ids = npcs.slice(0, 4).map(n => n.id);
+		mv.stops = ids.slice(); mv.stopsPick = mv.mapPick || '';
+		// Put in after the third island, before the fourth.
+		mv.runStash = R.readStash([[3, 'Velia', '', 1, 1, [], 0, 0, [], 'own']]);
+		A.toggleMapStop(ids[1]);
+		const afterOff = mv.runStash.map(c => c.i);
+		A.toggleMapStop(ids[3]);
+		return { afterOff, afterLast: mv.runStash.map(c => c.i), stops: mv.stops.length };
+	});
+	assert.deepEqual(got.afterOff, [2], 'the second island off: still after the third, now the second');
+	assert.deepEqual(got.afterLast, [2], 'the last island off: after the one it followed');
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
+test('a day set out from Velia with the goods at Iliya: the sail between comes off the search\'s hours', async () => {
+	const { page, context, errors } = await open('#barter');
+	await page.waitForSelector('.barter-screen', { timeout: 15000 }); await wait(600);
+	const got = await page.evaluate(async () => {
+		const R = await import('/js/barter/route.js'); const { V } = await import('/js/barter/state.js'); const { ports } = await import('/js/barter_npcs.js');
+		const velia = ports.find(p => p.name === 'Velia'), iliya = ports.find(p => p.name === 'Iliya Island');
+		V.port = iliya.id; V.setOut = 0; const none = R.preLegHours();
+		V.setOut = iliya.id; const same = R.preLegHours();
+		V.setOut = velia.id; const h = R.preLegHours();
+		// On the chart the goods' port is a stop of the sailor's own, kept
+		// when the stops are edited there or the route is saved.
+		const { npcs } = await import('/js/barter_npcs.js');
+		const first = R.chartData([{ npcId: npcs[0].id, give: 'x', times: 1 }], '').calls[0];
+		V.setOut = 0;
+		return { none, same, h, first: [first[1], first[9]] };
+	});
+	assert.equal(got.none, 0, 'no set-out harbour, nothing taken off');
+	assert.equal(got.same, 0, 'set out where the goods are, nothing taken off');
+	assert.ok(got.h > 0.05 && got.h < 0.3, `Velia to Iliya is minutes, not hours: ${got.h}`);
+	assert.deepEqual(got.first, ['Iliya Island', 'own'], 'the goods\' port is the chart\'s first call, the sailor\'s own');
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
 test('a run long enough to eat the rations puts in at a sea wharf for supplies, and BreezySail eats more', async () => {
 	const { page, context, errors } = await open('#barter');
 	await page.waitForSelector('.barter-screen', { timeout: 15000 }); await wait(600);

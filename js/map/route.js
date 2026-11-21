@@ -986,17 +986,25 @@ export function openOwnStop() {
 	list.addEventListener('click', evt => {
 		const b = evt.target.closest('[data-own-i]');
 		if (!b) return;
-		const p = all[Number(b.dataset.ownI)];
-		const call = readStash([[mv.stops.length, p.name, p.at, p.x, p.y, [], 0, 0, [], 'own']])[0];
-		if (!call) return;
-		mv.runStash = [...mv.runStash, call].sort((x, y) => x.i - y.i);
+		if (!addOwnStop(all[Number(b.dataset.ownI)])) return;
 		closeDialog();
-		persist();
-		refreshSide();
-		paintMap();
 	});
 	paint();
 	q.focus({ preventScroll: true });
+}
+
+/** A wharf or habitat put at the end of the route as a stop of the sailor's own:
+ *  from the dialog's list, or from its card on the chart. */
+export function addOwnStop(p = mv.pinnedPlace) {
+	const call = p && readStash([[mv.stops.length, p.name, p.at || '', p.x, p.y, [], 0, 0, [], 'own']])[0];
+	if (!call) return false;
+	mv.runStash = [...mv.runStash, call].sort((x, y) => x.i - y.i);
+	mv.pinnedPlace = null;
+	persist();
+	refreshSide();
+	paintMap();
+	toast(T('{place} added to the route, stop {n}', { place: gameName(p.name), n: routeSeq(marksNow()).length }));
+	return true;
 }
 
 /** A stop of the sailor's own taken off the route. */

@@ -4015,6 +4015,7 @@
 	"aboard": "на борту",
 	"aboard <b>{name}</b>": "на борту <b>{name}</b>",
 	"aboard at {at}, and not used by this run": "на борту в {at}, этот рейс это не использует",
+	"aboard at {at}: what this run does not use, or cannot carry at once": "на борту в {at}: то, что этот рейс не использует или не может увезти за один раз",
 	"aboard {ship}: the limit is {lt} LT": "на борту {ship}: предел — {lt} LT",
 	"aboard: {list}": "на борту: {list}",
 	"about <b>{n}</b> day": {
@@ -5325,6 +5326,7 @@
 		"other": "рейс заходит {n} раз"
 	},
 	"the run does not use it · put it in the storage at {town}": "рейс это не использует · положить на склад в {town}",
+	"too heavy to take it all · put it in the storage at {town}": "слишком тяжело, чтобы взять всё · положить на склад в {town}",
 	"the run does not use it · sell it at {town} wharf for {silver}": "рейс это не использует · продать на причале в {town} за {silver}",
 	"the run eats ≈ {use}": "рейс съедает ≈ {use}",
 	"the run said ×{n}": "рейс предлагал ×{n}",
@@ -8332,5 +8334,20 @@
 	"The goal step in 1.6.0, and in 1.7.0 with the table of what each day does": "Шаг цели в 1.6.0, и в 1.7.0 с таблицей того, что делает каждый день",
 	"A stock day in 1.6.0, and in 1.7.0 with the choice to fill from the bottom or from the top": "День запаса в 1.6.0, и в 1.7.0 с выбором, заполнять снизу или сверху",
 	"The ladder in 1.6.0, and in 1.7.0 every good held at Level 4": "Лестница в 1.6.0, и в 1.7.0 все товары 4-го уровня в наличии",
-	"A quest row in 1.6.0, and in 1.7.0 with reward counted already": "Строка задания в 1.6.0, и в 1.7.0 с «награда уже учтена»"
+	"A quest row in 1.6.0, and in 1.7.0 with reward counted already": "Строка задания в 1.6.0, и в 1.7.0 с «награда уже учтена»",
+	"Set out from": "Выход из",
+	"where the goods are loaded": "там, где грузятся товары",
+	"The harbour the day begins at, quests taken there before casting off; the ship sails from it to where the goods are loaded": "Порт, где начинается день: задания берутся там до отплытия, а оттуда корабль идёт туда, где грузятся товары",
+	"Set out from {out}, then {port} for the goods": "Выход из {out}, затем {port} за товарами",
+	"≈ {time} to {port}, then the hold as the lines are let go": "≈ {time} до {port}, затем трюм при отдаче швартовов",
+	"when the goods come aboard": "когда товары поднимают на борт",
+	"{place} added to the route, stop {n}": "{place} — в маршруте, стоянка {n}",
+	"After the release, from your reports": "После выхода, по вашим сообщениям",
+	"Liara tried 1.7.0 the evening it came out and wrote back what was still missing and what broke. Here is what that changed.": "Liara опробовала 1.7.0 в тот же вечер, когда версия вышла, и написала, чего ещё не хватает и что сломалось. Вот что это изменило.",
+	"<b>Set out from one port, load at another.</b> <i>Set out from</i> comes before <i>Load the goods at</i>: the quests of the port you set out from are taken before casting off, the sail to the goods counts in the run’s time and comes off the hours you give, and the Map starts where you set out.": "<b>Выйти из одного порта, грузиться в другом.</b> <i>Выход из</i> стоит перед <i>Загружать товары в</i>: задания порта выхода берутся до отплытия, переход к товарам входит во время рейса и вычитается из указанных часов, а Карта начинается там, откуда вы выходите.",
+	"A hunt given and handed in at Proix, <i>Wanted: Cox Scouts in Disguise</i>, is picked up before its grounds, at a stop of its own when the run does not start in Velia.": "Охота, которую выдаёт и принимает Фрава, <i>Разыскиваются: разведчики Вако</i>, берётся до места охоты, на отдельной стоянке, если рейс начинается не в Велии.",
+	"On the Map, a wharf or a habitat clicked opens a card with <i>Add stop</i>, and a barterer’s card offers the wharf of its island, which its pin covers.": "На Карте щелчок по причалу или месту обитания открывает карточку с кнопкой <i>Добавить стоянку</i>, а карточка торговца предлагает причал его острова, который закрывает его метка.",
+	"A stop of your own on the Map stays between the islands it was put between when an island before it is taken off.": "Ваша собственная стоянка на Карте остаётся между теми же островами, когда убирают остров перед ней.",
+	"Goods aboard past what the hull moves under no longer stop the run: the surplus is put in the harbour’s storage before casting off, for the run to load again. Left aboard, the ship never sailed and every ticked chain read <i>nothing left to hand over</i>.": "Товары на борту сверх того, что может сдвинуть корпус, больше не останавливают рейс: излишек оставляют на складе порта до отплытия, чтобы рейс мог потом его забрать. Если его оставляли на борту, корабль так и не выходил, а у каждой отмеченной цепочки было написано <i>отдавать уже нечего</i>.",
+	"On a narrow screen, the handle that moves a stop is larger and easier to see.": "На узком экране ручка, которой двигают стоянку, крупнее и лучше видна."
 }

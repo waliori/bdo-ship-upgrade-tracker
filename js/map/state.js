@@ -46,6 +46,7 @@ export const mv = {
 	pinnedNpc: null,
 	hoverStash: -1,          // a wharf call under the pointer, by its place in runStash
 	pinnedStash: -1,         // one whose card was opened by a click
+	pinnedPlace: null,       // a wharf or habitat clicked on the chart, { name, at, x, y, sub }: its card offers a stop there
 	fly: null,               // the rAF handle of a flight in progress
 	flightTo: null,          // where it is bound: a map state, for fetching ahead
 	drawnLevel: null,        // the tile level the last paint drew

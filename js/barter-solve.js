@@ -566,7 +566,7 @@ export function newPropose(opts0, all0, { seed = 1, session = 0 } = {}) {
 	const hours = run.hours;
 	const value = I.rules.coinWorth > 0 ? run.coins : I.rules.stock ? fillOfRun(instanceOf({ ...opts, chosen: picked }).I, simulate(lay, planPolicy(kept.plan), { mode: 'robust' })) : run.net;
 	const coined = I.rules.coinWorth > 0, stocked = !!I.rules.stock;
-	const proposal = { kind: coined ? 'coins' : stocked ? 'stock' : 'hour', label: coined ? TT('The most coins') : stocked ? TT('The fullest stock') : session > 0 ? TT('The most in {n} h') : TT('The most the board gives'), say: { n: session }, ids: picked.map(c => c.id), run, value, hours, yard: { perUnit: run.parleyUsed > 0 ? value / (run.parleyUsed / PARLEY.perGreatOceanTrade) : 0, perHour: hours > 0 ? value / hours : 0 } };
+	const proposal = { kind: coined ? 'coins' : stocked ? 'stock' : 'hour', label: coined ? TT('The most coins') : stocked ? TT('The fullest stock') : session > 0 ? TT('The most in {n} h') : TT('The most the board gives'), say: { n: (opts0.orders && opts0.orders.hours) || session }, ids: picked.map(c => c.id), run, value, hours, yard: { perUnit: run.parleyUsed > 0 ? value / (run.parleyUsed / PARLEY.perGreatOceanTrade) : 0, perHour: hours > 0 ? value / hours : 0 } };
 	// The plan found goes back with the answer: searched in a worker, it is
 	// the page's solveRun that has to know it, to lay the run proposed.
 	// With it the study: the instance whole, so any planner can be run on

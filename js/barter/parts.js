@@ -25,7 +25,7 @@ import { aboardStock, everythingHeld, floorsShut, cashFloorNow, dockStock } from
 import { heldOf } from './material.js';
 import { packedNow, sparesOf, packingOf, packingLT, packingSlots, packingCount, tripsOf, stagedRun, tripsHTML, leaveHomeHTML, packingHTML, afterShelfHTML } from './packing.js';
 import { chartButton, parleyGuessed, parleyOf, stashAt, ordersNow, levelFull, payRangeHTML, perUnitText, perHourText, stockGains, aheadHTML, goalLine, ladderHTML, howLine, howHTML, parleyLine, parleyHTML, marketDead, chainRow, soloRun } from './plan.js';
-import { docks, supplies, bagNow, stashes, withWaits, withRations, rationsLine, legsOf, questPlan, questsLine, questsPanels, n1, TIER, ledgerOf, runTime, routeEditBar, castOffRow, stopRows, cutsHTML } from './route.js';
+import { docks, supplies, bagNow, stashes, withWaits, withRations, rationsLine, legsOf, preLegHours, questPlan, questsLine, questsPanels, n1, TIER, ledgerOf, runTime, routeEditBar, castOffRow, stopRows, cutsHTML } from './route.js';
 import { sailing, planSeen, castOffCaps, castOffLand, digest } from './sail.js';
 import { SEARCH_BUDGET_MS, presetSearch, proposeAsync, searching, redrawSoon, expectedBest } from './search.js';
 import { noteFound } from './study.js';
@@ -55,12 +55,15 @@ function laidOnce(key, lay) {
 // says 'classic' -- chainRun and the beam search, kept to fall back on and
 // to compare against. `planner-hours` is the comparison harness's session.
 const sessionHours = () => { try { return Number(localStorage.getItem('bdo-tracker/planner-hours')) || 0; } catch { return 0; } };
+// The hours left for the chains once the sail to the goods is made; none
+// given stays none. A quarter hour at least, so a session is never zero.
+const afterPreLeg = h => (h > 0 ? Math.max(h - preLegHours(), 0.25) : 0);
 const newPlanner = () => { try { return localStorage.getItem('bdo-tracker/planner') !== 'classic'; } catch { return true; } };
 // A run laid by the new planner, by chainRun where it cannot lay it.
 // The ship's rations ride along, so its refills are laid with the run.
 const withShip = o => {
 	const me = currentShip(), d = rationDrain(me);
-	return { ...o, rations: me.rations > 0 ? { full: me.rations, perMinute: drainRate(d), perMinuteOver: drainRate(d, { overweight: true }) } : null, supplies, session: sessionHours() || (o.orders && o.orders.hours) || 0 };
+	return { ...o, rations: me.rations > 0 ? { full: me.rations, perMinute: drainRate(d), perMinuteOver: drainRate(d, { overweight: true }) } : null, supplies, session: afterPreLeg(sessionHours() || (o.orders && o.orders.hours) || 0) };
 };
 const chainRun = o => {
 	if (!newPlanner()) return classicRun(o);
@@ -211,6 +214,21 @@ export function silverParts(me, b) {
 	const aim = coining ? { kind: 'coins' } : stocking ? { targets: V.stockGoal.targets, held: [...everythingHeld()], kind: V.stockGoal.aim } : null;
 	// Every laying of this plan judges its ways by the same aim.
 	if (aim) opts.aim = aim;
+	// Goods the chains want past what the hull moves under go ashore before
+	// casting off: the search and each chain's own run are laid from what is
+	// left aboard, or the ship never sailed and nothing was proposed (Liara,
+	// 2026-11-21). The run ticked is lightened again for its own chains below.
+	const limit = pace === 'fast' ? me.hold.free : me.hold.max;
+	const lighten = spares => {
+		const less = { ...stock }, more = { ...dock };
+		for (const x of spares) {
+			less[x.item] = (less[x.item] || 0) - x.n; if (less[x.item] <= 0) delete less[x.item];
+			// Put ashore for the weight, it is the harbour's to load again.
+			if (x.over) more[x.item] = (more[x.item] || 0) + x.n;
+		}
+		opts.stock = less; opts.dock = more;
+	};
+	lighten(sparesOf(all, from, o, stocking, limit).filter(x => x.over));
 	// The ceiling is part of the key as much as the barter count is: it
 	// decides which chains exist at all, and a search kept across a
 	// change of it would answer for chains this board no longer lists.
@@ -224,8 +242,8 @@ export function silverParts(me, b) {
 	// BreezySail switched moves the calls for supplies, and a run kept
 	// across it kept the old calls until something else changed.
 	const drain = rationDrain(me);
-	const pkey = JSON.stringify([V.minCoins, V.board.day, b.combo.id, V.board.answers, stock, dock, owned, [...land], o, V.port, V.stash, opts.bag, Object.values(prices).map(x => x.each), me.hold, ship, opts.parley, opts.seen, V.reach, prof.barterCount, aim, ceiling, b.shut, b.rolled || [], V.board.usedFor === b.combo.id ? V.board.used || {} : {}, drain.cal, drain.breezy]);
-	const search = { chains: all, opts, ship, timeCap: o.hours, aim };
+	const pkey = JSON.stringify([V.minCoins, V.board.day, b.combo.id, V.board.answers, stock, dock, owned, [...land], o, V.port, V.setOut, V.stash, opts.bag, Object.values(prices).map(x => x.each), me.hold, ship, opts.parley, opts.seen, V.reach, prof.barterCount, aim, ceiling, b.shut, b.rolled || [], V.board.usedFor === b.combo.id ? V.board.used || {} : {}, drain.cal, drain.breezy]);
+	const search = { chains: all, opts, ship, timeCap: afterPreLeg(o.hours), aim };
 	// The search goes to the worker and the page draws meanwhile; asked
 	// again when the inputs change, or when an answer is owed and no
 	// request is out for it -- a fill superseded it, or the worker went.
@@ -277,7 +295,7 @@ export function silverParts(me, b) {
 	const presetSeen = {};
 	Object.assign(presetSeen, boardPaid(), planSeen(sailing()));
 	const baseOrders = Object.fromEntries(Object.entries(o).filter(([k]) => !sailingKeys.has(k)));
-	const presetKey = JSON.stringify([V.minCoins, V.board.day, b.combo.id, V.board.answers, stock, dock, owned, [...land], baseOrders, V.port, V.stash, Object.values(presetPrices).map(x => x.each), me.hold, ship, opts.parley, presetSeen, V.reach, prof.barterCount, aim, ceiling, b.shut]);
+	const presetKey = JSON.stringify([V.minCoins, V.board.day, b.combo.id, V.board.answers, stock, dock, owned, [...land], baseOrders, V.port, V.setOut, V.stash, Object.values(presetPrices).map(x => x.each), me.hold, ship, opts.parley, presetSeen, V.reach, prof.barterCount, aim, ceiling, b.shut]);
 	// Asked once the main search has answered, so the two never share
 	// the machine. The way already chosen is the main search itself: its
 	// answer is that card's figure, not a second search that might land
@@ -290,7 +308,7 @@ export function silverParts(me, b) {
 		// Each card is laid by the planner the main search uses: the new
 		// one, under that way's own orders and hours, where it can lay it.
 		const w = withShip(oopts);
-		const asked = newPlanner() && !unsupported({ ...w, chosen: list }).length ? { planner: 'new', opts: w, chains: list, session: w.session } : { chains: list, opts: oopts, ship, timeCap: oo.hours, aim };
+		const asked = newPlanner() && !unsupported({ ...w, chosen: list }).length ? { planner: 'new', opts: w, chains: list, session: w.session } : { chains: list, opts: oopts, ship, timeCap: afterPreLeg(oo.hours), aim };
 		return { id: p.id, args: asked };
 	}));
 	// Ticks left to the search -- a new board, or a way of sailing just
@@ -521,12 +539,9 @@ export function silverParts(me, b) {
 	// What is aboard and not wanted is dealt with at the harbour, before
 	// casting off: the run is laid without it, so the route neither
 	// carries it nor calls somewhere later to be rid of it.
-	const spares = sparesOf(chosen, from, o, stocking);
-	if (spares.length) {
-		const less = { ...opts.stock };
-		for (const x of spares) { less[x.item] = (less[x.item] || 0) - x.n; if (less[x.item] <= 0) delete less[x.item]; }
-		opts.stock = less;
-	}
+	// The ship's limit, so what these chains want past it goes ashore too.
+	const spares = sparesOf(chosen, from, o, stocking, limit);
+	lighten(spares);
 	// Once cast off, the storage is behind the ship: laid again at a count
 	// said on the way, the run loads no more than it did.
 	const pin = castOffCaps(sailing(), opts.dock);
@@ -567,7 +582,7 @@ export function silverParts(me, b) {
 	// off the route: the run's stops from here on are those.
 	const qp = questPlan(plan.stops, o.quests, me.hold, plan.weightStart);
 	plan.stops = withRations(withWaits(qp.stops, plan.weightStart), plan.weightStart);
-	plan.questsHome = qp.home;
+	plan.questsHome = [...(qp.setOut || []), ...qp.home];
 	V.shownPlan = plan;
 	const legs = legsOf(plan.stops);
 	// The Parley bar, stop by stop, for the whole run at once -- the
@@ -733,7 +748,7 @@ export function silverParts(me, b) {
 						: isl === 1 ? T('{n} island', { n: isl }) : T('{n} islands', { n: isl });
 					return `<span class="run-chain-tag" style="--tier:${TIER(c.top)}"><i></i>${chainName(c)}<em>L${c.top}</em><small${cutHere ? ` class="short" title="${T('This chain does not get to the top — see the note under the tiles')}"` : ''}>${count}</small><button class="map-x" data-act="barter-chain" data-id="${esc(c.id)}" aria-label="${T('Untick this chain')}">×</button></span>`;
 				}).join('')).join(`<span class="run-lot-sep">${T('then')}</span>`)}</div>
-				${rationsLine(plan.stops)}${routeEditBar(plan)}<div class="run-stops">${castOffRow(plan, from)}${stopRows(plan.stops, legs, { board: true, sailing: sailing(), edit: !sailing(), notes: qp, ledger: book, trip: tripHead, tag: s => (s.npcId ? `<em class="run-chain-tag sm" style="--tier:${TIER(plan.order[s.chain].top)}"><i></i>${chainName(plan.order[s.chain])}</em>` : '') })}</div>
+				${rationsLine(plan.stops)}${routeEditBar(plan)}<div class="run-stops">${castOffRow(plan, from, legs)}${stopRows(plan.stops, legs, { board: true, sailing: sailing(), edit: !sailing(), notes: qp, ledger: book, trip: tripHead, tag: s => (s.npcId ? `<em class="run-chain-tag sm" style="--tier:${TIER(plan.order[s.chain].top)}"><i></i>${chainName(plan.order[s.chain])}</em>` : '') })}</div>
 			</section>` : '') : plan.order.map((c, k) => {
 			const first = plan.stops.findIndex(s => s.chain === k);
 			const mine = plan.stops.filter(s => s.chain === k);
@@ -744,7 +759,7 @@ export function silverParts(me, b) {
 				${mine.length ? `<div class="run-stops">${stopRows(mine, legs, { k0: first, before: first > 0 ? plan.stops[first - 1] : null, board: true, sailing: sailing(), edit: !sailing(), notes: qp, ledger: book, trip: tripHead })}</div>` : ''}
 			</section>`;
 		}).join('');
-		const routeFold = plan.stops.length ? `<details class="panel route-fold"${sailing() || narrow() ? '' : ' open'}><summary><b>${T('The route, stop by stop')}</b><span class="panel-sub">${plan.stops.length === 1 ? T('{n} stop', { n: plan.stops.length }) : T('{n} stops', { n: plan.stops.length })}${legs.total ? ` · ${esc(fmtDistance(legs.total))} · ≈ ${esc(runTime(legs, book))}` : ''}${from ? ` · ${T('from {port}', { port: esc(gameName(from.name)) })}` : ''}</span>${questsLine(qp, o.quests)}<span class="panel-spacer"></span>${chartButton(plan.stops, '')}</summary>${segs}</details>` : '';
+		const routeFold = plan.stops.length ? `<details class="panel route-fold"${sailing() || narrow() ? '' : ' open'}><summary><b>${T('The route, stop by stop')}</b><span class="panel-sub">${plan.stops.length === 1 ? T('{n} stop', { n: plan.stops.length }) : T('{n} stops', { n: plan.stops.length })}${legs.total ? ` · ${esc(fmtDistance(legs.total))} · ≈ ${esc(runTime(legs, book))}` : ''}${from ? ` · ${legs.pre ? T('Set out from {out}, then {port} for the goods', { out: esc(gameName(legs.pre.from.name)), port: esc(gameName(from.name)) }) : T('from {port}', { port: esc(gameName(from.name)) })}` : ''}</span>${questsLine(qp, o.quests)}<span class="panel-spacer"></span>${chartButton(plan.stops, '')}</summary>${segs}</details>` : '';
 		keepRoute(plan, legs, book, segs, '');
 		return routeFold;
 	};
@@ -785,7 +800,7 @@ export function silverParts(me, b) {
 		for (const x of rPlan.stops) x.hold = me.hold;
 		rQp = questPlan(rPlan.stops, o.quests, me.hold, rPlan.weightStart);
 		rPlan.stops = withRations(withWaits(rQp.stops, rPlan.weightStart), rPlan.weightStart);
-		rPlan.questsHome = rQp.home;
+		rPlan.questsHome = [...(rQp.setOut || []), ...rQp.home];
 		rLegs = legsOf(rPlan.stops);
 		rBook = ledgerOf(rPlan.stops, rLegs);
 	}

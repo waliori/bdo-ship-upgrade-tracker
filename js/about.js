@@ -186,6 +186,18 @@ export const RELEASES = [
 					TT('The paste zones say which browsers paste several screenshots at once: Chrome, Edge, Opera and the other Chromium browsers hand over every file copied, Firefox one a paste — drop or choose the files there.'),
 					TT('A row whose name the column cut to a word several islands share — <i>Shipwrecked</i> opens five wrecks — went under the row above, whose offer it muddled. It is a row of its own now, and it asks: which island, from the ones that begin so. A name read only nearly — a letter off — is shown as read but left unticked until you confirm it. The reader guesses no island.')
 				]
+			},
+			{
+				title: TT('After the release, from your reports'),
+				text: TT('Liara tried 1.7.0 the evening it came out and wrote back what was still missing and what broke. Here is what that changed.'),
+				points: [
+					TT('<b>Set out from one port, load at another.</b> <i>Set out from</i> comes before <i>Load the goods at</i>: the quests of the port you set out from are taken before casting off, the sail to the goods counts in the run’s time and comes off the hours you give, and the Map starts where you set out.'),
+					TT('A hunt given and handed in at Proix, <i>Wanted: Cox Scouts in Disguise</i>, is picked up before its grounds, at a stop of its own when the run does not start in Velia.'),
+					TT('On the Map, a wharf or a habitat clicked opens a card with <i>Add stop</i>, and a barterer’s card offers the wharf of its island, which its pin covers.'),
+					TT('A stop of your own on the Map stays between the islands it was put between when an island before it is taken off.'),
+					TT('Goods aboard past what the hull moves under no longer stop the run: the surplus is put in the harbour’s storage before casting off, for the run to load again. Left aboard, the ship never sailed and every ticked chain read <i>nothing left to hand over</i>.'),
+					TT('On a narrow screen, the handle that moves a stop is larger and easier to see.')
+				]
 			}
 		]
 	},

@@ -442,7 +442,9 @@
 .map-list { display: flex; flex-direction: column; gap: 5px; }
 
 .map-row,
-.map-grip { flex: none; display: grid; place-items: center; width: 24px; height: 28px; padding: 0; border: 0; background: none; color: var(--ink-faint); cursor: grab; touch-action: none; }
+.map-grip { flex: none; display: grid; place-items: center; width: 24px; height: 28px; padding: 0; border: 0; border-radius: 6px; background: none; color: var(--ink-mid); cursor: grab; touch-action: none; }
+/* A finger needs a handle it can see and hit (Liara nearly missed it on a small screen). */
+@media (pointer: coarse), (max-width: 720px) { .map-grip { width: 34px; height: 36px; background: color-mix(in srgb, var(--ink-hi) 8%, transparent); color: var(--ink-hi); } }
 .map-grip:hover { color: var(--ink-hi); }
 .map-stop-row.drop { box-shadow: inset 0 0 0 1px var(--blue); }
 .map-own-list { display: flex; flex-direction: column; gap: 6px; max-height: 50vh; margin-top: 10px; overflow-y: auto; }

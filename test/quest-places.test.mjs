@@ -46,7 +46,7 @@ test('a loop from Velia by Baeza and Tinberra: deliveries handed in where the ru
 	const grounds = laid.find(e => e.hunt && e.hunt.key === 'hekaru');
 	assert.ok(grounds, 'a stop put in at the Hekaru grounds');
 	assert.ok(grounds.steps.some(x => x.q.id === 'hungry' && x.step.what === 'hunt'));
-	const hungry = laid.find(e => e.steps.some(x => x.q.id === 'hungry' && x.step.what !== 'hunt'));
+	const hungry = laid.find(e => e.steps.some(x => x.q.id === 'hungry' && x.step.what !== 'hunt' && x.step.what !== 'take'));
 	assert.ok(hungry && laid.indexOf(hungry) > laid.indexOf(grounds), 'handed in after the grounds');
 	assert.equal([...legs.keys()].includes(laid.indexOf(grounds)), true, 'the grounds stop named for what draws them');
 	assert.ok(off.some(x => x.q.id === 'omg-candidum' && x.why === 'grounds'), 'the Candidum grounds lie too far off the way');
@@ -66,6 +66,19 @@ test('a quest given by someone else is fetched before it is handed in: at the ha
 	const give = far.findIndex(e => e.steps.some(x => x.step.what !== 'take'));
 	assert.ok(take > 0 && far[take].quest && far[take].place === 'Iliya Island wharf', 'a stop put in at Dario, Iliya');
 	assert.ok(take < give, 'before Ravikel takes it in');
+	// Liara, 2026-11-20: the Cox Scouts hunt showed its grounds and its hand-in
+	// at Proix, never where to take it. Taken and handed in at Velia, it is
+	// fetched at Velia before the grounds: at the start when the run sets out
+	// from there, else at a stop put in before the hunt.
+	const cox = questById['coxscouts'];
+	const fromVelia = layQuests([cox], [ports[0], isle('Tinberra Island'), ports[0]], { forced: new Set([cox.id]) }).route;
+	const step = (r, pick) => r.findIndex(e => e.steps.some(x => x.q.id === 'coxscouts' && pick(x.step.what)));
+	assert.equal(step(fromVelia, w => w === 'take'), 0, 'taken at Velia before casting off');
+	const iliya = ports.find(p => p.name === 'Iliya Island');
+	const fromIliya = layQuests([cox], [iliya, isle('Tinberra Island'), iliya], { forced: new Set([cox.id]) }).route;
+	const took = step(fromIliya, w => w === 'take'), hunt = step(fromIliya, w => w === 'hunt'), back = step(fromIliya, w => w !== 'take' && w !== 'hunt');
+	assert.ok(took > 0 && fromIliya[took].place === 'Velia', `a stop put in at Proix, Velia (${fromIliya.map(e => e.place || e.i).join(' > ')})`);
+	assert.ok(took < hunt && hunt < back, 'taken, then hunted, then handed in');
 });
 
 test('a barter quest already part-way counts its progress, and a run that does not pass its taker puts a stop in only once it is made up', () => {

@@ -952,7 +952,7 @@
 .field.select.inline { display: inline-block; width: auto; padding: 2px 6px; font-size: 12px; }
 
 /* ---- Wharves ---- */
-.map-wharf { position: absolute; left: 0; top: 0; width: 14px; height: 14px; margin: -7px 0 0 -7px; pointer-events: none; z-index: 2; font-size: 10.5px; color: var(--pale); text-shadow: 0 1px 4px var(--black); white-space: nowrap; }
+.map-wharf { position: absolute; left: 0; top: 0; width: 14px; height: 14px; margin: -7px 0 0 -7px; z-index: 2; cursor: pointer; font-size: 10.5px; color: var(--pale); text-shadow: 0 1px 4px var(--black); white-space: nowrap; }
 .map-wharf-name { position: absolute; left: calc(100% + 4px); top: 50%; transform: translateY(-50%); }
 .map-wharf-dot { display: flex; width: 100%; height: 100%; align-items: center; justify-content: center; font-size: 13px; line-height: 1; filter: drop-shadow(0 1px 2px var(--black)); }
 .map-wharf.guild { color: var(--guild); }

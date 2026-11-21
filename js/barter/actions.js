@@ -25,7 +25,7 @@ import { toast, openDialog, closeDialog } from '../dialogs.js';
 import { cheer } from '../cheer.js';
 import { V, STEPS } from './state.js';
 import { timerAction, timerState, timerNow, startTimer, stopTimer, passedStop, arrivedAt, spanText } from '../sail-timer.js';
-import { fromPort, sailCal, itemNow, readWindow, takeFleetBoard, openBook, tellTheFleet, pickOffer, pickIsland, showGated, pickAnyIsland, boardNow, boardPaid } from './board.js';
+import { fromPort, setOutPort, sailCal, itemNow, readWindow, takeFleetBoard, openBook, tellTheFleet, pickOffer, pickIsland, showGated, pickAnyIsland, boardNow, boardPaid } from './board.js';
 import { openRolls } from './rolls.js';
 import { bringUp, patchPaid, restFind, sailLocked } from './cockpit.js';
 import { castOffFx } from './setsail.js';
@@ -880,6 +880,7 @@ export function barterChange(el, parseAmount) {
 			setOrders({ floors });
 			return true;
 		}
+		case 'barter-set-out': V.setOut = ports.some(p => p.id === Number(el.value)) ? Number(el.value) : 0; persist(); return true;
 		case 'barter-stash': V.stash = STASHES.includes(el.value) ? el.value : ''; persist(); return true;
 		case 'barter-bag': store.setProfile('bag', { ...bagSet(), on: el.value === 'on' }); return true;
 		case 'barter-bag-set': {
@@ -905,7 +906,8 @@ export function chartFragment(el) {
 	const ids = String(el.dataset.ids || '').split('.').filter(Boolean);
 	if (!ids.length) { toast(T('Nothing to draw')); return null; }
 	const parts = [`r=${ids.join('.')}`];
-	if (V.port) parts.push(`s=${V.port}`);
+	const start = setOutPort() || fromPort();
+	if (start) parts.push(`s=${start.id}`);
 	if (el.dataset.pick) parts.push(`p=${encodeURIComponent(el.dataset.pick)}`);
 	if (el.dataset.trades) parts.push(`x=${encodeURIComponent(el.dataset.trades)}`);
 	if (el.dataset.stash && el.dataset.stash !== '[]') parts.push(`w=${encodeURIComponent(el.dataset.stash)}`);
