@@ -3,6 +3,7 @@
 
 import { routes, routeInfo, recipes } from './recipes.js';
 import { shipGroups } from './ships.js';
+import { kindOf as itemKind } from './kinds.js';
 import { statsLine, shipStats } from './ship_stats.js';
 import { esc, F, FD } from './fmt.js';
 import { T, said, gameName, nameHas } from './i18n.js';
@@ -243,12 +244,13 @@ export function openBuildPicker() {
 	// A hull is a ship whichever group lists it -- the small craft sit in
 	// a group of their own -- anything else grouped there is a trackable
 	// part, and everything else is a material.
+	// The Caravel's and Galleass's green parts belong to no group but are
+	// parts all the same: the rule is kinds.js's, the one the Inventory
+	// files them by.
+	const grouped = new Set(shipGroups.flatMap(g => g.items));
 	const kindOf = name => {
 		if (shipStats[name]) return 'ship';
-		for (const group of shipGroups) {
-			if (group.items.includes(name)) return 'part';
-		}
-		return 'material';
+		return grouped.has(name) || itemKind(name) === 'parts' ? 'part' : 'material';
 	};
 	const kindWord = { ship: T('ship'), part: T('part'), material: T('material') };
 	const all = buildableItems();
@@ -294,6 +296,7 @@ export function openBuildPicker() {
 			const parts = group.items.filter(n => all.includes(n) && kindOf(n) === 'part' && fits(n));
 			groups.push([said(group.name), parts]);
 		}
+		groups.push([T('Parts'), all.filter(n => !grouped.has(n) && kindOf(n) === 'part' && fits(n))]);
 		groups.push([T('Materials'), all.filter(n => kindOf(n) === 'material' && fits(n))]);
 		let left = 200, over = 0;
 		const html = groups.filter(([, list]) => list.length).map(([title, list]) => {
