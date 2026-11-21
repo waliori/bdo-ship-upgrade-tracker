@@ -3954,6 +3954,7 @@
 	"aboard": "aboard",
 	"aboard <b>{name}</b>": "aboard <b>{name}</b>",
 	"aboard at {at}, and not used by this run": "aboard at {at}, and not used by this run",
+	"aboard at {at}: what this run does not use, or cannot carry at once": "aboard at {at}: what this run does not use, or cannot carry at once",
 	"aboard {ship}: the limit is {lt} LT": "aboard {ship}: the limit is {lt} LT",
 	"aboard: {list}": "aboard: {list}",
 	"about <b>{n}</b> day": "about <b>{n}</b> day",

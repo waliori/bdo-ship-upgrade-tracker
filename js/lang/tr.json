@@ -3470,6 +3470,7 @@
 	"aboard": "gemide",
 	"aboard <b>{name}</b>": "<b>{name}</b> gemisinde",
 	"aboard at {at}, and not used by this run": "{at} konumunda gemide, bu sefer kullanmıyor",
+	"aboard at {at}: what this run does not use, or cannot carry at once": "{at} konumunda gemide: bu seferin kullanmadığı ya da bir kerede taşıyamadığı",
 	"aboard {ship}: the limit is {lt} LT": "{ship} gemisinde: sınır {lt} LT",
 	"aboard: {list}": "gemide: {list}",
 	"about <b>{n}</b> day": "yaklaşık <b>{n}</b> gün",

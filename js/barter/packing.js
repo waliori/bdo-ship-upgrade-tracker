@@ -292,7 +292,7 @@ export function packingOf(plan, from, chosen = []) {
 	// before the lines are let go. A row goes once it is done.
 	const town = from ? from.name : '';
 	const ashore = town ? (plan.spares || []).map(x => ({
-		item: x.item, n: x.n, key: `${x.sell ? 's' : 'u'}|${x.item}`, per: '',
+		item: x.item, n: x.n, key: `${x.sell ? 's' : 'u'}|${x.item}`, per: '', over: !!x.over,
 		where: x.sell
 			? T('the run does not use it · sell it at {town} wharf for {silver}', { town: gameName(town), silver: FC(x.n * sellOf(x.item)) })
 			: x.over
@@ -491,7 +491,7 @@ export function packingHTML(plan, from, chosen = [], only = null) {
 	};
 	const group = (title, sub, list, none) => `<section class="panel pack-group"><div class="panel-head"><h2 class="panel-title">${title}</h2><span class="panel-sub">${sub}</span><span class="panel-spacer"></span>${all(list)}</div>${list.length ? list.map(row).join('') : `<p class="empty">${none}</p>`}</section>`;
 	const where = from ? gameName(from.name) : '';
-	if (only) return `<div class="pack-groups pack-first">${group(T('Before casting off'), esc(T('aboard at {at}, and not used by this run', { at: where })), only, '')}</div>`;
+	if (only) return `<div class="pack-groups pack-first">${group(T('Before casting off'), esc(only.some(x => x.over) ? T('aboard at {at}: what this run does not use, or cannot carry at once', { at: where }) : T('aboard at {at}, and not used by this run', { at: where })), only, '')}</div>`;
 	return `<div class="pack-groups">
 		${group(T('Buy at the Market'), `${plan.cost ? T('{silver} to buy', { silver: FC(Math.round(plan.cost)) }) : T('before casting off')}${p.market.length ? ` · ${T('{lt} LT to carry', { lt: FD(p.market.reduce((w, x) => w + x.n * weightOf(x.item), 0), 1) })}` : ''}`, p.market, T('nothing to buy — the run starts from what is held'))}
 		${group(T('Take from storage'), where ? esc(T('{at} wharf', { at: where })) : T('before casting off'), p.storage, T('nothing in storage is needed'))}

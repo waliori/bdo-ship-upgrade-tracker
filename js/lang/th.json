@@ -3470,6 +3470,7 @@
 	"aboard": "บนเรือ",
 	"aboard <b>{name}</b>": "บน <b>{name}</b>",
 	"aboard at {at}, and not used by this run": "อยู่บนเรือที่ {at} และการออกเรือนี้ไม่ได้ใช้",
+	"aboard at {at}: what this run does not use, or cannot carry at once": "อยู่บนเรือที่ {at}: สิ่งที่การออกเรือนี้ไม่ได้ใช้ หรือขนไปทีเดียวไม่ได้",
 	"aboard {ship}: the limit is {lt} LT": "บน {ship}: ขีดจำกัดคือ {lt} LT",
 	"aboard: {list}": "บนเรือ: {list}",
 	"about <b>{n}</b> day": "ราว <b>{n}</b> วัน",
