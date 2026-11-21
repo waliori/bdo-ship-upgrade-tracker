@@ -4717,6 +4717,7 @@
 	"the run": "la travesía",
 	"the run calls {n} times": "la travesía hace {n} escalas",
 	"the run does not use it · put it in the storage at {town}": "la travesía no lo usa · déjalo en el almacén de {town}",
+	"too heavy to take it all · put it in the storage at {town}": "demasiado peso para llevarlo todo · déjalo en el almacén de {town}",
 	"the run does not use it · sell it at {town} wharf for {silver}": "la travesía no lo usa · véndelo en el muelle de {town} por {silver}",
 	"the run eats ≈ {use}": "la travesía consume ≈ {use}",
 	"the run said ×{n}": "la travesía decía ×{n}",

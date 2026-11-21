@@ -524,11 +524,16 @@ export function silverParts(me, b) {
 	// What is aboard and not wanted is dealt with at the harbour, before
 	// casting off: the run is laid without it, so the route neither
 	// carries it nor calls somewhere later to be rid of it.
-	const spares = sparesOf(chosen, from, o, stocking);
+	// The ship's limit, so what the chains want past it goes ashore too.
+	const spares = sparesOf(chosen, from, o, stocking, pace === 'fast' ? me.hold.free : me.hold.max);
 	if (spares.length) {
-		const less = { ...opts.stock };
-		for (const x of spares) { less[x.item] = (less[x.item] || 0) - x.n; if (less[x.item] <= 0) delete less[x.item]; }
-		opts.stock = less;
+		const less = { ...opts.stock }, dock = { ...opts.dock };
+		for (const x of spares) {
+			less[x.item] = (less[x.item] || 0) - x.n; if (less[x.item] <= 0) delete less[x.item];
+			// Put ashore for the weight, it is the harbour's to load again.
+			if (x.over) dock[x.item] = (dock[x.item] || 0) + x.n;
+		}
+		opts.stock = less; opts.dock = dock;
 	}
 	// Once cast off, the storage is behind the ship: laid again at a count
 	// said on the way, the run loads no more than it did.

@@ -4702,6 +4702,7 @@
 	"the run": "a viagem",
 	"the run calls {n} times": "a viagem faz {n} escalas",
 	"the run does not use it · put it in the storage at {town}": "a travessia não usa isto · guarde no armazém de {town}",
+	"too heavy to take it all · put it in the storage at {town}": "pesado demais para levar tudo · guarde no armazém de {town}",
 	"the run does not use it · sell it at {town} wharf for {silver}": "a travessia não usa isto · venda na doca de {town} por {silver}",
 	"the run eats ≈ {use}": "a viagem consome ≈ {use}",
 	"the run said ×{n}": "a viagem dizia ×{n}",

@@ -4615,6 +4615,7 @@
 	"the run": "sefer",
 	"the run calls {n} times": "sefer {n} kez uğruyor",
 	"the run does not use it · put it in the storage at {town}": "sefer bunu kullanmıyor · {town} deposuna koy",
+	"too heavy to take it all · put it in the storage at {town}": "hepsini almak için fazla ağır · {town} deposuna koy",
 	"the run does not use it · sell it at {town} wharf for {silver}": "sefer bunu kullanmıyor · {town} iskelesinde {silver} karşılığında sat",
 	"the run eats ≈ {use}": "sefer ≈ {use} yiyor",
 	"the run said ×{n}": "sefer ×{n} diyordu",

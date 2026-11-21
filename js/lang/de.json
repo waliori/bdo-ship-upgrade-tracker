@@ -4651,6 +4651,7 @@
 	"the run": "die Fahrt",
 	"the run calls {n} times": "die Fahrt legt {n}-mal an",
 	"the run does not use it · put it in the storage at {town}": "die Fahrt braucht es nicht · ins Lager von {town} legen",
+	"too heavy to take it all · put it in the storage at {town}": "zu schwer, um alles mitzunehmen · ins Lager von {town} legen",
 	"the run does not use it · sell it at {town} wharf for {silver}": "die Fahrt braucht es nicht · am Hafen von {town} für {silver} verkaufen",
 	"the run eats ≈ {use}": "die Fahrt verbraucht ≈ {use}",
 	"the run said ×{n}": "die Fahrt sagte ×{n}",

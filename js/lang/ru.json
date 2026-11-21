@@ -5325,6 +5325,7 @@
 		"other": "рейс заходит {n} раз"
 	},
 	"the run does not use it · put it in the storage at {town}": "рейс это не использует · положить на склад в {town}",
+	"too heavy to take it all · put it in the storage at {town}": "слишком тяжело, чтобы взять всё · положить на склад в {town}",
 	"the run does not use it · sell it at {town} wharf for {silver}": "рейс это не использует · продать на причале в {town} за {silver}",
 	"the run eats ≈ {use}": "рейс съедает ≈ {use}",
 	"the run said ×{n}": "рейс предлагал ×{n}",

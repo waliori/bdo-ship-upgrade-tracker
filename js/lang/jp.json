@@ -4615,6 +4615,7 @@
 	"the run": "航海",
 	"the run calls {n} times": "この航海で{n}回寄港します",
 	"the run does not use it · put it in the storage at {town}": "この航海では使わない · {town} の倉庫に入れる",
+	"too heavy to take it all · put it in the storage at {town}": "重すぎて全部は積めない · {town} の倉庫に入れる",
 	"the run does not use it · sell it at {town} wharf for {silver}": "この航海では使わない · {town} の船着き場で {silver} で売る",
 	"the run eats ≈ {use}": "この航海で約{use}消費します",
 	"the run said ×{n}": "航海の予定は ×{n}",

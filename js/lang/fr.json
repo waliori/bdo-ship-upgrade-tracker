@@ -4738,6 +4738,7 @@
 	"the run": "le circuit",
 	"the run calls {n} times": "le circuit fait {n} escales",
 	"the run does not use it · put it in the storage at {town}": "le circuit ne l'utilise pas · le mettre dans l'entrepôt de {town}",
+	"too heavy to take it all · put it in the storage at {town}": "trop lourd pour tout emporter · le mettre dans l'entrepôt de {town}",
 	"the run does not use it · sell it at {town} wharf for {silver}": "le circuit ne l'utilise pas · le vendre au quai de {town} pour {silver}",
 	"the run eats ≈ {use}": "le circuit consomme ≈ {use}",
 	"the run said ×{n}": "la tournée disait ×{n}",

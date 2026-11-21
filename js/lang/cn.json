@@ -4615,6 +4615,7 @@
 	"the run": "航次",
 	"the run calls {n} times": "航次停靠 {n} 次",
 	"the run does not use it · put it in the storage at {town}": "本航次用不上 · 放进 {town} 的仓库",
+	"too heavy to take it all · put it in the storage at {town}": "太重，带不了全部 · 放进 {town} 的仓库",
 	"the run does not use it · sell it at {town} wharf for {silver}": "本航次用不上 · 在 {town} 停泊处卖得 {silver}",
 	"the run eats ≈ {use}": "航次消耗约 {use}",
 	"the run said ×{n}": "航次原定 ×{n}",

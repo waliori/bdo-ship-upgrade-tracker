@@ -4615,6 +4615,7 @@
 	"the run": "항해",
 	"the run calls {n} times": "항해가 {n}회 기항",
 	"the run does not use it · put it in the storage at {town}": "이번 항해에 쓰이지 않음 · {town} 창고에 넣기",
+	"too heavy to take it all · put it in the storage at {town}": "너무 무거워 전부 실을 수 없음 · {town} 창고에 넣기",
 	"the run does not use it · sell it at {town} wharf for {silver}": "이번 항해에 쓰이지 않음 · {town} 정박지에서 {silver}에 판매",
 	"the run eats ≈ {use}": "항해가 약 {use} 소모",
 	"the run said ×{n}": "항해 계획은 ×{n}",

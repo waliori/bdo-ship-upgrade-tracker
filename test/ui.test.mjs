@@ -2160,6 +2160,26 @@ async function toPlan(page) {
 	await page.waitForSelector('.barter-screen.step-plan', { timeout: 10000 });
 }
 
+test('goods the chains want, aboard past what the hull moves under, are put ashore at the harbour: the heaviest pile first, no more than the weight over (Liara, 2026-11-21)', async () => {
+	const { page, context, errors } = await open('#barter');
+	await page.waitForSelector('.barter-screen', { timeout: 15000 }); await wait(600);
+	const got = await page.evaluate(async () => {
+		const store = await import('/js/state.js'); const P = await import('/js/barter/packing.js'); const { ports } = await import('/js/barter_npcs.js');
+		const { ordersNow } = await import('/js/barter/plan.js');
+		const pan = '[Level 4] Panacea', box = "[Level 3] Pirates' Supply Box";
+		store.setStockAt(pan, store.ABOARD, 5); store.setStockAt(box, store.ABOARD, 20);
+		const chain = (item, n) => ({ from: 'hold', item, rungs: [{ give: item, tries: n, giveN: 1 }] });
+		const chosen = [chain(pan, 5), chain(box, 20)], iliya = ports.find(p => p.name === 'Iliya Island');
+		return { none: P.sparesOf(chosen, iliya, ordersNow()), over: P.sparesOf(chosen, iliya, ordersNow(), false, 20000) };
+	});
+	// 5,000 LT of Panacea and 18,000 of the boxes: 3,000 over a 20,000 limit,
+	// four boxes (900 each) the fewest that make it up.
+	assert.deepEqual(got.none, [], 'under no limit, nothing the chains want goes ashore');
+	assert.deepEqual(got.over, [{ item: "[Level 3] Pirates' Supply Box", n: 4, sell: false, over: true }]);
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
 test('an island taken off the route leaves a stop of the sailor\'s own between the islands it was put between', async () => {
 	const { page, context, errors } = await open('#map');
 	await page.waitForSelector('.map-wrap, .map-screen, #map', { timeout: 15000 }); await wait(600);
