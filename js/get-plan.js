@@ -559,7 +559,10 @@ export function wayToGet({ missing = {}, sources = {}, state = {}, orders = {} }
 		const mine = legs.filter(l => l.item === f.item).sort((a, b) => b.qty - a.qty);
 		if (!mine.length) continue;
 		const also = [];
-		if (f.drops.length) also.push(T('drops from {names}', { names: f.drops.slice(0, 3).map(gameName).join(', ') }));
+		// A hunt leg, or a find leg drawn from the grounds, names the drops
+		// already; said again here it read "drops from X … also: drops from X".
+		const named = mine.some(l => l.kind === 'hunt' || (l.kind === 'find' && f.grounds.length));
+		if (f.drops.length && !named) also.push(T('drops from {names}', { names: f.drops.slice(0, 3).map(gameName).join(', ') }));
 		if (f.bulk) also.push(T('{give} exchanges for {n} at once', { give: gameName(f.bulk.give), n: fmt(f.bulk.gets) }));
 		if (f.node && !mine.some(l => l.kind === 'find' || l.kind === 'hunt')) also.push(f.node);
 		if (f.coin && !mine.some(l => l.kind === 'coin')) also.push(T('{n} coins each at the shop', { n: fmt(f.coin) }));
