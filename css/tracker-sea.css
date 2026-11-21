@@ -1114,7 +1114,8 @@ button.status-bit:hover { background: rgba(var(--blue-rgb), 0.12); color: var(--
 	   line, each part took a row of its own and ended in a stray dot. */
 	.status-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 2px 8px; font-size: 12px; padding: 6px 10px; }
 	.status-bar[hidden] { display: none; }
-	.status-sep { display: none; }
+	/* Two classes: the hairline .sep, a later sheet, drew them again. */
+	.status-bar .status-sep { display: none; }
 	/* An enhancement's cost, odds and failstack wrap inside the row:
 	   held to one line they ran past the edge and cut "recommended" in
 	   half. The failstack takes a line of its own. */
