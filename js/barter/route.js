@@ -928,9 +928,11 @@ export function chartData(stops, pick) {
 			s.sale ? Math.round(s.sale.total) : 0,
 			questsAt(s), ...(s.refill ? ['rations'] : [])]);
 	}
-	// Set out from another harbour: the goods' port is the chart's first call.
+	// Set out from another harbour: the goods' port is the chart's first call,
+	// a stop of the sailor's own, so editing the route on the chart (which
+	// drops the plan's wharf calls) or saving it keeps where the goods are.
 	const out = setOutPort(), from = fromPort();
-	if (out && from) calls.unshift([0, from.name, from.name, from.x, from.y, [], 0, 0, []]);
+	if (out && from) calls.unshift([0, from.name, from.name, from.x, from.y, [], 0, 0, [], 'own']);
 	return { ids, pick: pick || '', trades, calls };
 }
 

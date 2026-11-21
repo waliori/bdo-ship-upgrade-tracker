@@ -2210,12 +2210,17 @@ test('a day set out from Velia with the goods at Iliya: the sail between comes o
 		V.port = iliya.id; V.setOut = 0; const none = R.preLegHours();
 		V.setOut = iliya.id; const same = R.preLegHours();
 		V.setOut = velia.id; const h = R.preLegHours();
+		// On the chart the goods' port is a stop of the sailor's own, kept
+		// when the stops are edited there or the route is saved.
+		const { npcs } = await import('/js/barter_npcs.js');
+		const first = R.chartData([{ npcId: npcs[0].id, give: 'x', times: 1 }], '').calls[0];
 		V.setOut = 0;
-		return { none, same, h };
+		return { none, same, h, first: [first[1], first[9]] };
 	});
 	assert.equal(got.none, 0, 'no set-out harbour, nothing taken off');
 	assert.equal(got.same, 0, 'set out where the goods are, nothing taken off');
 	assert.ok(got.h > 0.05 && got.h < 0.3, `Velia to Iliya is minutes, not hours: ${got.h}`);
+	assert.deepEqual(got.first, ['Iliya Island', 'own'], 'the goods\' port is the chart\'s first call, the sailor\'s own');
 	assert.deepEqual(errors, []);
 	await context.close();
 });
