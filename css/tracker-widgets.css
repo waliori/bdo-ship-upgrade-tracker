@@ -1360,6 +1360,8 @@ h2 .copy-name { font-size: 14px; min-width: 24px; height: 24px; vertical-align: 
 /* A voucher count is two digits; the level names are long. Both borrow
    the purse field's look rather than inventing a second one. */
 .purse-inline.narrow { width: 44px; }
+/* A Parley is seven figures: at 44px the box showed "1,000,(". */
+.parley-fix .purse-inline.narrow { width: 10ch; }
 select.purse-inline { width: auto; cursor: pointer; }
 
 /* Nothing hovers on a phone, so the arrow has to be there all along or
