@@ -26,7 +26,7 @@ import { iconLoader } from './icon-loader.js';
 import { esc, F, parseAmount } from './fmt.js';
 import * as store from './state.js';
 import { useGame } from './barter-layouts.js';
-import { initSync, openAccount, feature, me, fetchLink, canKeepLink } from './sync.js';
+import { initSync, openAccount, feature, me, fetchLink, canKeepLink, repaintMasthead } from './sync.js';
 import { maxCraftable, craftDelta, enhanceStep, parseEnhanced, enhancedName } from './planner.js';
 import {
 	view, selected, recipes, barterData, snapshot, query,
@@ -458,7 +458,11 @@ export function render() {
  */
 function captureFocus(root) {
 	const el = document.activeElement;
-	if (!el || (el.tagName !== 'INPUT' && el.tagName !== 'SELECT')
+	// A button too, when the keyboard put it there: Tab out of a quantity
+	// lands on the row's + button, and the redraw dropped it to <body>.
+	// One that was clicked stays dropped, or its row's card would open.
+	const keyed = el && el.tagName === 'BUTTON' && el.matches(':focus-visible');
+	if (!el || !(el.tagName === 'INPUT' || el.tagName === 'SELECT' || keyed)
 		|| !root.contains(el) || !el.dataset.act) return null;
 	const parts = [`[data-act="${el.dataset.act}"]`];
 	if (el.dataset.item) parts.push(`[data-item="${el.dataset.item}"]`);
@@ -906,6 +910,7 @@ async function chooseLang(id) {
 	// the picker is marked busy until it is in.
 	await whileLoading(setLang(id), T('Fetching the language…'), { by: document.getElementById('lang-btn') });
 	render();
+	repaintMasthead();
 	toast(T('Language: {name}', { name: (LANGS.find(l => l.id === id) || {}).label || id }));
 }
 
@@ -2906,7 +2911,15 @@ export async function init() {
 		if (reason === 'profile-quiet' && (mapWritingView() || barterWritingView())) return;
 		if (stale) return;
 		stale = true;
-		Promise.resolve().then(() => { if (stale) render(); });
+		const draw = () => { if (stale) render(); };
+		// A field committed by Tab fires its change with the focus already
+		// let go (<body> holds it) but not yet moved on: a redraw in a
+		// microtask rebuilt the row and the Tab landed on <body>. One task
+		// later the focus is on the next control, which captureFocus()
+		// carries over.
+		const a = document.activeElement;
+		if (!a || a === document.body || /^(INPUT|SELECT)$/.test(a.tagName)) setTimeout(draw, 0);
+		else Promise.resolve().then(draw);
 	});
 	render();
 	// The minute hand on every countdown, and a repaint when a reset
