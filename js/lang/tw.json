@@ -5042,7 +5042,7 @@
 	"{n} board": "{n} 個面板",
 	"{n} boards": "{n} 個面板",
 	"{n} brought up to date": "{n} 位已更新",
-	"{n} browser have the tracker open right now, yours among them": "現在有 {n} 個瀏覽器開著追蹤器，你的也在其中",
+	"{n} browser has the tracker open right now, yours among them": "現在有 {n} 個瀏覽器開著追蹤器，你的也在其中",
 	"{n} browsers have opened it": "{n} 個瀏覽器打開過它",
 	"{n} browsers have the tracker open right now, yours among them": "現在有 {n} 個瀏覽器開著追蹤器，你的也在其中",
 	"{n} build": "{n} 個建造",

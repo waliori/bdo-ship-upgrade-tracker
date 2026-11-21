@@ -5897,7 +5897,7 @@
 		"other": "{n} досок"
 	},
 	"{n} brought up to date": "{n} обновлено",
-	"{n} browser have the tracker open right now, yours among them": {
+	"{n} browser has the tracker open right now, yours among them": {
 		"few": "{n} браузера держат трекер открытым прямо сейчас, ваш среди них",
 		"many": "{n} браузеров держат трекер открытым прямо сейчас, ваш среди них",
 		"one": "{n} браузер держит трекер открытым прямо сейчас, ваш среди них",

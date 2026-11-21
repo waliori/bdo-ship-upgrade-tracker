@@ -5042,7 +5042,7 @@
 	"{n} board": "{n}ボード",
 	"{n} boards": "{n}ボード",
 	"{n} brought up to date": "{n}件を最新に更新",
-	"{n} browser have the tracker open right now, yours among them": "今このトラッカーを開いているブラウザは{n}台、あなたもその1つです",
+	"{n} browser has the tracker open right now, yours among them": "今このトラッカーを開いているブラウザは{n}台、あなたもその1つです",
 	"{n} browsers have opened it": "{n}台のブラウザが開いたことがあります",
 	"{n} browsers have the tracker open right now, yours among them": "今このトラッカーを開いているブラウザは{n}台、あなたもその1つです",
 	"{n} build": "建造{n}件",

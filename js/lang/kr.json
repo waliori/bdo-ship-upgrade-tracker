@@ -5042,7 +5042,7 @@
 	"{n} board": "보드 {n}개",
 	"{n} boards": "보드 {n}개",
 	"{n} brought up to date": "{n}명 갱신됨",
-	"{n} browser have the tracker open right now, yours among them": "지금 {n}개 브라우저가 트래커를 열어 두고 있으며, 당신 것도 그중 하나입니다",
+	"{n} browser has the tracker open right now, yours among them": "지금 {n}개 브라우저가 트래커를 열어 두고 있으며, 당신 것도 그중 하나입니다",
 	"{n} browsers have opened it": "{n}개 브라우저가 열어 보았습니다",
 	"{n} browsers have the tracker open right now, yours among them": "지금 {n}개 브라우저가 트래커를 열어 두고 있으며, 당신 것도 그중 하나입니다",
 	"{n} build": "건조 {n}개",

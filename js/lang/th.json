@@ -5042,7 +5042,7 @@
 	"{n} board": "{n} กระดาน",
 	"{n} boards": "{n} กระดาน",
 	"{n} brought up to date": "อัปเดต {n} คนแล้ว",
-	"{n} browser have the tracker open right now, yours among them": "{n} เบราว์เซอร์เปิดตัวติดตามอยู่ตอนนี้ รวมของคุณ",
+	"{n} browser has the tracker open right now, yours among them": "{n} เบราว์เซอร์เปิดตัวติดตามอยู่ตอนนี้ รวมของคุณ",
 	"{n} browsers have opened it": "{n} เบราว์เซอร์เคยเปิดมัน",
 	"{n} browsers have the tracker open right now, yours among them": "{n} เบราว์เซอร์เปิดตัวติดตามอยู่ตอนนี้ รวมของคุณ",
 	"{n} build": "การต่อ {n} อัน",
