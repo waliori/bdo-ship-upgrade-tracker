@@ -99,6 +99,9 @@ const SUPPLY_AT = ['Velia', 'Port Epheria', 'Iliya Island', 'Ancado Inner Harbor
 export const supplies = docks.filter(w => SUPPLY_AT.includes(w.at));
 // Within this of each other, two wharves are one harbour (chart px).
 const HARBOUR_PX = 2000;
+/** A stop the pool fills at: a wharf, or a quest stop in a harbour that
+ *  sells supplies -- the ship is moored there anyway. */
+const fills = s => !!(s.wharf || (s.quest && !s.hunt && s.place && supplies.some(w => Math.hypot(w.x - s.place.x, w.y - s.place.y) < HARBOUR_PX)));
 
 /** The leg that arrives at stop k: the first leaves the harbour when
  *  the run has one. */
@@ -142,10 +145,11 @@ export function withRations(stops, weightStart = 0) {
 			const m = legInto(legs, k);
 			const use = m != null && legs.secondsOf ? eat(legs.secondsOf(m), weightInto(out, k)) : 0;
 			// Low into a wharf is no matter: it fills there. Empty is.
-			if (bad < 0 && pool - use < (s.wharf ? 0 : floor)) bad = k;
+			const f = fills(s);
+			if (bad < 0 && pool - use < (f ? 0 : floor)) bad = k;
 			pool = Math.max(0, pool - use);
-			s.pool = { left: Math.round(pool), full, take: s.wharf ? Math.round(full - pool) : 0, short: false };
-			if (s.wharf) { pool = full; if (bad < 0) lastFull = k + 1; }
+			s.pool = { left: Math.round(pool), full, take: f ? Math.round(full - pool) : 0, short: false };
+			if (f) { pool = full; if (bad < 0) lastFull = k + 1; }
 		});
 		if (bad < 0) return out;
 		// Of the legs since the pool was last full, the one to break with
@@ -169,7 +173,7 @@ export function withRations(stops, weightStart = 0) {
 				const toW = Math.hypot(w.x - a.x, w.y - a.y);
 				// Already there -- a harbour keeps two managers a stone's
 				// throw apart -- is no call.
-				if (toW < HARBOUR_PX || (out[j].wharf && Math.hypot(w.x - b.x, w.y - b.y) < HARBOUR_PX)) continue;
+				if (toW < HARBOUR_PX || (fills(out[j]) && Math.hypot(w.x - b.x, w.y - b.y) < HARBOUR_PX)) continue;
 				// the sea's way is longer than the line: a quarter more, to be safe
 				const reach = at[j] - eat(legs.secondsOf(toW * METRES_PER_PX * 1.25), w0);
 				// The way there is guessed from the line, so the call is made
@@ -210,8 +214,8 @@ export function rationMarks(stops, weightStart = 0) {
 		const weight = k > 0 ? Number(stops[k - 1].weightAfter) || 0 : weightStart;
 		const use = m != null && legs.secondsOf ? drainOver(legs.secondsOf(m), drain, { overweight: weight > me.hold.free }) : 0;
 		pool = Math.max(0, pool - use);
-		const mark = { left: Math.round(pool), full, take: s.wharf ? Math.round(full - pool) : 0, short: pool <= 0 };
-		if (s.wharf) pool = full;
+		const mark = { left: Math.round(pool), full, take: fills(s) ? Math.round(full - pool) : 0, short: pool <= 0 };
+		if (fills(s)) pool = full;
 		return mark;
 	});
 }
@@ -557,7 +561,7 @@ export function onWayHTML(s) {
 /** What happens at a stop: the exchange at an island, the loads, the
  *  goods left and the sale at a wharf, nothing at a quest stop. */
 export function stopDid(s, board = false) {
-	if (s.quest) return '';
+	if (s.quest) return s.pool && s.pool.take > 0 ? `<div class="run-supply">${ico('bread')} <span>${T('Buy Supplies while here: {n} back to full', { n: esc(fmtRations(s.pool.take)) })}</span></div>` : '';
 	// A wait trades nothing: it stands still for a voucher's cooldown.
 	if (s.wait) return `<div class="run-trade">${img(VOUCHER, 'row-icon sm')}<span>${T('Wait {n} min', { n: F(s.wait) })} — ${T('the voucher’s cooldown, then one is drawn and the run goes on')}</span></div>`;
 	if (s.wharf) return `${onWayHTML(s)}${s.pool && s.pool.take > 0 ? `<div class="run-supply">${ico('bread')} <span>${s.refill ? T('Put in for rations: Buy Supplies at the wharf manager, {n} back to full', { n: esc(fmtRations(s.pool.take)) }) : T('Buy Supplies while here: {n} back to full', { n: esc(fmtRations(s.pool.take)) })}</span></div>` : ''}${bagMovesHTML(s)}${s.loads && s.loads.length ? `<div class="run-leave"><span class="run-leave-k">${T('Loads from storage')}</span>${s.loads.map(d => `<span class="run-leave-good">${img(d.item, 'row-icon sm')}<b>${n1(d.n)}×</b>${esc(gameName(d.item))}</span>`).join('')}</div>` : ''}${s.dropped.length ? `<div class="run-leave"><span class="run-leave-k">${T('Leaves in storage')}</span>${s.dropped.map(d => `<span class="run-leave-good">${img(d.item, 'row-icon sm')}<b>${n1(d.n)}×</b>${esc(gameName(d.item))}</span>`).join('')}${storeSlotsNote(s.dropped)}</div>` : ''}${s.sale ? `<div class="run-sell">${T('sells {n} {what} here for {silver}', { n: n1(s.sale.n), what: s.sale.levels && s.sale.levels.length === 1 ? T('Level {lv} goods', { lv: s.sale.levels[0] }) : T('goods'), silver: FC(Math.round(s.sale.total)) })}</div>` : ''}`;
