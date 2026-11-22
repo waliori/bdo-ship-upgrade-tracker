@@ -92,3 +92,24 @@ test('a barter quest already part-way counts its progress, and a run that does n
 	assert.ok(at.quest && at.place === 'Iliya Island', 'a stop put in at Iliya, the taker');
 	assert.ok(made.route.indexOf(at) > 1, 'after the trades at Baremi');
 });
+
+test('a giver is called at once for every quest it gives, and a taker once for every quest it takes in', () => {
+	// Liara, 2026-11-22: Oquilla's Eye at stop 6 for six quests and again at
+	// stop 10 for the Candidum hunt; Velia right after the Cox grounds to hand
+	// in the scouts, and again at the end for the Hungry Sea Creatures.
+	const byId = new Map(npcs.map(n => [n.id, n]));
+	const port = name => ports.find(p => p.name === name);
+	const isles = [58953, 58961, 58916, 50824, 50814, 58959, 50822, 50819, 50817, 50818, 50815, 58942, 58939, 58960, 58922, 58983, 50816].map(id => byId.get(id));
+	const points = [port('Velia'), port('Iliya Island'), ...isles, port('Ancado Inner Harbor')];
+	const ids = ['coxscouts', 'hampering', 'winwin', 'hekaru', 'charity', 'omg-blackrust', 'omg-nineshark', 'omg-candidum', 'goods-tinberra', 'supplies-tinberra', 'pirates', 'goods-baremi', 'goods-narvo', 'lively', 'hungry', 'supplies-oquilla', 'worldsend-1'];
+	const { route } = layQuests(ids.map(id => questById[id]), points, { forced: new Set(['omg-blackrust', 'omg-candidum', 'hungry']) });
+	const calls = (who, pick) => route.filter(e => e.quest && !e.hunt && e.steps.some(x => x.step.who === who && pick(x.step.what))).length;
+	assert.equal(calls('Ravikel', w => w === 'take'), 1, `one pick-up at Oquilla's Eye (${route.map(e => e.place || e.i).join(' > ')})`);
+	assert.equal(calls('Proix', w => w !== 'take' && w !== 'hunt'), 1, 'one hand-in call at Proix, Velia');
+	for (const id of ids) {
+		const at = what => route.findIndex(e => e.steps.some(x => x.q.id === id && what(x.step.what)));
+		const take = at(w => w === 'take'), hunt = at(w => w === 'hunt'), back = at(w => w !== 'take' && w !== 'hunt');
+		if (take >= 0 && back >= 0) assert.ok(take <= back, `${id} is taken before it is handed in`);
+		if (hunt >= 0) assert.ok(hunt < back, `${id} is hunted before it is handed in`);
+	}
+});
