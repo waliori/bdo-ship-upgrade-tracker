@@ -165,6 +165,103 @@ export function planFor(I, chains, { effort = 2, seed = 1, session = 0, way = 's
 }
 
 /**
+ * The islands put in the order that sails shortest once the quest stops
+ * are threaded in. The search lays the trades knowing nothing of quests;
+ * their stops go in after, each at its cheapest place on the route as it
+ * stands, and a run with many of them zig-zags (Liara, 2026-11-22: out to
+ * Nineshark early, back south, and Candidum and Oquilla's Eye at the end).
+ *
+ * An island, or a block of up to three, is moved elsewhere in the order,
+ * never ahead of an island of its own climb. The moves the quests make
+ * shortest are laid again by `finish` with the plan's wharf calls, and one
+ * is kept only when it earns at least as much, leaves no more quests out
+ * and sails shorter. `lay(points)` threads the quests through points in
+ * sailing order (layQuests) and `placeOf(id)` is an island's chart point
+ * (a harbour's is the instance's own); `start` is where the run sets out.
+ */
+export function questOrder(I, plan, chains, { lay, placeOf, start, tries = 6, rounds = 4, short = 48 }) {
+	const { station } = indexOf(I);
+	const must = chains.map(c => c.rungs[c.rungs.length - 1]);
+	const depots = new Set(I.depots.map(d => d.id));
+	const climbsOf = id => chains.map((c, k) => (c.rungs.includes(id) ? k : -1)).filter(k => k >= 0);
+	// What the quests make of a list of stops: the length sailed with their
+	// stops in, by water, and how many cannot be taken in.
+	const pointOf = at => placeOf(at) || I.depots.find(d => d.id === at) || (I.supplies || []).find(d => d.id === at);
+	// The length without the quests, a cheap first look at a move.
+	const plainLen = visits => {
+		let len = 0, a = start;
+		for (const v of visits) { const b = pointOf(v.at); if (!b) return Infinity; len += seaDist(a, b); a = b; }
+		return len;
+	};
+	const measure = visits => {
+		const pts = [start, ...visits.map(v => pointOf(v.at))];
+		if (pts.some(x => !x)) return { len: Infinity, off: Infinity };
+		const laid = lay(pts, [0, ...visits.map(v => v.a || 0)]);
+		let len = 0;
+		for (let k = 1; k < laid.route.length; k++) len += seaDist(laid.route[k - 1], laid.route[k]);
+		return { len, off: laid.off.length };
+	};
+	const better = (a, b) => (a.off < b.off && a.len <= b.len + 1) || (a.off <= b.off && a.len < b.len - 1);
+	// Earning as much is both: the plan's own figure, and that figure with
+	// a missed climb's top or a starved leg counted against it -- a plan
+	// already marked down for one could otherwise trade silver for minutes.
+	let cur = { plan, worth: worthOf(I, plan, must), f: robustEval(I, plan).f, cost: measure(plan.visits) };
+	for (let round = 0; round < rounds; round++) {
+		const seq = cur.plan.visits.filter(v => station.has(v.at)).map(v => ({ at: v.at, a: v.a }));
+		if (seq.length < 3) break;
+		const calls = [];
+		cur.plan.visits.forEach((v, i) => {
+			if (!depots.has(v.at)) return;
+			const next = cur.plan.visits.slice(i + 1).find(x => station.has(x.at));
+			if (next) calls.push({ before: next.at, at: v.at, ...(v.load ? { load: v.load } : {}), ...(v.fromBag ? { fromBag: v.fromBag } : {}) });
+		});
+		// The stops in sailing order with the calls where they stood: what
+		// the quests are laid on before a move is laid again for real.
+		const rough = order => order.flatMap(v => [...calls.filter(c => c.before === v.at).map(c => ({ at: c.at })), v]).concat(cur.plan.visits.slice(-1));
+		const climbs = seq.map(v => climbsOf(v.at));
+		// Every climb's islands still in the order they had.
+		const keeps = idx => {
+			const last = new Map();
+			for (const i of idx) for (const k of climbs[i]) { if ((last.get(k) ?? -1) > i) return false; last.set(k, i); }
+			return true;
+		};
+		const moves = [];
+		const n = seq.length;
+		for (let len = 1; len <= 3; len++) {
+			for (let i = 0; i + len <= n; i++) {
+				const rest = [...Array(n).keys()].filter(k => k < i || k >= i + len);
+				const block = [...Array(len).keys()].map(k => i + k);
+				for (let j = 0; j <= rest.length; j++) {
+					if (j === i) continue;
+					const idx = [...rest.slice(0, j), ...block, ...rest.slice(j)];
+					if (!keeps(idx)) continue;
+					const order = idx.map(k => seq[k]);
+					moves.push({ order, plain: plainLen(rough(order)) });
+				}
+			}
+		}
+		// The quests laid only on the moves shortest without them: laid on
+		// every move, a run with a dozen hunts took fifty seconds.
+		moves.sort((a, b) => a.plain - b.plain);
+		for (const m of moves.slice(0, short)) m.cost = measure(rough(m.order));
+		const hopeful = moves.slice(0, short).filter(m => better(m.cost, cur.cost)).sort((a, b) => a.cost.off - b.cost.off || a.cost.len - b.cost.len).slice(0, tries);
+		let moved = false;
+		for (const m of hopeful) {
+			const p = trimLoads(I, finish(I, m.order, 0, { calls, must }).plan);
+			const w = worthOf(I, p, must), f = robustEval(I, p).f;
+			if (w < cur.worth - Math.abs(cur.worth) * 1e-9 || f < cur.f - Math.abs(cur.f) * 1e-9) continue;
+			const c = measure(p.visits);
+			if (!better(c, cur.cost)) continue;
+			cur = { plan: p, worth: w, f, cost: c };
+			moved = true;
+			break;
+		}
+		if (!moved) break;
+	}
+	return cur.plan;
+}
+
+/**
  * A run in chainRun's shape from a plan, sailed robust -- counted at the
  * least an island pays and weighed at the most, as chainRun counts -- so
  * that the numbers the tab shows are the ones the plan can promise.
@@ -350,6 +447,9 @@ export function solveRun(opts0 = {}) {
 		plan = handPlan(I, chains, laying);
 		keep(ids, { ids, plan, day, hold, hand: true });
 	} else plan = planFor(I, chains, laying);
+	// The run shown, laid round the quests it takes in; never on the chain
+	// way, whose climbs are sailed whole one after another.
+	if (opts.quests && opts.byHand && laying.way !== 'chain') plan = questOrder(I, plan, chains, opts.quests);
 	const edited = edits(I, chains, chosen, plan, runOf(I, plan, how), opts);
 	return { ...runOf(I, edited, how), skippedWhole };
 }

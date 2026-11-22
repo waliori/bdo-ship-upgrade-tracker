@@ -301,6 +301,33 @@ function questProgressOf(q) {
  * handed in there; `home` is handed in at the harbour before casting
  * off; `off` the quests the run cannot take in, and why.
  */
+// The quests a run takes in under `mode`: not done, not left out today.
+const liveQuests = mode => {
+	const skipped = skippedToday();
+	return quests.filter(q => !questDone(q) && !skipped.includes(q.id) && (cadenceOf(q) === 'daily' || cadenceOf(q) === 'weekly') && (mode === 'hunts' || !q.monster));
+};
+// On the way only: no stop put in, except for a taker asked for by name.
+const layLive = (live, mode, pts, trades) => layQuests(live, pts.map(p => ({ x: p.x, y: p.y })), { trades, progress: questProgressOf, detour: mode === 'near' ? 0 : 8000, forced: new Set(pulledToday()) });
+
+/**
+ * What the planner needs to lay the islands round the quests (questOrder):
+ * the quests laid through points in sailing order, the run's start, and a
+ * key that changes when the quests do. Null when the run takes none in.
+ */
+export function questLayer(mode) {
+	const from = fromPort(), outPort = setOutPort();
+	if (mode === 'no' || !from) return null;
+	const live = liveQuests(mode);
+	if (!live.length) return null;
+	const lead = outPort ? [outPort] : [];
+	return {
+		key: `${mode}|${live.map(q => q.id).join(',')}|${pulledToday().join(',')}|${outPort ? outPort.id : ''}`,
+		start: from,
+		placeOf: id => npcById.get(Number(id)) || null,
+		lay: (pts, trades) => layLive(live, mode, [...lead, ...pts], [...lead.map(() => 0), ...trades])
+	};
+}
+
 export function questPlan(stops, mode, hold, weightStart = 0) {
 	const none = { stops, at: () => [], home: [], setOut: [], off: [], skipped: [], count: 0, added: 0 };
 	if (mode === 'no' || !stops.length) return none;
@@ -308,11 +335,10 @@ export function questPlan(stops, mode, hold, weightStart = 0) {
 	const pts = [...(outPort ? [outPort] : []), ...(from ? [from] : []), ...stops.map(s => s.wharf || npcById.get(s.npcId))];
 	if (pts.some(p => !p)) return none;
 	const skipped = skippedToday();
-	const live = quests.filter(q => !questDone(q) && !skipped.includes(q.id) && (cadenceOf(q) === 'daily' || cadenceOf(q) === 'weekly') && (mode === 'hunts' || !q.monster));
+	const live = liveQuests(mode);
 	const o = (from ? 1 : 0) + (outPort ? 1 : 0);
 	const trades = pts.map((p, i) => (i < o ? 0 : stops[i - o].times || 0));
-	// On the way only: no stop put in, except for a taker asked for by name.
-	const laid = layQuests(live, pts.map(p => ({ x: p.x, y: p.y })), { trades, progress: questProgressOf, detour: mode === 'near' ? 0 : 8000, forced: new Set(pulledToday()) });
+	const laid = layLive(live, mode, pts, trades);
 	const out = [], at = [];
 	let home = [], setOut = [], weight = weightStart, slots, chain = 0;
 	laid.route.forEach((e, r) => {

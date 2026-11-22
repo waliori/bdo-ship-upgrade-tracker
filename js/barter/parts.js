@@ -25,7 +25,7 @@ import { aboardStock, everythingHeld, floorsShut, cashFloorNow, dockStock } from
 import { heldOf } from './material.js';
 import { packedNow, sparesOf, packingOf, packingLT, packingSlots, packingCount, tripsOf, stagedRun, tripsHTML, leaveHomeHTML, packingHTML, afterShelfHTML } from './packing.js';
 import { chartButton, parleyGuessed, parleyOf, stashAt, ordersNow, levelFull, payRangeHTML, perUnitText, perHourText, stockGains, aheadHTML, goalLine, ladderHTML, howLine, howHTML, parleyLine, parleyHTML, marketDead, chainRow, soloRun } from './plan.js';
-import { docks, supplies, bagNow, stashes, withWaits, withRations, rationsLine, legsOf, preLegHours, questPlan, questsLine, questsPanels, n1, TIER, ledgerOf, runTime, routeEditBar, castOffRow, stopRows, cutsHTML } from './route.js';
+import { docks, supplies, bagNow, stashes, withWaits, withRations, rationsLine, legsOf, preLegHours, questPlan, questLayer, questsLine, questsPanels, n1, TIER, ledgerOf, runTime, routeEditBar, castOffRow, stopRows, cutsHTML } from './route.js';
 import { sailing, planSeen, castOffCaps, castOffLand, digest } from './sail.js';
 import { SEARCH_BUDGET_MS, presetSearch, proposeAsync, searching, redrawSoon, expectedBest } from './search.js';
 import { noteFound } from './study.js';
@@ -547,7 +547,8 @@ export function silverParts(me, b) {
 	const pin = castOffCaps(sailing(), opts.dock);
 	const bought = castOffLand(sailing(), o);
 	const laid = pin ? { ...opts, loadCap: pin, ...(bought ? { landCap: bought, bought } : {}) } : opts;
-	const plan = laidOnce(JSON.stringify([pkey, marketStatus().at, chosen.map(c => c.id), edits, spares, pin && [...pin], bought && [...bought]]), () => chainRun({ ...laid, chosen, ...edits, byHand: true }));
+	const quests = questLayer(o.quests);
+	const plan = laidOnce(JSON.stringify([pkey, marketStatus().at, chosen.map(c => c.id), edits, spares, pin && [...pin], bought && [...bought], quests && quests.key]), () => chainRun({ ...laid, chosen, ...edits, byHand: true, quests }));
 	plan.spares = spares;
 	const payRange = payRangeHTML(plan, laid, chosen, edits, seen, coining, stocking, pkey);
 	// Two chains ticked on one pile: the Golden Fish Scales at Iliya start
