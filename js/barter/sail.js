@@ -658,6 +658,24 @@ export function planOfSail(on) {
 		const redone = n > 0 && n !== s.times ? { times: n, planned: s.times, parley: Number(s.parley) > 0 && s.times > 0 ? s.parley * n / s.times : s.parley } : {};
 		return { ...s, ...redone, quests: hydrate(s.quests) };
 	});
+	// What an island paid past the run's count -- 3 Masts a trade where
+	// the run counted 2 -- no stop ahead asks for, so the next storage call
+	// leaves it too, or it rode to the end of the run (GodSpeedGT).
+	const over = new Map();
+	stops.forEach((s, k) => {
+		if (s.npcId && s.item !== COIN && levelOf(s.item) !== null && s.recvMin > 0 && ((on.seen || {})[s.npcId] > 0 || ticked(on.done || [], s, k, stops))) {
+			const n = s.times * (paidAt(s, on) - s.recvMin), item = sevenOf(s, on);
+			if (n > 0) over.set(item, (over.get(item) || 0) + n);
+		}
+		if (!s.wharf || s.refill || !over.size) return;
+		const dropped = (s.dropped || []).map(d => ({ ...d }));
+		for (const [item, n] of over) {
+			const d = dropped.find(x => x.item === item);
+			if (d) d.n += halfEven(n); else dropped.push({ item, n: halfEven(n) });
+		}
+		over.clear();
+		s.dropped = dropped.filter(d => d.n > 0);
+	});
 	return { stops, loaded: on.loaded || [], bagLoaded: on.bagLoaded || [], bagFromHold: on.bagFromHold || [], weightStart: on.weightStart || 0, ...(Number.isFinite(on.slotsStart) ? { slotsStart: on.slotsStart } : {}), bought: on.bought || [], cost: on.cost || 0, parleyUsed: on.parleyUsed || 0, questsHome: hydrate(on.questsHome), silver: on.silver || 0, net: on.net || 0, trades: on.trades || 0 };
 }
 
