@@ -205,7 +205,11 @@ export const items = {
 	"Khan's Tendon": {"Purchase": ["Crow Coin Shop (400 Crow Coins)"], "Monster Drop": ["Khan"], "Exchange": ["A barterer, for a [Level 5] Statue's Tear or Supreme Gold Candlestick"]},
 	"Khan's Scale": {"Purchase": ["Crow Coin Shop (160 Crow Coins)"], "Monster Drop": ["Khan"], "Exchange": ["A barterer, for a [Level 5] Faded Gold Dragon Figurine or Stuffed White Caterpillar"]},
 	"Abyssal Gem": {"Quest Reward": ["Nothing pays it today; it was the retired Young Black Rust Hunter daily's reward"]},
-	"Tidal Black Stone": {"Monster Drop": ["Great Ocean Sea Creatures (1-50x)"], "Quest Reward": ["Ravinia's Wiggly-Waggly Letter (10x)"]},
+	"Tidal Black Stone": {"Monster Drop": ["Great Ocean Sea Creatures (1-50x)"], "Quest Reward": ["Ravinia's Wiggly-Waggly Letter (10x)"], "Exchange": [
+		// The yellow-tier patch notes: the Crow Coin exchanger takes Lyngbakr's
+		// parts for Tidal Black Stones, the hundred a Sunset stone asks for.
+		"Crow Coin exchanger: 8x for 1x Lyngbakr's Bone, 12x for 1x Lyngbakr's Scale, 20x for 1x Lyngbakr's Fluid"
+	]},
 
 	// ===== Epheria Carrack Chiro's parts (blue) and their materials =====
 	"Epheria Carrack: Toro Cannon": {"Purchase": ["Crow Coin Shop (10,000 Crow Coins)"]},
