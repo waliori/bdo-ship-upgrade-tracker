@@ -17,7 +17,7 @@
 // what was hoped for.
 
 import { simulate, planPolicy } from './simulate.js';
-import { layQuests, handsIn } from '../quest-places.js';
+import { layQuests } from '../quest-places.js';
 
 /** The instance's lookups, made once. */
 export function indexOf(I) {
@@ -114,24 +114,22 @@ export function robustEval(I, plan, mu = 0) {
 	// further, by its level -- the silver it costs ashore and the Parley
 	// only between two that fill alike; or, run for the barter count, its
 	// trades first.
-	// A few silver an hour (`rules.tie`, TIE), too little to give up
-	// anything earned for: of two plans that earn alike, the shorter wins.
-	const quest = I.rules.tie ? questsOn(I, r) : null;
-	const tie = (I.rules.tie || 0) * (r.T + (quest ? quest.hours : 0)) - (quest ? quest.worth : 0);
 	if (I.rules.stock) {
 		const fill = fillOfRun(I, r);
 		const cost = r.spent + r.P * 10;
-		const f = I.rules.stock.kind === 'trades' ? r.trades * 1e9 + fill * 1e6 - (cost + tie) / 1e3 : fill * 1e9 - cost - tie;
+		const f = I.rules.stock.kind === 'trades' ? r.trades * 1e9 + fill * 1e6 - cost / 1e3 : fill * 1e9 - cost;
 		return { f: f - mu * r.T - over - waste, R: r.R, T: r.T, fill, run: r };
 	}
-	return { f: r.R - mu * r.T - over - waste + coins - tie, R: r.R, T: r.T, run: r };
+	return { f: r.R - mu * r.T - over - waste + coins, R: r.R, T: r.T, run: r };
 }
 /**
  * The quests a run takes in, laid round its route as the tab lays them
- * (layQuests): the quests handed in, each worth QUEST, and the hours the
- * stops put in for them add. Null when the run takes none in.
+ * (layQuests): how many of those the sailor picked it leaves out, and the
+ * hours the stops put in for them add. Null when there are none to lay.
+ * A count, not silver: a quest is not weighed against what a run earns or
+ * the time it takes (barter-solve.js relocate ranks the three in turn).
  */
-function questsOn(I, r) {
+export function questsOn(I, r) {
 	const Q = I.quests;
 	if (!Q || !Q.list || !Q.list.length) return null;
 	const { station } = indexOf(I);
@@ -147,16 +145,8 @@ function questsOn(I, r) {
 	const len = xs => xs.slice(1).reduce((a, p, k) => a + Math.hypot(p.x - xs[k].x, p.y - xs[k].y), 0);
 	const stops = laid.route.filter(e => e.quest).length;
 	const secs = (len(laid.route) - len(pts)) * Q.mPerPx / I.vehicle.speed + stops * ((I.service.depot || 0) + (I.service.leg || 0));
-	return { worth: QUEST * laid.route.reduce((a, e) => a + e.steps.filter(handsIn).length, 0), hours: secs / 3600 };
+	return { off: laid.off.length, hours: secs / 3600 };
 }
-// A quest handed in, in silver: ten hours of TIE, so a quest outweighs
-// any time it saves, and nothing earned.
-const QUEST = 1e5;
-// Silver an hour: a run's silver is counted in hundreds of millions.
-// Only the last pass of a search sets it (barter-solve.js tighten): put on
-// the search itself, it took other turns and ended worse on 17 of 155 real
-// days, by up to 27 %.
-export const TIE = 1e4;
 const OVERTIME = 1e14;
 const WASTE = 1e12;
 

@@ -28,7 +28,7 @@ import { METRES_PER_PX, speedMs, BAND_MEASURED } from './sailing.js';
 // mean of the quick end and the slow, a shade slower than the speed itself.
 const MID_PACE = (1 / (1 + BAND_MEASURED) + 1 / (1 - BAND_MEASURED)) / 2;
 import { simulate, planPolicy } from './rpit/simulate.js';
-import { finish, indexOf, chainsOf, fillOfRun, trimLoads, robustEval, MISSED, TIE } from './rpit/common.js';
+import { finish, indexOf, chainsOf, fillOfRun, trimLoads, robustEval, questsOn, MISSED } from './rpit/common.js';
 import { withChain, reorder, serial } from './rpit/insert.js';
 import { maximiseRate } from './rpit/ratio.js';
 import { search } from './rpit/alns.js';
@@ -167,33 +167,19 @@ export function planFor(I, chains, { effort = 2, seed = 1, session = 0, way = 's
 	const starts = way === 'chain' ? [serial(I, seq, chains), serial(I, seq, best1st)] : [reorder(I, seq, { effort: Math.min(effort, 2) }), serial(I, seq, chains), serial(I, seq, best1st)];
 	const tried = starts.map(s => finish(I, s, 0, { must })).sort((a, b) => b.f - a.f);
 	if (effort < 2 || way === 'chain') return trimLoads(I, tried[0].plan);
-	return trimLoads(I, tighten(I, search(I, { mu: 0, timeMs: Infinity, most: WORK, seed, pool: chains, fixed: true, warm: { seq: tried[0].visits, calls: tried[0].calls } }), { seed, pool: chains, fixed: true }).plan);
+	return trimLoads(I, roundQuests(I, search(I, { mu: 0, ties: true, timeMs: Infinity, most: WORK, seed, pool: chains, fixed: true, warm: { seq: tried[0].visits, calls: tried[0].calls } }), { pool: chains, fixed: true }).plan);
 }
 
 /**
- * The plan found, searched again from itself with time no longer free and
- * the quests counted: with no session an hour cost nothing, so two plans
- * that earned alike tied and the first found was kept, however it
- * zig-zagged (Lufance, Liara, 2026-10-26 and 2026-11-22). Started from the
- * plan, the pass only takes what earns as much in less time, or takes more
- * quests in. Put on the search itself, the same few silver an hour sent it
- * other ways, and it ended worse on 17 of 155 real days.
+ * The plan found, its islands laid round the quests the run takes in. The
+ * search moves an island to where it adds the least sailing and never sees
+ * the quest stops laid after it, so the zig-zags the quests make are left
+ * to this pass (Liara, 2026-11-22). Nothing when there are no quests.
  */
-export function tighten(I, found, opts) {
-	// The search with the hours priced and the quests left out: laid at every
-	// step it judges, they made the pass five times as slow.
-	const J = { ...I, rules: { ...I.rules, tie: TIE } };
-	const { quests, ...bare } = J;
-	const t = search(bare, { mu: 0, timeMs: Infinity, most: TIGHT, ...opts, warm: { seq: found.seq, calls: found.calls } });
-	const chains = opts.pool || chainsOf(J);
-	const must = opts.fixed ? chains.map(c => c.rungs[c.rungs.length - 1]) : [];
-	// The islands moved round the quests from both plans, the better kept: the
-	// shorter one can sit where no block of three moved brings it back past a
-	// quest the first one took in (721784, 2026-11-24: Lively Iliya Island).
-	const moved = relocate(J, t, chains, must);
-	if (!quests || !found.plan) return moved;
-	const kept = relocate(J, found, chains, must);
-	return worthOf(J, kept.plan, must) > worthOf(J, moved.plan, must) ? kept : moved;
+export function roundQuests(I, found, { pool, fixed = false } = {}) {
+	if (!I.quests || !I.quests.list || !I.quests.list.length || !found.plan) return found;
+	const chains = pool || chainsOf(I);
+	return relocate(I, found, chains, fixed ? chains.map(c => c.rungs[c.rungs.length - 1]) : []);
 }
 
 /**
@@ -201,8 +187,8 @@ export function tighten(I, found, opts) {
  * stops make the way shorter or take more quests in. The search puts an
  * island back where it adds least sailing, knowing nothing of the stops
  * laid round it after, so it never finds these. Each climb keeps its
- * order; a move is laid again for real and kept when it scores higher,
- * quests and hours counted. Only the moves shortest without the quests
+ * order; a move is laid again for real and kept when it ranks higher
+ * (rankOf: earnings, then quests, then hours). Only the moves shortest without the quests
  * are laid with them, and only the best of those for real: laid on every
  * move, a run with a dozen hunts took fifty seconds (2026-11-22).
  */
@@ -227,7 +213,7 @@ function relocate(J, found, chains, must, { rounds = 4, short = 48, tries = 6 } 
 	};
 	const look = r => { const laid = layQuests(Q.list, r.pts, { ...lay, trades: r.trades }); return laid.off.length * 1e9 + len(laid.route); };
 	const climbsOf = id => chains.map((c, k) => (c.rungs.includes(id) ? k : -1)).filter(k => k >= 0);
-	let cur = { ...found, worth: worthOf(J, found.plan, must) };
+	let cur = { ...found, rank: rankOf(J, found.plan, must) };
 	for (let round = 0; round < rounds; round++) {
 		const seq = cur.seq, calls = cur.calls || [], n = seq.length;
 		const climbs = seq.map(v => climbsOf(v.at));
@@ -258,9 +244,9 @@ function relocate(J, found, chains, must, { rounds = 4, short = 48, tries = 6 } 
 		let moved = false;
 		for (const m of hopeful) {
 			const out = finish(J, m.order, 0, { calls, must });
-			const worth = worthOf(J, out.plan, must);
-			if (!(worth > cur.worth + 1e-6)) continue;
-			cur = { seq: out.visits, calls: out.calls, plan: out.plan, f: out.f, R: out.R, T: out.T, worth };
+			const rank = rankOf(J, out.plan, must);
+			if (!better(rank, cur.rank)) continue;
+			cur = { seq: out.visits, calls: out.calls, plan: out.plan, f: out.f, R: out.R, T: out.T, rank };
 			moved = true;
 			break;
 		}
@@ -268,7 +254,6 @@ function relocate(J, found, chains, must, { rounds = 4, short = 48, tries = 6 } 
 	}
 	return cur;
 }
-const TIGHT = 20;
 
 /**
  * A run in chainRun's shape from a plan, sailed robust -- counted at the
@@ -515,14 +500,19 @@ function edits(I, chains, chosen, plan, run, opts) {
 	});
 	const bare = finish(I, seq.map(v => ({ at: v.at })), 0, { must }).plan;
 	const held = finish(I, seq, 0, { calls, must }).plan;
-	return worthOf(I, held, must) > worthOf(I, bare, must) ? held : bare;
+	return better(rankOf(I, held, must), rankOf(I, bare, must)) ? held : bare;
 }
-// A plan's worth, a climb's top it misses and a starved leg costing more
-// than anything it earns.
-const worthOf = (I, p, must) => {
+// A plan judged in three steps, each only between plans the step before
+// finds alike: what it earns (a climb's top it misses and a starved leg
+// costing more than anything); then how many of the quests the sailor picked
+// it leaves out; then its hours, the quest stops' with them. No quest is
+// priced in silver: some pay none, and none is given up for time.
+const rankOf = (I, p, must) => {
 	const e = robustEval(I, p), dealt = new Set(e.run.log.filter(x => x.kind === 'station' && x.a > 0).map(x => x.at));
-	return e.f - (must.filter(id => !dealt.has(id)).length + (e.run.deviations.starved || 0)) * MISSED;
+	const q = questsOn(I, e.run);
+	return { earn: e.f - (must.filter(id => !dealt.has(id)).length + (e.run.deviations.starved || 0)) * MISSED, off: q ? q.off : 0, hours: e.T + (q ? q.hours : 0) };
 };
+const better = (a, b) => a.earn > b.earn + 1e-6 || (a.earn >= b.earn - 1e-6 && (a.off < b.off || (a.off === b.off && a.hours < b.hours - 1e-9)));
 
 // The plans the search found, by the chains each climbs, for the laying of
 // those chains to give back. Several: ticking goods aboard asks the search
@@ -552,8 +542,8 @@ function handPlan(I, chains, how) {
 	for (const c of chains) seq = withChain(I, seq, c.rungs);
 	const must = chains.map(c => c.rungs[c.rungs.length - 1]);
 	const start = finish(I, seq, 0, { calls: from.calls || [], must });
-	const kept = trimLoads(I, tighten(I, search(I, { mu: 0, timeMs: Infinity, most: WORK, seed: how.seed, pool: chains, fixed: true, warm: { seq: start.visits, calls: start.calls } }), { seed: how.seed, pool: chains, fixed: true }).plan);
-	return worthOf(I, kept, must) > worthOf(I, fresh, must) ? kept : fresh;
+	const kept = trimLoads(I, roundQuests(I, search(I, { mu: 0, ties: true, timeMs: Infinity, most: WORK, seed: how.seed, pool: chains, fixed: true, warm: { seq: start.visits, calls: start.calls } }), { pool: chains, fixed: true }).plan);
+	return better(rankOf(I, kept, must), rankOf(I, fresh, must)) ? kept : fresh;
 }
 // The day it was found for -- the board, the hold, the rations, everything
 // but the chains -- with the goods aboard and the goods in the home
@@ -627,7 +617,7 @@ export function newPropose(opts0, all0, { seed = 1, session = 0 } = {}) {
 	// Two rounds of the price of time: a third found nothing more on the
 	// real boards and cost as much again.
 	const rate = maximiseRate(I, (inst, o) => search(inst, { ...o, timeMs: Infinity, most: Math.ceil(WORK / 4), pool }), { timeMs: Infinity, rounds: 2, seed, trace });
-	const best = tighten(I, search(I, { mu: 0, timeMs: Infinity, most: WORK, seed, pool, warm: { seq: rate.seq, calls: rate.calls }, trace }), { seed, pool, trace });
+	const best = roundQuests(I, search(I, { mu: 0, ties: true, timeMs: Infinity, most: WORK, seed, pool, warm: { seq: rate.seq, calls: rate.calls }, trace }), { pool });
 	const plan = best.plan;
 	const r = simulate(I, planPolicy(plan), { mode: 'robust' });
 	const dealt = new Set(r.log.filter(e => e.kind === 'station' && e.a > 0).map(e => e.at));

@@ -51,8 +51,9 @@ most (`robust`); a board read off screenshots has them exact.
 - minus a price for running out of rations at sea, or missing a climb the
   sailor ticked, larger than everything.
 
-In the last pass only (step 4 below): minus a few silver an hour, plus a
-sum for each quest handed in.
+Neither time nor quests are priced in it. Of two plans that score alike the
+search keeps the shorter, and quests are ranked after earnings (step 4 below):
+some quests pay no silver, so none is given a worth in it.
 
 Hours under way are measured as the classic planner measured them: the
 cargo's route -- islands and trading calls, not the supply calls the tab lays
@@ -81,22 +82,23 @@ both run the same pipeline:
    offers them), keeping what is better and sometimes what is a little worse
    early on. Forty steps, counted in steps and not milliseconds, so the same
    board gives the same run on any machine.
-4. **Time and quests** (`tighten`, `js/barter-solve.js`). With no session
-   an hour costs nothing in step 3, so two plans that earn alike tie and the
-   first found stays, however it zig-zags. From step 3's plan, twenty more
-   steps price each hour at 10,000 silver, too little to give up anything
-   earned. Then, when the run takes quests in, the islands are moved a block
-   of one to three at a time (`relocate`), each climb keeping its order,
-   with the quests laid round every move as the tab lays them
-   (`layQuests`): a quest handed in counts 100,000 silver, ahead of any time
-   it costs and behind anything earned. The step-3 search moves an island
-   to where it adds the least sailing and never sees the quest stops laid
-   after, so it cannot find these orders. The moves start from both the
-   shorter plan and step 3's, and the better is kept: from the shorter one
-   alone, no move of three islands brought the run back past a quest giver
-   the longer one took in. Priced from the start instead,
-   the same hours sent the search other ways, and it ended worse on 17 of
-   155 real days.
+4. **Time and quests.** With no session an hour costs nothing, so two
+   plans that earn alike tie. Step 3's search keeps, of two it meets that
+   earn alike, the one that leaves out fewer of the sailor's quests, then
+   the shorter (`ties`, `alns.js`): only the plan kept changes, not the path
+   the search takes or the scores that steer it, so it ends on what it
+   earned before, for no extra steps. Not in step 2: there the plan kept
+   starts the next round, and changing it lost up to 43 % on real days. When the run takes quests in, the islands are then
+   moved a block of one to three at a time (`roundQuests`, `relocate` in
+   `js/barter-solve.js`), each climb keeping its order, with the quests laid
+   round every move as the tab lays them (`layQuests`). A move is kept when
+   it ranks higher (`rankOf`): first what it earns, then how many of the
+   quests the sailor picked it leaves out, then its hours with the quest
+   stops'. The step-3 search moves an island to where it adds the least
+   sailing and never sees the quest stops laid after, so it cannot find
+   these orders. A price on the hour put into the score sent the search
+   other ways, and it ended worse on 17 of 155 real days; twenty more steps
+   with that price after the search cost seconds on the heaviest days.
 
 Every candidate is made sailable by `finish`: a call before each island the
 hold stops; a call home for goods the storage still has -- or, with a bag,
