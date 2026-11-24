@@ -197,7 +197,7 @@ export function silverParts(me, b) {
 	const owned = Object.fromEntries(everythingHeld());
 	// The ship's pace rides along: a run laid more than one way is kept
 	// by what it is worth an hour, and the hour is the ship's.
-	const opts = { stock, dock, hold: me.hold, parley: parleyOf(prof), npcById, start: from, stashes, prefer: stashAt(), pace, orders: o, prices, seen, keep: V.reach ? [V.reach] : [], land, owned, ship: { speed: me.speed.sea, cal: layCal(), lag: sailLag() }, bag: bagNow(), docks };
+	const opts = { stock, dock, hold: me.hold, parley: parleyOf(prof), npcById, start: from, stashes, prefer: stashAt(), pace, orders: o, prices, seen, keep: V.reach ? [V.reach] : [], land, owned, ship: { speed: me.speed.sea, cal: layCal(), lag: sailLag() }, bag: bagNow(), docks, quests: questLayer(o.quests) };
 	// Each chain on its own, for its row: the list is sorted by the
 	// yardstick, silver a Parley unit, the guide's measure of a chain,
 	// so the best use of the day's Parley is at the top of its group.
@@ -242,7 +242,7 @@ export function silverParts(me, b) {
 	// BreezySail switched moves the calls for supplies, and a run kept
 	// across it kept the old calls until something else changed.
 	const drain = rationDrain(me);
-	const pkey = JSON.stringify([V.minCoins, V.board.day, b.combo.id, V.board.answers, stock, dock, owned, [...land], o, V.port, V.setOut, V.stash, opts.bag, Object.values(prices).map(x => x.each), me.hold, ship, opts.parley, opts.seen, V.reach, prof.barterCount, aim, ceiling, b.shut, b.rolled || [], V.board.usedFor === b.combo.id ? V.board.used || {} : {}, drain.cal, drain.breezy]);
+	const pkey = JSON.stringify([V.minCoins, V.board.day, b.combo.id, V.board.answers, stock, dock, owned, [...land], o, V.port, V.setOut, V.stash, opts.bag, Object.values(prices).map(x => x.each), me.hold, ship, opts.parley, opts.seen, V.reach, prof.barterCount, aim, ceiling, b.shut, b.rolled || [], V.board.usedFor === b.combo.id ? V.board.used || {} : {}, drain.cal, drain.breezy, opts.quests]);
 	const search = { chains: all, opts, ship, timeCap: afterPreLeg(o.hours), aim };
 	// The search goes to the worker and the page draws meanwhile; asked
 	// again when the inputs change, or when an answer is owed and no
@@ -547,8 +547,7 @@ export function silverParts(me, b) {
 	const pin = castOffCaps(sailing(), opts.dock);
 	const bought = castOffLand(sailing(), o);
 	const laid = pin ? { ...opts, loadCap: pin, ...(bought ? { landCap: bought, bought } : {}) } : opts;
-	const quests = questLayer(o.quests);
-	const plan = laidOnce(JSON.stringify([pkey, marketStatus().at, chosen.map(c => c.id), edits, spares, pin && [...pin], bought && [...bought], quests && quests.key]), () => chainRun({ ...laid, chosen, ...edits, byHand: true, quests }));
+	const plan = laidOnce(JSON.stringify([pkey, marketStatus().at, chosen.map(c => c.id), edits, spares, pin && [...pin], bought && [...bought]]), () => chainRun({ ...laid, chosen, ...edits, byHand: true }));
 	plan.spares = spares;
 	const payRange = payRangeHTML(plan, laid, chosen, edits, seen, coining, stocking, pkey);
 	// Two chains ticked on one pile: the Golden Fish Scales at Iliya start

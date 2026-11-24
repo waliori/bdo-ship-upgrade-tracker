@@ -51,6 +51,9 @@ most (`robust`); a board read off screenshots has them exact.
 - minus a price for running out of rations at sea, or missing a climb the
   sailor ticked, larger than everything.
 
+In the last pass only (step 4 below): minus a few silver an hour, plus a
+sum for each quest handed in.
+
 Hours under way are measured as the classic planner measured them: the
 cargo's route -- islands and trading calls, not the supply calls the tab lays
 after -- at the ship's own speed.
@@ -78,6 +81,19 @@ both run the same pipeline:
    offers them), keeping what is better and sometimes what is a little worse
    early on. Forty steps, counted in steps and not milliseconds, so the same
    board gives the same run on any machine.
+4. **Time and quests** (`tighten`, `js/barter-solve.js`). With no session
+   an hour costs nothing in step 3, so two plans that earn alike tie and the
+   first found stays, however it zig-zags. From step 3's plan, twenty more
+   steps price each hour at 10,000 silver, too little to give up anything
+   earned. Then, when the run takes quests in, the islands are moved a block
+   of one to three at a time (`relocate`), each climb keeping its order,
+   with the quests laid round every move as the tab lays them
+   (`layQuests`): a quest handed in counts 100,000 silver, ahead of any time
+   it costs and behind anything earned. The step-3 search moves an island
+   to where it adds the least sailing and never sees the quest stops laid
+   after, so it cannot find these orders. Priced from the start instead,
+   the same hours sent the search other ways, and it ended worse on 17 of
+   155 real days.
 
 Every candidate is made sailable by `finish`: a call before each island the
 hold stops; a call home for goods the storage still has -- or, with a bag,

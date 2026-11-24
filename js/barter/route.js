@@ -310,21 +310,22 @@ const liveQuests = mode => {
 const layLive = (live, mode, pts, trades) => layQuests(live, pts.map(p => ({ x: p.x, y: p.y })), { trades, progress: questProgressOf, detour: mode === 'near' ? 0 : 8000, forced: new Set(pulledToday()) });
 
 /**
- * What the planner needs to lay the islands round the quests (questOrder):
- * the quests laid through points in sailing order, the run's start, and a
- * key that changes when the quests do. Null when the run takes none in.
+ * The quests as the planner weighs them: plain data, posted to the worker
+ * with the rest of the orders -- the quests, the harbour set out from, the
+ * way round allowed for a taker, the ones taken in by hand, how far the
+ * barter quests have come. Null when the run takes none in.
  */
 export function questLayer(mode) {
 	const from = fromPort(), outPort = setOutPort();
 	if (mode === 'no' || !from) return null;
 	const live = liveQuests(mode);
 	if (!live.length) return null;
-	const lead = outPort ? [outPort] : [];
 	return {
-		key: `${mode}|${live.map(q => q.id).join(',')}|${pulledToday().join(',')}|${outPort ? outPort.id : ''}`,
-		start: from,
-		placeOf: id => npcById.get(Number(id)) || null,
-		lay: (pts, trades) => layLive(live, mode, [...lead, ...pts], [...lead.map(() => 0), ...trades])
+		list: live.map(q => ({ id: q.id, at: q.at, ...(q.monster ? { monster: q.monster } : {}), ...(q.barters ? { barters: q.barters } : {}) })),
+		lead: outPort ? [{ x: outPort.x, y: outPort.y }] : [],
+		detour: mode === 'near' ? 0 : 8000,
+		forced: pulledToday(),
+		progress: Object.fromEntries(live.filter(q => q.barters).map(q => [q.id, questProgressOf(q)]))
 	};
 }
 
