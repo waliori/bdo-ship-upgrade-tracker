@@ -30,6 +30,23 @@ export function noteFound(result, { layout = null, day = null, port = null } = {
 	}
 }
 
+/**
+ * The run cast off, when it is not a proposal as found -- climbs ticked by
+ * hand, stops moved or taken off -- sent as a study of its own, `of` the
+ * proposal's when there is one; its id, for the outcome to go under, or
+ * null when the proposal's own study stands.
+ */
+export function noteLaid(laid, of, { layout = null, day = null, port = null } = {}) {
+	if (!laid || !laid.edited) return null;
+	try {
+		const id = uuid();
+		send('/api/study', { id, at: Date.now(), release: RELEASE, device: store.getSetting('sync.device', null), layout: layout === null || layout === undefined ? null : String(layout), day, port, of: of || null, ...laid });
+		return id;
+	} catch {
+		return null;
+	}
+}
+
 /** The study whose plan ticks these climbs, if one was proposed. */
 export function studyOf(ids) {
 	const key = keyOf(ids);

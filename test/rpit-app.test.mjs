@@ -41,6 +41,9 @@ test('an island taken off the route is not sailed, and its climb stops before it
 	const k = c.rungs.findIndex(r => r.npcId === off);
 	for (const r of c.rungs.slice(k)) assert.ok(!isles(without).includes(r.npcId), `${r.npc} above the island taken off`);
 	if (k === 0) assert.ok(without.skippedWhole.some(x => x.id === c.id));
+	// What was laid goes with the run, for the study: the edit named.
+	assert.equal(without.laid.from, 'tick');
+	assert.ok(without.laid.edited && without.laid.changed.skip.includes(off) && without.laid.instance && without.laid.plan.visits.length);
 });
 
 test('a trip order set is sailed as set, and a stop moved moves on the route that was shown', () => {

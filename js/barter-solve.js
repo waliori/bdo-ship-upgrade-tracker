@@ -442,7 +442,13 @@ export function solveRun(opts0 = {}) {
 		keep(ids, { ids, plan, day, hold, hand: true });
 	} else plan = planFor(I, chains, laying);
 	const edited = edits(I, chains, chosen, plan, runOf(I, plan, how), opts);
-	return { ...runOf(I, edited, how), skippedWhole };
+	// What was laid, for the study (js/barter/study.js): sent when the run
+	// sailed is not the proposal as found -- other climbs ticked, a hand
+	// edit, a stop moved.
+	const from = had ? (had.hand ? 'hand' : 'proposal') : opts.byHand ? 'hand' : 'tick';
+	const changed = { skip: opts0.skipIsles || [], nudge: opts.nudge || {}, trips: opts.tripOrder || [] };
+	const laid = { planner: 'new', from, edited: from !== 'proposal' || changed.skip.length > 0 || Object.keys(changed.nudge).length > 0 || changed.trips.length > 0, seed: laying.seed, session: laying.session, hours: I.rules.hours, orders: opts.orders || PLAIN_ORDERS, instance: I, chains: chains.map(c => ({ id: c.id, rungs: c.rungs })), changed, plan: edited };
+	return { ...runOf(I, edited, how), skippedWhole, laid };
 }
 
 /**

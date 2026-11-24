@@ -37,7 +37,7 @@ import { levelGoodsDialog, parleyRefilled, retickIfAuto, ordersNow, setOrders, a
 import { STASHES, bagSet, legsOf, skippedToday, pulledToday, ledgerOf } from './route.js';
 import { sailKey, sailing, stopKey, ticked, runLabel, runMarks, owesCount, rangeOf, unsyncHold, abandonRun, markDone, sailRecord, planOfSail, stranded, sailedPlan, recordTrip } from './sail.js';
 import { proposeAsync, redrawSoon } from './search.js';
-import { studyOf } from './study.js';
+import { studyOf, noteLaid } from './study.js';
 import { setStep, restore, persist, persistNamed, flushView } from './view.js';
 
 // A tick on the packing list loads for real, and the game takes no good
@@ -468,7 +468,8 @@ export function barterAction(act, el, redraw) {
 			const known = Object.fromEntries(rec.stops.filter(s => s.npcId && paid[s.npcId] && rangeOf(s).hi > rangeOf(s).lo).map(s => [s.npcId, paid[s.npcId]]));
 			V.sail = { key: sailKey(), done: [], seen: { ...known }, known: Object.keys(known), got: {}, kept: [], cal: sailCal(), ...rec, packLog: V.packLog, told: toldOf(V.shownPlan, fromPort()) };
 			// The study of the plan cast off, for the run's outcome to go under.
-			{ const study = studyOf(V.routes.ids); if (study) V.sail.study = study; }
+			// A run laid other than as proposed goes as a study of its own.
+			{ const of = studyOf(V.routes.ids), b = boardNow(); const study = noteLaid(V.shownPlan.laid, of, { layout: b.combo ? b.combo.id : null, day: V.board.day, port: V.port }) || of; if (study) V.sail.study = study; }
 			V.packLog = { delta: {}, moves: [] };
 			// Sailing starts the clock, since that press is the moment the
 			// ship leaves -- and it is the gesture the browser wants before
