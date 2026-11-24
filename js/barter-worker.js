@@ -42,7 +42,8 @@ export function handleRequest(msg) {
 	try {
 		return { id, result: answer({ ...args, budgetMs }) };
 	} catch (err) {
-		return { id, error: String(err && err.message || err) };
+		// The new planner's failure carries the day it failed on (newPropose).
+		return { id, error: String(err && err.message || err), study: (err && err.study) || null };
 	}
 }
 

@@ -601,80 +601,94 @@ const WORK = 40;
 // No cap on hours: the board cleared -- the most silver, however long.
 const CLEAR = 24;
 
-export function newPropose(opts0, all0, { seed = 1, session = 0 } = {}) {
-	// The islands taken off the route are off every climb proposed too.
+/** The day a proposal is asked for, as the search sees it -- the islands taken
+ *  off the route off every climb -- or null when it cannot be laid. */
+export function dayAsked(opts0, all0) {
 	const { opts } = skipping({ ...opts0, chosen: all0 });
 	const all = opts.chosen;
-	const missing = unsupported({ ...opts, chosen: all });
-	if (missing.length || !all.length) return { proposals: [], best: null, partial: false };
+	if (unsupported({ ...opts, chosen: all }).length || !all.length) return null;
 	const { I } = instanceOf({ ...opts, chosen: all });
 	indexOf(I);
-	// How the plan is found, written down for the study of the planners
-	// (js/barter/study.js): the day as the search saw it and every step.
-	const t0 = performance.now();
-	const trace = [];
-	// The most silver inside the session, time priced at nothing; with none
-	// set, the most the board gives. Searched from the best an hour too:
-	// with time free the search lays every climb at once and sits there,
-	// while the plan that earns most an hour, grown to fill the session,
-	// was worth half as much again on an empty storage (2026-10-07).
-	I.rules.hours = session > 0 ? session : CLEAR;
-	const pool = chainsOf(I);
-	// Two rounds of the price of time: a third found nothing more on the
-	// real boards and cost as much again.
-	const rate = maximiseRate(I, (inst, o) => search(inst, { ...o, timeMs: Infinity, most: Math.ceil(WORK / 4), pool }), { timeMs: Infinity, rounds: 2, seed, trace });
-	const best = roundQuests(I, search(I, { mu: 0, ties: true, timeMs: Infinity, most: WORK, seed, pool, warm: { seq: rate.seq, calls: rate.calls }, trace }), { pool });
-	const plan = best.plan;
-	const r = simulate(I, planPolicy(plan), { mode: 'robust' });
-	const dealt = new Set(r.log.filter(e => e.kind === 'station' && e.a > 0).map(e => e.at));
-	const picked = [];
-	const covered = new Set();
-	for (const c of [...all].sort((a, b) => b.rungs.length - a.rungs.length)) {
-		const ids = c.rungs.map(x => String(x.npcId));
-		if (!ids.every(id => dealt.has(id)) || ids.every(id => covered.has(id))) continue;
-		picked.push(c);
-		for (const id of ids) covered.add(id);
-	}
-	// An island dealt at whose climb stops short of the top: that climb cut
-	// at the last island it reaches, ticked as a short trip's are.
-	for (const id of dealt) {
-		if (covered.has(id)) continue;
-		let cut = null;
-		for (const c of all) {
+	return { opts, all, I };
+}
+
+export function newPropose(opts0, all0, { seed = 1, session = 0 } = {}) {
+	const asked = dayAsked(opts0, all0);
+	if (!asked) return { proposals: [], best: null, partial: false };
+	const { opts, all, I } = asked;
+	// A search that throws takes the day it failed on with it, for the study
+	// (js/barter/search.js sends it).
+	try {
+		// How the plan is found, written down for the study of the planners
+		// (js/barter/study.js): the day as the search saw it and every step.
+		const t0 = performance.now();
+		const trace = [];
+		// The most silver inside the session, time priced at nothing; with none
+		// set, the most the board gives. Searched from the best an hour too:
+		// with time free the search lays every climb at once and sits there,
+		// while the plan that earns most an hour, grown to fill the session,
+		// was worth half as much again on an empty storage (2026-10-07).
+		I.rules.hours = session > 0 ? session : CLEAR;
+		const pool = chainsOf(I);
+		// Two rounds of the price of time: a third found nothing more on the
+		// real boards and cost as much again.
+		const rate = maximiseRate(I, (inst, o) => search(inst, { ...o, timeMs: Infinity, most: Math.ceil(WORK / 4), pool }), { timeMs: Infinity, rounds: 2, seed, trace });
+		const best = roundQuests(I, search(I, { mu: 0, ties: true, timeMs: Infinity, most: WORK, seed, pool, warm: { seq: rate.seq, calls: rate.calls }, trace }), { pool });
+		const plan = best.plan;
+		const r = simulate(I, planPolicy(plan), { mode: 'robust' });
+		const dealt = new Set(r.log.filter(e => e.kind === 'station' && e.a > 0).map(e => e.at));
+		const picked = [];
+		const covered = new Set();
+		for (const c of [...all].sort((a, b) => b.rungs.length - a.rungs.length)) {
 			const ids = c.rungs.map(x => String(x.npcId));
-			let k = -1;
-			while (k + 1 < ids.length && dealt.has(ids[k + 1])) k++;
-			if (k >= ids.indexOf(id) && ids.indexOf(id) >= 0 && (!cut || k > cut.k)) cut = { c, k };
+			if (!ids.every(id => dealt.has(id)) || ids.every(id => covered.has(id))) continue;
+			picked.push(c);
+			for (const id of ids) covered.add(id);
 		}
-		if (!cut) continue;
-		picked.push(cutAt(cut.c, cut.k));
-		for (const x of cut.c.rungs.slice(0, cut.k + 1)) covered.add(String(x.npcId));
+		// An island dealt at whose climb stops short of the top: that climb cut
+		// at the last island it reaches, ticked as a short trip's are.
+		for (const id of dealt) {
+			if (covered.has(id)) continue;
+			let cut = null;
+			for (const c of all) {
+				const ids = c.rungs.map(x => String(x.npcId));
+				let k = -1;
+				while (k + 1 < ids.length && dealt.has(ids[k + 1])) k++;
+				if (k >= ids.indexOf(id) && ids.indexOf(id) >= 0 && (!cut || k > cut.k)) cut = { c, k };
+			}
+			if (!cut) continue;
+			picked.push(cutAt(cut.c, cut.k));
+			for (const x of cut.c.rungs.slice(0, cut.k + 1)) covered.add(String(x.npcId));
+		}
+		if (!picked.length) return { proposals: [], best: null, partial: false };
+		// The plan laid again on the picked climbs alone: an island it dealt at
+		// whose climb it left short of the top belongs to no climb a sailor can
+		// tick, and the goods loaded for it went straight back ashore at the
+		// first call (2026-10-07). Same islands, same order, same calls.
+		const atPick = instanceOf({ ...opts, chosen: picked }).I;
+		const on = new Set(atPick.stations.map(s => s.id));
+		const lay = { ...atPick, rules: { ...atPick.rules, hours: I.rules.hours } };
+		const kept = (opts.orders || PLAIN_ORDERS).way === 'chain'
+			? { plan: planFor(lay, instanceOf({ ...opts, chosen: picked }).chains, { seed, session, way: 'chain' }) }
+			: finish(lay, best.seq.filter(v => on.has(v.at)), 0, { calls: (best.calls || []).filter(c => on.has(c.before)) });
+		kept.plan = trimLoads(lay, kept.plan);
+		const memo = { ids: picked.map(c => c.id).sort().join('|'), plan: kept.plan, calls: kept.calls || [], day: dayOf(atPick), hold: { ...atPick.initial.hold } };
+		keep(memo.ids, memo);
+		const run = solveRun({ ...opts, chosen: picked });
+		const hours = run.hours;
+		const value = I.rules.coinWorth > 0 ? run.coins : I.rules.stock ? fillOfRun(instanceOf({ ...opts, chosen: picked }).I, simulate(lay, planPolicy(kept.plan), { mode: 'robust' })) : run.net;
+		const coined = I.rules.coinWorth > 0, stocked = !!I.rules.stock;
+		const proposal = { kind: coined ? 'coins' : stocked ? 'stock' : 'hour', label: coined ? TT('The most coins') : stocked ? TT('The fullest stock') : session > 0 ? TT('The most in {n} h') : TT('The most the board gives'), say: { n: (opts0.orders && opts0.orders.hours) || session }, ids: picked.map(c => c.id), run, value, hours, yard: { perUnit: run.parleyUsed > 0 ? value / (run.parleyUsed / PARLEY.perGreatOceanTrade) : 0, perHour: hours > 0 ? value / hours : 0 } };
+		// The plan found goes back with the answer: searched in a worker, it is
+		// the page's solveRun that has to know it, to lay the run proposed.
+		// With it the study: the instance whole, so any planner can be run on
+		// the same day again, and the trace of how this one found its plan.
+		const study = { planner: 'new', seed, session, hours: I.rules.hours, orders: opts.orders || PLAIN_ORDERS, instance: JSON.parse(JSON.stringify(I)), chains: pool.length, trace, plan, f: best.f, R: best.R, T: best.T, mu: rate.mu, ids: proposal.ids, value, hours_: hours, ms: performance.now() - t0 };
+		return { proposals: [proposal], best: proposal, partial: false, kept: memo, study };
+	} catch (err) {
+		err.study = { planner: 'new', failed: String((err && err.stack) || err).slice(0, 4000), seed, session, orders: opts.orders || PLAIN_ORDERS, instance: JSON.parse(JSON.stringify(I)) };
+		throw err;
 	}
-	if (!picked.length) return { proposals: [], best: null, partial: false };
-	// The plan laid again on the picked climbs alone: an island it dealt at
-	// whose climb it left short of the top belongs to no climb a sailor can
-	// tick, and the goods loaded for it went straight back ashore at the
-	// first call (2026-10-07). Same islands, same order, same calls.
-	const atPick = instanceOf({ ...opts, chosen: picked }).I;
-	const on = new Set(atPick.stations.map(s => s.id));
-	const lay = { ...atPick, rules: { ...atPick.rules, hours: I.rules.hours } };
-	const kept = (opts.orders || PLAIN_ORDERS).way === 'chain'
-		? { plan: planFor(lay, instanceOf({ ...opts, chosen: picked }).chains, { seed, session, way: 'chain' }) }
-		: finish(lay, best.seq.filter(v => on.has(v.at)), 0, { calls: (best.calls || []).filter(c => on.has(c.before)) });
-	kept.plan = trimLoads(lay, kept.plan);
-	const memo = { ids: picked.map(c => c.id).sort().join('|'), plan: kept.plan, calls: kept.calls || [], day: dayOf(atPick), hold: { ...atPick.initial.hold } };
-	keep(memo.ids, memo);
-	const run = solveRun({ ...opts, chosen: picked });
-	const hours = run.hours;
-	const value = I.rules.coinWorth > 0 ? run.coins : I.rules.stock ? fillOfRun(instanceOf({ ...opts, chosen: picked }).I, simulate(lay, planPolicy(kept.plan), { mode: 'robust' })) : run.net;
-	const coined = I.rules.coinWorth > 0, stocked = !!I.rules.stock;
-	const proposal = { kind: coined ? 'coins' : stocked ? 'stock' : 'hour', label: coined ? TT('The most coins') : stocked ? TT('The fullest stock') : session > 0 ? TT('The most in {n} h') : TT('The most the board gives'), say: { n: (opts0.orders && opts0.orders.hours) || session }, ids: picked.map(c => c.id), run, value, hours, yard: { perUnit: run.parleyUsed > 0 ? value / (run.parleyUsed / PARLEY.perGreatOceanTrade) : 0, perHour: hours > 0 ? value / hours : 0 } };
-	// The plan found goes back with the answer: searched in a worker, it is
-	// the page's solveRun that has to know it, to lay the run proposed.
-	// With it the study: the instance whole, so any planner can be run on
-	// the same day again, and the trace of how this one found its plan.
-	const study = { planner: 'new', seed, session, hours: I.rules.hours, orders: opts.orders || PLAIN_ORDERS, instance: JSON.parse(JSON.stringify(I)), chains: pool.length, trace, plan, f: best.f, R: best.R, T: best.T, mu: rate.mu, ids: proposal.ids, value, hours_: hours, ms: performance.now() - t0 };
-	return { proposals: [proposal], best: proposal, partial: false, kept: memo, study };
 }
 
 /** A plan found elsewhere -- in the worker, or before a reload -- remembered

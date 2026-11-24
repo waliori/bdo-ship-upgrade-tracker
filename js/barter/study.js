@@ -47,6 +47,17 @@ export function noteLaid(laid, of, { layout = null, day = null, port = null } = 
 	}
 }
 
+/** A search that failed -- threw, or never answered -- with the day it
+ *  failed on, so it can be run again. */
+export function noteFailed(study) {
+	if (!study || !study.instance) return;
+	try {
+		send('/api/study', { id: uuid(), at: Date.now(), release: RELEASE, device: store.getSetting('sync.device', null), day: V.board ? V.board.day : null, port: V.port || null, ...study });
+	} catch {
+		// Left unsent.
+	}
+}
+
 /** The study whose plan ticks these climbs, if one was proposed. */
 export function studyOf(ids) {
 	const key = keyOf(ids);

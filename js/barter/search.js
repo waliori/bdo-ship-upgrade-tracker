@@ -11,6 +11,8 @@ import { npcById } from '../barter_npcs.js';
 import { fmtRange } from '../sailing.js';
 import { propose } from '../barter-optimizer.js';
 import { answer } from '../barter-worker.js';
+import { dayAsked } from '../barter-solve.js';
+import { noteFailed } from './study.js';
 import { coins as coinShop } from '../sea_coins.js';
 import { landPrices } from '../land-cost.js';
 import { marketSilver, marketStatus } from '../market.js';
@@ -49,7 +51,7 @@ function workerOf() {
 		if (!V.pending || V.pending.id !== id) return;
 		const req = V.pending;
 		settle();
-		if (error) answerHere(req); else req.then(result);
+		if (error) { noteFailed(evt.data.study); answerHere(req); } else req.then(result);
 	};
 	V.worker.onerror = () => {
 		// The module failed to load or threw outside a request: this
@@ -145,6 +147,17 @@ export function presetSearch(key, jobs) {
 	searchLight();
 }
 
+/** The new planner's search given up on: the day it was asked, for the study. */
+function noteStuck(args) {
+	if (!args || args.planner !== 'new') return;
+	try {
+		const asked = dayAsked(args.opts, args.chains);
+		if (asked) noteFailed({ planner: 'new', failed: `no answer in ${(SEARCH_BUDGET_MS + SEARCH_PATIENCE_MS) / 1000} s`, session: args.session || 0, orders: asked.opts.orders || null, instance: JSON.parse(JSON.stringify(asked.I)) });
+	} catch {
+		// Nothing the study does may reach the tab.
+	}
+}
+
 /** A request answered on this thread after all. */
 function answerHere(req) {
 	req.then(answer(req.args));
@@ -182,7 +195,7 @@ export function proposeAsync(args, tag, then) {
 		// thread answers, and the next ask gets a fresh worker.
 		const req = V.pending;
 		dropWorker();
-		if (req) answerHere(req);
+		if (req) { noteStuck(req.args); answerHere(req); }
 	}, SEARCH_BUDGET_MS + SEARCH_PATIENCE_MS);
 	V.pending = { id, tag, args, then, timer };
 	searchLight();
