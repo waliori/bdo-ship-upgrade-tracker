@@ -206,7 +206,7 @@ if (syncEnabled) {
 	// still reach the database when the container is asked to stop.
 	if (process.env.NODE_ENV !== 'test') flushOnShutdown();
 	app.use('/auth', authRoutes());
-	app.use('/api', apiRoutes());
+	app.use('/api', apiRoutes({ build: VERSION }));
 	// The sightings of today's barter board age out with the board they
 	// describe. Nothing depends on the sweep -- the read only ever asks
 	// for the last few days -- so it is tidiness on a slow timer.

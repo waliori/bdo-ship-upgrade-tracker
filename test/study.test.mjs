@@ -64,6 +64,7 @@ test('a study has to carry an id and name its planner', () => {
 	assert.equal(ok.error, undefined);
 	assert.equal(ok.layout, '34');
 	assert.deepEqual(unpack(ok.body), study);
+	assert.deepEqual(unpack(readStudy(study, 'abc').body), { ...study, build: 'abc' });
 });
 
 test('a stranger\'s study is kept as sent, gzipped, and the run recorded goes under it', async () => {
@@ -75,7 +76,9 @@ test('a stranger\'s study is kept as sent, gzipped, and the run recorded goes un
 	assert.equal(rows.length, 1);
 	assert.equal(rows[0].userId, null);
 	assert.equal(rows[0].planner, 'new');
-	assert.deepEqual(unpack(rows[0].body), study);
+	const { build, ...kept } = unpack(rows[0].body);
+	assert.deepEqual(kept, study);
+	assert.ok(typeof build === 'string' && build, 'the deploy is named');
 	assert.deepEqual(unpack(rows[0].sailed), { silver: 5, done: 3 });
 	assert.ok(rows[0].sailedAt > 0);
 });
