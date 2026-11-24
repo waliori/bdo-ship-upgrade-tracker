@@ -1016,8 +1016,9 @@ export function recordTrip(plan, from, on = sailing(), { abandoned = false } = {
 	V.skipped = new Set();
 	V.packed = new Set();
 	// The run as it went, under the study of the plan it sailed: what the
-	// plan promised beside what the day gave, stop by stop and by the clock.
-	if (on.study) noteSailed(on.study, { at: Date.now(), abandoned, timer: timerNow(), done: on.done.length, all: plan.stops.length, stops: stopsLog, skipped: [...(V.skipped || [])], silver: trip.silver, spent: trip.spent || 0, trades: Math.round(trip.trades), parley: parleySpent, vouchers: drawnOn, coins: Math.round(trip.delta[COIN] || 0), planned: { net: plan.net, hours: plan.hours, trades: plan.trades, parley: plan.parleyUsed, stops: plan.stops.length } });
+	// plan promised beside what the day gave, stop by stop and by the clock,
+	// and the route as the tab showed it -- the quest stops and refills too.
+	if (on.study) noteSailed(on.study, { at: Date.now(), abandoned, timer: timerNow(), done: on.done.length, all: plan.stops.length, stops: stopsLog, skipped: [...(V.skipped || [])], silver: trip.silver, spent: trip.spent || 0, trades: Math.round(trip.trades), parley: parleySpent, vouchers: drawnOn, coins: Math.round(trip.delta[COIN] || 0), planned: { net: plan.net, hours: plan.hours, trades: plan.trades, parley: plan.parleyUsed, stops: plan.stops.length }, shown: on.stops || [] });
 	// The trip is in the book, so the clock that timed it is done.
 	stopTimer();
 	persist();
