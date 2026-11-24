@@ -187,9 +187,13 @@ export function tighten(I, found, opts) {
 	const t = search(bare, { mu: 0, timeMs: Infinity, most: TIGHT, ...opts, warm: { seq: found.seq, calls: found.calls } });
 	const chains = opts.pool || chainsOf(J);
 	const must = opts.fixed ? chains.map(c => c.rungs[c.rungs.length - 1]) : [];
-	// Shorter but past fewer quest givers: the plan as it came, quests counted.
-	const from = quests && found.plan && worthOf(J, found.plan, must) > worthOf(J, t.plan, must) ? found : t;
-	return relocate(J, from, chains, must);
+	// The islands moved round the quests from both plans, the better kept: the
+	// shorter one can sit where no block of three moved brings it back past a
+	// quest the first one took in (721784, 2026-11-24: Lively Iliya Island).
+	const moved = relocate(J, t, chains, must);
+	if (!quests || !found.plan) return moved;
+	const kept = relocate(J, found, chains, must);
+	return worthOf(J, kept.plan, must) > worthOf(J, moved.plan, must) ? kept : moved;
 }
 
 /**

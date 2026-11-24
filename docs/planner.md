@@ -91,7 +91,10 @@ both run the same pipeline:
    (`layQuests`): a quest handed in counts 100,000 silver, ahead of any time
    it costs and behind anything earned. The step-3 search moves an island
    to where it adds the least sailing and never sees the quest stops laid
-   after, so it cannot find these orders. Priced from the start instead,
+   after, so it cannot find these orders. The moves start from both the
+   shorter plan and step 3's, and the better is kept: from the shorter one
+   alone, no move of three islands brought the run back past a quest giver
+   the longer one took in. Priced from the start instead,
    the same hours sent the search other ways, and it ended worse on 17 of
    155 real days.
 
