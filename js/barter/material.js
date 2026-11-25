@@ -14,7 +14,7 @@ import { QUEST_CHOICES, VOUCHER_CHOICES } from '../barter-orders.js';
 import { landPrices } from '../land-cost.js';
 import { GOODS, PARLEY, levelOf } from '../barter.js';
 import { weightOf, sellOf, stacks } from '../barter-plan.js';
-import { shotGuideHTML } from '../barter-import.js';
+import { shotGuideHTML } from '../shot-bits.js';
 import { bookFromGame, fitOf as matFitOf, MIN_FIT as MAT_MIN_FIT } from '../material-book.js';
 import { materialPages, materialDeal } from '../barter-layouts.js';
 import { openMaterialBook, pageName as matPageName } from '../material-book-view.js';

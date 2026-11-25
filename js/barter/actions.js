@@ -15,7 +15,7 @@ import { cadenceOf } from '../quests.js';
 import { questDone, rewardOf } from '../screen-quests.js';
 import { QUEST_CHOICES, PAUSE_MAX, AIM_CHOICES, ORDER_CHOICES, STOCK_LEVELS, SAIL_PRESETS, sailPresetOf } from '../barter-orders.js';
 import { PARLEY, COIN_LEVEL, levelOf } from '../barter.js';
-import { pickShots } from '../barter-import.js';
+import { pickShots } from '../shot-bits.js';
 import { pageName as matPageName } from '../material-book-view.js';
 import { TOWNS } from '../screen-inventory.js';
 import { cutOf } from '../barter-short.js';

@@ -9,7 +9,7 @@ import { barterKey } from '../clock.js';
 import { candidates } from '../barter-board.js';
 import { npcById, ports } from '../barter_npcs.js';
 import { QUEST_CHOICES, DEFAULT_STOCK, STOCK_LEVELS, readStock } from '../barter-orders.js';
-import { imagesOn } from '../shot-reader.js';
+import { imagesOn } from '../shot-bits.js';
 import { driftOf } from '../layout-book.js';
 import { rememberFound, foundFor } from '../barter-solve.js';
 import { V, STEP_KEY, STEPS } from './state.js';

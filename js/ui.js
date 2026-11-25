@@ -14,9 +14,10 @@
 //     both are wound into this file's action switch and into the barter run
 //     sheet's chart (map/paint.js imports screen-barter), so they need their
 //     actions routed through a lazy door before they can be split;
-//   * shot-reader.js, barter-import.js and bag-shot.js: reached at render by
-//     barter/view.js (imagesOn), barter/material.js (shotGuideHTML) and
-//     barter/plan.js -- move those calls behind a dynamic import.
+// The screenshot readers left it on 2026-11-25: what the page draws about
+// screenshots is in shot-bits.js, and shot-reader.js and barter-import.js
+// are fetched when a picture is read. So did about.js, which the planner's
+// study pulled in for the release number (release.js has it).
 // seamask.js and sea_dist.js stay: every sea route needs them.
 
 import { shipGroups } from './ships.js';
@@ -37,7 +38,7 @@ import { kindOf } from './kinds.js';
 import { toast, hideToast, openDialog, closeDialog, dismissDialog, holdScreen, whenScreenFree } from './dialogs.js';
 import { allItems, img } from './ui-bits.js';
 import { T, TT, said, gameName, LANGS, langById, langFlag, setLang, startingLang, lang as currentLang } from './i18n.js';
-import { imagesOn } from './shot-reader.js';
+import { imagesOn } from './shot-bits.js';
 import { encodeShare, decodeShare, decodeAny, shareLink, shareSize, shortLinkId, plainSearch, isPlan, slimShape, SLIM_DROP } from './share.js';
 import { buildLink, copyLink } from './links.js';
 import { massProcess } from './vendor_items.js';

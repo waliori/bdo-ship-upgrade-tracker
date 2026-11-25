@@ -23,44 +23,10 @@ import { T, said, gameName, gameNamesFor } from './i18n.js';
 import { openDialog, closeDialog, toast } from './dialogs.js';
 import { triage, readWords, wireShotIntake, close as closeReader, shotLang, queuedNote } from './shot-reader.js';
 import { npcs, isleOf, whoOf } from './barter_npcs.js';
+export { shotGuideHTML, pickShots } from './shot-bits.js';
 import { img } from './ui-bits.js';
 import * as store from './state.js';
 
-/**
- * What the reader reads, drawn on the game's own window: the whole
- * window with its head, the same rows cropped, and what the numbered
- * boxes are. `list` is 'trade' or 'material' -- one window, the rows
- * sorted by what they pay -- and `lazy` is for a page that draws it
- * folded away.
- */
-export function shotGuideHTML(list = 'trade', { lazy = false } = {}) {
-	const mat = list === 'material';
-	const l = lazy ? ' loading="lazy"' : '';
-	const key = (n, cls, text) => `<li><i class="shot-key ${cls}">${n}</i><span>${text}</span></li>`;
-	return `<div class="mat-help-figs">
-		<figure class="mat-help-fig"><img src="guide/${mat ? 'material-page' : 'barter-window'}.webp" alt="${T('The Barter Information window, the parts the app reads outlined')}"${l} width="600" height="${mat ? 421 : 418}">
-			<figcaption>${mat
-		? T('The whole Barter Information window — the same window as for trade goods. The rows paying ship materials go to the material list.')
-		: T('The whole Barter Information window. A few rows are enough to find the layout; scroll and shoot again for more. A full-screen shot works too.')}</figcaption></figure>
-		<figure class="mat-help-fig"><img src="guide/${mat ? 'material' : 'barter'}-cropped.webp" alt="${T('The same rows, cropped out of the window')}"${l} width="560" height="${mat ? 256 : 258}">
-			<figcaption>${T('Cropped to the rows works too: every row is read the same. Only the head’s two figures are missed, and those can be typed in.')}</figcaption></figure>
-	</div>
-	<ol class="shot-keys">
-		${key(1, 'at-head', T('<b>Parley</b> — the bar you hold, written in for the run'))}
-		${key(2, 'at-head', T('<b>Total Barters</b> — opens the islands and exchanges your count allows'))}
-		${key(3, 'at-head', T('<b>The rows</b> — each one’s island, what it takes and what it pays; what it pays sorts it into the trade goods or the ship material list. A name cut short with “…” is enough.'))}
-	</ol>`;
-}
-
-/** Ask the system for pictures, and hand them to `then`. */
-export function pickShots(then) {
-	const input = document.createElement('input');
-	input.type = 'file';
-	input.accept = 'image/png,image/jpeg,image/webp';
-	input.multiple = true;
-	input.addEventListener('change', () => { if (input.files && input.files.length) then([...input.files]); });
-	input.click();
-}
 
 /**
  * The reading, in a dialog: the progress, then the rows to check.

@@ -10,7 +10,7 @@
 
 import { V } from './state.js';
 import * as store from '../state.js';
-import { RELEASE } from '../about.js';
+import { RELEASE } from '../release.js';
 
 /** How many proposals' ids are remembered, to find the one cast off. */
 const KEEP = 12;

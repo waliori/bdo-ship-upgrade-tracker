@@ -13,9 +13,8 @@ import { sailSeconds, METRES_PER_PX } from '../sailing.js';
 import { WAY_CHOICES, QUEST_CHOICES, SELL_CHOICES, LAND_CHOICES, VOUCHER_CHOICES, HOUR_CHOICES, AIM_CHOICES, ORDER_CHOICES, NOTHING, STOCK_LEVELS, SAIL_PRESETS, sailPresetOf, readOrders, readStock, yardsticks, stockTarget } from '../barter-orders.js';
 import { PARLEY, COIN, COIN_LEVEL, dailyCapacity, parleyPerTrade, parleyRate, levelOf } from '../barter.js';
 import { goodsHeld, landHeld } from '../barter-plan.js';
-import { pickShots } from '../barter-import.js';
+import { pickShots } from '../shot-bits.js';
 import { dealsAt } from '../barter-layouts.js';
-import { readWords, shotLang, triage } from '../shot-reader.js';
 import { chainRun } from '../barter-chains.js';
 import { seaDist, routeLength } from '../barter-route.js';
 import { bagFigures, bagRoom, BAG_OVER } from '../bag-shot.js';
@@ -745,6 +744,8 @@ export function readBagShot(files) {
 		on('[data-use]', use);
 	}
 	async function run(list) {
+		// The reader is fetched when a picture is read, not with the page.
+		const { readWords, shotLang, triage } = await import('../shot-reader.js');
 		const { take, skipped } = await triage([...(list || [])].slice(0, 1));
 		if (!take.length) { draw(failView(skipped.length ? `${skipped[0].file.name}: ${skipped[0].why}` : T('The screenshot could not be read'))); return; }
 		const me = reading = {};
