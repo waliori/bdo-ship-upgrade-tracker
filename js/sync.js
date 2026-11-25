@@ -721,6 +721,13 @@ export function signIn() {
 	});
 }
 
+/** The masthead's two pieces, drawn again after the language changes:
+ *  they paint on their own events, not with the screens. */
+export function repaintMasthead() {
+	paint();
+	if (features.presence) import('./presence.js').then(m => m.repaint()).catch(() => {});
+}
+
 export function openAccount() {
 	if (account) openAccountDialog();
 	else signIn();

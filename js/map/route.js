@@ -477,13 +477,13 @@ export function readStash(rows) {
 			silver: Math.max(0, Number(silver) || 0)
 		});
 	}
-	return out.sort((a, b) => a.i - b.i).slice(0, 16);
+	return out.sort((a, b) => a.i - b.i).slice(0, 64);
 }
 
 /** The wharf calls as readStash takes them back: what a link, a saved
  *  route and the browser's own copy all carry. */
 function stashRows() {
-	return mv.runStash.map(c => [c.i, c.name, c.at, c.x, c.y, c.drops.map(d => [d.item, d.n]), c.sale, c.silver, c.quests || [], c.own ? 'own' : c.rations ? 'rations' : '']);
+	return mv.runStash.map(c => [c.i, c.name, c.at, c.x, c.y, c.drops.map(d => [d.item, d.n]), c.sale, c.silver, c.quests || [], c.own ? 'own' : c.rations ? 'rations' : c.fetch ? 'fetch' : '']);
 }
 
 /** Whether the run's wharf calls belong to the route as it stands.

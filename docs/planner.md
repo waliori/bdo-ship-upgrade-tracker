@@ -51,6 +51,10 @@ most (`robust`); a board read off screenshots has them exact.
 - minus a price for running out of rations at sea, or missing a climb the
   sailor ticked, larger than everything.
 
+Neither time nor quests are priced in it. Of two plans that score alike the
+search keeps the shorter, and quests are ranked after earnings (step 4 below):
+some quests pay no silver, so none is given a worth in it.
+
 Hours under way are measured as the classic planner measured them: the
 cargo's route -- islands and trading calls, not the supply calls the tab lays
 after -- at the ship's own speed.
@@ -78,6 +82,23 @@ both run the same pipeline:
    offers them), keeping what is better and sometimes what is a little worse
    early on. Forty steps, counted in steps and not milliseconds, so the same
    board gives the same run on any machine.
+4. **Time and quests.** With no session an hour costs nothing, so two
+   plans that earn alike tie. Step 3's search keeps, of two it meets that
+   earn alike, the one that leaves out fewer of the sailor's quests, then
+   the shorter (`ties`, `alns.js`): only the plan kept changes, not the path
+   the search takes or the scores that steer it, so it ends on what it
+   earned before, for no extra steps. Not in step 2: there the plan kept
+   starts the next round, and changing it lost up to 43 % on real days. When the run takes quests in, the islands are then
+   moved a block of one to three at a time (`roundQuests`, `relocate` in
+   `js/barter-solve.js`), each climb keeping its order, with the quests laid
+   round every move as the tab lays them (`layQuests`). A move is kept when
+   it ranks higher (`rankOf`): first what it earns, then how many of the
+   quests the sailor picked it leaves out, then its hours with the quest
+   stops'. The step-3 search moves an island to where it adds the least
+   sailing and never sees the quest stops laid after, so it cannot find
+   these orders. A price on the hour put into the score sent the search
+   other ways, and it ended worse on 17 of 155 real days; twenty more steps
+   with that price after the search cost seconds on the heaviest days.
 
 Every candidate is made sailable by `finish`: a call before each island the
 hold stops; a call home for goods the storage still has -- or, with a bag,
@@ -89,7 +110,14 @@ filled (`refuel`, the fixed-route charging problem of electric-vehicle
 routing), every wharf tried when the nearest five cannot feed the ship.
 
 On the search's answer, once, `trimLoads` leaves ashore what the plan loads and
-brings back unused, as long as the run gives up no trade and no value for it.
+brings back unused, as long as the run gives up no trade and no value for it;
+and what a later island takes is loaded at the last call home before it, not
+at the start -- a good bought at the Market left in the harbour's storage
+until then (`loadLate`).
+
+On a stock day the ranking of step 4 puts the quests before the goods' cost:
+of two plans that fill alike, the one leaving fewer quests out, then the
+cheaper, then the shorter.
 
 ## From the plan to the tab
 
@@ -111,10 +139,13 @@ brings back unused, as long as the run gives up no trade and no value for it.
 - `runOf` writes the plan in `chainRun`'s shape: stops, sales, drops, loads,
   bag moves, refill stops, trips, coins.
 
-Not yet the new planner's: the five *How to sail it* cards are still each
-searched by the classic search, and the material run has its own planner
-(`js/barter-material.js`) -- a different problem, a tour through ticked
-islands that leaves heavy and comes back light.
+- The five *How to sail it* cards are laid by it too, each under its own
+  way's orders and hours, one after the other on a worker of their own
+  (`presetSearch`, `js/barter/search.js`).
+
+The material run has its own planner (`js/barter-material.js`) -- a
+different problem, a tour through ticked islands that leaves heavy and
+comes back light.
 
 ## Testing it
 

@@ -15,7 +15,7 @@ import { cadenceOf } from '../quests.js';
 import { questDone, rewardOf } from '../screen-quests.js';
 import { QUEST_CHOICES, PAUSE_MAX, AIM_CHOICES, ORDER_CHOICES, STOCK_LEVELS, SAIL_PRESETS, sailPresetOf } from '../barter-orders.js';
 import { PARLEY, COIN_LEVEL, levelOf } from '../barter.js';
-import { pickShots } from '../barter-import.js';
+import { pickShots } from '../shot-bits.js';
 import { pageName as matPageName } from '../material-book-view.js';
 import { TOWNS } from '../screen-inventory.js';
 import { cutOf } from '../barter-short.js';
@@ -35,9 +35,9 @@ import { matBoardNow, matFitNow, takeMatOffers, openMatBook, openMatRolls, pickG
 import { packedNow, unloadMoves, packApply, toldOf } from './packing.js';
 import { levelGoodsDialog, parleyRefilled, retickIfAuto, ordersNow, setOrders, applySaved, dropSaved, askSaveOrders, sellFrom, keepFrom, readBagShot, chainStepsDialog, chainClaimDialog } from './plan.js';
 import { STASHES, bagSet, legsOf, skippedToday, pulledToday, ledgerOf } from './route.js';
-import { sailKey, sailing, stopKey, ticked, runLabel, runMarks, owesCount, rangeOf, unsyncHold, abandonRun, markDone, sailRecord, planOfSail, stranded, sailedPlan, recordTrip } from './sail.js';
+import { sailKey, sailing, stopKey, ticked, runLabel, runMarks, owesCount, rangeOf, unsyncHold, abandonRun, markDone, noteProgress, sailRecord, planOfSail, stranded, sailedPlan, recordTrip } from './sail.js';
 import { proposeAsync, redrawSoon } from './search.js';
-import { studyOf } from './study.js';
+import { studyOf, noteLaid } from './study.js';
 import { setStep, restore, persist, persistNamed, flushView } from './view.js';
 
 // A tick on the packing list loads for real, and the game takes no good
@@ -161,8 +161,8 @@ export function barterAction(act, el, redraw) {
 		// sailor keeps their place by, kept with the run.
 		case 'barter-pack': {
 			const k = String(el.dataset.k || '');
-			const x = { key: k, item: el.dataset.item, n: Number(el.dataset.n) || 0, cost: Number(el.dataset.cost) || 0 };
-			if (/^[bltasu]\|/.test(k)) { const want = !packedNow(x); slotsSaid(packApply([x], want, fromPort())); return true; }
+			const x = { key: k, item: el.dataset.item, n: Number(el.dataset.n) || 0, cost: Number(el.dataset.cost) || 0, ...(el.dataset.town ? { town: el.dataset.town } : {}) };
+			if (/^[bltasum]\|/.test(k)) { const want = !packedNow(x); slotsSaid(packApply([x], want, fromPort())); return true; }
 			if (V.packed.has(k)) V.packed.delete(k); else V.packed.add(k);
 			persist();
 			return true;
@@ -172,9 +172,9 @@ export function barterAction(act, el, redraw) {
 		case 'barter-pack-all': {
 			const want = el.dataset.on !== '1';
 			const rows = JSON.parse(el.dataset.rows || '[]');
-			const loads = rows.filter(x => /^[bltasu]\|/.test(x.key) && packedNow(x) !== want);
+			const loads = rows.filter(x => /^[bltasum]\|/.test(x.key) && packedNow(x) !== want);
 			if (loads.length) slotsSaid(packApply(loads, want, fromPort()));
-			const marks = rows.filter(x => !/^[bltasu]\|/.test(x.key));
+			const marks = rows.filter(x => !/^[bltasum]\|/.test(x.key));
 			for (const x of marks) if (want) V.packed.add(String(x.key)); else V.packed.delete(String(x.key));
 			if (marks.length) persist();
 			return true;
@@ -468,7 +468,8 @@ export function barterAction(act, el, redraw) {
 			const known = Object.fromEntries(rec.stops.filter(s => s.npcId && paid[s.npcId] && rangeOf(s).hi > rangeOf(s).lo).map(s => [s.npcId, paid[s.npcId]]));
 			V.sail = { key: sailKey(), done: [], seen: { ...known }, known: Object.keys(known), got: {}, kept: [], cal: sailCal(), ...rec, packLog: V.packLog, told: toldOf(V.shownPlan, fromPort()) };
 			// The study of the plan cast off, for the run's outcome to go under.
-			{ const study = studyOf(V.routes.ids); if (study) V.sail.study = study; }
+			// A run laid other than as proposed goes as a study of its own.
+			{ const of = studyOf(V.routes.ids), b = boardNow(); const study = noteLaid(V.shownPlan.laid, of, { layout: b.combo ? b.combo.id : null, day: V.board.day, port: V.port }) || of; if (study) { V.sail.study = study; noteProgress(V.sail, V.shownPlan); } }
 			V.packLog = { delta: {}, moves: [] };
 			// Sailing starts the clock, since that press is the moment the
 			// ship leaves -- and it is the gesture the browser wants before
@@ -888,6 +889,15 @@ export function barterChange(el, parseAmount) {
 			const n = el.value.trim() === '' ? 0 : k === 'now' ? figure(el.value) ?? parseAmount(el.value) : parseAmount(el.value);
 			if (!k || n === null) return true;
 			store.setProfile('bag', { ...bagSet(), [k]: Math.max(0, n) });
+			return true;
+		}
+		case 'barter-stock-coins': {
+			const n = parseAmount(el.value === '' ? '0' : el.value);
+			if (n === null) return true;
+			const coins = Math.max(0, Math.floor(n));
+			V.stockGoal = { ...V.stockGoal, coins: coins || undefined };
+			if (!coins) delete V.stockGoal.coins;
+			persist();
 			return true;
 		}
 		case 'barter-target': {

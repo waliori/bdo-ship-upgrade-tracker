@@ -24,15 +24,19 @@ const short = (v, n) => (typeof v === 'string' && v ? v.slice(0, n) : null);
 const pack = o => gzipSync(JSON.stringify(o)).toString('base64');
 
 /** A study as it may be stored, or a complaint about it. */
-export function readStudy(body) {
+export function readStudy(body, build = null) {
 	if (!body || typeof body !== 'object') return { error: 'Expected a study.' };
 	if (!ID.test(String(body.id || ''))) return { error: 'A study needs an id.' };
 	const planner = short(body.planner, 16);
 	if (!planner) return { error: 'A study has to name its planner.' };
-	return { id: body.id, planner, release: short(body.release, 24), layout: short(body.layout, 12), day: short(body.day, 24), device: short(body.device, 64), body: pack(body) };
+	return { id: body.id, planner, release: short(body.release, 24), layout: short(body.layout, 12), day: short(body.day, 24), device: short(body.device, 64), body: pack(build ? { ...body, build } : body) };
 }
 
-export function studyRoutes() {
+// `build`: the deploy's stamp (server.js), written into each study: the
+// release spans weeks of deploys, the stamp names the code that laid it.
+// A page still on the last deploy's cache in the minutes after one is
+// named for the new.
+export function studyRoutes({ build = null } = {}) {
 	const router = express.Router();
 	const body = express.json({ limit: config.maxStudyBytes });
 	const limit = perAccount(config.maxStudiesPerMinute, 'That is a lot of plans.');
@@ -40,14 +44,14 @@ export function studyRoutes() {
 	// counted by address.
 	const who = (req, res, next) => { req.userId = sessionUser(req); next(); };
 	router.post('/study', who, limit, body, wrap(async (req, res) => {
-		const s = readStudy(req.body);
+		const s = readStudy(req.body, build);
 		if (s.error) return res.status(400).json({ error: s.error });
 		await insertStudy({ ...s, userId: req.userId });
 		res.json({ ok: true });
 	}));
 	router.post('/study/:id/sailed', who, limit, body, wrap(async (req, res) => {
 		if (!ID.test(req.params.id) || !req.body || typeof req.body !== 'object') return res.status(400).json({ error: 'Expected the outcome of a study.' });
-		const ok = await markStudySailed(req.params.id, req.userId, pack(req.body));
+		const ok = await markStudySailed(req.params.id, req.userId, pack(req.body), Date.now(), { partial: req.body.partial === true });
 		res.status(ok ? 200 : 404).json(ok ? { ok: true } : { error: 'No such study.' });
 	}));
 	return router;

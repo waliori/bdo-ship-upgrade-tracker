@@ -2,15 +2,15 @@
 //
 // Every plan the tab proposes goes to the server with the day as the
 // planner saw it and how it found the plan (the `study` barter-solve.js
-// sends back with its answer), and the run the sailor then records goes
-// after it under the same id -- so what a planner promised and what the
+// sends back with its answer), and the run sailed on it goes after it
+// under the same id, tick by tick and as recorded -- so what a planner promised and what the
 // day gave can be read together, and any planner run on that day again
 // (server/study.js, tools/rpit/study/). Sent gzipped, in idle time, and
 // forgotten if it fails: nothing the sailor sees waits on it.
 
 import { V } from './state.js';
 import * as store from '../state.js';
-import { RELEASE } from '../about.js';
+import { RELEASE } from '../release.js';
 
 /** How many proposals' ids are remembered, to find the one cast off. */
 const KEEP = 12;
@@ -30,6 +30,34 @@ export function noteFound(result, { layout = null, day = null, port = null } = {
 	}
 }
 
+/**
+ * The run cast off, when it is not a proposal as found -- climbs ticked by
+ * hand, stops moved or taken off -- sent as a study of its own, `of` the
+ * proposal's when there is one; its id, for the outcome to go under, or
+ * null when the proposal's own study stands.
+ */
+export function noteLaid(laid, of, { layout = null, day = null, port = null } = {}) {
+	if (!laid || !laid.edited) return null;
+	try {
+		const id = uuid();
+		send('/api/study', { id, at: Date.now(), release: RELEASE, device: store.getSetting('sync.device', null), layout: layout === null || layout === undefined ? null : String(layout), day, port, of: of || null, ...laid });
+		return id;
+	} catch {
+		return null;
+	}
+}
+
+/** A search that failed -- threw, or never answered -- with the day it
+ *  failed on, so it can be run again. */
+export function noteFailed(study) {
+	if (!study || !study.instance) return;
+	try {
+		send('/api/study', { id: uuid(), at: Date.now(), release: RELEASE, device: store.getSetting('sync.device', null), day: V.board ? V.board.day : null, port: V.port || null, ...study });
+	} catch {
+		// Left unsent.
+	}
+}
+
 /** The study whose plan ticks these climbs, if one was proposed. */
 export function studyOf(ids) {
 	const key = keyOf(ids);
@@ -37,7 +65,8 @@ export function studyOf(ids) {
 	return s ? s.id : null;
 }
 
-/** The run recorded, under the study of the plan it sailed. */
+/** The run under the study of the plan it sailed: as far as it went
+ *  (`partial`), each send replacing the last, and the record at the end. */
 export function noteSailed(id, outcome) {
 	try {
 		if (id) send(`/api/study/${id}/sailed`, outcome);

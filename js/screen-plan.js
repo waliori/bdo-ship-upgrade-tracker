@@ -19,11 +19,14 @@ export function renderPlan() {
 	const totals = totalsToGo();
 	const ready = readyCrafts();
 
+	// Raw units, the Builds card's measure: summing the rows counted a
+	// part still to be made -- and the build itself -- as covered while
+	// every input it needs was missing.
 	let need = 0;
 	let have = 0;
-	for (const r of Object.values(rows)) {
-		need += r.need;
-		have += r.need - r.short;
+	for (const t of snapshot.targets) {
+		need += t.totalUnits;
+		have += Math.max(0, t.totalUnits - t.missingUnits);
 	}
 	const pct = need ? Math.round((have / need) * 100) : 0;
 

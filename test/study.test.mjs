@@ -64,6 +64,7 @@ test('a study has to carry an id and name its planner', () => {
 	assert.equal(ok.error, undefined);
 	assert.equal(ok.layout, '34');
 	assert.deepEqual(unpack(ok.body), study);
+	assert.deepEqual(unpack(readStudy(study, 'abc').body), { ...study, build: 'abc' });
 });
 
 test('a stranger\'s study is kept as sent, gzipped, and the run recorded goes under it', async () => {
@@ -75,9 +76,32 @@ test('a stranger\'s study is kept as sent, gzipped, and the run recorded goes un
 	assert.equal(rows.length, 1);
 	assert.equal(rows[0].userId, null);
 	assert.equal(rows[0].planner, 'new');
-	assert.deepEqual(unpack(rows[0].body), study);
+	const { build, ...kept } = unpack(rows[0].body);
+	assert.deepEqual(kept, study);
+	assert.ok(typeof build === 'string' && build, 'the deploy is named');
 	assert.deepEqual(unpack(rows[0].sailed), { silver: 5, done: 3 });
 	assert.ok(rows[0].sailedAt > 0);
+});
+
+test('the run so far is kept until the record, and never written over it', async () => {
+	const id = '4d5e6f7a-8b9c-4d0e-9f1a-2b3c4d5e6f7a';
+	let res = await post('/api/study', { ...study, id });
+	assert.equal(res.status, 200, await res.text());
+	res = await post(`/api/study/${id}/sailed`, { partial: true, done: 2 });
+	assert.equal(res.status, 200);
+	res = await post(`/api/study/${id}/sailed`, { partial: true, done: 4 });
+	assert.equal(res.status, 200, 'a later partial replaces the first');
+	let row = (await listStudies(0)).find(r => r.id === id);
+	assert.deepEqual(unpack(row.sailed), { partial: true, done: 4 });
+	assert.equal(row.sailedPartial, true);
+	res = await post(`/api/study/${id}/sailed`, { partial: false, done: 5, silver: 9 });
+	assert.equal(res.status, 200);
+	// A partial still on the wire when the record went lands after it.
+	await post(`/api/study/${id}/sailed`, { partial: true, done: 4 });
+	row = (await listStudies(0)).find(r => r.id === id);
+	assert.deepEqual(unpack(row.sailed), { partial: false, done: 5, silver: 9 });
+	assert.equal(row.sailedPartial, false);
+	assert.ok((await listStudies(row.sailedAt - 1, 10, { by: 'sailed' })).some(r => r.id === id), 'found by when its outcome came');
 });
 
 test('an outcome for a study that is not there, or not the sender\'s, is refused', async () => {

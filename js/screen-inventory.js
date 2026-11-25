@@ -416,6 +416,8 @@ function renderDetail() {
 	const src = step ? null : sourceOf(item);
 	const canCraft = !!recipes[item] && !step;
 	const most = canCraft ? maxCraftable(item, craftStock(item), recipes) : 0;
+	// The input that stops a craft, named on the greyed buttons.
+	const lack = canCraft && most < 1 ? (() => { const have = craftStock(item); const e = Object.entries(recipes[item] || {}).find(([g, per]) => per > 0 && (have[g] || 0) < per); return e ? T('Short of {good}: {have} of the {need} one craft takes', { good: esc(gameName(e[0])), have: F(have[e[0]] || 0), need: F(e[1]) }) : ''; })() : '';
 
 	const resvHTML = holders.length ? `<div class="detail-block">
 		<div class="detail-label">${T('Reserved by')}</div>
@@ -489,8 +491,8 @@ function renderDetail() {
 		${step ? `<button class="act quiet wide" data-act="view" data-id="workshop">${T('Attempt it in the Workshop')}</button>` : ''}
 		${toggle}
 		${canCraft ? `<div class="detail-actions">
-			<button class="act" data-act="craft" data-item="${esc(item)}" data-times="1" ${most < 1 ? 'disabled' : ''}>${T('Craft 1')}</button>
-			<button class="act quiet" data-act="craft" data-item="${esc(item)}" data-times="${most}" ${most < 1 ? 'disabled' : ''}>${T('Craft max ({n})', { n: F(most) })}</button>
+			<button class="act" data-act="craft" data-item="${esc(item)}" data-times="1" ${most < 1 ? `disabled title="${lack}"` : ''}>${T('Craft 1')}</button>
+			<button class="act quiet" data-act="craft" data-item="${esc(item)}" data-times="${most}" ${most < 1 ? `disabled title="${lack}"` : ''}>${T('Craft max ({n})', { n: F(most) })}</button>
 		</div>` : ''}
 		${block(T('Where else it turns up'), waysThrough(item, { from: 'inventory' }))}`;
 }

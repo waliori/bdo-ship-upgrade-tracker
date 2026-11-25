@@ -132,3 +132,23 @@ test('a save that names the preset by its old id lands on the same orders', () =
 	// A name that was never a preset still falls back to cash.
 	assert.equal(readOrders({ preset: 'nonsense' }).preset, 'cash');
 });
+
+test('a good keeps its own stock number, over its level\'s', async () => {
+	const { readStock, stockTarget, stockOrders, floorOf } = await import('../js/barter-orders.js');
+	const stock = readStock({ targets: { 5: 0, 4: 40 }, ceiling: 5, items: { '[Level 5] Blue Azure Quartz': 6, '[Level 4] Solidified Lava': 0, 'Not a good': 3, '[Level 4] Old Hourglass': -2 } });
+	assert.deepEqual(stock.items, { '[Level 5] Blue Azure Quartz': 6, '[Level 4] Solidified Lava': 0 }, 'only goods with a level, and a count');
+	assert.equal(stockTarget(stock, '[Level 5] Blue Azure Quartz'), 6);
+	assert.equal(stockTarget(stock, '[Level 5] Statue\'s Tear'), 0, 'the level\'s keep');
+	assert.equal(stockTarget(stock, '[Level 4] Solidified Lava'), 0, 'none of this one');
+	assert.equal(stockTarget(stock, '[Level 4] Old Hourglass'), 40);
+	const o = stockOrders({ floors: {} }, stock);
+	assert.equal(floorOf('[Level 5] Blue Azure Quartz', o), 6);
+	assert.equal(floorOf('[Level 4] Solidified Lava', o), 0);
+	assert.equal(floorOf('[Level 4] Old Hourglass', o), 40);
+	// From the top, a good's own floor waits for the levels above, as its level's does.
+	const down = stockOrders({ floors: {} }, { ...stock, order: 'down', targets: { ...stock.targets, 5: 10 } }, lv => lv !== 5);
+	assert.equal(floorOf('[Level 4] Old Hourglass', down), 0);
+	assert.equal(floorOf('[Level 4] Solidified Lava', down), 0);
+	assert.equal(floorOf('[Level 5] Blue Azure Quartz', down), 6);
+	assert.equal(readStock({}).items, undefined);
+});

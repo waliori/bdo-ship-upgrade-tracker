@@ -119,6 +119,9 @@ export function marketStatus() {
 	return { at: held.at, stale: Date.now() - held.at > STALE_MS, count, region: held.region, failed: held.failed || 0 };
 }
 
+/** The prices on the wire, a promise of whether new ones landed; null when none are being fetched. */
+export const marketBusy = () => loading;
+
 export function onMarket(fn) {
 	listeners.add(fn);
 	return () => listeners.delete(fn);

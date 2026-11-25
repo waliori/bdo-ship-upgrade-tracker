@@ -1,8 +1,10 @@
 // The studies as tables for the paper's figures.
 //   node tools/rpit/study/charts.mjs <dir of pulled studies> <out dir>
-// records.csv  one row a study: when, who (hashed), planner, release,
+// records.csv  one row a study: when, who (hashed), planner, from (the
+//              proposal, or a run ticked or edited by hand), release, build,
 //              layout, session, chains, what the planner said (R, T,
-//              μ, steps, ms) and what the run gave once recorded.
+//              μ, steps, ms) and what the run gave: recorded, or as far
+//              as it went (partial; dropped, how it was dropped).
 // steps.csv    one row a search step: the candidate's value, the
 //              current and the best, the operators, acceptance.
 // rounds.csv   one row a price-of-time round: μ, R, T, rate.
@@ -21,8 +23,8 @@ for (const f of fs.readdirSync(dir).filter(f => f.endsWith('.json')).sort()) {
 	const st = rec.body || {};
 	const s = rec.sailed;
 	const hours = s && s.timer && s.timer.startedAt ? (s.at - s.timer.startedAt) / 3600000 : null;
-	records.push([rec.id, rec.createdAt, who(rec.userId), rec.planner, rec.release, rec.layout, rec.day, st.session ?? '', st.chains ?? '', st.R ?? '', st.T ?? '', st.mu ?? '', (st.trace || []).filter(e => e.k === 'step').length, st.ms ?? '', st.value ?? '', st.hours_ ?? '',
-		s ? s.silver - (s.spent || 0) : '', s ? s.trades : '', s ? s.done : '', s ? s.all : '', hours ?? '', s ? (s.abandoned ? 1 : 0) : '', s && s.planned ? s.planned.net : '', s && s.planned ? s.planned.hours : '']);
+	records.push([rec.id, rec.createdAt, who(rec.userId), rec.planner, st.from || 'proposal', rec.release, st.build || '', rec.layout, rec.day, st.session ?? '', st.chains ?? '', st.R ?? '', st.T ?? '', st.mu ?? '', (st.trace || []).filter(e => e.k === 'step').length, st.ms ?? '', st.value ?? '', st.hours_ ?? '',
+		s && s.silver !== undefined ? s.silver - (s.spent || 0) : '', s ? s.trades ?? '' : '', s ? s.done : '', s ? s.all : '', hours ?? '', s ? (s.abandoned ? 1 : 0) : '', s ? (s.partial ? 1 : 0) : '', s ? s.dropped || '' : '', s && s.planned ? s.planned.net : '', s && s.planned ? s.planned.hours : '']);
 	// A search's steps come before the round event that judges them: the
 	// searches are counted by their starts, the last one the final search.
 	let round = -1;
@@ -32,7 +34,7 @@ for (const f of fs.readdirSync(dir).filter(f => f.endsWith('.json')).sort()) {
 		else if (e.k === 'step') steps.push([rec.id, round, e.it, e.op, e.rep, e.f, e.cur, e.best, e.acc, e.ok, e.temp]);
 	}
 }
-csv('records.csv', ['id', 'at', 'who', 'planner', 'release', 'layout', 'day', 'session', 'chains', 'R', 'T', 'mu', 'steps', 'ms', 'value', 'hours', 'sailed_net', 'sailed_trades', 'sailed_done', 'sailed_all', 'sailed_hours', 'abandoned', 'planned_net', 'planned_hours'], records);
+csv('records.csv', ['id', 'at', 'who', 'planner', 'from', 'release', 'build', 'layout', 'day', 'session', 'chains', 'R', 'T', 'mu', 'steps', 'ms', 'value', 'hours', 'sailed_net', 'sailed_trades', 'sailed_done', 'sailed_all', 'sailed_hours', 'abandoned', 'partial', 'dropped', 'planned_net', 'planned_hours'], records);
 csv('steps.csv', ['id', 'round', 'it', 'op', 'rep', 'f', 'cur', 'best', 'acc', 'ok', 'temp'], steps);
 csv('rounds.csv', ['id', 'round', 'mu', 'f', 'R', 'T', 'rate'], rounds);
 console.log(`${records.length} studies: ${steps.length} steps, ${rounds.length} rounds → ${out}`);

@@ -67,7 +67,7 @@ function paint({ online = 0, sailors = 0, crew = 0 }) {
 	const roll = sailors > 1 ? ` · ${T('{n} browsers have opened it', { n: F(sailors) })}` : '';
 	const signed = crew > 0 ? ` · ${crew === 1 ? T('{n} has signed in and keep a save', { n: F(crew) }) : T('{n} have signed in and keep a save', { n: F(crew) })}` : '';
 	const head = online === 1
-		? T('{n} browser have the tracker open right now, yours among them', { n: F(online) })
+		? T('{n} browser has the tracker open right now, yours among them', { n: F(online) })
 		: T('{n} browsers have the tracker open right now, yours among them', { n: F(online) });
 	const title = `${head}${roll}${signed}. ${T('Nobody is named and nothing of your save is counted.')}`;
 	const fleet = crew > 0
@@ -92,6 +92,9 @@ export function startPresence() {
 		if (document.visibilityState === 'visible') beat();
 	});
 }
+
+/** Paint the last count again, in the language now chosen. */
+export const repaint = () => { if (last) paint(last); };
 
 /** What the last answer said, for anything else that wants it. */
 export const crowd = () => (last ? { ...last } : null);

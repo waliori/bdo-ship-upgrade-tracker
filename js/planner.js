@@ -664,7 +664,10 @@ export function costRoutes(item, ctx = {}, seen = new Set()) {
 		out.push({ kind: 'coin', label: T('Crow Coin Shop'), coins: coins[item], silver: 0, needs: {} });
 	}
 	if (silver[item] > 0) {
-		out.push({ kind: 'silver', label: T('Falasi vendor'), coins: 0, silver: silver[item], needs: {} });
+		// `silver` is the Market's prices and Falasi's together; which one
+		// priced it is told by the Falasi list, when the caller passes it.
+		const market = ctx.falasi && !ctx.falasi[item];
+		out.push({ kind: 'silver', label: market ? T('Central Market') : T('Falasi vendor'), coins: 0, silver: silver[item], needs: {} });
 	}
 
 	// `seen` is a path guard, not a memo: a recipe that reached itself

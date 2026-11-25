@@ -41,6 +41,9 @@ test('an island taken off the route is not sailed, and its climb stops before it
 	const k = c.rungs.findIndex(r => r.npcId === off);
 	for (const r of c.rungs.slice(k)) assert.ok(!isles(without).includes(r.npcId), `${r.npc} above the island taken off`);
 	if (k === 0) assert.ok(without.skippedWhole.some(x => x.id === c.id));
+	// What was laid goes with the run, for the study: the edit named.
+	assert.equal(without.laid.from, 'tick');
+	assert.ok(without.laid.edited && without.laid.changed.skip.includes(off) && without.laid.instance && without.laid.plan.visits.length);
 });
 
 test('a trip order set is sailed as set, and a stop moved moves on the route that was shown', () => {
@@ -193,4 +196,31 @@ test('a run loaded at one port finishes at the storage asked for', () => {
 	assert.ok(run.stops.some(s => s.npcId), 'the run sails');
 	assert.equal(last.wharf && last.wharf.at, 'Velia', 'the last call is the storage asked for');
 	assert.notEqual(base.start.name, 'Velia', 'and it is not where the run set out from');
+});
+
+test('the search weighs the quests the run takes in: none more left out, a shorter way with them, as much earned', async () => {
+	// Liara, 2026-11-22: the quest stops went in after the islands were laid,
+	// and her run went out to Nineshark early, back south, and to Candidum and
+	// Oquilla's Eye at the very end.
+	const { quests } = await import('../js/quests.js');
+	const { layQuests } = await import('../js/quest-places.js');
+	const { seaDist } = await import('../js/barter-route.js');
+	const live = quests.filter(q => /daily|weekly/.test(q.repeat) && !q.monster);
+	// What the tab posts (questLayer): plain data, for the worker too.
+	const layer = { list: live.map(q => ({ id: q.id, at: q.at, ...(q.barters ? { barters: q.barters } : {}) })), lead: [], detour: 8000, forced: [], progress: {} };
+	const way = run => {
+		const pts = [base.start, ...run.stops.map(s => s.wharf || npcById.get(s.npcId))];
+		const laid = layQuests(live, pts.map(p => ({ x: p.x, y: p.y })), { trades: [0, ...run.stops.map(s => s.times || 0)] });
+		let len = 0;
+		for (let k = 1; k < laid.route.length; k++) len += seaDist(laid.route[k - 1], laid.route[k]);
+		return { len, off: laid.off.length };
+	};
+	const plain = solveRun({ ...base, byHand: true });
+	const round = solveRun({ ...base, byHand: true, quests: layer });
+	assert.ok(round.net >= plain.net * 0.999, `as much earned (${round.net} against ${plain.net})`);
+	const a = way(round), b = way(plain);
+	assert.ok(a.off <= b.off, 'no quest more left out');
+	assert.ok(a.len < b.len - 1, `a shorter way with the quests in (${Math.round(a.len)} against ${Math.round(b.len)}): this board's plan zig-zags past them`);
+	const chain = solveRun({ ...base, byHand: true, quests: layer, orders: { ...base.orders, way: 'chain' } });
+	assert.deepEqual(isles(chain), isles(solveRun({ ...base, byHand: true, orders: { ...base.orders, way: 'chain' } })), 'the chain way is left as it is');
 });

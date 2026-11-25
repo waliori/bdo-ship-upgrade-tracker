@@ -22,8 +22,8 @@
 // Every choice is drawn from a seeded generator: the same seed, the same
 // search.
 
-import { rng } from './simulate.js';
-import { chainsOf, finish, indexOf, trimLoads } from './common.js';
+import { rng, simulate, planPolicy } from './simulate.js';
+import { chainsOf, finish, indexOf, trimLoads, questsOn } from './common.js';
 import { cheapestPos, growByChains, reorder, serial, bare, quick } from './insert.js';
 import { build as greedy, byTrips } from './greedy.js';
 import { maximiseRate } from './ratio.js';
@@ -37,7 +37,7 @@ const REPAIR = ['bare', 'careful'];
 // `trace`, an array when given, is written as the search goes -- the
 // starts, every step, the operator weights, the end -- for the study of
 // how a plan was found (js/barter/study.js).
-export function search(I, { mu = 0, timeMs = 10000, warm = null, seed = 1, most = 20000, pool = null, fixed = false, trace = null } = {}) {
+export function search(I, { mu = 0, timeMs = 10000, warm = null, seed = 1, most = 20000, pool = null, fixed = false, trace = null, ties = false } = {}) {
 	// Fixed climbs must reach their tops.
 	const must = fixed && pool ? pool.map(c => c.rungs[c.rungs.length - 1]) : null;
 	const t0 = performance.now();
@@ -50,8 +50,22 @@ export function search(I, { mu = 0, timeMs = 10000, warm = null, seed = 1, most 
 
 	const judge = (seq, calls) => {
 		const out = finish(I, seq, mu, { calls, must });
-		return { seq: out.visits, calls: out.calls, f: out.f, R: out.R, T: out.T, plan: out.plan };
+		return { seq: out.visits, calls: out.calls, f: out.f, R: out.R, T: out.T, cost: out.cost, plan: out.plan };
 	};
+	// Between two plans that earn alike, in the last search (`ties`): the one
+	// that leaves out fewer of the sailor's quests, then the shorter, the
+	// quest stops' hours counted. Laid only for a tie, and once a plan.
+	// A stock day's f takes the goods' cost off what it fills: the tie is on
+	// the fill, and the cost comes after the quests (the sailor's rule,
+	// 2026-11-25), so `earn` puts it back.
+	const laysQuests = !!(I.quests && I.quests.list && I.quests.list.length);
+	const earn = c => c.f + (c.cost || 0);
+	const tieRank = c => c.tie || (c.tie = (() => {
+		if (!laysQuests) return { off: 0, cost: c.cost || 0, hours: c.T };
+		const q = questsOn(I, simulate(I, planPolicy(c.plan), { mode: 'robust' }));
+		return { off: q ? q.off : 0, cost: c.cost || 0, hours: c.T + (q ? q.hours : 0) };
+	})());
+	const aheadOnTie = (a, b) => { const x = tieRank(a), y = tieRank(b); return x.off < y.off || (x.off === y.off && (x.cost < y.cost - 1e-6 || (Math.abs(x.cost - y.cost) <= 1e-6 && x.hours < y.hours - 1e-9))); };
 	let cur = warm && warm.seq ? judge(warm.seq, warm.calls || []) : null;
 	const starts = cur ? { warm: cur.f } : {};
 	// `fixed`: the climbs are the sailor's and all of them are sailed -- the
@@ -69,6 +83,9 @@ export function search(I, { mu = 0, timeMs = 10000, warm = null, seed = 1, most 
 		Object.assign(starts, { greedy: fromGreedy.f, plain: plainGreedy.f, trips: trips.f });
 	}
 	let best = cur;
+	// The best f met, for the operators' scores: the plan kept on a tie may
+	// be one a little dearer, and the path the search takes must not change.
+	let top = cur.f;
 	if (trace) trace.push({ k: 'start', ...starts, f: cur.f, R: cur.R, T: cur.T, ms: performance.now() - t0 });
 
 	const OPS = [...DESTROY, ...REPAIR];
@@ -145,7 +162,17 @@ export function search(I, { mu = 0, timeMs = 10000, warm = null, seed = 1, most 
 
 		const cand = judge(seq, cur.calls);
 		let score = 0;
-		if (cand.f > best.f + 1e-6) { best = cand; score = 3; }
+		if (cand.f > top + 1e-6) { top = cand.f; score = 3; }
+		if (ties ? earn(cand) > earn(best) + 1e-6 : cand.f > best.f + 1e-6) best = cand;
+		// Of two that earn alike, the one ahead on quests and then time is kept.
+		// Only the plan kept, and only in the last search (`ties`): the path it
+		// takes and the scores that steer it stay as they were, so it ends on
+		// what it earned before. In the rounds of the price of time the plan
+		// kept starts the next round (ratio.js), and changing it there lost up
+		// to 43 % (2026-11-24). A
+		// price on the hour put into f took the search other ways (17 of 155
+		// real days worse, 2026-11-23).
+		else if (ties && earn(cand) >= earn(best) - 1e-6 && aheadOnTie(cand, best)) best = cand;
 		if (cand.f > cur.f + 1e-6) { cur = cand; score = Math.max(score, 1); }
 		else if (rand() < Math.exp((cand.f - cur.f) / Math.max(temp, 1e-9))) cur = cand;
 		scores[op] += score; scores[rep] += score;

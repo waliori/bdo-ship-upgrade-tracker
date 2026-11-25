@@ -228,7 +228,7 @@ function restoreData() {
 		if (Array.isArray(s.stops)) mv.stops = s.stops.filter(id => npcById.has(id));
 		if (typeof s.stopsPick === 'string') mv.stopsPick = s.stopsPick;
 		if (s.runTrades && typeof s.runTrades === 'object') mv.runTrades = readTrades(Object.entries(s.runTrades).map(([id, t]) => [Number(id), t.give, t.giveText, t.item, t.recvText, t.recv, t.giveN, t.times]));
-		if (Array.isArray(s.runStash)) mv.runStash = readStash(s.runStash.map(c => [c.i, c.name, c.at, c.x, c.y, (c.drops || []).map(d => [d.item, d.n]), c.sale, c.silver, c.quests || [], c.own ? 'own' : c.rations ? 'rations' : '']));
+		if (Array.isArray(s.runStash)) mv.runStash = readStash(s.runStash.map(c => [c.i, c.name, c.at, c.x, c.y, (c.drops || []).map(d => [d.item, d.n]), c.sale, c.silver, c.quests || [], c.own ? 'own' : c.rations ? 'rations' : c.fetch ? 'fetch' : '']));
 		if (s.done && s.done.day === barterDay() && Array.isArray(s.done.ids)) mv.done = { day: s.done.day, ids: s.done.ids.filter(id => npcById.has(id)) };
 		if (Number.isFinite(s.rationsAboard) && s.rationsAboard >= 0) mv.rationsAboard = s.rationsAboard;
 		if (ports.some(p => p.id === s.startPort)) mv.startPort = s.startPort;

@@ -209,7 +209,7 @@ export function ingredientLine(name, per, cls = 'peek-line') {
  */
 // The Market's prices sit under Falasi's: anything he sells is priced
 // off his list, and only what the Market alone sells takes the Market's.
-export const costCtx = () => ({ coins, silver: { ...marketSilver(), ...falasi }, recipes, strategy: store.getAllStrategy() });
+export const costCtx = () => ({ coins, silver: { ...marketSilver(), ...falasi }, falasi, recipes, strategy: store.getAllStrategy() });
 
 /**
  * A cost said out loud. Coins and silver stay apart -- the game will not

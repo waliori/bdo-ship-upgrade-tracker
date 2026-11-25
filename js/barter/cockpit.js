@@ -392,7 +392,7 @@ export function cockpitHTML({ map = false } = {}) {
 		<span class="panel-spacer"></span>
 		${map ? '' : `<button class="ghost-btn sm" data-act="barter-sail-chart" title="${T('The route on the Map, with the same checklist beside it')}">${ico('map')} ${T('On the chart')}</button>`}
 		<button class="ghost-btn sm danger" data-act="barter-sail-drop" title="${T('Drop the checklist; nothing is recorded')}">${T('Abandon')}</button>
-		${V.sailAll.open ? '' : `<button class="ghost-btn sm" data-act="barter-sail-all" title="${T('Tick every stop and every quest off at once')}">${T('All done…')}</button>`}
+		<button class="ghost-btn sm" data-act="barter-sail-all" title="${T('Tick every stop and every quest off at once')}"${V.sailAll.open ? ' disabled aria-expanded="true"' : ''}>${T('All done…')}</button>
 		<button class="act" data-act="barter-step" data-id="results">${T('See the results')}</button>
 		${allAsk}
 	</div>`;

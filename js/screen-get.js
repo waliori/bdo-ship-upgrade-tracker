@@ -9,7 +9,7 @@
 // reads it can be corrected from, so this one keeps to the list.
 
 import { items as vendorItems, bulkExchanges } from './vendor_items.js';
-import { marketSilver } from './market.js';
+import { marketSilver, marketStatus } from './market.js';
 import { questsFor } from './quests.js';
 import { coins } from './sea_coins.js';
 import { falasi } from './falasi_vendor.js';
@@ -133,7 +133,7 @@ function stillToGet(q) {
 		const silver = falasi[item] || market[item] || 0;
 		const tone = each ? 'amber' : silver ? 'blue' : '';
 		const on = q && item.toLowerCase() === q;
-		const price = each ? T('{n} coins each', { n: F(each) }) : silver ? T('{n} silver each', { n: FC(silver) }) : T('no shop sells it');
+		const price = each ? T('{n} coins each', { n: F(each) }) : silver ? T('{n} silver each', { n: FC(silver) }) : marketStatus().count ? T('no shop sells it') : T('no price yet: the Central Market has not answered');
 		return `<button class="want ${tone}${on ? ' on' : ''}" data-act="get-only" data-item="${esc(item)}"
 			data-peek="${esc(item)}" aria-pressed="${on ? 'true' : 'false'}"
 			title="${esc(gameName(item))} — ${T('{qty} short of {need} · {price}. Press to show only this below.', { qty: F(qty), need: F(need), price: esc(price) })}">

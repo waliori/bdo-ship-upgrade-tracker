@@ -14,9 +14,10 @@
 //     both are wound into this file's action switch and into the barter run
 //     sheet's chart (map/paint.js imports screen-barter), so they need their
 //     actions routed through a lazy door before they can be split;
-//   * shot-reader.js, barter-import.js and bag-shot.js: reached at render by
-//     barter/view.js (imagesOn), barter/material.js (shotGuideHTML) and
-//     barter/plan.js -- move those calls behind a dynamic import.
+// The screenshot readers left it on 2026-11-25: what the page draws about
+// screenshots is in shot-bits.js, and shot-reader.js and barter-import.js
+// are fetched when a picture is read. So did about.js, which the planner's
+// study pulled in for the release number (release.js has it).
 // seamask.js and sea_dist.js stay: every sea route needs them.
 
 import { shipGroups } from './ships.js';
@@ -26,7 +27,7 @@ import { iconLoader } from './icon-loader.js';
 import { esc, F, parseAmount } from './fmt.js';
 import * as store from './state.js';
 import { useGame } from './barter-layouts.js';
-import { initSync, openAccount, feature, me, fetchLink, canKeepLink } from './sync.js';
+import { initSync, openAccount, feature, me, fetchLink, canKeepLink, repaintMasthead } from './sync.js';
 import { maxCraftable, craftDelta, enhanceStep, parseEnhanced, enhancedName } from './planner.js';
 import {
 	view, selected, recipes, barterData, snapshot, query,
@@ -37,7 +38,7 @@ import { kindOf } from './kinds.js';
 import { toast, hideToast, openDialog, closeDialog, dismissDialog, holdScreen, whenScreenFree } from './dialogs.js';
 import { allItems, img } from './ui-bits.js';
 import { T, TT, said, gameName, LANGS, langById, langFlag, setLang, startingLang, lang as currentLang } from './i18n.js';
-import { imagesOn } from './shot-reader.js';
+import { imagesOn } from './shot-bits.js';
 import { encodeShare, decodeShare, decodeAny, shareLink, shareSize, shortLinkId, plainSearch, isPlan, slimShape, SLIM_DROP } from './share.js';
 import { buildLink, copyLink } from './links.js';
 import { massProcess } from './vendor_items.js';
@@ -458,7 +459,11 @@ export function render() {
  */
 function captureFocus(root) {
 	const el = document.activeElement;
-	if (!el || (el.tagName !== 'INPUT' && el.tagName !== 'SELECT')
+	// A button too, when the keyboard put it there: Tab out of a quantity
+	// lands on the row's + button, and the redraw dropped it to <body>.
+	// One that was clicked stays dropped, or its row's card would open.
+	const keyed = el && el.tagName === 'BUTTON' && el.matches(':focus-visible');
+	if (!el || !(el.tagName === 'INPUT' || el.tagName === 'SELECT' || keyed)
 		|| !root.contains(el) || !el.dataset.act) return null;
 	const parts = [`[data-act="${el.dataset.act}"]`];
 	if (el.dataset.item) parts.push(`[data-item="${el.dataset.item}"]`);
@@ -906,6 +911,7 @@ async function chooseLang(id) {
 	// the picker is marked busy until it is in.
 	await whileLoading(setLang(id), T('Fetching the language…'), { by: document.getElementById('lang-btn') });
 	render();
+	repaintMasthead();
 	toast(T('Language: {name}', { name: (LANGS.find(l => l.id === id) || {}).label || id }));
 }
 
@@ -2906,7 +2912,15 @@ export async function init() {
 		if (reason === 'profile-quiet' && (mapWritingView() || barterWritingView())) return;
 		if (stale) return;
 		stale = true;
-		Promise.resolve().then(() => { if (stale) render(); });
+		const draw = () => { if (stale) render(); };
+		// A field committed by Tab fires its change with the focus already
+		// let go (<body> holds it) but not yet moved on: a redraw in a
+		// microtask rebuilt the row and the Tab landed on <body>. One task
+		// later the focus is on the next control, which captureFocus()
+		// carries over.
+		const a = document.activeElement;
+		if (!a || a === document.body || /^(INPUT|SELECT)$/.test(a.tagName)) setTimeout(draw, 0);
+		else Promise.resolve().then(draw);
 	});
 	render();
 	// The minute hand on every countdown, and a repaint when a reset

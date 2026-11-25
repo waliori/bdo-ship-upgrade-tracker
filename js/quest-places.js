@@ -189,6 +189,16 @@ export function layQuests(quests, points, { near = 1200, detour = 8000, share = 
 		if (!forced.has(w.q.id)) budget -= at.cost;
 		route = [...route.slice(0, at.where), { x: w.step.x, y: w.step.y, quest: true, place: w.step.place, who: w.step.who, steps: [{ q: w.q, step: w.step }] }, ...route.slice(at.where)];
 	}
+	// A stop put in only to hand quests in, with a later entry at the same
+	// place, waits for it: the quests go in together, one call not two.
+	for (let k = route.length - 1; k >= 0; k--) {
+		const e = route[k];
+		if (!e.quest || e.hunt) continue;
+		const later = route.findIndex((x, j) => j > k && !x.hunt && d2(x, e) <= near * near);
+		if (later < 0) continue;
+		route[later].steps.push(...e.steps);
+		route.splice(k, 1);
+	}
 	// A quest given by someone other than its taker is fetched first: at
 	// an entry near the giver before the quest is worked, else a stop of
 	// its own at the cheapest place before it, whatever the way round,
@@ -196,9 +206,12 @@ export function layQuests(quests, points, { near = 1200, detour = 8000, share = 
 	// cannot be fetched before it, and is taken as fetched already. A hunt
 	// taken and handed in at one place is fetched there too, before the
 	// grounds: kills made before it is accepted do not count.
-	for (const q of quests) {
+	// The quest needed soonest is fetched first, so its stop is one the
+	// later ones can share rather than a second call at the same giver.
+	const soonest = q => route.findIndex(e => e.steps.some(x => x.q === q));
+	for (const q of [...quests].sort((a, b) => soonest(a) - soonest(b))) {
 		const steps = placesOf(q);
-		if (steps.length < 2 && !(q.monster && steps.length && /take/.test(steps[0].what))) continue;
+		if (steps.length < 2 &&!(q.monster && steps.length && /take/.test(steps[0].what))) continue;
 		const first = route.findIndex(e => e.steps.some(x => x.q === q));
 		if (first < 0) continue;
 		const give = { ...steps[0], what: 'take' };

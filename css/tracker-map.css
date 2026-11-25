@@ -441,7 +441,6 @@
 
 .map-list { display: flex; flex-direction: column; gap: 5px; }
 
-.map-row,
 .map-grip { flex: none; display: grid; place-items: center; width: 24px; height: 28px; padding: 0; border: 0; border-radius: 6px; background: none; color: var(--ink-mid); cursor: grab; touch-action: none; }
 /* A finger needs a handle it can see and hit (Liara nearly missed it on a small screen). */
 @media (pointer: coarse), (max-width: 720px) { .map-grip { width: 34px; height: 36px; background: color-mix(in srgb, var(--ink-hi) 8%, transparent); color: var(--ink-hi); } }
@@ -450,6 +449,7 @@
 .map-own-list { display: flex; flex-direction: column; gap: 6px; max-height: 50vh; margin-top: 10px; overflow-y: auto; }
 .map-own-list .ghost-btn { justify-content: flex-start; text-align: left; }
 .map-own-list small { color: var(--ink-faint); }
+.map-row,
 .map-stop-row {
   display: flex;
   align-items: center;

@@ -45,7 +45,7 @@ function looksLikeSave(body) {
 	return null;
 }
 
-export function apiRoutes() {
+export function apiRoutes({ build = null } = {}) {
 	const router = express.Router();
 
 	// Nothing here may be cached by anything, ever.
@@ -128,7 +128,7 @@ export function apiRoutes() {
 	// A plan, a ship, a drawing or a route kept under a short address.
 	router.use(linkRoutes());
 	// The planners' days, kept for their study.
-	router.use(studyRoutes());
+	router.use(studyRoutes({ build }));
 
 	/** The stored save. `rev` 0 with no data means "nothing synced yet",
 	 *  which the client needs to tell apart from an empty inventory.

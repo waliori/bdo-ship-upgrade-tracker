@@ -56,19 +56,30 @@ export function rng(seed) {
  */
 export function planPolicy(plan) {
 	const off = plan.buy || plan.load || plan.bag ? 1 : 0;
+	// What the islands after a spare call ask for, worked out once a call
+	// and the stations' index once an instance: built afresh at every call
+	// of every trial, it was a tenth of a heavy day's time.
+	const needs = new Map();
+	const needAfter = (I, k) => {
+		let need = needs.get(k);
+		if (need) return need;
+		const stations = stationsOf(I);
+		need = new Map();
+		for (let i = k + 1; i < plan.visits.length; i++) {
+			const w = plan.visits[i], st = stations.get(w.at);
+			if (st && w.a > 0) need.set(st.in, (need.get(st.in) || 0) + w.a * st.q);
+		}
+		needs.set(k, need);
+		return need;
+	};
 	return {
 		next(state, I) {
-			if (state.step === 0 && off) return { start: true, buy: plan.buy || {}, load: plan.load || {}, bag: plan.bag || {} };
+			if (state.step === 0 && off) return { start: true, buy: plan.buy || {}, load: plan.load || {}, bag: plan.bag || {}, store: plan.store || {} };
 			const k = state.step - off;
 			if (k >= plan.visits.length) return null;
 			const v = plan.visits[k];
 			if (v.drop !== 'spare' && v.sell !== 'spare') return v;
-			const stations = new Map(I.stations.map(s => [s.id, s]));
-			const need = new Map();
-			for (const w of plan.visits.slice(k + 1)) {
-				const s = stations.get(w.at);
-				if (s && w.a > 0) need.set(s.in, (need.get(s.in) || 0) + w.a * s.q);
-			}
+			const need = needAfter(I, k);
 			const extra = g => (state.h.get(g) || 0) - (need.get(g) || 0);
 			const out = { ...v };
 			// `sell: "spare"`: what the Market-less wharf buys of it, less what
@@ -89,6 +100,17 @@ export function planPolicy(plan) {
 			return out;
 		}
 	};
+}
+
+const byInstance = new WeakMap();
+const stationsOf = I => { let m = byInstance.get(I); if (!m) { m = new Map(I.stations.map(s => [s.id, s])); byInstance.set(I, m); } return m; };
+
+// The weighed hold keeps its weight as it changes, so asking it costs
+// nothing (it was asked at every action and every room for a good).
+class Weighed extends Map {
+	constructor(G) { super(); this.G = G; this.w = 0; }
+	set(g, n) { this.w += (n - (super.get(g) || 0)) * (this.G[g] ? this.G[g].w : 0); return super.set(g, n); }
+	delete(g) { this.w -= (super.get(g) || 0) * (this.G[g] ? this.G[g].w : 0); return super.delete(g); }
 }
 
 const EPS = 1e-9;
@@ -120,11 +142,11 @@ export function simulate(I, policy, { mode = 'sample', seed = 1 } = {}) {
 	const startLimit = pace === 'full' ? V.Wdeal : V.Wfree;
 	const endLimit = pace === 'full' ? V.Wmax : V.Wfree;
 
-	const h = new Map(), hw = new Map();
+	const h = new Map(), hw = new Weighed(I.goods);
 	for (const [g, n] of Object.entries(I.initial.hold)) { add(h, g, n); add(hw, g, n); }
 	const storages = Object.fromEntries(I.depots.map(d => [d.id, new Map(Object.entries(d.storage))]));
 	const floors = I.initial.floors || {};
-	const weight = () => { let w = 0; for (const [g, n] of hw) w += n * (G[g] ? G[g].w : 0); return w; };
+	const weight = () => hw.w;
 	const owned = g => (h.get(g) || 0) + Object.values(storages).reduce((a, s) => a + (s.get(g) || 0), 0);
 	const spendable = g => Math.max(0, owned(g) - (floors[g] || 0));
 	const phi = W => (W <= V.Wfree || V.Wmax <= V.Wfree ? 1 : 1 - Math.min(1, (W - V.Wfree) / (V.Wmax - V.Wfree)) * (1 - V.slowAtMax));
@@ -134,7 +156,12 @@ export function simulate(I, policy, { mode = 'sample', seed = 1 } = {}) {
 	// hold, the most that may be aboard. The game takes nothing more into
 	// a hold whose slots are full; what is aboard past them stays.
 	const SLOTS = Number.isFinite(V.slots) ? V.slots : Infinity;
-	const stack = g => (G[g] && G[g].stack !== undefined ? G[g].stack : !(G[g] && G[g].level >= 5));
+	const stacks = new Map();
+	const stack = g => {
+		let v = stacks.get(g);
+		if (v === undefined) { v = G[g] && G[g].stack !== undefined ? G[g].stack : !(G[g] && G[g].level >= 5); stacks.set(g, v); }
+		return v;
+	};
 	const slotsOf = (g, n) => (!(n > EPS) ? 0 : stack(g) ? 1 : Math.ceil(n - EPS));
 	const slots = () => { let k = 0; for (const [g, n] of hw) k += slotsOf(g, n); return k; };
 	// Rations: a pool that sailing eats by the minute -- less when the hold
@@ -277,6 +304,14 @@ export function simulate(I, policy, { mode = 'sample', seed = 1 } = {}) {
 				state.silver -= cost; state.spent += cost;
 				entry.bought[g] = n;
 			}
+			// What is bought for a later trip goes into the home storage, to be
+			// loaded at the call home before the island that takes it.
+			for (const [g, req] of Object.entries(act.store || {})) {
+				const n = Math.min(req, h.get(g) || 0);
+				if (n <= EPS) continue;
+				add(h, g, -n); add(hw, g, -Math.min(n, hw.get(g) || 0)); add(storages[I.rules.home], g, n);
+				(entry.stored = entry.stored || {})[g] = n;
+			}
 			// What is loaded before casting off comes out of the home
 			// storage at the harbour: no call, and no leg to the wharf.
 			load(I.rules.home, act.load, entry);
@@ -308,18 +343,22 @@ export function simulate(I, policy, { mode = 'sample', seed = 1 } = {}) {
 				// under the limit.
 				const dw = yw * G[s.out].w - s.q * G[s.in].w;
 				let slotsHit = false;
+				// The weight and the slots carried attempt to attempt, not
+				// counted afresh from the hold at each: that was most of the
+				// time a heavy day took (2026-11-25).
+				let W = weight(), was = SLOTS < Infinity ? slots() : 0;
 				for (; a < most; a++) {
-					const W = weight();
 					if (W > startLimit + EPS || W + dw > endLimit + EPS) break;
 					// And the slots: an exchange that would need a slot the hold
 					// has not got is refused.
 					if (SLOTS < Infinity) {
-						const was = slots();
 						const after = was - slotsOf(s.in, hw.get(s.in) || 0) + slotsOf(s.in, (hw.get(s.in) || 0) - s.q) - slotsOf(s.out, hw.get(s.out) || 0) + slotsOf(s.out, (hw.get(s.out) || 0) + yw);
 						if (after > SLOTS && after > was) { slotsHit = true; break; }
+						was = after;
 					}
 					add(h, s.in, -s.q); add(hw, s.in, -s.q);
 					add(h, s.out, y); add(hw, s.out, yw);
+					W += dw;
 					Y.push(y);
 				}
 				if (a < entry.req) {

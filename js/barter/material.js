@@ -14,7 +14,7 @@ import { QUEST_CHOICES, VOUCHER_CHOICES } from '../barter-orders.js';
 import { landPrices } from '../land-cost.js';
 import { GOODS, PARLEY, levelOf } from '../barter.js';
 import { weightOf, sellOf, stacks } from '../barter-plan.js';
-import { shotGuideHTML } from '../barter-import.js';
+import { shotGuideHTML } from '../shot-bits.js';
 import { bookFromGame, fitOf as matFitOf, MIN_FIT as MAT_MIN_FIT } from '../material-book.js';
 import { materialPages, materialDeal } from '../barter-layouts.js';
 import { openMaterialBook, pageName as matPageName } from '../material-book-view.js';
@@ -636,7 +636,7 @@ export function materialParts(me, data) {
 		const pct = all ? (g.max > 0 ? 100 * g.min / g.max : 0) : m.qty > 0 ? Math.min(100, g.min / m.qty * 100) : 0;
 		const pctMax = all ? (g.max > 0 ? 100 : 0) : m.qty > 0 ? Math.min(100, g.max / m.qty * 100) : 0;
 		const state = g.max <= 0 ? 'none' : w <= 0 ? 'met' : 'part';
-		return `<div class="mat-yield-row ${state}">${img(m.it, 'row-icon sm')}<span class="mat-yield-name">${esc(gameName(m.it))}</span><b class="mat-yield-n">${g.max > 0 ? gotText(m) : '0'}<small> ${T('of {n}', { n: wantSaid(m.qty) })}</small></b><span class="mat-yield-bar"><i style="width:${pctMax.toFixed(1)}%"></i><i class="least" style="width:${pct.toFixed(1)}%"></i></span><span class="mat-yield-note">${state === 'met' ? T('the want is met') : state === 'none' ? (showing.some(a => a.recv === m.it) ? T('nothing comes of it today') : T('no island ticked')) : all ? T('as much as the Parley pays for') : T('{n} still wanted · another refresh', { n: F(Math.ceil(w)) })}</span></div>`;
+		return `<div class="mat-yield-row ${state}">${img(m.it, 'row-icon sm')}<span class="mat-yield-name">${esc(gameName(m.it))}</span><b class="mat-yield-n">${g.max > 0 ? gotText(m) : '0'}<small> ${T('of {n}', { n: wantSaid(m.qty) })}</small></b><span class="mat-yield-bar"><i style="width:${pctMax.toFixed(1)}%"></i><i class="least" style="width:${pct.toFixed(1)}%"></i></span><span class="mat-yield-note">${state === 'met' ? T('the want is met') : state === 'none' ? (showing.some(a => a.recv === m.it) ? (plan.missing.length ? T('nothing comes of it: the goods its islands take are not held — see To get first') : T('nothing comes of it today')) : T('no island ticked')) : all ? T('as much as the Parley pays for') : T('{n} still wanted · another refresh', { n: F(Math.ceil(w)) })}</span></div>`;
 	}).join('');
 	const peakM = shownHold(me.hold, plan.weightPeak);
 	const slotsM = Number.isFinite(plan.slotsPeak) ? shownSlots(me.hold, plan.slotsPeak) : null;
@@ -712,7 +712,7 @@ export function materialParts(me, data) {
 	const routeFold = plan.stops.length ? `<details class="panel route-fold"${sailing() || narrow() ? '' : ' open'}><summary><b>${T('The route, stop by stop')}</b><span class="panel-sub">${mats.length ? T('for {materials}', { materials: esc(few(got.length ? got : mats, m => gameName(m.it))) }) : T('for a material')}${legs.total ? ` · ≈ ${esc(runTime(legs, book))}` : ''}${atSea ? ` · ${T('from {port}', { port: esc(gameName(isleShort(npcById.get(V.matAt)))) })}` : from ? ` · ${T('from {port}', { port: esc(gameName(from.name)) })}` : ''}</span>${questsLine(qp, V.matOrders.quests)}<span class="panel-spacer"></span>${chartButton(plan.stops, it || (mats[0] && mats[0].it) || '')}</summary>${segs}</details>` : '';
 	const matsSaid = mats.length ? few(mats, m => (Number.isFinite(m.qty) ? `${F(m.qty)}× ${gameName(m.it)}` : `${gameName(m.it)} (${T('all')})`)) : T('nothing on the run yet');
 	const gotSome = mats.filter(m => !nothing.includes(m));
-	const comes = plan.ticked && gotSome.length ? few(gotSome, m => `${gotText(m)} ${T('of {want}', { want: wantSaid(m.qty) })} ${gameName(m.it)}`) : plan.ticked ? T('nothing comes of it today') : T('nothing ticked yet');
+	const comes = plan.ticked && gotSome.length ? few(gotSome, m => `${gotText(m)} ${T('of {want}', { want: wantSaid(m.qty) })} ${gameName(m.it)}`) : plan.ticked ? (plan.missing.length ? T('nothing comes of it: the goods its islands take are not held — see To get first') : T('nothing comes of it today')) : T('nothing ticked yet');
 	return {
 		secs: [
 			['parley', T('Before you sail'), esc(parleyLine(barterProfile())), parleyHTML(barterProfile())],

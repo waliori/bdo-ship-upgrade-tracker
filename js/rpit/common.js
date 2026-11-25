@@ -17,6 +17,7 @@
 // what was hoped for.
 
 import { simulate, planPolicy } from './simulate.js';
+import { layQuests } from '../quest-places.js';
 
 /** The instance's lookups, made once. */
 export function indexOf(I) {
@@ -88,7 +89,7 @@ export function fillOfRun(I, r) {
 	for (const [g, d] of delta) {
 		const lv = I.goods[g] ? I.goods[g].level : 0;
 		if (!lv) continue;
-		const t = S.targets[lv] || 0, c0 = S.held[g] || 0;
+		const t = S.items && Object.prototype.hasOwnProperty.call(S.items, g) ? S.items[g] : S.targets[lv] || 0, c0 = S.held[g] || 0;
 		v += lv * (Math.min(Math.max(0, c0 + d), t) - Math.min(c0, t));
 	}
 	return v;
@@ -106,20 +107,49 @@ export function robustEval(I, plan, mu = 0) {
 	// back, nothing carried to the storage twice. A plan that breaks one is
 	// worth less than any that does not, whatever it earns.
 	const waste = (r.pointless.loadThenDrop + r.pointless.storedTwice) * WASTE;
-	// A run for coins: each coin the exchanges pay outweighs any silver.
-	const coins = I.rules.coinWorth > 0 ? r.log.reduce((a, e) => a + (e.kind === 'station' && e.out === 'Crow Coin' ? e.Y.reduce((x, y) => x + y, 0) : 0), 0) * I.rules.coinWorth : 0;
 	// A run for the stock is worth what it fills, as chainRun's stock goal
 	// judges it (fillOf): each good counted to its level's target and no
 	// further, by its level -- the silver it costs ashore and the Parley
 	// only between two that fill alike; or, run for the barter count, its
 	// trades first.
+	// A run for coins: each coin the exchanges pay outweighs any silver --
+	// and, on a stock day that takes the coin trades too, any fill.
+	const coins = I.rules.coinWorth > 0 ? r.log.reduce((a, e) => a + (e.kind === 'station' && e.out === 'Crow Coin' ? e.Y.reduce((x, y) => x + y, 0) : 0), 0) * I.rules.coinWorth : 0;
 	if (I.rules.stock) {
 		const fill = fillOfRun(I, r);
 		const cost = r.spent + r.P * 10;
 		const f = I.rules.stock.kind === 'trades' ? r.trades * 1e9 + fill * 1e6 - cost / 1e3 : fill * 1e9 - cost;
-		return { f: f - mu * r.T - over - waste, R: r.R, T: r.T, fill, run: r };
+		// `cost`, what f takes off for the goods and the Parley: of two that
+		// fill alike, the one leaving fewer quests out comes before the cheaper
+		// (barter-solve.js rankOf, alns.js ties).
+		return { f: f - mu * r.T - over - waste + coins, R: r.R, T: r.T, fill, cost: I.rules.stock.kind === 'trades' ? cost / 1e3 : cost, run: r };
 	}
 	return { f: r.R - mu * r.T - over - waste + coins, R: r.R, T: r.T, run: r };
+}
+/**
+ * The quests a run takes in, laid round its route as the tab lays them
+ * (layQuests): how many of those the sailor picked it leaves out, and the
+ * hours the stops put in for them add. Null when there are none to lay.
+ * A count, not silver: a quest is not weighed against what a run earns or
+ * the time it takes (barter-solve.js relocate ranks the three in turn).
+ */
+export function questsOn(I, r) {
+	const Q = I.quests;
+	if (!Q || !Q.list || !Q.list.length) return null;
+	const { station } = indexOf(I);
+	const wharf = new Map([...I.depots, ...(I.supplies || [])].map(d => [d.id, d]));
+	const pts = [], trades = [];
+	for (const p of Q.lead || []) { pts.push(p); trades.push(0); }
+	for (const e of r.log) {
+		const p = e.kind === 'start' ? I.start : e.kind === 'station' ? station.get(e.at) : wharf.get(e.at);
+		if (!p || !Number.isFinite(p.x)) { if (e.kind === 'station' && !(e.a > 0)) continue; return null; }
+		pts.push(p); trades.push(e.kind === 'station' ? e.a || 0 : 0);
+	}
+	const laid = layQuests(Q.list, pts, { trades, detour: Q.detour, forced: new Set(Q.forced || []), progress: q => (Q.progress || {})[q.id] || 0 });
+	const len = xs => xs.slice(1).reduce((a, p, k) => a + Math.hypot(p.x - xs[k].x, p.y - xs[k].y), 0);
+	const stops = laid.route.filter(e => e.quest).length;
+	const secs = (len(laid.route) - len(pts)) * Q.mPerPx / I.vehicle.speed + stops * ((I.service.depot || 0) + (I.service.leg || 0));
+	return { off: laid.off.length, hours: secs / 3600 };
 }
 const OVERTIME = 1e14;
 const WASTE = 1e12;
@@ -368,7 +398,7 @@ export function finish(I, stationVisits, mu = 0, { calls = [], must = null } = {
 			if (e.f > best.f) { plan = wide; best = e; }
 		}
 	}
-	return { plan, f: best.f, R: best.R, T: best.T, visits, calls: cs };
+	return { plan, f: best.f, R: best.R, T: best.T, cost: best.cost || 0, visits, calls: cs };
 }
 
 /**
@@ -379,6 +409,9 @@ export function finish(I, stationVisits, mu = 0, { calls = [], must = null } = {
  * searched sent it elsewhere for no gain.
  */
 export function trimLoads(I, plan0) {
+	return loadLate(I, trimmed(I, plan0));
+}
+function trimmed(I, plan0) {
 	let best = robustEval(I, plan0);
 	if (!(best.run.pointless.loadedBack > 0)) return plan0;
 	const plan = { ...plan0, ...(plan0.load ? { load: { ...plan0.load } } : {}), visits: plan0.visits.map(v => (v.load ? { ...v, load: { ...v.load } } : v)) };
@@ -407,6 +440,61 @@ export function trimLoads(I, plan0) {
 				cut(holder, g, holder.load[g]);
 			}
 			if (!(holder.load[g] > 0)) delete holder.load[g];
+		}
+	}
+	return plan;
+}
+
+/**
+ * What is loaded from the home storage long before an island takes it is
+ * loaded at the last call home before that island instead, while the run
+ * gives up nothing for it: four Masts and five Urn Pieces rode twenty stops
+ * past five calls at Iliya (GodSpeedGT, 2026-11-23). The search never sees
+ * it -- a good carried under the limit costs nothing -- so it is laid once,
+ * on its answer, as trimLoads is.
+ */
+function loadLate(I, plan0) {
+	const home = I.rules.home;
+	if (!plan0.visits.some(v => v.at === home)) return plan0;
+	const { station, dist } = indexOf(I);
+	const ok = (e, best) => e.f >= best.f - 1e-6 && e.run.trades >= best.run.trades && e.run.deviations.starved <= best.run.deviations.starved && e.run.pointless.loadedBack <= best.run.pointless.loadedBack;
+	let plan = plan0, best = robustEval(I, plan0);
+	// Each holder in turn -- the start, then the calls home -- and each good it
+	// loads: moved to the last call home before the first island taking it.
+	for (let h = -1; h < plan.visits.length; h++) {
+		const holder = h < 0 ? plan : plan.visits[h];
+		if (h >= 0 && holder.at !== home) continue;
+		for (const g of Object.keys(holder.load || {})) {
+			const use = plan.visits.findIndex((v, i) => i > h && station.has(v.at) && station.get(v.at).in === g);
+			if (use < 0) continue;
+			let at = -1;
+			for (let i = h + 1; i < use; i++) if (plan.visits[i].at === home) at = i;
+			if (at < 0) continue;
+			const visits = plan.visits.map((v, i) => (i === at ? { ...v, load: { ...(v.load || {}), [g]: ((v.load || {})[g] || 0) + holder.load[g] } } : v));
+			const rest = { ...holder.load };
+			delete rest[g];
+			const moved = h < 0 ? { ...plan, load: rest, visits } : { ...plan, visits: visits.map((v, i) => (i === h ? { ...v, load: rest } : v)) };
+			const e = robustEval(I, moved);
+			if (ok(e, best)) { plan = moved; best = e; }
+		}
+	}
+	// What is bought at the start likewise: bought there, as the Market
+	// delivers to the harbour's storage, and loaded at the call -- when the
+	// run starts at the home storage, where the bought goods land (its
+	// wharf a few hundred metres from where the run sets out).
+	if (plan.buy && dist('start', home) < 1000) {
+		// Bought at a price: a good off the sailor's own pile stays where the
+		// pile is.
+		for (const g of Object.keys(plan.buy).filter(x => I.goods[x] && I.goods[x].b > 0)) {
+			const use = plan.visits.findIndex(v => station.has(v.at) && station.get(v.at).in === g);
+			if (use < 0) continue;
+			let at = -1;
+			for (let i = 0; i < use; i++) if (plan.visits[i].at === home) at = i;
+			if (at < 0) continue;
+			const n = plan.buy[g];
+			const moved = { ...plan, store: { ...(plan.store || {}), [g]: n }, visits: plan.visits.map((v, i) => (i === at ? { ...v, load: { ...(v.load || {}), [g]: ((v.load || {})[g] || 0) + n } } : v)) };
+			const e = robustEval(I, moved);
+			if (ok(e, best)) { plan = moved; best = e; }
 		}
 	}
 	return plan;

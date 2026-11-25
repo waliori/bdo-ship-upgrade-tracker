@@ -13,8 +13,7 @@ import { npcById, npcs, ports, isleOf, whoOf, isleShort } from '../barter_npcs.j
 import { paceNow } from '../ship-pace.js';
 import { PARLEY, COIN, nextGateAbove, levelOf, npcGate, npcOpen } from '../barter.js';
 import { exchanges } from '../barter-plan.js';
-import { openBarterImport } from '../barter-import.js';
-import { pasteManyNote } from '../shot-reader.js';
+import { pasteManyNote } from '../shot-bits.js';
 import { whileLoading } from '../loading.js';
 import { driftOf } from '../layout-book.js';
 import { coinSides, listSides } from '../barter-layouts.js';
@@ -445,11 +444,12 @@ export function keepRoute(plan, legs, book, segs, pick) {
  */
 export function readWindow(then, files) {
 	boardNow();   // the day's answers, reset if the refill has passed
-	openBarterImport({
+	// The reader is fetched when a window is read, not with the page.
+	import('../barter-import.js').then(({ openBarterImport }) => openBarterImport({
 		files,
 		deals: exchanges(barterData),
 		onAnswers: answers => { takeRead(answers); then(); }
-	});
+	}));
 }
 
 /**

@@ -10,18 +10,18 @@ import { currentShip } from '../ship.js';
 import { BREEZY_EVERY } from '../rations.js';
 import { npcById, ports, isleOf, isleShort } from '../barter_npcs.js';
 import { sailSeconds, METRES_PER_PX } from '../sailing.js';
-import { WAY_CHOICES, QUEST_CHOICES, SELL_CHOICES, LAND_CHOICES, VOUCHER_CHOICES, HOUR_CHOICES, AIM_CHOICES, ORDER_CHOICES, NOTHING, STOCK_LEVELS, SAIL_PRESETS, sailPresetOf, readOrders, readStock, yardsticks } from '../barter-orders.js';
+import { WAY_CHOICES, QUEST_CHOICES, SELL_CHOICES, LAND_CHOICES, VOUCHER_CHOICES, HOUR_CHOICES, AIM_CHOICES, ORDER_CHOICES, NOTHING, STOCK_LEVELS, SAIL_PRESETS, sailPresetOf, readOrders, readStock, yardsticks, stockTarget } from '../barter-orders.js';
 import { PARLEY, COIN, COIN_LEVEL, dailyCapacity, parleyPerTrade, parleyRate, levelOf } from '../barter.js';
 import { goodsHeld, landHeld } from '../barter-plan.js';
-import { pickShots } from '../barter-import.js';
+import { pickShots } from '../shot-bits.js';
 import { dealsAt } from '../barter-layouts.js';
-import { readWords, shotLang, triage } from '../shot-reader.js';
 import { chainRun } from '../barter-chains.js';
 import { seaDist, routeLength } from '../barter-route.js';
 import { bagFigures, bagRoom, BAG_OVER } from '../bag-shot.js';
 import { toast, openDialog, closeDialog } from '../dialogs.js';
 import { lvChips } from '../lv-chips.js';
 import { V } from './state.js';
+import { shortWhy } from './short.js';
 import { boardNow, fromPort, sailCal } from './board.js';
 import { everythingHeld } from './hold.js';
 import { materialParts } from './material.js';
@@ -30,6 +30,7 @@ import { silverParts } from './parts.js';
 import { STASHES, STORE_NAMES, bagSet, stashes, n1, TIER, runTime, chartData, chartFragmentOf } from './route.js';
 import { sailing } from './sail.js';
 import { VOUCHER, persist } from './view.js';
+import { redrawSoon } from './search.js';
 
 import { ico } from '../icons.js';
 import { barterKey } from '../clock.js';
@@ -81,7 +82,7 @@ export function planSheetHTML(chartIds) {
 		<span class="map-plan-aboard">${aboard.all ? T('{n} of {of} aboard', { n: aboard.done, of: aboard.all }) : T('nothing to load')}</span>
 		<button class="linky" data-act="barter-step" data-id="load">${T('Pack at the wharf')}</button>
 		<span class="panel-spacer"></span>
-		<button class="act" data-act="barter-cast-off"${ready ? '' : ' disabled'} title="${T('Each stop goes into the hold as you tick it; at the end the run is recorded')}">${img(currentShip().name, 'ship-ico')} ${T('Cast off')}</button>
+		<button class="act" data-act="barter-cast-off"${ready ? '' : ' disabled'} title="${ready ? T('Each stop goes into the hold as you tick it; at the end the run is recorded') : T('No stop to sail yet: tick a chain under Plan the run')}">${img(currentShip().name, 'ship-ico')} ${T('Cast off')}</button>
 	</div>
 	<div class="map-plan-route">${r.segs}</div>`;
 }
@@ -318,12 +319,21 @@ function gatesOf(lv, count) {
 /** Whether every good at a level stands at its target: the stock's own
  *  measure of a level, the one the ladder's note counts. */
 export function levelFull(lv) {
-	const want = V.stockGoal.targets[lv] || 0;
-	if (!want) return true;
-	const of = kindsPerLevel().get(lv) || 0;
-	let done = 0;
-	for (const [name, k] of everythingHeld()) if (levelOf(name) === lv) done += Math.min(k, want);
-	return done >= want * of;
+	const s = levelStock(lv);
+	return s.done >= s.want;
+}
+
+/** A stock level against its keeps, good by good -- a good's own keep
+ *  where the sailor set one, else the level's: how many it wants in all,
+ *  and how many of those are held. */
+function levelStock(lv, held = everythingHeld()) {
+	let want = 0, done = 0;
+	for (const name of namesAt(lv)) {
+		const t = stockTarget(V.stockGoal, name);
+		want += t;
+		done += Math.min(held.get(name) || 0, t);
+	}
+	return { want, done };
 }
 
 /**
@@ -335,7 +345,10 @@ export function levelFull(lv) {
 export function levelGoodsDialog(lv) {
 	const o = ordersNow();
 	const stocking = V.goal === 'stock';
-	const want = stocking ? V.stockGoal.targets[lv] || 0 : o.floors[lv] || 0;
+	const level = stocking ? V.stockGoal.targets[lv] || 0 : o.floors[lv] || 0;
+	const own = stocking ? V.stockGoal.items || {} : {};
+	const wantOf = name => (Object.prototype.hasOwnProperty.call(own, name) ? own[name] : level);
+	const want = level || Object.keys(own).some(n => levelOf(n) === lv && own[n] > 0);
 	const names = new Set();
 	for (const it of barterData || []) {
 		if (levelOf(it.name) === lv) names.add(it.name);
@@ -343,32 +356,59 @@ export function levelGoodsDialog(lv) {
 	}
 	const held = new Map();
 	for (const [name, k] of everythingHeld()) if (levelOf(name) === lv) { names.add(name); held.set(name, k); }
-	const rows = [...names].map(name => { const k = held.get(name) || 0; return { name, k, short: want ? Math.max(0, want - k) : 0, spare: want ? Math.max(0, k - want) : k }; })
+	const rows = [...names].map(name => { const k = held.get(name) || 0, w = wantOf(name); return { name, k, w, short: w ? Math.max(0, w - k) : 0, spare: w ? Math.max(0, k - w) : k }; })
 		.sort((a, b) => (b.short - a.short) || (b.k - a.k) || gameName(a.name).localeCompare(gameName(b.name)));
 	const total = rows.reduce((a, r) => a + r.k, 0);
 	const short = rows.reduce((a, r) => a + r.short, 0);
 	const shortOf = rows.filter(r => r.short).length;
 	const tileOf = r => {
-		const mark = !want ? '' : r.short
+		const mark = !r.w ? '' : r.short
 			? `<span class="lvg-mark short" title="${T('short of the keep')}">−${F(r.short)}</span>`
 			: r.spare ? `<span class="lvg-mark spare" title="${T('above the keep, free to climb')}">+${F(r.spare)}</span>`
 				: `<span class="lvg-mark met" title="${T('at the keep')}">✓</span>`;
-		const bar = want ? `<span class="lvg-bar"><i style="width:${Math.round(Math.min(1, r.k / want) * 100)}%"></i></span>` : '';
-		return `<div class="lvg-tile${r.k ? '' : ' none'}${want && r.short ? ' is-short' : ''}" title="${esc(gameName(r.name))}">
+		const bar = r.w ? `<span class="lvg-bar"><i style="width:${Math.round(Math.min(1, r.k / r.w) * 100)}%"></i></span>` : '';
+		// On a stock day each good can keep its own number: blank, the level's.
+		const mine = Object.prototype.hasOwnProperty.call(own, r.name);
+		const keep = stocking ? `<label class="lvg-keep${mine ? ' set' : ''}"><span>${T('keep')}</span><input type="number" min="0" max="9999" inputmode="numeric" data-keep-item="${esc(r.name)}" value="${mine ? own[r.name] : ''}" placeholder="${F(level)}" aria-label="${esc(T('Keep of {good}', { good: gameName(r.name) }))}"></label>` : '';
+		return `<div class="lvg-tile${r.k ? '' : ' none'}${r.w && r.short ? ' is-short' : ''}" title="${esc(gameName(r.name))}">
 			${img(r.name, 'lvg-icon')}<b class="lvg-n">${F(r.k)}</b>${bar}${mark}
-			<span class="lvg-name">${esc(gameName(r.name).replace(/^\[[^\]]*\]\s*/, ''))}</span>
+			<span class="lvg-name">${esc(gameName(r.name).replace(/^\[[^\]]*\]\s*/, ''))}</span>${keep}
 		</div>`;
 	};
 	const chip = (cls, text) => `<span class="lvg-chip ${cls}">${text}</span>`;
-	openDialog(`<h2>${T('What you hold at Level {lv}', { lv })}</h2>
+	const host = openDialog(`<h2>${T('What you hold at Level {lv}', { lv })}</h2>
 		<div class="lvg-head">
 			${chip('', T('{n} held in all', { n: `<b>${F(total)}</b>` }))}
-			${want ? chip('', T('keep {n} of each', { n: `<b>${F(want)}</b>` })) : ''}
+			${level ? chip('', T('keep {n} of each', { n: `<b>${F(level)}</b>` })) : ''}
+			${stocking ? chip('', T('a good’s own keep, under it, overrides the level’s')) : ''}
 			${want ? (short ? chip('short', T('{n} short across {k} goods', { n: `<b>${F(short)}</b>`, k: F(shortOf) })) : chip('met', T('every good at its keep'))) : ''}
 		</div>
 		<div class="lvg-grid">${rows.map(tileOf).join('')}</div>
-		<div class="dialog-actions"><button class="act" data-close>${T('Close')}</button></div>`)
-		.querySelector('[data-close]').addEventListener('click', closeDialog);
+		<div class="dialog-actions"><button class="act" data-close>${T('Close')}</button></div>`);
+	host.querySelector('[data-close]').addEventListener('click', closeDialog);
+	// A good's own keep: blank gives it back to the level.
+	host.querySelectorAll('[data-keep-item]').forEach(input => input.addEventListener('change', () => {
+		const name = input.dataset.keepItem;
+		const items = { ...(V.stockGoal.items || {}) };
+		const n = Math.floor(Number(input.value));
+		if (input.value.trim() === '' || !Number.isFinite(n) || n < 0) delete items[name];
+		else items[name] = Math.min(9999, n);
+		V.stockGoal = { ...V.stockGoal, ...(Object.keys(items).length ? { items } : { items: undefined }) };
+		if (!Object.keys(items).length) delete V.stockGoal.items;
+		persist();
+		redrawSoon();
+		// Drawn again, the tile's mark and bar read the good's own keep.
+		const scroll = host.querySelector('.lvg-grid')?.scrollTop || 0;
+		levelGoodsDialog(lv);
+		const grid = document.querySelector('#dialog .lvg-grid');
+		if (grid) grid.scrollTop = scroll;
+	}));
+}
+
+/** Every good the game has at a level. */
+function namesAt(lv) {
+	kindsPerLevel();
+	return V.kindsMemo.sets.get(lv) || new Set();
 }
 
 function kindsPerLevel() {
@@ -381,7 +421,7 @@ function kindsPerLevel() {
 		sets.get(lv).add(name);
 	};
 	for (const it of barterData || []) { add(it.name); for (const x of it.sources || []) add(x.give && x.give.name); }
-	V.kindsMemo = { of: barterData, at: new Map([...sets].map(([lv, set]) => [lv, set.size])) };
+	V.kindsMemo = { of: barterData, sets, at: new Map([...sets].map(([lv, set]) => [lv, set.size])) };
 	return V.kindsMemo.at;
 }
 
@@ -405,7 +445,7 @@ export function stockGains(plan, aboard) {
 		if (n <= 1e-9) continue;
 		const lv = levelOf(name);
 		if (!lv) continue;
-		const want = V.stockGoal.targets[lv] || 0;
+		const want = stockTarget(V.stockGoal, name);
 		const short = Math.max(0, want - (held.get(name) || 0));
 		const toward = Math.min(n, short);
 		if (toward > 1e-9) { byLevel.set(lv, (byLevel.get(lv) || 0) + toward); total += toward; }
@@ -423,14 +463,11 @@ export function stockGains(plan, aboard) {
 export function aheadHTML(gains, plan, prof) {
 	if (!gains) return '';
 	const held = everythingHeld();
-	const kinds = kindsPerLevel();
 	let short = 0;
 	for (const lv of STOCK_LEVELS) {
-		const want = V.stockGoal.targets[lv] || 0;
-		if (!want || lv > V.stockGoal.ceiling) continue;
-		let mine = 0;
-		for (const [name, n] of held) if (levelOf(name) === lv) mine += Math.min(n, want);
-		short += want * (kinds.get(lv) || 0) - mine;
+		if (lv > V.stockGoal.ceiling) continue;
+		const s = levelStock(lv, held);
+		short += s.want - s.done;
 	}
 	if (short <= 0) return `<p class="run-ahead full">${T('Every target is met. Raise them, lift the ceiling a level, or go back to {link} and start selling the pile.', { link: `<button class="linky" data-act="barter-goal" data-id="silver">${T('the silver run')}</button>` })}</p>`;
 	// Nothing banked: either nothing is ticked, or what is ticked makes
@@ -449,7 +486,7 @@ export function aheadHTML(gains, plan, prof) {
 	const days = Math.ceil(runs / perDay);
 	// A storage counts slots, not weight: one to a kind, however many of
 	// it. That is the limit a stock like this one actually runs into.
-	const slots = STOCK_LEVELS.filter(lv => lv <= V.stockGoal.ceiling && (V.stockGoal.targets[lv] || 0) > 0).reduce((a, lv) => a + (kinds.get(lv) || 0), 0);
+	const slots = STOCK_LEVELS.filter(lv => lv <= V.stockGoal.ceiling).reduce((a, lv) => a + [...namesAt(lv)].filter(name => stockTarget(V.stockGoal, name) > 0).length, 0);
 	return `<p class="run-ahead">${T('<b>{n}</b> goods short of the targets', { n: F(short) })} · ${runs === 1 ? T('<b>{n}</b> more run like this one', { n: F(runs) }) : T('<b>{n}</b> more runs like this one', { n: F(runs) })} · ${days === 1 ? T('about <b>{n}</b> day', { n: F(days) }) : T('about <b>{n}</b> days', { n: F(days) })} ${perDay === 1 ? T('at {n} board a day', { n: F(perDay) }) : T('at {n} boards a day', { n: F(perDay) })}${prof.barterCount ? ` · ${T('<b>{n}</b> barters by then', { n: F(prof.barterCount + runs * plan.trades) })}` : ''}${slots ? ` · ${T('the full stock is <b>{n}</b> storage slots, one to a kind', { n: F(slots) })}` : ''}</p>`;
 }
 
@@ -551,7 +588,6 @@ export function ladderHTML(o, { fits = null, tickedN = 0 } = {}) {
 	const heldAt = new Map();
 	for (const [name, n] of everythingHeld()) heldAt.set(levelOf(name), (heldAt.get(levelOf(name)) || 0) + n);
 	const pile = [...landHeld(store.getAllStock()).values()].reduce((a, n) => a + n, 0);
-	const kinds = kindsPerLevel();
 	const everything = everythingHeld();
 	const rungs = [0, 1, 2, 3, 4, 5, 6, 7].map(lv => {
 		if (!lv) return `<div class="rung shore"><span class="rung-node" aria-hidden="true">⌂</span><span class="rung-name">${T('The shore')}</span><span class="rung-held">${pile ? T('{n} land goods held', { n: F(pile) }) : T('land goods')}</span><span class="rung-fate none"></span></div>`;
@@ -559,11 +595,11 @@ export function ladderHTML(o, { fits = null, tickedN = 0 } = {}) {
 		const sold = !stocking && !coining && reached && lv >= 3 && lv >= o.sell;
 		const canFlip = !stocking && !coining && reached && lv >= 3;
 		let fate, tone;
-		if (!reached) { fate = T('not reached'); tone = 'off'; }
+		if (!reached) { fate = T('not traded'); tone = 'off'; }
 		else if (coining && lv === COIN_LEVEL) { fate = T('cashed in'); tone = 'gold'; }
 		else if (sold) { fate = T('sold'); tone = 'gold'; }
-		else if (lv < top && !stocking) { fate = lv >= 5 ? T('kept') : T('climbs on'); tone = lv >= 5 ? 'teal' : 'mute'; }
-		else { fate = T('kept'); tone = 'teal'; }
+		else if (lv < top && !stocking) { fate = lv >= 5 ? T('stock') : T('traded up'); tone = lv >= 5 ? 'teal' : 'mute'; }
+		else { fate = T('stock'); tone = 'teal'; }
 		const fateHTML = canFlip
 			? `<button class="rung-fate ${tone}" data-act="barter-fate" data-lv="${lv}" title="${sold ? T('Tap: keep it as stock instead') : T('Tap: sell it at the wharf instead')}">${fate}</button>`
 			: `<span class="rung-fate ${tone}">${fate}</span>`;
@@ -578,11 +614,11 @@ export function ladderHTML(o, { fits = null, tickedN = 0 } = {}) {
 		// floor on a silver or coin day: which goods sit under it, to be
 		// topped up, and which stand above it, free to climb.
 		let note = '';
-		if (stocking && reached && want) {
-			const of = kinds.get(lv) || 0;
-			const done = [...everything].filter(([name]) => levelOf(name) === lv).reduce((a, [, k]) => a + Math.min(k, want), 0);
+		const ownAt = stocking ? Object.keys(V.stockGoal.items || {}).filter(name => levelOf(name) === lv).length : 0;
+		if (stocking && reached && (want || ownAt)) {
+			const s = levelStock(lv, everything);
 			const gate = gatesOf(lv, store.getProfile('barterCount', 0));
-			note = `<span class="rung-note${done >= want * of ? ' full' : ''}">${done >= want * of ? T('stock|full') : T('{n} short of {of}', { n: F(want * of - done), of: F(want * of) })}${gate ? ` · ${T('{open} of {all} exchanges open at your {count} barters', { open: F(gate.open), all: F(gate.all), count: F(gate.count) })}` : ''}</span>`;
+			note = `<span class="rung-note${s.done >= s.want ? ' full' : ''}">${s.done >= s.want ? T('stock|full') : T('{n} short of {of}', { n: F(s.want - s.done), of: F(s.want) })}${ownAt ? ` · ${ownAt === 1 ? T('{n} good keeps its own number', { n: F(ownAt) }) : T('{n} goods keep their own number', { n: F(ownAt) })}` : ''}${gate ? ` · ${T('{open} of {all} exchanges unlocked at your {count} Total Barters', { open: F(gate.open), all: F(gate.all), count: F(gate.count) })}` : ''}</span>`;
 		} else if (!stocking && reached && want) {
 			const mine = [...everything].filter(([name, k]) => levelOf(name) === lv && k > 0);
 			const under = mine.filter(([, k]) => k < want).length, above = mine.length - under;
@@ -591,7 +627,7 @@ export function ladderHTML(o, { fits = null, tickedN = 0 } = {}) {
 		const coinNode = lv === COIN_LEVEL ? `<span class="rung-coin-line" aria-hidden="true"></span><button class="rung-node coin${coining ? ' on' : ''}" aria-pressed="${coining ? 'true' : 'false'}" data-act="barter-coin-node" title="${T('Cash Level 4 in at the coin islands instead of climbing on')}">${img(COIN, 'rung-coin')}</button><span class="rung-name coin">${T('Crow Coins')}</span><span class="rung-fate ${coining ? 'gold' : 'mute'}">${coining ? T('the goal') : T('or cash in')}</span>` : '';
 		return `<div class="rung${reached ? '' : ' dim'}${lv === top && !coining ? ' top' : ''}" style="--tier:${TIER(lv)}">
 			<button class="rung-node" data-act="barter-rung" data-lv="${lv}" title="${T('End the climb at Level {lv}', { lv })}"${coining ? '' : ` aria-pressed="${lv === top}"`}>${lv}</button>
-			<span class="rung-name">${T('Level {lv}', { lv })}</span>
+			<span class="rung-name">${T('Level {lv}', { lv })} <span class="rung-t" title="${T('What players call it')}">T${lv}</span></span>
 			<button class="rung-held linky" data-act="barter-level-goods" data-lv="${lv}" title="${T('See every good at this level: what you hold, and how many short')}">${heldAt.get(lv) ? T('{n} held', { n: F(heldAt.get(lv)) }) : T('none held')} <span aria-hidden="true">▦</span></button>
 			${fateHTML}${keep}${note || coinNode ? `<div class="rung-more">${note}${coinNode}</div>` : ''}
 		</div>`;
@@ -611,14 +647,15 @@ export function ladderHTML(o, { fits = null, tickedN = 0 } = {}) {
 		? T('A target is what to keep of <b>every</b> good at that level, and it is a floor as well: the run fills it and never spends below it, so a level fills before anything climbs from it and only the surplus goes up. Nothing is sold at a wharf while the stock is the goal.')
 		: coining
 			? lvChips(T('a floor is held back from the coin islands too: a [Level 4] kept is a [Level 4] not cashed, so a floor at 4 is what this day pays for in coins'))
-			: T('Tap <b class="gold">sold</b> / <b class="teal">kept</b> to flip what the wharf does with a level. A keep number is never sold or handed on.')}</p>
+			: T('Tap <b class="gold">sold</b> / <b class="teal">stock</b> to flip what the wharf does with a level. A keep number is never sold or handed on.')}</p>
 		${coining ? `<div class="order-rows plain"><label class="order-row" title="${T('Trades that pay fewer Crow Coins than this are left out of the run')}"><span class="order-k">${T('coins a trade, at least')}</span><span class="order-v">${amountInput('purse-inline', V.minCoins || 0, `data-act="barter-min-coins" aria-label="${T('The fewest Crow Coins a trade must pay')}"`)}</span></label></div>` : ''}
+		${stocking ? `<div class="order-rows plain"><label class="order-row" title="${T('The Crow Coin trades paying at least this many coins a trade are taken first, and the rest of the Parley goes to the stock. 0 takes none.')}"><span class="order-k">${T('and the Crow Coin trades paying at least')}</span><span class="order-v">${amountInput('purse-inline', V.stockGoal.coins || 0, `data-act="barter-stock-coins" placeholder="0" aria-label="${T('The fewest Crow Coins a trade must pay to be taken on a stock day')}"`)}</span><span class="orders-sub">${V.stockGoal.coins ? T('coins first, the rest of the bar to the stock') : T('0: no coin trades')}</span></label></div>` : ''}
 		${aims}
 		<div class="ladder-foot">
 			<div class="ladder-goal">${goalLine(o)}</div>
 			<div class="run-tiles ladder-tiles">
 				${tile(T('The climb ends at'), T('Level {lv}', { lv: top }), coining ? T('then the coin islands') : top === 7 ? T('the top of the ladder') : T('Level {lv} and up are not sailed', { lv: top + 1 }))}
-				${tile(coining ? T('Cashed in') : T('Sold at the wharf'), coining ? T('Level {lv}', { lv: COIN_LEVEL }) : sold.length ? (sold.length === 1 ? T('Level {lv}', { lv: sold[0] }) : T('Level {lv} and up', { lv: sold[0] })) : T('nothing'), `${coining ? T('for Crow Coins, at the islands that pay in them') : sold.length ? T('for silver, at a wharf call') : T('the wharf only stores today')}${floorsSaid ? ` · ${T('keeping {list}', { list: floorsSaid })}` : ''}`, 'gold')}
+				${tile(coining ? T('Cashed in') : T('Sold at the wharf'), coining ? T('Level {lv}', { lv: COIN_LEVEL }) : sold.length ? (sold.length === 1 ? T('Level {lv}', { lv: sold[0] }) : T('Level {lv} and up', { lv: sold[0] })) : T('nothing'), `${coining ? T('for Crow Coins, at the islands that pay in them') : sold.length ? T('for silver, at a wharf call') : stocking ? T('the wharf only stores today') : o.sell !== NOTHING && top < o.sell ? T('the climb ends at Level {top}, below Level {sell} where the wharf starts selling', { top, sell: o.sell }) : T('the wharf only stores today: tap a level’s stock to sell it')}${floorsSaid ? ` · ${T('keeping {list}', { list: floorsSaid })}` : ''}`, 'gold')}
 				${tile(T('Chains that fit'), fits === null ? '—' : F(fits), fits === null ? T('the board is not read yet') : tickedN === 1 ? T('on today’s board, {n} ticked', { n: tickedN }) : T('on today’s board, {n} ticked', { n: tickedN }), 'blue')}
 			</div>
 			<div class="plan-next"><span class="panel-sub">${T('Nothing is bought or sailed yet — the next step chooses how.')}</span><span class="panel-spacer"></span><button class="act" data-act="barter-next" data-id="ladder">${T('OK, that’s the goal')}</button></div>
@@ -708,6 +745,8 @@ export function readBagShot(files) {
 		on('[data-use]', use);
 	}
 	async function run(list) {
+		// The reader is fetched when a picture is read, not with the page.
+		const { readWords, shotLang, triage } = await import('../shot-reader.js');
 		const { take, skipped } = await triage([...(list || [])].slice(0, 1));
 		if (!take.length) { draw(failView(skipped.length ? `${skipped[0].file.name}: ${skipped[0].why}` : T('The screenshot could not be read'))); return; }
 		const me = reading = {};
@@ -1152,7 +1191,7 @@ export function chainStepsDialog(id) {
 		return `<li class="chain-step${s ? '' : ' missed'}"><span class="chain-step-n">${++k}</span><div class="chain-step-body">
 			<div class="chain-step-place"><b>${esc(gameName(isleOf(npc) || r.npc))}</b><span>${esc(gameName(r.npc))}</span></div>
 			<div class="chain-step-trade">${goods(r.giveText, r.give)}<span class="faint">→</span>${goods(r.recvText, r.item)}</div>
-			<div class="chain-step-meta">${today}${s ? ` · <b>${T('this climb trades ×{n}', { n: F(s.times) })}</b>` : ` · <span class="warn">${cut && cut.npcId === r.npcId ? T('the climb stops here') : T('not reached')}</span>`}</div>
+			<div class="chain-step-meta">${today}${s ? ` · <b>${T('this climb trades ×{n}', { n: F(s.times) })}</b>` : ` · <span class="warn">${cut && cut.npcId === r.npcId ? (cut.why ? T('the climb stops here: {why}', { why: shortWhy(cut.why) }) : T('the climb stops here')) : T('not reached')}</span>`}</div>
 		</div></li>`;
 	};
 	const call = s => {

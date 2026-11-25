@@ -12,7 +12,7 @@ import { npcById, ports, isleOf, isleShort } from '../barter_npcs.js';
 import { fmtRange, fmtDistance } from '../sailing.js';
 import { PARLEY_UNIT, NOTHING, SAIL_PRESETS, sailPresetOf, stockOrders, yardsticks } from '../barter-orders.js';
 import { landPrices } from '../land-cost.js';
-import { marketStatus } from '../market.js';
+import { marketStatus, marketBusy } from '../market.js';
 import { PARLEY, COIN, COIN_LEVEL, levelOf } from '../barter.js';
 import { exchanges, landHeld } from '../barter-plan.js';
 import { chains, chainRun as classicRun, tailOf } from '../barter-chains.js';
@@ -25,12 +25,12 @@ import { aboardStock, everythingHeld, floorsShut, cashFloorNow, dockStock } from
 import { heldOf } from './material.js';
 import { packedNow, sparesOf, packingOf, packingLT, packingSlots, packingCount, tripsOf, stagedRun, tripsHTML, leaveHomeHTML, packingHTML, afterShelfHTML } from './packing.js';
 import { chartButton, parleyGuessed, parleyOf, stashAt, ordersNow, levelFull, payRangeHTML, perUnitText, perHourText, stockGains, aheadHTML, goalLine, ladderHTML, howLine, howHTML, parleyLine, parleyHTML, marketDead, chainRow, soloRun } from './plan.js';
-import { docks, supplies, bagNow, stashes, withWaits, withRations, rationsLine, legsOf, preLegHours, questPlan, questsLine, questsPanels, n1, TIER, ledgerOf, runTime, routeEditBar, castOffRow, stopRows, cutsHTML } from './route.js';
+import { docks, supplies, bagNow, stashes, withWaits, withRations, rationsLine, legsOf, preLegHours, questPlan, questLayer, questsLine, questsPanels, n1, TIER, ledgerOf, runTime, routeEditBar, castOffRow, stopRows, cutsHTML } from './route.js';
 import { sailing, planSeen, castOffCaps, castOffLand, digest } from './sail.js';
 import { SEARCH_BUDGET_MS, presetSearch, proposeAsync, searching, redrawSoon, expectedBest } from './search.js';
 import { noteFound } from './study.js';
 import { loadingNote } from '../loading.js';
-import { coinsOf, coinRange, bonusNote, coinPurseHTML, shortSummary, shortHTML, canAppearHTML } from './short.js';
+import { coinsOf, coinRange, bonusNote, coinPurseHTML, shortSummary, shortHTML, canAppearHTML, shortWhy } from './short.js';
 import { takenNote } from './today.js';
 import { editsBy, persist } from './view.js';
 import { lvChips } from '../lv-chips.js';
@@ -105,7 +105,7 @@ export function silverParts(me, b) {
 		return {
 			secs: [
 				['parley', T('Before you sail'), esc(parleyLine(prof)), parleyHTML(prof)],
-				['ladder', T('Where today ends'), esc(goalLine(oNow)), ladderHTML(oNow)],
+				['ladder', T('Your goal'), esc(goalLine(oNow)), ladderHTML(oNow)],
 				...(short ? [['chains', T('Your short trip'), T('the board is not read yet'), canAppearHTML(b, prof, oNow)]] : []),
 				...(short ? [] : [['how', T('How to sail it'), esc(howLine(oNow)), howHTML(oNow)]]),
 				...(short ? [] : [['chains', T('Chains on offer'), T('the board is not read yet'), `${reachNote}<div class="chains-wait">${V.board.answers.length && !b.standing.length
@@ -143,7 +143,7 @@ export function silverParts(me, b) {
 			const at = ports.filter(p => !from || p.name !== from.name).map(p => [p.name, store.stockAt(name, p.name)]).filter(([, n]) => n > 0);
 			if (at.length) away.push([name, at]);
 		}
-		return { targets: V.stockGoal.targets, held: [...heldAll], away };
+		return { targets: V.stockGoal.targets, ...(V.stockGoal.items ? { items: V.stockGoal.items } : {}), held: [...heldAll], away };
 	})() : null;
 	// What else the run may aim at on this board, as its orders say: the
 	// materials the builds are short of, the Lost Trade Boxes, and whether
@@ -152,7 +152,13 @@ export function silverParts(me, b) {
 	const side = { mats: !!sideOn.mats, boxes: !!sideOn.boxes, ocean: sideOn.ocean !== false };
 	// A coin day's floor: a trade paying fewer coins than the sailor asks is not worth its Parley.
 	const paysEnough = c => { const top = c.rungs[c.rungs.length - 1]; return !coining || !(V.minCoins > 0) || top.item !== COIN || top.recvMin >= V.minCoins; };
-	const everything = spendUsed(chains(b.data, stock, dock, prof.barterCount, ceilingNow, coining, fill, side), b).filter(paysEnough);
+	// A stock day that takes the Crow Coin trades worth their Parley as well
+	// (Oni): the coin chains beside the stock's, those paying the sailor's
+	// least a trade. The coins come first, the rest of the bar goes to the stock.
+	const coinsToo = stocking && V.stockGoal.coins > 0;
+	const coinChains = coinsToo ? chains(b.data, stock, dock, prof.barterCount, COIN_LEVEL, true, null, side).filter(c => { const top = c.rungs[c.rungs.length - 1]; return top.item === COIN && top.recvMin >= V.stockGoal.coins; }) : [];
+	const stockChains = chains(b.data, stock, dock, prof.barterCount, ceilingNow, coining, fill, side);
+	const everything = spendUsed([...stockChains, ...coinChains.filter(c => !stockChains.some(x => x.id === c.id))], b).filter(paysEnough);
 	// Goods on this board's ladders held in a harbour's storage the run
 	// does not sail from: a chain can only start from what it can load,
 	// so they are offered nowhere. Said, with the harbour to sail from.
@@ -197,7 +203,7 @@ export function silverParts(me, b) {
 	const owned = Object.fromEntries(everythingHeld());
 	// The ship's pace rides along: a run laid more than one way is kept
 	// by what it is worth an hour, and the hour is the ship's.
-	const opts = { stock, dock, hold: me.hold, parley: parleyOf(prof), npcById, start: from, stashes, prefer: stashAt(), pace, orders: o, prices, seen, keep: V.reach ? [V.reach] : [], land, owned, ship: { speed: me.speed.sea, cal: layCal(), lag: sailLag() }, bag: bagNow(), docks };
+	const opts = { stock, dock, hold: me.hold, parley: parleyOf(prof), npcById, start: from, stashes, prefer: stashAt(), pace, orders: o, prices, seen, keep: V.reach ? [V.reach] : [], land, owned, ship: { speed: me.speed.sea, cal: layCal(), lag: sailLag() }, bag: bagNow(), docks, quests: questLayer(o.quests) };
 	// Each chain on its own, for its row: the list is sorted by the
 	// yardstick, silver a Parley unit, the guide's measure of a chain,
 	// so the best use of the day's Parley is at the top of its group.
@@ -211,7 +217,7 @@ export function silverParts(me, b) {
 	// render and froze the tab on the old board.
 	// What the sets are judged by: the stock, said as plain data so the
 	// search can take it to the worker.
-	const aim = coining ? { kind: 'coins' } : stocking ? { targets: V.stockGoal.targets, held: [...everythingHeld()], kind: V.stockGoal.aim } : null;
+	const aim = coining ? { kind: 'coins' } : stocking ? { targets: V.stockGoal.targets, ...(V.stockGoal.items ? { items: V.stockGoal.items } : {}), ...(coinsToo ? { coins: true } : {}), held: [...everythingHeld()], kind: V.stockGoal.aim } : null;
 	// Every laying of this plan judges its ways by the same aim.
 	if (aim) opts.aim = aim;
 	// Goods the chains want past what the hull moves under go ashore before
@@ -242,7 +248,7 @@ export function silverParts(me, b) {
 	// BreezySail switched moves the calls for supplies, and a run kept
 	// across it kept the old calls until something else changed.
 	const drain = rationDrain(me);
-	const pkey = JSON.stringify([V.minCoins, V.board.day, b.combo.id, V.board.answers, stock, dock, owned, [...land], o, V.port, V.setOut, V.stash, opts.bag, Object.values(prices).map(x => x.each), me.hold, ship, opts.parley, opts.seen, V.reach, prof.barterCount, aim, ceiling, b.shut, b.rolled || [], V.board.usedFor === b.combo.id ? V.board.used || {} : {}, drain.cal, drain.breezy]);
+	const pkey = JSON.stringify([V.minCoins, V.board.day, b.combo.id, V.board.answers, stock, dock, owned, [...land], o, V.port, V.setOut, V.stash, opts.bag, Object.values(prices).map(x => x.each), me.hold, ship, opts.parley, opts.seen, V.reach, prof.barterCount, aim, ceiling, b.shut, b.rolled || [], V.board.usedFor === b.combo.id ? V.board.used || {} : {}, drain.cal, drain.breezy, opts.quests]);
 	const search = { chains: all, opts, ship, timeCap: afterPreLeg(o.hours), aim };
 	// The search goes to the worker and the page draws meanwhile; asked
 	// again when the inputs change, or when an answer is owed and no
@@ -258,12 +264,25 @@ export function silverParts(me, b) {
 		// is searched as before. The plan it found comes back with them.
 		const ship = withShip(opts);
 		const asked = newPlanner() && !unsupported({ ...ship, chosen: all }).length ? { planner: 'new', opts: ship, chains: all, session: ship.session } : search;
+		// A plan laid on the prices in hand while the Market's are on the wire
+		// is kept back: their arrival asks again, and that search is the one
+		// studied. It goes only if none followed -- the prices did not move,
+		// or never came. (Sent at once, the first load of a day was studied
+		// twice, once at no price.) Nor is a search made while a run is under
+		// way: each tick moves the hold and asks again, for nobody.
+		const where = { layout: b.combo.id, day: V.board.day, port: V.port };
+		const study = result => {
+			if (V.sail) return;
+			const busy = marketBusy();
+			if (!busy) noteFound(result, where);
+			else busy.then(() => { if (V.proposed.key === pkey && !V.sail) noteFound(result, where); });
+		};
 		const found = proposeAsync(asked, pkey, result => {
 			rememberFound(result.kept);
 			// The inputs moved on before the answer came: a newer request
 			// is out for them, and this answer is nobody's.
 			if (V.proposed.key !== pkey) return;
-			noteFound(result, { layout: b.combo.id, day: V.board.day, port: V.port });
+			study(result);
 			V.proposed = { ...V.proposed, ...result, working: false };
 			if (V.routesAuto === V.routes.key) {
 				V.routesAuto = '';
@@ -275,7 +294,7 @@ export function silverParts(me, b) {
 		// Until the answer comes the last proposals stand in, when they
 		// belong to this board, under a note that the search is out.
 		const onBoard = new Set(all.map(c => c.id));
-		if (found) { rememberFound(found.kept); noteFound(found, { layout: b.combo.id, day: V.board.day, port: V.port }); }
+		if (found) { rememberFound(found.kept); study(found); }
 		V.proposed = found
 			? { key: pkey, solos, ...found, working: false }
 			: { key: pkey, solos, proposals: V.proposed.proposals.filter(p => p.ids.every(id => onBoard.has(id))), best: V.proposed.key === pkey ? V.proposed.best : null, partial: false, working: true };
@@ -376,7 +395,7 @@ export function silverParts(me, b) {
 	const budgetText = T('best found in {n} s', { n: FD(SEARCH_BUDGET_MS / 1000, 1) });
 	const proposals = `<div class="proposals${V.proposed.working ? ' working' : ''}">
 		<div class="proposals-head"><span>${T('Runs worth sailing')}</span><span class="faint">${V.proposed.working ? T('working out the runs…') : `${T('found on today’s board under these orders')}${o.hours ? `, ${o.hours === 1 ? T('within {n} hour', { n: o.hours }) : T('within {n} hours', { n: o.hours })}` : ''}${V.proposed.partial ? ` · ${budgetText}` : ''}`} · ${T('the value counts silver net of land goods and the goods kept')}</span></div>
-		${cards ? `<div class="proposal-cards">${cards}</div>` : V.proposed.working ? `<div class="proposal-cards"><div class="proposal placeholder" aria-busy="true"><span class="proposal-k">${loadingNote(T('Working out the runs…'))}</span><b>&nbsp;</b><span class="proposal-sub">${T('the board’s chains, searched in the background')}</span></div></div>` : `<p class="empty">${stocking ? T('Nothing on this board climbs toward the stock under these orders.') : T('Nothing on this board pays under these orders.')}</p>`}
+		${cards ? `<div class="proposal-cards">${cards}</div>` : V.proposed.working ? `<div class="proposal-cards"><div class="proposal placeholder" aria-busy="true"><span class="proposal-k">${loadingNote(T('Working out the runs…'))}</span><b>&nbsp;</b><span class="proposal-sub">${T('the board’s chains, searched in the background')}</span></div></div>` : `<p class="empty">${stocking ? T('Nothing on this board climbs toward the stock under these orders.') : T('Nothing on this board pays under these orders.')}${!stocking && !coining && o.sell === NOTHING ? ` ${T('The wharf sells nothing today: tap a level’s stock under Your goal to sell it.')}` : ''}${o.hours ? ` ${T('The {n} h limit under How to sail it may be what shuts them out: try more hours, or none.', { n: o.hours })}` : ''}</p>`}
 	</div>`;
 	const fillable = chosen.length > 0 && !V.proposed.proposals.some(p => sameSet(p.ids, V.routes.ids));
 	// A new sailor needs one sentence on what to do here, and a sailor
@@ -594,6 +613,17 @@ export function silverParts(me, b) {
 	// A fast run refuses a hold over the limit and trades nothing; say
 	// so, since the empty run looks like a board with nothing on it.
 	const heavy = pace === 'fast' && plan.trades === 0 && chosen.length > 0 && plan.weightStart > me.hold.free;
+	// Why chains ticked come to nothing, said on the tiles rather than a
+	// bare dash: the hold over the limit on a fast pace, else what stopped
+	// the first chain cut short (the note under the tiles has them all).
+	const whyNone = !chosen.length ? '' : heavy ? T('the hold is over the limit, and a fast run makes no wharf call')
+		: plan.cut && plan.cut.length ? T('{why} — see the note under the tiles', { why: shortWhy(plan.cut[0].why) }) : '';
+	// A silver run that sells nothing: the wharf sells nothing today, or
+	// the chains ticked all end below the level it starts selling at.
+	const topTicked = chosen.reduce((m, c) => Math.max(m, c.top || 0), 0);
+	const sellWhy = o.sell === NOTHING ? T('the wharf sells nothing today: tap a level’s stock under Your goal to sell it')
+		: topTicked && topTicked < o.sell ? T('the chains ticked end at Level {top}, and the wharf sells from Level {sell} up', { top: topTicked, sell: o.sell })
+		: T('no chain ticked sells');
 	const peak = shownHold(me.hold, plan.weightPeak), atStart = shownHold(me.hold, plan.weightStart);
 	// And the hold's slots at their fullest, beside the LT: every tile
 	// that shows the hold says both.
@@ -617,23 +647,27 @@ export function silverParts(me, b) {
 	// pile standing at.
 	const gains = stocking ? stockGains(plan, stock) : null;
 	const tiles = coining ? `<div class="run-tiles">
-		${tile(`${img(COIN, 'tile-icon')}${T('Crow Coins')}`, plan.coins ? coinRange(purse.min, purse.max, '+') : '—', plan.coins ? `${bonusNote(purse)} · ${plan.stops.filter(s => s.item === COIN).length === 1 ? T('{n} island paying', { n: F(plan.stops.filter(s => s.item === COIN).length) }) : T('{n} islands paying', { n: F(plan.stops.filter(s => s.item === COIN).length) })}` : chosen.length ? (cashFloorNow() ? lvChips(T('every [Level {lv}] you hold is under the floor of {floor} you keep back, so none is cashed', { lv: COIN_LEVEL, floor: F(cashFloorNow()) })) : lvChips(T('no chain ticked cashes a [Level 4] for coins'))) : T('pick a chain'), 'gold')}
-		${tile(T('Trades'), plan.trades ? F(plan.trades) : '—', plan.trades ? `${T('{spent} Parley of {bar}', { spent: F(Math.round(plan.parleyUsed)), bar: F(plan.parleyBar) })} · ${T('{n} barters behind you, {after} after', { n: F(prof.barterCount), after: F(prof.barterCount + plan.trades) })}${plan.coins && plan.parleyUsed ? ` · ${T('{n} coins a Parley unit', { n: F(Math.round(purse.min / (plan.parleyUsed / PARLEY_UNIT))) })}` : ''}` : T('one barter counts as one, whatever it trades'), 'gold')}
+		${tile(`${img(COIN, 'tile-icon')}${T('Crow Coins')}`, plan.coins ? coinRange(purse.min, purse.max, '+') : '—', plan.coins ? `${bonusNote(purse)} · ${plan.stops.filter(s => s.item === COIN).length === 1 ? T('{n} island paying', { n: F(plan.stops.filter(s => s.item === COIN).length) }) : T('{n} islands paying', { n: F(plan.stops.filter(s => s.item === COIN).length) })}` : chosen.length ? whyNone || (cashFloorNow() ? lvChips(T('every [Level {lv}] you hold is under the floor of {floor} you keep back, so none is cashed', { lv: COIN_LEVEL, floor: F(cashFloorNow()) })) : lvChips(T('no chain ticked cashes a [Level 4] for coins'))) : T('pick a chain'), 'gold')}
+		${tile(T('Trades'), plan.trades ? F(plan.trades) : '—', plan.trades ? `${T('{spent} Parley of {bar}', { spent: F(Math.round(plan.parleyUsed)), bar: F(plan.parleyBar) })} · ${T('{n} barters behind you, {after} after', { n: F(prof.barterCount), after: F(prof.barterCount + plan.trades) })}${plan.coins && plan.parleyUsed ? ` · ${T('{n} coins a Parley unit', { n: F(Math.round(purse.min / (plan.parleyUsed / PARLEY_UNIT))) })}` : ''}` : whyNone || T('one barter counts as one, whatever it trades'), 'gold')}
 		${tile(T('Hold at its fullest'), plan.stops.length ? esc(peak.text) : '—', `${peak.note || T('under the limit')} · ${peak.deal === peak.max ? T('barters and moves to {max}', { max: F(peak.max) }) : T('barters to {deal} · moves to {max}', { deal: F(peak.deal), max: F(peak.max) })}`, peak.state === 'heavy' || peak.state === 'dead' ? 'warn' : peak.state === 'over' ? 'amber' : 'teal')}
 		${tile(T('Parley at the end'), plan.stops.length ? F(book.end) : '—', `${T('{spent} spent from {held}', { spent: F(book.spent), held: F(parley.held) })}${parleyGuessed(prof) ? ` · ${T('a full bar, taken as read — type yours under Before you sail')}` : ''}${prof.vouchers ? ` · ${prof.vouchers === 1 ? T('{used} of {of} voucher drawn on', { used: book.vouchersUsed, of: prof.vouchers }) : T('{used} of {of} vouchers drawn on', { used: book.vouchersUsed, of: prof.vouchers })}` : ''}${book.waited ? ` · <b class="amber">${T('waits {n} min for a cooldown', { n: F(book.waited) })}</b>` : ''}${book.short ? ` · <b class="warn">${T('runs dry at stop {n}', { n: book.dryAt + 1 })}</b>` : ''}`, book.short ? 'warn' : book.waited ? 'amber' : book.end < PARLEY.max * 0.1 ? 'amber' : 'teal')}
-		${tile(T('Under way'), legs.total ? esc(fmtDistance(legs.total)) : '—', legs.total ? `${T('≈ {time} at {speed}%', { time: esc(runTime(legs, book)), speed: me.speed.total })} · ${islands === 1 ? T('{n} island', { n: islands }) : T('{n} islands', { n: islands })}${wharfs ? `, ${wharfs === 1 ? T('{n} wharf call', { n: wharfs }) : T('{n} wharf calls', { n: wharfs })}` : ''}${supplyN ? `, ${supplyN === 1 ? T('{n} call for supplies', { n: supplyN }) : T('{n} calls for supplies', { n: supplyN })}` : ''}${from ? ` · ${T('from {port}', { port: esc(gameName(from.name)) })}` : ''}` : T('pick a chain'))}
+		${tile(T('Under way'), legs.total ? esc(fmtDistance(legs.total)) : '—', legs.total ? `${T('≈ {time} at {speed}%', { time: esc(runTime(legs, book)), speed: me.speed.total })} · ${islands === 1 ? T('{n} island', { n: islands }) : T('{n} islands', { n: islands })}${wharfs ? `, ${wharfs === 1 ? T('{n} wharf call', { n: wharfs }) : T('{n} wharf calls', { n: wharfs })}` : ''}${supplyN ? `, ${supplyN === 1 ? T('{n} call for supplies', { n: supplyN }) : T('{n} calls for supplies', { n: supplyN })}` : ''}${from ? ` · ${T('from {port}', { port: esc(gameName(from.name)) })}` : ''}` : chosen.length ? (whyNone || T('no stop to sail')) : T('pick a chain'))}
 	</div>${coinPurseHTML(plan)}` : stocking ? `<div class="run-tiles">
-		${tile(T('The stock gains'), gains.total ? `+${F(gains.total)}` : '—', gains.total ? `${gains.byLevel.map(([lv, n]) => `${lvTag(lv)} +${F(n)}`).join(' · ')}${gains.spare ? ` · ${T('{n} over the targets, to climb with', { n: F(gains.spare) })}` : ''}` : chosen.length ? T('nothing this run banks is short') : T('pick a chain'), 'teal')}
-		${tile(T('Trades'), plan.trades ? F(plan.trades) : '—', plan.trades ? `${T('{spent} Parley of {bar}', { spent: F(Math.round(plan.parleyUsed)), bar: F(plan.parleyBar) })} · ${T('{n} barters behind you, {after} after', { n: F(prof.barterCount), after: F(prof.barterCount + plan.trades) })}` : T('one barter counts as one, whatever it trades'), 'gold')}
+		${plan.coins ? tile(`${img(COIN, 'tile-icon')}${T('Crow Coins')}`, coinRange(purse.min, purse.max, '+'), T('from the coin trades paying at least {n} a trade', { n: F(V.stockGoal.coins) }), 'gold')
+		// Coins asked for and none taken: a target is a floor too, so the
+		// coin trades only cash what is over it -- say which way out.
+		: coinsToo && chosen.length ? tile(`${img(COIN, 'tile-icon')}${T('Crow Coins')}`, '—', coinChains.length ? (chosen.some(c => c.rungs[c.rungs.length - 1].item === COIN) ? lvChips(T('the coin trades take [Level {lv}]s, and every one you hold is under its target: lower the [Level {lv}] target to cash some', { lv: COIN_LEVEL })) : T('no coin chain is ticked: take a run above, or tick one under Chains on offer')) : T('no coin trade on this board pays {n} or more', { n: F(V.stockGoal.coins) }), 'gold') : ''}
+		${tile(T('The stock gains'), gains.total ? `+${F(gains.total)}` : '—', gains.total ? `${gains.byLevel.map(([lv, n]) => `${lvTag(lv)} +${F(n)}`).join(' · ')}${gains.spare ? ` · ${T('{n} over the targets, to climb with', { n: F(gains.spare) })}` : ''}` : chosen.length ? whyNone || (!Object.values(V.stockGoal.targets || {}).some(n => n > 0) && !V.stockGoal.items ? T('no target is set: type one under a level in Your goal') : gains.spare ? T('everything it makes is over its target already') : T('nothing this run banks is short')) : T('pick a chain'), 'teal')}
+		${tile(T('Trades'), plan.trades ? F(plan.trades) : '—', plan.trades ? `${T('{spent} Parley of {bar}', { spent: F(Math.round(plan.parleyUsed)), bar: F(plan.parleyBar) })} · ${T('{n} barters behind you, {after} after', { n: F(prof.barterCount), after: F(prof.barterCount + plan.trades) })}` : whyNone || T('one barter counts as one, whatever it trades'), 'gold')}
 		${tile(T('Hold at its fullest'), plan.stops.length ? esc(peak.text) : '—', `${peak.note || T('under the limit')} · ${peak.deal === peak.max ? T('barters and moves to {max}', { max: F(peak.max) }) : T('barters to {deal} · moves to {max}', { deal: F(peak.deal), max: F(peak.max) })}`, peak.state === 'heavy' || peak.state === 'dead' ? 'warn' : peak.state === 'over' ? 'amber' : 'teal')}
 		${tile(T('Parley at the end'), plan.stops.length ? F(book.end) : '—', `${T('{spent} spent from {held}', { spent: F(book.spent), held: F(parley.held) })}${parleyGuessed(prof) ? ` · ${T('a full bar, taken as read — type yours under Before you sail')}` : ''}${prof.vouchers ? ` · ${prof.vouchers === 1 ? T('{used} of {of} voucher drawn on', { used: book.vouchersUsed, of: prof.vouchers }) : T('{used} of {of} vouchers drawn on', { used: book.vouchersUsed, of: prof.vouchers })}` : ''}${book.waited ? ` · <b class="amber">${T('waits {n} min for a cooldown', { n: F(book.waited) })}</b>` : ''}${book.short ? ` · <b class="warn">${T('runs dry at stop {n}', { n: book.dryAt + 1 })}</b>` : ''}`, book.short ? 'warn' : book.waited ? 'amber' : book.end < PARLEY.max * 0.1 ? 'amber' : 'teal')}
-		${tile(T('Under way'), legs.total ? esc(fmtDistance(legs.total)) : '—', legs.total ? `${T('≈ {time} at {speed}%', { time: esc(runTime(legs, book)), speed: me.speed.total })} · ${islands === 1 ? T('{n} island', { n: islands }) : T('{n} islands', { n: islands })}${wharfs ? `, ${wharfs === 1 ? T('{n} wharf call', { n: wharfs }) : T('{n} wharf calls', { n: wharfs })}` : ''}${supplyN ? `, ${supplyN === 1 ? T('{n} call for supplies', { n: supplyN }) : T('{n} calls for supplies', { n: supplyN })}` : ''}${from ? ` · ${T('from {port}', { port: esc(gameName(from.name)) })}` : ''}` : T('pick a chain'))}
+		${tile(T('Under way'), legs.total ? esc(fmtDistance(legs.total)) : '—', legs.total ? `${T('≈ {time} at {speed}%', { time: esc(runTime(legs, book)), speed: me.speed.total })} · ${islands === 1 ? T('{n} island', { n: islands }) : T('{n} islands', { n: islands })}${wharfs ? `, ${wharfs === 1 ? T('{n} wharf call', { n: wharfs }) : T('{n} wharf calls', { n: wharfs })}` : ''}${supplyN ? `, ${supplyN === 1 ? T('{n} call for supplies', { n: supplyN }) : T('{n} calls for supplies', { n: supplyN })}` : ''}${from ? ` · ${T('from {port}', { port: esc(gameName(from.name)) })}` : ''}` : chosen.length ? (whyNone || T('no stop to sail')) : T('pick a chain'))}
 	</div>${aheadHTML(gains, plan, prof)}` : `<div class="run-tiles">
-		${tile(plan.cost ? T('Silver, net') : T('Sold in port'), plan.silver ? FC(Math.round(plan.net)) : '—', plan.silver ? `${T('{what} sold at the wharf', { what: soldWhat })}${plan.cost ? ` ${T('for {silver} · {cost} of land goods bought', { silver: FC(Math.round(plan.silver)), cost: FC(Math.round(plan.cost)) })}` : ''}${plan.bought.some(b => b.how === 'unpriced') ? ` · ${T('some land goods unpriced')}` : ''}` : chosen.length ? (short ? T('nothing on this trip sells — see what it is worth kept, under Fits on the way') : T('no chain ticked sells')) : short ? T('pick a trade') : T('pick a chain'), plan.net < 0 ? 'warn' : 'gold')}
+		${tile(plan.cost ? T('Silver, net') : T('Sold in port'), plan.silver ? FC(Math.round(plan.net)) : '—', plan.silver ? `${T('{what} sold at the wharf', { what: soldWhat })}${plan.cost ? ` ${T('for {silver} · {cost} of land goods bought', { silver: FC(Math.round(plan.silver)), cost: FC(Math.round(plan.cost)) })}` : ''}${plan.bought.some(b => b.how === 'unpriced') ? ` · ${T('some land goods unpriced')}` : ''}` : chosen.length ? (short ? T('nothing on this trip sells — see what it is worth kept, under Fits on the way') : whyNone || sellWhy) : short ? T('pick a trade') : T('pick a chain'), plan.net < 0 ? 'warn' : 'gold')}
 		${tile(T('A Parley unit pays'), yard.perUnit ? FC(Math.round(yard.perUnit)) : '—', yard.perUnit ? `${T('{spent} Parley of {bar}', { spent: F(Math.round(plan.parleyUsed)), bar: F(plan.parleyBar) })} · ${plan.trades === 1 ? T('{n} trade', { n: F(plan.trades) }) : T('{n} trades', { n: F(plan.trades) })}${yard.perHour ? ` · ${T('≈ {silver} an hour', { silver: FC(Math.round(yard.perHour)) })}` : ''}` : `${plan.trades === 1 ? T('{n} trade', { n: F(plan.trades) }) : T('{n} trades', { n: F(plan.trades) })} · ${T('one unit is one normal trade’s Parley')}`, 'gold')}
 		${tile(T('Hold at its fullest'), plan.stops.length ? esc(peak.text) : '—', `${peak.note || T('under the limit')} · ${peak.deal === peak.max ? T('barters and moves to {max}', { max: F(peak.max) }) : T('barters to {deal} · moves to {max}', { deal: F(peak.deal), max: F(peak.max) })}`, peak.state === 'heavy' || peak.state === 'dead' ? 'warn' : peak.state === 'over' ? 'amber' : 'teal')}
 		${tile(T('Parley at the end'), plan.stops.length ? F(book.end) : '—', `${T('{spent} spent from {held}', { spent: F(book.spent), held: F(parley.held) })}${parleyGuessed(prof) ? ` · ${T('a full bar, taken as read — type yours under Before you sail')}` : ''}${prof.vouchers ? ` · ${prof.vouchers === 1 ? T('{used} of {of} voucher drawn on', { used: book.vouchersUsed, of: prof.vouchers }) : T('{used} of {of} vouchers drawn on', { used: book.vouchersUsed, of: prof.vouchers })}` : ''}${book.waited ? ` · <b class="amber">${T('waits {n} min for a cooldown', { n: F(book.waited) })}</b>` : ''}${book.short ? ` · <b class="warn">${T('runs dry at stop {n}', { n: book.dryAt + 1 })}</b>` : ''}`, book.short ? 'warn' : book.waited ? 'amber' : book.end < PARLEY.max * 0.1 ? 'amber' : 'teal')}
-		${tile(T('Under way'), legs.total ? esc(fmtDistance(legs.total)) : '—', legs.total ? `${T('≈ {time} at {speed}%', { time: esc(runTime(legs, book)), speed: me.speed.total })} · ${islands === 1 ? T('{n} island', { n: islands }) : T('{n} islands', { n: islands })}${wharfs ? `, ${wharfs === 1 ? T('{n} wharf call', { n: wharfs }) : T('{n} wharf calls', { n: wharfs })}` : ''}${supplyN ? `, ${supplyN === 1 ? T('{n} call for supplies', { n: supplyN }) : T('{n} calls for supplies', { n: supplyN })}` : ''}${from ? ` · ${T('from {port}', { port: esc(gameName(from.name)) })}` : ''}` : T('pick a chain'))}
+		${tile(T('Under way'), legs.total ? esc(fmtDistance(legs.total)) : '—', legs.total ? `${T('≈ {time} at {speed}%', { time: esc(runTime(legs, book)), speed: me.speed.total })} · ${islands === 1 ? T('{n} island', { n: islands }) : T('{n} islands', { n: islands })}${wharfs ? `, ${wharfs === 1 ? T('{n} wharf call', { n: wharfs }) : T('{n} wharf calls', { n: wharfs })}` : ''}${supplyN ? `, ${supplyN === 1 ? T('{n} call for supplies', { n: supplyN }) : T('{n} calls for supplies', { n: supplyN })}` : ''}${from ? ` · ${T('from {port}', { port: esc(gameName(from.name)) })}` : ''}` : chosen.length ? (whyNone || T('no stop to sail')) : T('pick a chain'))}
 	</div>`;
 	// One route through every chain: the stops in sailing order, each
 	// tagged with its chain, the chains named in the head with the way
@@ -676,7 +710,7 @@ export function silverParts(me, b) {
 		const calls = run.stops.filter(x => x.wharf).length;
 		const chainsN = (run.order || []).length;
 		// The waits for a voucher's cooldown are part of how long it takes.
-		return { big, sub: `${chainsN === 1 ? T('{n} chain', { n: chainsN }) : T('{n} chains', { n: chainsN })} · ${lg.total ? `≈ ${esc(runTime(lg, ledgerOf(run.stops, lg)))}` : T('no way')} · ${run.trades === 1 ? T('{n} trade', { n: F(run.trades) }) : T('{n} trades', { n: F(run.trades) })}${calls ? ` · ${calls === 1 ? T('{n} wharf call', { n: calls }) : T('{n} wharf calls', { n: calls })}` : ''}` };
+		return { big, sub: `${chainsN === 1 ? T('{n} chain', { n: chainsN }) : T('{n} chains', { n: chainsN })} · ${lg.total ? `≈ ${esc(runTime(lg, ledgerOf(run.stops, lg)))}` : T('no stop to sail')} · ${run.trades === 1 ? T('{n} trade', { n: F(run.trades) }) : T('{n} trades', { n: F(run.trades) })}${calls ? ` · ${calls === 1 ? T('{n} wharf call', { n: calls }) : T('{n} wharf calls', { n: calls })}` : ''}` };
 	};
 	const presetFigs = short ? new Map() : new Map(SAIL_PRESETS.map(p => {
 		// The card's own search, once it has answered -- the same for the
@@ -755,7 +789,7 @@ export function silverParts(me, b) {
 			const soldHere = soldBy[k] || 0;
 			const leftHere = plan.stashed.filter(s => s.chain === k).reduce((a, s) => a + s.total, 0);
 			return `<section class="panel run-seg" style="--tier:${TIER(c.top)}">
-				<div class="run-seg-head"><i></i><b>${T('{isle} chain', { isle: esc(isleShort(npcById.get(c.rungs[0].npcId)) || c.rungs[0].npc) })}</b><em>${T('Level {lv}', { lv: c.top })}</em><span>${soldHere ? T('{silver} sold', { silver: FC(Math.round(soldHere)) }) : T('nothing sold')}${leftHere ? ` · ${T('{silver} left on the way', { silver: FC(Math.round(leftHere)) })}` : ''}${mine.length ? '' : (() => { const cut = plan.cut.find(x => x.chain === k); return cut && cut.why === 'market' ? ` · ${cut.listed ? T('cannot start: only {n} {good} on the Market', { n: F(cut.listed), good: esc(gameName(cut.good)) }) : T('cannot start: no {good} on the Market', { good: esc(gameName(cut.good)) })}` : ` · ${T('every island already dealt')}`; })()}</span><button class="map-x" data-act="barter-chain" data-id="${esc(c.id)}" aria-label="${T('Untick this chain')}">×</button></div>
+				<div class="run-seg-head"><i></i><b>${T('{isle} chain', { isle: esc(isleShort(npcById.get(c.rungs[0].npcId)) || c.rungs[0].npc) })}</b><em>${T('Level {lv}', { lv: c.top })}</em><span>${soldHere ? T('{silver} sold', { silver: FC(Math.round(soldHere)) }) : T('nothing sold')}${leftHere ? ` · ${T('{silver} left on the way', { silver: FC(Math.round(leftHere)) })}` : ''}${mine.length ? '' : (() => { const cut = plan.cut.find(x => x.chain === k); return cut && cut.why === 'market' ? ` · ${cut.listed ? T('cannot start: only {n} {good} on the Market', { n: F(cut.listed), good: esc(gameName(cut.good)) }) : T('cannot start: no {good} on the Market', { good: esc(gameName(cut.good)) })}` : ` · ${cut ? shortWhy(cut.why) : T('every island already dealt')}`; })()}</span><button class="map-x" data-act="barter-chain" data-id="${esc(c.id)}" aria-label="${T('Untick this chain')}">×</button></div>
 				${mine.length ? `<div class="run-stops">${stopRows(mine, legs, { k0: first, before: first > 0 ? plan.stops[first - 1] : null, board: true, sailing: sailing(), edit: !sailing(), notes: qp, ledger: book, trip: tripHead })}</div>` : ''}
 			</section>`;
 		}).join('');
@@ -816,7 +850,7 @@ export function silverParts(me, b) {
 	return {
 		secs: [
 			['parley', T('Before you sail'), esc(parleyLine(prof)), parleyHTML(prof)],
-			['ladder', T('Where today ends'), esc(goalLine(o)), ladderHTML(o, { fits: all.length, tickedN: chosen.length })],
+			['ladder', T('Your goal'), esc(goalLine(o)), ladderHTML(o, { fits: all.length, tickedN: chosen.length })],
 			...(short
 				? [['chains', T('Your short trip'), esc(shortSummary(chosen, worthSaid, plan)), shortHTML({ set: shortSet, picked: chosen, opts, aim, ship, from, stock, plan, pkey, stocking, coining, runFigures, heldNote, shutNote, lay: chainRun })]]
 				: [['how', T('How to sail it'), esc(howLine(o)), howHTML(o, presetFigs)],
