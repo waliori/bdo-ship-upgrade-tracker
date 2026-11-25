@@ -105,8 +105,8 @@ function shapeChips() {
 	return `<span class="segs" role="group" aria-label="${T('How much of the board')}">${chip('full', T('Full run'), T('The board’s chains, searched for the best set and climbed'))}${chip('short', T('Short trip'), T('One trade you are going for, and what fits round it'))}</span>`;
 }
 
-/** Why a trade would add nothing, in words. */
-const shortWhy = why => ({
+/** Why a trade -- or a chain of a run -- would add nothing, in words. */
+export const shortWhy = why => ({
 	parley: T('the Parley runs out'),
 	hold: T('over the hold’s limit'),
 	over: T('over the hold’s limit'),
@@ -114,8 +114,12 @@ const shortWhy = why => ({
 	market: T('the Market lists too few'),
 	share: T('another trade takes the goods'),
 	floor: T('your floor keeps them'),
+	dealt: T('another chain deals at that island first'),
 	nothing: T('nothing to hand over')
 }[why] || T('nothing to hand over'));
+
+/** The commonest of a list. */
+const mostOf = xs => { const n = new Map(); for (const x of xs) n.set(x, (n.get(x) || 0) + 1); return [...n].sort((p, q) => q[1] - p[1])[0][0]; };
 
 /** The section's line when shut. */
 export function shortSummary(picked, worthSaid, plan) {
@@ -195,7 +199,7 @@ export function shortHTML({ set, picked, opts, aim, ship, from, stock, plan, pke
 	const furtherHTML = further.length ? `<div class="plan-sub-head"><b>${T('Take it one island further')}</b><span>${T('what the picked trades make, handed on at the next island')}</span></div><div class="st-list">${further.map(row).join('')}</div>` : '';
 	const list = live.length
 		? `<div class="st-list">${live.slice(0, SHOW).map(row).join('')}</div>${live.length > SHOW ? `<details class="st-more"><summary>${T('{n} more trades', { n: live.length - SHOW })}</summary><div class="st-list">${live.slice(SHOW).map(row).join('')}</div></details>` : ''}`
-		: `<p class="empty">${picked.length ? T('Nothing else on the board fits round this trip.') : T('No trade on this board can be sailed from what you hold.')}</p>`;
+		: `<p class="empty">${picked.length ? T('Nothing else on the board fits round this trip.') : T('No trade on this board can be sailed from what you hold.')}${dead.length ? ` ${T('Most of the trades below stop at the same thing: {why}.', { why: shortWhy(mostOf(dead.map(r => r.why))) })}` : ''}</p>`;
 	const deadList = dead.length ? `<details class="st-more"><summary>${dead.length === 1 ? T('{n} trade that cannot be made', { n: dead.length }) : T('{n} trades that cannot be made', { n: dead.length })}</summary><div class="st-list">${dead.map(row).join('')}</div></details>` : '';
 	// The trip so far: each trade, the goods it makes, a step back.
 	const pickedHTML = picked.length ? `<div class="st-picked">${picked.map(c => {

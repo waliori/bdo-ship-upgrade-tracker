@@ -6337,5 +6337,19 @@
 	"{n} left in the storage at {town}": "{n} deixadas no armazém de {town}",
 	"the coin trades take [Level {lv}]s, and every one you hold is under its target: lower the [Level {lv}] target to cash some": "as trocas de moedas pedem [Nível {lv}], e cada um que você tem está abaixo da meta: baixe a meta de [Nível {lv}] para trocar alguns",
 	"no coin trade on this board pays {n} or more": "nenhuma troca de moedas deste quadro paga {n} ou mais",
-	"What players call it": "Como os jogadores chamam"
+	"What players call it": "Como os jogadores chamam",
+	"another chain deals at that island first": "outra cadeia troca primeiro nessa ilha",
+	"Most of the trades below stop at the same thing: {why}.": "A maioria das trocas abaixo para pelo mesmo motivo: {why}.",
+	"the hold is over the limit, and a fast run makes no wharf call": "o porão passa do limite, e uma viagem rápida não para na doca",
+	"{why} — see the note under the tiles": "{why} — veja a nota abaixo dos quadros",
+	"the wharf sells nothing today: tap a level’s stock under Your goal to sell it": "hoje a doca não vende nada: toque em “estoque” sob um nível em Seu objetivo para vendê-lo",
+	"the chains ticked end at Level {top}, and the wharf sells from Level {sell} up": "as cadeias marcadas terminam no Nível {top}, e a doca vende a partir do Nível {sell}",
+	"no stop to sail": "nenhuma parada para navegar",
+	"no target is set: type one under a level in Your goal": "nenhuma meta definida: digite uma sob um nível em Seu objetivo",
+	"everything it makes is over its target already": "tudo o que ela produz já passa da meta",
+	"The {n} h limit under How to sail it may be what shuts them out: try more hours, or none.": "Talvez o limite de {n} h em Como navegá-la as exclua: tente mais horas, ou nenhum.",
+	"the climb ends at Level {top}, below Level {sell} where the wharf starts selling": "a subida termina no Nível {top}, abaixo do Nível {sell} onde a doca começa a vender",
+	"the wharf only stores today: tap a level’s stock to sell it": "hoje a doca só guarda: toque em “estoque” sob um nível para vendê-lo",
+	"nothing comes of it: the goods its islands take are not held — see To get first": "nada vem disso: você não tem as mercadorias que as ilhas pedem — veja Conseguir primeiro",
+	"The wharf sells nothing today: tap a level’s stock under Your goal to sell it.": "Hoje a doca não vende nada: toque em “estoque” sob um nível em Seu objetivo para vendê-lo."
 }

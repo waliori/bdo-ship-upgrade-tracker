@@ -6241,5 +6241,19 @@
 	"{n} left in the storage at {town}": "{n} ทิ้งไว้ในคลังที่ {town}",
 	"the coin trades take [Level {lv}]s, and every one you hold is under its target: lower the [Level {lv}] target to cash some": "การแลกเหรียญใช้ [ระดับ {lv}] และทุกชิ้นที่คุณถืออยู่ยังต่ำกว่าเป้า: ลดเป้าของ [ระดับ {lv}] ลงเพื่อแลกบางส่วน",
 	"no coin trade on this board pays {n} or more": "ไม่มีการแลกเหรียญบนกระดานนี้ที่จ่าย {n} ขึ้นไป",
-	"What players call it": "ชื่อที่ผู้เล่นเรียกกัน"
+	"What players call it": "ชื่อที่ผู้เล่นเรียกกัน",
+	"another chain deals at that island first": "อีกสายหนึ่งแลกที่เกาะนั้นไปก่อน",
+	"Most of the trades below stop at the same thing: {why}.": "การแลกส่วนใหญ่ด้านล่างติดที่เรื่องเดียวกัน: {why}",
+	"the hold is over the limit, and a fast run makes no wharf call": "ระวางเกินขีดจำกัด และการออกเรือแบบเร็วไม่แวะท่าเรือ",
+	"{why} — see the note under the tiles": "{why} — ดูหมายเหตุใต้ช่อง",
+	"the wharf sells nothing today: tap a level’s stock under Your goal to sell it": "วันนี้ท่าเรือไม่ขายอะไร: แตะ “สต็อก” ใต้ระดับใน เป้าหมายของคุณ เพื่อขาย",
+	"the chains ticked end at Level {top}, and the wharf sells from Level {sell} up": "สายที่ติ๊กไว้จบที่ระดับ {top} แต่ท่าเรือขายตั้งแต่ระดับ {sell} ขึ้นไป",
+	"no stop to sail": "ไม่มีจุดแวะให้ออกเรือ",
+	"no target is set: type one under a level in Your goal": "ยังไม่ได้ตั้งเป้า: พิมพ์ใต้ระดับใน เป้าหมายของคุณ",
+	"everything it makes is over its target already": "ทุกอย่างที่ได้เกินเป้าอยู่แล้ว",
+	"The {n} h limit under How to sail it may be what shuts them out: try more hours, or none.": "ขีดจำกัด {n} ชม. ใน จะออกเรืออย่างไร อาจเป็นสิ่งที่ตัดออก: ลองเพิ่มชั่วโมง หรือไม่จำกัด",
+	"the climb ends at Level {top}, below Level {sell} where the wharf starts selling": "การไต่จบที่ระดับ {top} ต่ำกว่าระดับ {sell} ที่ท่าเรือเริ่มขาย",
+	"the wharf only stores today: tap a level’s stock to sell it": "วันนี้ท่าเรือเก็บของอย่างเดียว: แตะ “สต็อก” ใต้ระดับเพื่อขาย",
+	"nothing comes of it: the goods its islands take are not held — see To get first": "ไม่ได้อะไรเลย: ไม่มีสินค้าที่เกาะของมันต้องการ — ดู ต้องหาก่อน",
+	"The wharf sells nothing today: tap a level’s stock under Your goal to sell it.": "วันนี้ท่าเรือไม่ขายอะไร: แตะ “สต็อก” ใต้ระดับใน เป้าหมายของคุณ เพื่อขาย"
 }

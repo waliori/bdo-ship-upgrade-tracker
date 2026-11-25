@@ -6364,5 +6364,19 @@
 	"{n} left in the storage at {town}": "{n} laissés dans l’entrepôt de {town}",
 	"the coin trades take [Level {lv}]s, and every one you hold is under its target: lower the [Level {lv}] target to cash some": "les échanges de pièces prennent des [Niveau {lv}], et chacun de ceux que vous avez est sous son objectif : baissez l'objectif des [Niveau {lv}] pour en encaisser",
 	"no coin trade on this board pays {n} or more": "aucun échange de pièces de ce tableau ne paie {n} ou plus",
-	"What players call it": "Comme les joueurs l’appellent"
+	"What players call it": "Comme les joueurs l’appellent",
+	"another chain deals at that island first": "une autre chaîne troque d’abord à cette île",
+	"Most of the trades below stop at the same thing: {why}.": "La plupart des échanges ci-dessous butent sur la même chose : {why}.",
+	"the hold is over the limit, and a fast run makes no wharf call": "la cale dépasse la limite, et une sortie rapide ne fait pas escale au quai",
+	"{why} — see the note under the tiles": "{why} — voir la note sous les tuiles",
+	"the wharf sells nothing today: tap a level’s stock under Your goal to sell it": "le quai ne vend rien aujourd’hui : touchez « stock » sous un niveau dans Votre objectif pour le vendre",
+	"the chains ticked end at Level {top}, and the wharf sells from Level {sell} up": "les chaînes cochées s’arrêtent au Niveau {top}, et le quai vend à partir du Niveau {sell}",
+	"no stop to sail": "aucune escale à faire",
+	"no target is set: type one under a level in Your goal": "aucun objectif n’est fixé : tapez-en un sous un niveau dans Votre objectif",
+	"everything it makes is over its target already": "tout ce qu’elle produit dépasse déjà son objectif",
+	"The {n} h limit under How to sail it may be what shuts them out: try more hours, or none.": "La limite de {n} h dans Comment le naviguer les écarte peut-être : essayez plus d’heures, ou aucune.",
+	"the climb ends at Level {top}, below Level {sell} where the wharf starts selling": "la montée s’arrête au Niveau {top}, sous le Niveau {sell} où le quai commence à vendre",
+	"the wharf only stores today: tap a level’s stock to sell it": "le quai ne fait qu’entreposer aujourd’hui : touchez « stock » sous un niveau pour le vendre",
+	"nothing comes of it: the goods its islands take are not held — see To get first": "il n’en sort rien : les marchandises que prennent ses îles ne sont pas en stock — voir À obtenir d’abord",
+	"The wharf sells nothing today: tap a level’s stock under Your goal to sell it.": "Le quai ne vend rien aujourd’hui : touchez « stock » sous un niveau dans Votre objectif pour le vendre."
 }

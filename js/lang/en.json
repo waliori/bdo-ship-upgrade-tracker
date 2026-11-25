@@ -6241,5 +6241,19 @@
 	"✓ Selecting": "✓ Selecting",
 	"the coin trades take [Level {lv}]s, and every one you hold is under its target: lower the [Level {lv}] target to cash some": "the coin trades take [Level {lv}]s, and every one you hold is under its target: lower the [Level {lv}] target to cash some",
 	"no coin trade on this board pays {n} or more": "no coin trade on this board pays {n} or more",
-	"What players call it": "What players call it"
+	"What players call it": "What players call it",
+	"another chain deals at that island first": "another chain deals at that island first",
+	"Most of the trades below stop at the same thing: {why}.": "Most of the trades below stop at the same thing: {why}.",
+	"the hold is over the limit, and a fast run makes no wharf call": "the hold is over the limit, and a fast run makes no wharf call",
+	"{why} — see the note under the tiles": "{why} — see the note under the tiles",
+	"the wharf sells nothing today: tap a level’s stock under Your goal to sell it": "the wharf sells nothing today: tap a level’s stock under Your goal to sell it",
+	"the chains ticked end at Level {top}, and the wharf sells from Level {sell} up": "the chains ticked end at Level {top}, and the wharf sells from Level {sell} up",
+	"no stop to sail": "no stop to sail",
+	"no target is set: type one under a level in Your goal": "no target is set: type one under a level in Your goal",
+	"everything it makes is over its target already": "everything it makes is over its target already",
+	"The {n} h limit under How to sail it may be what shuts them out: try more hours, or none.": "The {n} h limit under How to sail it may be what shuts them out: try more hours, or none.",
+	"the climb ends at Level {top}, below Level {sell} where the wharf starts selling": "the climb ends at Level {top}, below Level {sell} where the wharf starts selling",
+	"the wharf only stores today: tap a level’s stock to sell it": "the wharf only stores today: tap a level’s stock to sell it",
+	"nothing comes of it: the goods its islands take are not held — see To get first": "nothing comes of it: the goods its islands take are not held — see To get first",
+	"The wharf sells nothing today: tap a level’s stock under Your goal to sell it.": "The wharf sells nothing today: tap a level’s stock under Your goal to sell it."
 }

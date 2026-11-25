@@ -6409,5 +6409,19 @@
 	"{n} left in the storage at {town}": "{n} dejadas en el almacén de {town}",
 	"the coin trades take [Level {lv}]s, and every one you hold is under its target: lower the [Level {lv}] target to cash some": "los canjes de corvarios piden «Nivel {lv} - …», y cada uno que tienes está por debajo de su objetivo: baja el objetivo de «Nivel {lv} - …» para cobrar algunos",
 	"no coin trade on this board pays {n} or more": "ningún canje de corvarios de este tablero paga {n} o más",
-	"What players call it": "Como lo llaman los jugadores"
+	"What players call it": "Como lo llaman los jugadores",
+	"another chain deals at that island first": "otra cadena canjea primero en esa isla",
+	"Most of the trades below stop at the same thing: {why}.": "La mayoría de los canjes de abajo se detienen por lo mismo: {why}.",
+	"the hold is over the limit, and a fast run makes no wharf call": "la bodega supera el límite, y una travesía rápida no hace escala en el muelle",
+	"{why} — see the note under the tiles": "{why} — mira la nota bajo las fichas",
+	"the wharf sells nothing today: tap a level’s stock under Your goal to sell it": "hoy el muelle no vende nada: pulsa «almacén» bajo un nivel en Tu objetivo para venderlo",
+	"the chains ticked end at Level {top}, and the wharf sells from Level {sell} up": "las cadenas marcadas acaban en el Nivel {top}, y el muelle vende desde el Nivel {sell}",
+	"no stop to sail": "ninguna parada que navegar",
+	"no target is set: type one under a level in Your goal": "no hay ningún objetivo: escribe uno bajo un nivel en Tu objetivo",
+	"everything it makes is over its target already": "todo lo que produce ya supera su objetivo",
+	"The {n} h limit under How to sail it may be what shuts them out: try more hours, or none.": "Quizá el límite de {n} h en Cómo navegarla las deja fuera: prueba más horas, o ninguno.",
+	"the climb ends at Level {top}, below Level {sell} where the wharf starts selling": "la subida acaba en el Nivel {top}, por debajo del Nivel {sell} donde el muelle empieza a vender",
+	"the wharf only stores today: tap a level’s stock to sell it": "hoy el muelle solo guarda: pulsa «almacén» bajo un nivel para venderlo",
+	"nothing comes of it: the goods its islands take are not held — see To get first": "no sale nada de ello: no tienes las mercancías que piden sus islas — mira Conseguir primero",
+	"The wharf sells nothing today: tap a level’s stock under Your goal to sell it.": "Hoy el muelle no vende nada: pulsa «almacén» bajo un nivel en Tu objetivo para venderlo."
 }

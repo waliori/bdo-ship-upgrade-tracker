@@ -6241,5 +6241,19 @@
 	"{n} left in the storage at {town}": "{n}個を{town}の倉庫に置く",
 	"the coin trades take [Level {lv}]s, and every one you hold is under its target: lower the [Level {lv}] target to cash some": "コイン交換は[レベル{lv}]を使いますが、持っているものはどれも目標を下回っています。換金するには[レベル{lv}]の目標を下げてください",
 	"no coin trade on this board pays {n} or more": "この盤面に{n}以上払うコイン交換はありません",
-	"What players call it": "プレイヤーの呼び方"
+	"What players call it": "プレイヤーの呼び方",
+	"another chain deals at that island first": "別の連鎖がその島で先に交換します",
+	"Most of the trades below stop at the same thing: {why}.": "下の交換の多くは同じ理由で止まります：{why}。",
+	"the hold is over the limit, and a fast run makes no wharf call": "船倉が上限を超えていて、速い航海は船着き場に寄りません",
+	"{why} — see the note under the tiles": "{why} — タイルの下の注記を参照",
+	"the wharf sells nothing today: tap a level’s stock under Your goal to sell it": "今日の船着き場は何も売りません。売るには「あなたの目標」で段階の「在庫」をタップしてください",
+	"the chains ticked end at Level {top}, and the wharf sells from Level {sell} up": "印を付けた連鎖は{top}段階で終わり、船着き場は{sell}段階から売ります",
+	"no stop to sail": "航海する寄港先がありません",
+	"no target is set: type one under a level in Your goal": "目標が設定されていません。「あなたの目標」で段階の下に入力してください",
+	"everything it makes is over its target already": "得られるものはすべてすでに目標を超えています",
+	"The {n} h limit under How to sail it may be what shuts them out: try more hours, or none.": "「どう航海するか」の{n}時間の上限が原因かもしれません。時間を増やすか、上限をなくしてください。",
+	"the climb ends at Level {top}, below Level {sell} where the wharf starts selling": "登りは{top}段階で終わり、船着き場が売り始める{sell}段階に届きません",
+	"the wharf only stores today: tap a level’s stock to sell it": "今日の船着き場は保管のみ。売るには段階の「在庫」をタップしてください",
+	"nothing comes of it: the goods its islands take are not held — see To get first": "何も得られません。島が求める品を持っていません。「先に入手」を参照",
+	"The wharf sells nothing today: tap a level’s stock under Your goal to sell it.": "今日の船着き場は何も売りません。売るには「あなたの目標」で段階の「在庫」をタップしてください。"
 }

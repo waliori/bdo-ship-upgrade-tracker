@@ -6241,5 +6241,19 @@
 	"{n} left in the storage at {town}": "{n} 个留在{town}的仓库",
 	"the coin trades take [Level {lv}]s, and every one you hold is under its target: lower the [Level {lv}] target to cash some": "硬币交换要用 [等级 {lv}]，而你持有的每种都低于其目标：调低 [等级 {lv}] 的目标才能兑换一些",
 	"no coin trade on this board pays {n} or more": "此交易板上没有每次支付 {n} 枚或以上的硬币交换",
-	"What players call it": "玩家的叫法"
+	"What players call it": "玩家的叫法",
+	"another chain deals at that island first": "另一条链先在那座岛交换",
+	"Most of the trades below stop at the same thing: {why}.": "下面的大多数交换都卡在同一处：{why}。",
+	"the hold is over the limit, and a fast run makes no wharf call": "船舱超出上限，而快速航次不会停靠停泊处",
+	"{why} — see the note under the tiles": "{why} — 见方块下方的说明",
+	"the wharf sells nothing today: tap a level’s stock under Your goal to sell it": "今天停泊处什么也不卖：在“你的目标”里点某个等级的“库存”即可出售",
+	"the chains ticked end at Level {top}, and the wharf sells from Level {sell} up": "勾选的链条止于 {top} 级，而停泊处从 {sell} 级起才出售",
+	"no stop to sail": "没有要航行的停靠点",
+	"no target is set: type one under a level in Your goal": "还没有设定目标：在“你的目标”里某个等级下填一个",
+	"everything it makes is over its target already": "它产出的东西都已超过目标",
+	"The {n} h limit under How to sail it may be what shuts them out: try more hours, or none.": "可能是“怎么跑这一趟”里 {n} 小时的上限把它们挡在外面：试试多给些时间，或不设上限。",
+	"the climb ends at Level {top}, below Level {sell} where the wharf starts selling": "爬升止于 {top} 级，低于停泊处开始出售的 {sell} 级",
+	"the wharf only stores today: tap a level’s stock to sell it": "今天停泊处只负责存放：点某个等级的“库存”即可出售",
+	"nothing comes of it: the goods its islands take are not held — see To get first": "没有产出：它的岛屿要的货物你没有——见“要先弄到”",
+	"The wharf sells nothing today: tap a level’s stock under Your goal to sell it.": "今天停泊处什么也不卖：在“你的目标”里点某个等级的“库存”即可出售。"
 }
