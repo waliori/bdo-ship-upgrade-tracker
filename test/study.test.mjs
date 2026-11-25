@@ -83,6 +83,27 @@ test('a stranger\'s study is kept as sent, gzipped, and the run recorded goes un
 	assert.ok(rows[0].sailedAt > 0);
 });
 
+test('the run so far is kept until the record, and never written over it', async () => {
+	const id = '4d5e6f7a-8b9c-4d0e-9f1a-2b3c4d5e6f7a';
+	let res = await post('/api/study', { ...study, id });
+	assert.equal(res.status, 200, await res.text());
+	res = await post(`/api/study/${id}/sailed`, { partial: true, done: 2 });
+	assert.equal(res.status, 200);
+	res = await post(`/api/study/${id}/sailed`, { partial: true, done: 4 });
+	assert.equal(res.status, 200, 'a later partial replaces the first');
+	let row = (await listStudies(0)).find(r => r.id === id);
+	assert.deepEqual(unpack(row.sailed), { partial: true, done: 4 });
+	assert.equal(row.sailedPartial, true);
+	res = await post(`/api/study/${id}/sailed`, { partial: false, done: 5, silver: 9 });
+	assert.equal(res.status, 200);
+	// A partial still on the wire when the record went lands after it.
+	await post(`/api/study/${id}/sailed`, { partial: true, done: 4 });
+	row = (await listStudies(0)).find(r => r.id === id);
+	assert.deepEqual(unpack(row.sailed), { partial: false, done: 5, silver: 9 });
+	assert.equal(row.sailedPartial, false);
+	assert.ok((await listStudies(row.sailedAt - 1, 10, { by: 'sailed' })).some(r => r.id === id), 'found by when its outcome came');
+});
+
 test('an outcome for a study that is not there, or not the sender\'s, is refused', async () => {
 	let res = await post(`/api/study/${ID2}/sailed`, { silver: 1 });
 	assert.equal(res.status, 404);

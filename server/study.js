@@ -51,7 +51,7 @@ export function studyRoutes({ build = null } = {}) {
 	}));
 	router.post('/study/:id/sailed', who, limit, body, wrap(async (req, res) => {
 		if (!ID.test(req.params.id) || !req.body || typeof req.body !== 'object') return res.status(400).json({ error: 'Expected the outcome of a study.' });
-		const ok = await markStudySailed(req.params.id, req.userId, pack(req.body));
+		const ok = await markStudySailed(req.params.id, req.userId, pack(req.body), Date.now(), { partial: req.body.partial === true });
 		res.status(ok ? 200 : 404).json(ok ? { ok: true } : { error: 'No such study.' });
 	}));
 	return router;

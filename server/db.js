@@ -498,6 +498,15 @@ export const MIGRATIONS = [
 			)`);
 			await run('CREATE INDEX IF NOT EXISTS studies_when ON studies (created_at)');
 		}
+	},
+	{
+		version: 18,
+		up: async run => {
+			// A run's outcome is sent as it goes and again when it is recorded
+			// (js/barter/sail.js): a send of the run so far must never write
+			// over the record, whichever reaches the server last.
+			await run('ALTER TABLE studies ADD COLUMN sailed_partial INTEGER NOT NULL DEFAULT 0');
+		}
 	}
 ];
 
@@ -1324,21 +1333,24 @@ export async function insertStudy({ id, userId = null, device = null, planner, r
 
 /** The outcome written against a study -- the sender's own, which for a
  *  stranger's is any with no account on it. Whether one was there. */
-export async function markStudySailed(id, userId, body, at = Date.now()) {
+export async function markStudySailed(id, userId, body, at = Date.now(), { partial = false } = {}) {
 	await migrate();
+	// The run so far never replaces the run recorded.
 	const r = await exec({
-		sql: 'UPDATE studies SET sailed = ?, sailed_at = ? WHERE id = ? AND (user_id = ? OR (user_id IS NULL AND ? IS NULL))',
-		args: [body, at, id, userId ?? null, userId ?? null]
+		sql: `UPDATE studies SET sailed = ?, sailed_at = ?, sailed_partial = ? WHERE id = ? AND (user_id = ? OR (user_id IS NULL AND ? IS NULL))${partial ? ' AND (sailed IS NULL OR sailed_partial = 1)' : ''}`,
+		args: [body, at, partial ? 1 : 0, id, userId ?? null, userId ?? null]
 	});
 	return Number(r.rowsAffected) > 0;
 }
 
-/** The studies since a moment, oldest first, bodies as stored. */
-export async function listStudies(since = 0, limit = 500) {
+/** The studies since a moment, oldest first, bodies as stored; or, `by`
+ *  'sailed', those whose outcome came since, in the order it came. */
+export async function listStudies(since = 0, limit = 500, { by = 'created' } = {}) {
 	await migrate();
+	const col = by === 'sailed' ? 'sailed_at' : 'created_at';
 	const { rows } = await exec({
-		sql: 'SELECT id, user_id, device, planner, release, layout, day, created_at, body, sailed, sailed_at FROM studies WHERE created_at > ? ORDER BY created_at LIMIT ?',
+		sql: `SELECT id, user_id, device, planner, release, layout, day, created_at, body, sailed, sailed_at, sailed_partial FROM studies WHERE ${col} > ? ORDER BY ${col} LIMIT ?`,
 		args: [since, limit]
 	});
-	return rows.map(r => ({ id: r.id, userId: r.user_id, device: r.device, planner: r.planner, release: r.release, layout: r.layout, day: r.day, createdAt: Number(r.created_at), body: r.body, sailed: r.sailed, sailedAt: r.sailed_at === null || r.sailed_at === undefined ? null : Number(r.sailed_at) }));
+	return rows.map(r => ({ id: r.id, userId: r.user_id, device: r.device, planner: r.planner, release: r.release, layout: r.layout, day: r.day, createdAt: Number(r.created_at), body: r.body, sailed: r.sailed, sailedAt: r.sailed_at === null || r.sailed_at === undefined ? null : Number(r.sailed_at), sailedPartial: Number(r.sailed_partial) === 1 }));
 }
