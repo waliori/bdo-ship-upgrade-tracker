@@ -110,7 +110,14 @@ filled (`refuel`, the fixed-route charging problem of electric-vehicle
 routing), every wharf tried when the nearest five cannot feed the ship.
 
 On the search's answer, once, `trimLoads` leaves ashore what the plan loads and
-brings back unused, as long as the run gives up no trade and no value for it.
+brings back unused, as long as the run gives up no trade and no value for it;
+and what a later island takes is loaded at the last call home before it, not
+at the start -- a good bought at the Market left in the harbour's storage
+until then (`loadLate`).
+
+On a stock day the ranking of step 4 puts the quests before the goods' cost:
+of two plans that fill alike, the one leaving fewer quests out, then the
+cheaper, then the shorter.
 
 ## From the plan to the tab
 
@@ -132,10 +139,13 @@ brings back unused, as long as the run gives up no trade and no value for it.
 - `runOf` writes the plan in `chainRun`'s shape: stops, sales, drops, loads,
   bag moves, refill stops, trips, coins.
 
-Not yet the new planner's: the five *How to sail it* cards are still each
-searched by the classic search, and the material run has its own planner
-(`js/barter-material.js`) -- a different problem, a tour through ticked
-islands that leaves heavy and comes back light.
+- The five *How to sail it* cards are laid by it too, each under its own
+  way's orders and hours, one after the other on a worker of their own
+  (`presetSearch`, `js/barter/search.js`).
+
+The material run has its own planner (`js/barter-material.js`) -- a
+different problem, a tour through ticked islands that leaves heavy and
+comes back light.
 
 ## Testing it
 
