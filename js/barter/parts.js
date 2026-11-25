@@ -12,7 +12,7 @@ import { npcById, ports, isleOf, isleShort } from '../barter_npcs.js';
 import { fmtRange, fmtDistance } from '../sailing.js';
 import { PARLEY_UNIT, NOTHING, SAIL_PRESETS, sailPresetOf, stockOrders, yardsticks } from '../barter-orders.js';
 import { landPrices } from '../land-cost.js';
-import { marketStatus } from '../market.js';
+import { marketStatus, marketBusy } from '../market.js';
 import { PARLEY, COIN, COIN_LEVEL, levelOf } from '../barter.js';
 import { exchanges, landHeld } from '../barter-plan.js';
 import { chains, chainRun as classicRun, tailOf } from '../barter-chains.js';
@@ -258,12 +258,23 @@ export function silverParts(me, b) {
 		// is searched as before. The plan it found comes back with them.
 		const ship = withShip(opts);
 		const asked = newPlanner() && !unsupported({ ...ship, chosen: all }).length ? { planner: 'new', opts: ship, chains: all, session: ship.session } : search;
+		// A plan laid on the prices in hand while the Market's are on the wire
+		// is kept back: their arrival asks again, and that search is the one
+		// studied. It goes only if none followed -- the prices did not move,
+		// or never came. (Sent at once, the first load of a day was studied
+		// twice, once at no price.)
+		const where = { layout: b.combo.id, day: V.board.day, port: V.port };
+		const study = result => {
+			const busy = marketBusy();
+			if (!busy) noteFound(result, where);
+			else busy.then(() => { if (V.proposed.key === pkey) noteFound(result, where); });
+		};
 		const found = proposeAsync(asked, pkey, result => {
 			rememberFound(result.kept);
 			// The inputs moved on before the answer came: a newer request
 			// is out for them, and this answer is nobody's.
 			if (V.proposed.key !== pkey) return;
-			noteFound(result, { layout: b.combo.id, day: V.board.day, port: V.port });
+			study(result);
 			V.proposed = { ...V.proposed, ...result, working: false };
 			if (V.routesAuto === V.routes.key) {
 				V.routesAuto = '';
@@ -275,7 +286,7 @@ export function silverParts(me, b) {
 		// Until the answer comes the last proposals stand in, when they
 		// belong to this board, under a note that the search is out.
 		const onBoard = new Set(all.map(c => c.id));
-		if (found) { rememberFound(found.kept); noteFound(found, { layout: b.combo.id, day: V.board.day, port: V.port }); }
+		if (found) { rememberFound(found.kept); study(found); }
 		V.proposed = found
 			? { key: pkey, solos, ...found, working: false }
 			: { key: pkey, solos, proposals: V.proposed.proposals.filter(p => p.ids.every(id => onBoard.has(id))), best: V.proposed.key === pkey ? V.proposed.best : null, partial: false, working: true };
