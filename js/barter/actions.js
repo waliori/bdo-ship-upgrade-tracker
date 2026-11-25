@@ -161,7 +161,7 @@ export function barterAction(act, el, redraw) {
 		// sailor keeps their place by, kept with the run.
 		case 'barter-pack': {
 			const k = String(el.dataset.k || '');
-			const x = { key: k, item: el.dataset.item, n: Number(el.dataset.n) || 0, cost: Number(el.dataset.cost) || 0 };
+			const x = { key: k, item: el.dataset.item, n: Number(el.dataset.n) || 0, cost: Number(el.dataset.cost) || 0, ...(el.dataset.town ? { town: el.dataset.town } : {}) };
 			if (/^[bltasum]\|/.test(k)) { const want = !packedNow(x); slotsSaid(packApply([x], want, fromPort())); return true; }
 			if (V.packed.has(k)) V.packed.delete(k); else V.packed.add(k);
 			persist();

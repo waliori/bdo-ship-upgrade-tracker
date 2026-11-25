@@ -505,7 +505,7 @@ export function packingHTML(plan, from, chosen = [], only = null) {
 		// goods between a storage and the hold is what the chip beside it
 		// does, and a box that sometimes moved things and sometimes did
 		// not was a box nobody could trust.
-		const box = `<button class="pack-box${on ? ' on' : ''}" data-act="barter-pack" data-k="${esc(x.key)}" data-item="${esc(x.item)}" data-n="${x.n}" data-cost="${x.cost || 0}" aria-pressed="${on}" aria-label="${on ? T('Not aboard after all') : T('Load them aboard')}">${on ? '✓' : ''}</button>`;
+		const box = `<button class="pack-box${on ? ' on' : ''}" data-act="barter-pack" data-k="${esc(x.key)}" data-item="${esc(x.item)}" data-n="${x.n}" data-cost="${x.cost || 0}"${x.town ? ` data-town="${esc(x.town)}"` : ''} aria-pressed="${on}" aria-label="${x.town ? (on ? T('Not bought after all') : T('Bought, into the storage')) : on ? T('Not aboard after all') : T('Load them aboard')}">${on ? '✓' : ''}</button>`;
 		const act = x.act || '';
 		return `<div class="pack-row${on ? ' on' : ''}">${box}<span class="pack-icon"${lv ? ` style="--tier:${TIER(lv)}"` : ''}>${img(x.item, 'row-icon')}</span><span class="pack-what"><b>${esc(gameName(x.item))}</b><em>${esc(x.where)}${weightOf(x.item) ? ` · ${T('{lt} LT', { lt: FD(x.n * weightOf(x.item), 1) })}` : ''}</em></span><span class="pack-n"><b>${n1(x.n)}</b><em>${esc(x.per)}</em></span>${act ? `<span class="pack-act">${act}</span>` : ''}</div>`;
 	};
@@ -514,7 +514,7 @@ export function packingHTML(plan, from, chosen = [], only = null) {
 	const all = list => {
 		if (list.length < 2) return '';
 		const on = list.every(packedNow);
-		return `<button class="chip tiny pack-all${on ? ' active' : ''}" aria-pressed="${on ? 'true' : 'false'}" data-act="barter-pack-all" data-rows="${esc(JSON.stringify(list.map(x => ({ key: x.key, item: x.item, n: x.n, cost: x.cost || 0 }))))}" data-on="${on ? 1 : 0}" aria-pressed="${on}">${on ? `✓ ${T('all aboard')}` : T('Tick them all')}</button>`;
+		return `<button class="chip tiny pack-all${on ? ' active' : ''}" aria-pressed="${on ? 'true' : 'false'}" data-act="barter-pack-all" data-rows="${esc(JSON.stringify(list.map(x => ({ key: x.key, item: x.item, n: x.n, cost: x.cost || 0, ...(x.town ? { town: x.town } : {}) }))))}" data-on="${on ? 1 : 0}" aria-pressed="${on}">${on ? `✓ ${T('all aboard')}` : T('Tick them all')}</button>`;
 	};
 	const group = (title, sub, list, none) => `<section class="panel pack-group"><div class="panel-head"><h2 class="panel-title">${title}</h2><span class="panel-sub">${sub}</span><span class="panel-spacer"></span>${all(list)}</div>${list.length ? list.map(row).join('') : `<p class="empty">${none}</p>`}</section>`;
 	const where = from ? gameName(from.name) : '';
