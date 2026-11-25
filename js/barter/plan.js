@@ -594,11 +594,11 @@ export function ladderHTML(o, { fits = null, tickedN = 0 } = {}) {
 		const sold = !stocking && !coining && reached && lv >= 3 && lv >= o.sell;
 		const canFlip = !stocking && !coining && reached && lv >= 3;
 		let fate, tone;
-		if (!reached) { fate = T('not reached'); tone = 'off'; }
+		if (!reached) { fate = T('not traded'); tone = 'off'; }
 		else if (coining && lv === COIN_LEVEL) { fate = T('cashed in'); tone = 'gold'; }
 		else if (sold) { fate = T('sold'); tone = 'gold'; }
-		else if (lv < top && !stocking) { fate = lv >= 5 ? T('kept') : T('climbs on'); tone = lv >= 5 ? 'teal' : 'mute'; }
-		else { fate = T('kept'); tone = 'teal'; }
+		else if (lv < top && !stocking) { fate = lv >= 5 ? T('stock') : T('traded up'); tone = lv >= 5 ? 'teal' : 'mute'; }
+		else { fate = T('stock'); tone = 'teal'; }
 		const fateHTML = canFlip
 			? `<button class="rung-fate ${tone}" data-act="barter-fate" data-lv="${lv}" title="${sold ? T('Tap: keep it as stock instead') : T('Tap: sell it at the wharf instead')}">${fate}</button>`
 			: `<span class="rung-fate ${tone}">${fate}</span>`;
@@ -617,7 +617,7 @@ export function ladderHTML(o, { fits = null, tickedN = 0 } = {}) {
 		if (stocking && reached && (want || ownAt)) {
 			const s = levelStock(lv, everything);
 			const gate = gatesOf(lv, store.getProfile('barterCount', 0));
-			note = `<span class="rung-note${s.done >= s.want ? ' full' : ''}">${s.done >= s.want ? T('stock|full') : T('{n} short of {of}', { n: F(s.want - s.done), of: F(s.want) })}${ownAt ? ` · ${ownAt === 1 ? T('{n} good keeps its own number', { n: F(ownAt) }) : T('{n} goods keep their own number', { n: F(ownAt) })}` : ''}${gate ? ` · ${T('{open} of {all} exchanges open at your {count} barters', { open: F(gate.open), all: F(gate.all), count: F(gate.count) })}` : ''}</span>`;
+			note = `<span class="rung-note${s.done >= s.want ? ' full' : ''}">${s.done >= s.want ? T('stock|full') : T('{n} short of {of}', { n: F(s.want - s.done), of: F(s.want) })}${ownAt ? ` · ${ownAt === 1 ? T('{n} good keeps its own number', { n: F(ownAt) }) : T('{n} goods keep their own number', { n: F(ownAt) })}` : ''}${gate ? ` · ${T('{open} of {all} exchanges unlocked at your {count} Total Barters', { open: F(gate.open), all: F(gate.all), count: F(gate.count) })}` : ''}</span>`;
 		} else if (!stocking && reached && want) {
 			const mine = [...everything].filter(([name, k]) => levelOf(name) === lv && k > 0);
 			const under = mine.filter(([, k]) => k < want).length, above = mine.length - under;
@@ -646,7 +646,7 @@ export function ladderHTML(o, { fits = null, tickedN = 0 } = {}) {
 		? T('A target is what to keep of <b>every</b> good at that level, and it is a floor as well: the run fills it and never spends below it, so a level fills before anything climbs from it and only the surplus goes up. Nothing is sold at a wharf while the stock is the goal.')
 		: coining
 			? lvChips(T('a floor is held back from the coin islands too: a [Level 4] kept is a [Level 4] not cashed, so a floor at 4 is what this day pays for in coins'))
-			: T('Tap <b class="gold">sold</b> / <b class="teal">kept</b> to flip what the wharf does with a level. A keep number is never sold or handed on.')}</p>
+			: T('Tap <b class="gold">sold</b> / <b class="teal">stock</b> to flip what the wharf does with a level. A keep number is never sold or handed on.')}</p>
 		${coining ? `<div class="order-rows plain"><label class="order-row" title="${T('Trades that pay fewer Crow Coins than this are left out of the run')}"><span class="order-k">${T('coins a trade, at least')}</span><span class="order-v">${amountInput('purse-inline', V.minCoins || 0, `data-act="barter-min-coins" aria-label="${T('The fewest Crow Coins a trade must pay')}"`)}</span></label></div>` : ''}
 		${stocking ? `<div class="order-rows plain"><label class="order-row" title="${T('The Crow Coin trades paying at least this many coins a trade are taken first, and the rest of the Parley goes to the stock. 0 takes none.')}"><span class="order-k">${T('and the Crow Coin trades paying at least')}</span><span class="order-v">${amountInput('purse-inline', V.stockGoal.coins || 0, `data-act="barter-stock-coins" placeholder="0" aria-label="${T('The fewest Crow Coins a trade must pay to be taken on a stock day')}"`)}</span><span class="orders-sub">${V.stockGoal.coins ? T('coins first, the rest of the bar to the stock') : T('0: no coin trades')}</span></label></div>` : ''}
 		${aims}
