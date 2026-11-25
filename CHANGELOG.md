@@ -5,6 +5,43 @@ someone who has been away. The same notes are in the app itself, under
 **Menu → What's new** — this file is generated from them by
 `node tools/build-changelog.mjs`, so the two cannot drift apart.
 
+## 1.7.1 — Shorter runs, your quests on the way
+
+*2026-11-25*
+
+When two runs bring in the same, the app lays the one that leaves fewer of your quests out, then the shorter, and moves the islands round the quest stops so the ship stops doubling back. What a run earns still comes first. Lyngbakr’s parts trade for Tidal Black Stones, and a week of fixes.
+
+### Asked for by you
+
+Two players showed a run that sailed longer than it had to, each with the board that showed why.
+
+- **Lufance** — Asked why his run sailed two climbs on separate trips from Iliya for the same silver. Of two runs that earn alike, the shorter is laid now.
+- **GodSpeedGT** — Showed four Masts riding to the end of his run. What an island pays past the planned count is left at the next storage call now.
+
+The box is under **Menu → Feedback**. It reaches whoever runs the site.
+
+### Shorter runs, your quests on the way
+
+- Of two runs that bring in the same, the one that leaves out fewer of the quests you picked is laid, then the shorter. What a run earns still comes first.
+- The islands are moved round the quest stops: a run no longer sails home past a quest giver and comes back for the quest.
+- A run calls at a quest giver once, fetching the quest needed soonest first. A quest stop in a harbour fills the rations, so no supply call follows it.
+- What an island pays past the planned count is left at the next storage call instead of riding to the end of the run.
+
+### Tidal Black Stones
+
+At the Crow Coin exchanger, Lyngbakr’s parts trade for Tidal Black Stones: 8 for a Bone, 12 for a Scale, 20 for a Fluid. To Get lists the exchange as a way to get them.
+
+### Fixes
+
+- The Map keeps every call of a long run: past sixteen it dropped the last ones.
+- The Map’s island rows are rows again: since 1.7.0 each drew as a small handle with its text spilling out.
+- At a stop, the Parley box has room for seven figures.
+- *All done…* stays where it is while its row is open: *Abandon* no longer slides under the pointer.
+- Tabbing out of a quantity keeps the keyboard on the row, and changing the language redraws the top bar.
+- The Ship tab’s advice fits the hull: a Caravel no longer gets the Carrack’s parts path.
+- A price from the Central Market says so: in *What it costs*, every silver price read *Falasi vendor*.
+- The Plan counts the units covered as the Builds card does, the build picker files the Caravel’s and Galleass’s green parts under Parts, and To Get names a drop source once.
+
 ## 1.7.0 — What you asked for on the server
 
 *2026-11-19*

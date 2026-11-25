@@ -64,6 +64,55 @@ export const DATA = [
  */
 export const RELEASES = [
 	{
+		id: '1.7.1',
+		name: TT('Shorter runs, your quests on the way'),
+		date: '2026-11-25',
+		sum: TT('Of two runs that bring in the same, the shorter is laid, with your quests on the way; Tidal Black Stones at the Crow Coin exchanger; fixes on the Map, the Plan and To Get.'),
+		thanks: {
+			text: TT('Two players showed a run that sailed longer than it had to, each with the board that showed why.'),
+			who: [
+				{
+					name: 'Lufance',
+					did: TT('Asked why his run sailed two climbs on separate trips from Iliya for the same silver. Of two runs that earn alike, the shorter is laid now.')
+				},
+				{
+					name: 'GodSpeedGT',
+					did: TT('Showed four Masts riding to the end of his run. What an island pays past the planned count is left at the next storage call now.')
+				}
+			],
+			foot: TT('The box is under <b>Menu \u2192 Feedback</b>. It reaches whoever runs the site.')
+		},
+		blurb: TT('When two runs bring in the same, the app lays the one that leaves fewer of your quests out, then the shorter, and moves the islands round the quest stops so the ship stops doubling back. What a run earns still comes first. Lyngbakr’s parts trade for Tidal Black Stones, and a week of fixes.'),
+		sections: [
+			{
+				title: TT('Shorter runs, your quests on the way'),
+				points: [
+					TT('Of two runs that bring in the same, the one that leaves out fewer of the quests you picked is laid, then the shorter. What a run earns still comes first.'),
+					TT('The islands are moved round the quest stops: a run no longer sails home past a quest giver and comes back for the quest.'),
+					TT('A run calls at a quest giver once, fetching the quest needed soonest first. A quest stop in a harbour fills the rations, so no supply call follows it.'),
+					TT('What an island pays past the planned count is left at the next storage call instead of riding to the end of the run.')
+				]
+			},
+			{
+				title: TT('Tidal Black Stones'),
+				text: TT('At the Crow Coin exchanger, Lyngbakr’s parts trade for Tidal Black Stones: 8 for a Bone, 12 for a Scale, 20 for a Fluid. To Get lists the exchange as a way to get them.')
+			},
+			{
+				title: TT('Fixes'),
+				points: [
+					TT('The Map keeps every call of a long run: past sixteen it dropped the last ones.'),
+					TT('The Map’s island rows are rows again: since 1.7.0 each drew as a small handle with its text spilling out.'),
+					TT('At a stop, the Parley box has room for seven figures.'),
+					TT('<i>All done…</i> stays where it is while its row is open: <i>Abandon</i> no longer slides under the pointer.'),
+					TT('Tabbing out of a quantity keeps the keyboard on the row, and changing the language redraws the top bar.'),
+					TT('The Ship tab’s advice fits the hull: a Caravel no longer gets the Carrack’s parts path.'),
+					TT('A price from the Central Market says so: in <i>What it costs</i>, every silver price read <i>Falasi vendor</i>.'),
+					TT('The Plan counts the units covered as the Builds card does, the build picker files the Caravel’s and Galleass’s green parts under Parts, and To Get names a drop source once.')
+				]
+			}
+		]
+	},
+	{
 		id: '1.7.0',
 		name: TT('What you asked for on the server'),
 		date: '2026-11-19',
@@ -1286,6 +1335,15 @@ export const RELEASES = [
 export const RELEASE = RELEASES[0].id;
 
 export const CHANGES = [
+	{
+		date: '2026-11-25',
+		title: TT('1.7.1: shorter runs round your quests, Tidal Black Stones, fixes'),
+		notes: [
+			TT('<b>Barter runs.</b> Of two runs that earn alike, the one leaving fewer quests out, then the shorter; islands moved round the quest stops; a quest giver called at once; a harbour quest stop fills the rations; a payout past the count left at the next storage call.'),
+			TT('<b>Crow Coins.</b> Tidal Black Stones for Lyngbakr’s parts at the exchanger.'),
+			TT('<b>Fixes.</b> The Map’s long runs and island rows, the Parley box, <i>All done…</i>, the keyboard after a quantity, the Ship tab’s advice, Market prices named, the Plan’s units covered.')
+		]
+	},
 	{
 		date: '2026-11-19',
 		title: TT('1.7.0: a run you edit keeps its plan, quests picked up, your own stops on the Map'),
