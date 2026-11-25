@@ -262,12 +262,14 @@ export function silverParts(me, b) {
 		// is kept back: their arrival asks again, and that search is the one
 		// studied. It goes only if none followed -- the prices did not move,
 		// or never came. (Sent at once, the first load of a day was studied
-		// twice, once at no price.)
+		// twice, once at no price.) Nor is a search made while a run is under
+		// way: each tick moves the hold and asks again, for nobody.
 		const where = { layout: b.combo.id, day: V.board.day, port: V.port };
 		const study = result => {
+			if (V.sail) return;
 			const busy = marketBusy();
 			if (!busy) noteFound(result, where);
-			else busy.then(() => { if (V.proposed.key === pkey) noteFound(result, where); });
+			else busy.then(() => { if (V.proposed.key === pkey && !V.sail) noteFound(result, where); });
 		};
 		const found = proposeAsync(asked, pkey, result => {
 			rememberFound(result.kept);
