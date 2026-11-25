@@ -649,6 +649,7 @@ export function ladderHTML(o, { fits = null, tickedN = 0 } = {}) {
 			? lvChips(T('a floor is held back from the coin islands too: a [Level 4] kept is a [Level 4] not cashed, so a floor at 4 is what this day pays for in coins'))
 			: T('Tap <b class="gold">sold</b> / <b class="teal">kept</b> to flip what the wharf does with a level. A keep number is never sold or handed on.')}</p>
 		${coining ? `<div class="order-rows plain"><label class="order-row" title="${T('Trades that pay fewer Crow Coins than this are left out of the run')}"><span class="order-k">${T('coins a trade, at least')}</span><span class="order-v">${amountInput('purse-inline', V.minCoins || 0, `data-act="barter-min-coins" aria-label="${T('The fewest Crow Coins a trade must pay')}"`)}</span></label></div>` : ''}
+		${stocking ? `<div class="order-rows plain"><label class="order-row" title="${T('The Crow Coin trades paying at least this many coins a trade are taken first, and the rest of the Parley goes to the stock. 0 takes none.')}"><span class="order-k">${T('and the Crow Coin trades paying at least')}</span><span class="order-v">${amountInput('purse-inline', V.stockGoal.coins || 0, `data-act="barter-stock-coins" placeholder="0" aria-label="${T('The fewest Crow Coins a trade must pay to be taken on a stock day')}"`)}</span><span class="orders-sub">${V.stockGoal.coins ? T('coins first, the rest of the bar to the stock') : T('0: no coin trades')}</span></label></div>` : ''}
 		${aims}
 		<div class="ladder-foot">
 			<div class="ladder-goal">${goalLine(o)}</div>

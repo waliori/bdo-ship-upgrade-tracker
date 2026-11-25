@@ -169,7 +169,9 @@ export function scoreFor(aim, stock) {
 	const held = new Map(aim.held || []);
 	return run => {
 		const fill = fillOf(run, { targetOf, held, stock });
-		return aim.kind === 'trades' ? run.trades * 1000 + fill : fill * 1000 - costOfFill(run);
+		// The coin trades a stock day takes as well come first (Oni).
+		const coins = aim.coins ? (run.coins || 0) * 1e12 : 0;
+		return coins + (aim.kind === 'trades' ? run.trades * 1000 + fill : fill * 1000 - costOfFill(run));
 	};
 }
 

@@ -350,6 +350,10 @@ export function readStock(raw) {
 		}
 		if (Object.keys(items).length) out.items = items;
 	}
+	// The Crow Coin trades a stock day takes as well (Oni, 2026-10-04):
+	// those paying at least this many coins a trade, 0 for none.
+	const coins = Math.floor(Number(raw.coins));
+	if (Number.isFinite(coins) && coins > 0) out.coins = Math.min(99999, coins);
 	return out;
 }
 

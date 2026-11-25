@@ -107,13 +107,14 @@ export function robustEval(I, plan, mu = 0) {
 	// back, nothing carried to the storage twice. A plan that breaks one is
 	// worth less than any that does not, whatever it earns.
 	const waste = (r.pointless.loadThenDrop + r.pointless.storedTwice) * WASTE;
-	// A run for coins: each coin the exchanges pay outweighs any silver.
-	const coins = I.rules.coinWorth > 0 ? r.log.reduce((a, e) => a + (e.kind === 'station' && e.out === 'Crow Coin' ? e.Y.reduce((x, y) => x + y, 0) : 0), 0) * I.rules.coinWorth : 0;
 	// A run for the stock is worth what it fills, as chainRun's stock goal
 	// judges it (fillOf): each good counted to its level's target and no
 	// further, by its level -- the silver it costs ashore and the Parley
 	// only between two that fill alike; or, run for the barter count, its
 	// trades first.
+	// A run for coins: each coin the exchanges pay outweighs any silver --
+	// and, on a stock day that takes the coin trades too, any fill.
+	const coins = I.rules.coinWorth > 0 ? r.log.reduce((a, e) => a + (e.kind === 'station' && e.out === 'Crow Coin' ? e.Y.reduce((x, y) => x + y, 0) : 0), 0) * I.rules.coinWorth : 0;
 	if (I.rules.stock) {
 		const fill = fillOfRun(I, r);
 		const cost = r.spent + r.P * 10;
@@ -121,7 +122,7 @@ export function robustEval(I, plan, mu = 0) {
 		// `cost`, what f takes off for the goods and the Parley: of two that
 		// fill alike, the one leaving fewer quests out comes before the cheaper
 		// (barter-solve.js rankOf, alns.js ties).
-		return { f: f - mu * r.T - over - waste, R: r.R, T: r.T, fill, cost: I.rules.stock.kind === 'trades' ? cost / 1e3 : cost, run: r };
+		return { f: f - mu * r.T - over - waste + coins, R: r.R, T: r.T, fill, cost: I.rules.stock.kind === 'trades' ? cost / 1e3 : cost, run: r };
 	}
 	return { f: r.R - mu * r.T - over - waste + coins, R: r.R, T: r.T, run: r };
 }

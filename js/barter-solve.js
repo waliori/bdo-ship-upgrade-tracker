@@ -129,7 +129,7 @@ export function instanceOf(opts) {
 			: { P: parley.bar, H: null },
 		initial: { hold: { ...stock }, floors },
 		// `way` only so a plan kept for one way of sailing is not handed to another.
-		rules: { pace, way: orders.way || 'sea', dropPolicy: 'any', home: home.at, end: prefer ? prefer.at : home.at, underWaySpeed: ship && ship.speed > 0 ? speedMs(ship.speed, ship.cal) : speedMs(100), ...(opts.aim && opts.aim.kind === 'coins' ? { coinWorth: COIN_WORTH } : {}), ...(opts.aim && opts.aim.targets ? { stock: { kind: opts.aim.kind, targets: opts.aim.targets, ...(opts.aim.items ? { items: opts.aim.items } : {}), held: Object.fromEntries(opts.aim.held || []) } } : {}) },
+		rules: { pace, way: orders.way || 'sea', dropPolicy: 'any', home: home.at, end: prefer ? prefer.at : home.at, underWaySpeed: ship && ship.speed > 0 ? speedMs(ship.speed, ship.cal) : speedMs(100), ...(opts.aim && (opts.aim.kind === 'coins' || opts.aim.coins) ? { coinWorth: COIN_WORTH } : {}), ...(opts.aim && opts.aim.targets ? { stock: { kind: opts.aim.kind, targets: opts.aim.targets, ...(opts.aim.items ? { items: opts.aim.items } : {}), held: Object.fromEntries(opts.aim.held || []) } } : {}) },
 		objective: 'silver_per_hour',
 		// The quests the run takes in, weighed by the search's last pass.
 		...(opts.quests && opts.quests.list.length ? { quests: { ...opts.quests, mPerPx: METRES_PER_PX } } : {}),
@@ -682,8 +682,8 @@ export function newPropose(opts0, all0, { seed = 1, session = 0 } = {}) {
 		keep(memo.ids, memo);
 		const run = solveRun({ ...opts, chosen: picked });
 		const hours = run.hours;
-		const value = I.rules.coinWorth > 0 ? run.coins : I.rules.stock ? fillOfRun(instanceOf({ ...opts, chosen: picked }).I, simulate(lay, planPolicy(kept.plan), { mode: 'robust' })) : run.net;
-		const coined = I.rules.coinWorth > 0, stocked = !!I.rules.stock;
+		const value = I.rules.stock ? fillOfRun(instanceOf({ ...opts, chosen: picked }).I, simulate(lay, planPolicy(kept.plan), { mode: 'robust' })) : I.rules.coinWorth > 0 ? run.coins : run.net;
+		const stocked = !!I.rules.stock, coined = I.rules.coinWorth > 0 && !stocked;
 		const proposal = { kind: coined ? 'coins' : stocked ? 'stock' : 'hour', label: coined ? TT('The most coins') : stocked ? TT('The fullest stock') : session > 0 ? TT('The most in {n} h') : TT('The most the board gives'), say: { n: (opts0.orders && opts0.orders.hours) || session }, ids: picked.map(c => c.id), run, value, hours, yard: { perUnit: run.parleyUsed > 0 ? value / (run.parleyUsed / PARLEY.perGreatOceanTrade) : 0, perHour: hours > 0 ? value / hours : 0 } };
 		// The plan found goes back with the answer: searched in a worker, it is
 		// the page's solveRun that has to know it, to lay the run proposed.

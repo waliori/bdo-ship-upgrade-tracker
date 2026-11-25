@@ -891,6 +891,15 @@ export function barterChange(el, parseAmount) {
 			store.setProfile('bag', { ...bagSet(), [k]: Math.max(0, n) });
 			return true;
 		}
+		case 'barter-stock-coins': {
+			const n = parseAmount(el.value === '' ? '0' : el.value);
+			if (n === null) return true;
+			const coins = Math.max(0, Math.floor(n));
+			V.stockGoal = { ...V.stockGoal, coins: coins || undefined };
+			if (!coins) delete V.stockGoal.coins;
+			persist();
+			return true;
+		}
 		case 'barter-target': {
 			const n = parseAmount(el.value === '' ? '0' : el.value);
 			if (n === null) return true;
