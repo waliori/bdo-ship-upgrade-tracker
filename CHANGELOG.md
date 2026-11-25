@@ -9,7 +9,7 @@ someone who has been away. The same notes are in the app itself, under
 
 *2026-11-25*
 
-When two runs bring in the same, the app lays the one that leaves fewer of your quests out, then the shorter, and moves the islands round the quest stops so the ship stops doubling back. What a run earns still comes first. Goods are loaded at the call home before the island that takes them, not all at the start. A stock day keeps a number of each good of your own and can take the Crow Coin trades worth it. Lyngbakr’s parts trade for Tidal Black Stones, and the page is lighter and its heaviest searches faster.
+When two runs bring in the same, the app lays the one that leaves fewer of your quests out, then the shorter, and moves the islands round the quest stops so the ship stops doubling back. What a run earns still comes first. Goods are loaded at the call home before the island that takes them, not all at the start. A stock day keeps a number of each good of your own and can take the Crow Coin trades worth it. Lyngbakr’s parts trade for Tidal Black Stones, and the page is lighter and its heaviest searches faster. The goal step speaks the game’s words, and a run that comes to nothing says why.
 
 ### Asked for by you
 
@@ -24,21 +24,49 @@ The box is under **Menu → Feedback**. It reaches whoever runs the site.
 
 ### Shorter runs, your quests on the way
 
+![The same board in 1.7.0 and in 1.7.1: the run that brings in the same 687.7m, seventeen minutes shorter](docs/media/small/same-silver-shorter.png)
+
+**Before:** Of two runs that brought in the same, either could be laid, the longer one too, and goods for the end of a run were all loaded at its start.
+
 - Of two runs that bring in the same, the one that leaves out fewer of the quests you picked is laid, then the shorter. What a run earns still comes first.
 - The islands are moved round the quest stops: a run no longer sails home past a quest giver and comes back for the quest.
 - A run calls at a quest giver once, fetching the quest needed soonest first. A quest stop in a harbour fills the rations, so no supply call follows it.
 - What an island pays past the planned count is left at the next storage call instead of riding to the end of the run.
 - On a stock day, of two runs that fill alike, the one that leaves fewer quests out comes before the one that buys a little less.
-
-### Goods loaded when an island needs them
-
 - A good from your storage that an island twenty stops on takes is loaded at the last call home before that island, not at the start, as long as the run loses nothing for it.
 - A good bought at the Market for a later trip is bought before casting off and left in the storage at your harbour: the load list says so, and its tick puts it in the storage, not the hold. The trip it is for loads it on the way.
 
-### A stock of your own
+### The goal step in the game’s words
 
-- Each good can keep its own number: open a level under *Your goal* and type it under the good. Blank, it keeps the level’s.
-- *And the Crow Coin trades paying at least*, under the ladder on a stock day: those trades come first, the rest of the Parley goes to the stock, and only goods over their target are cashed.
+![The ladder in 1.7.0 and in 1.7.1: Level 5 T5, traded up, stock](docs/media/small/game-words.png)
+
+**Before:** The goal step spoke the app’s own words: *Where today ends*, *climbs on*, *kept*.
+
+**Now:** It is called *Your goal* now. Each level reads the game’s name and the players’ one, *Level 5 T5*; under it, *traded up*, *stock* or *sold*; and a stock level counts the exchanges *unlocked* at your *Total Barters*.
+
+### A keep for each good
+
+![Level 5 in 1.7.0, and in 1.7.1 with a keep of 12 and 8 on two goods](docs/media/small/a-keep-each.png)
+
+**Before:** A stock target was one number for every good of a level.
+
+**Now:** Each good can keep its own number: open a level under *Your goal* and type it under the good. Blank, it keeps the level’s.
+
+### A stock and Crow Coins on one day
+
+![A stock day in 1.7.0, and in 1.7.1 with the coin trades paying at least 100 a trade](docs/media/small/stock-and-coins.png)
+
+**Before:** A stock day took no Crow Coins: coins were a day of their own.
+
+**Now:** *And the Crow Coin trades paying at least*, under the ladder on a stock day: those trades come first, the rest of the Parley goes to the stock, and only goods over their target are cashed.
+
+### The app says why
+
+![A run that sells nothing, in 1.7.0 and in 1.7.1](docs/media/small/saying-why.png)
+
+**Before:** A tile with nothing on it said only that: *no chain ticked sells*, *pick a chain*.
+
+**Now:** A tile that comes to nothing names what stopped it and what to change: a hold too heavy for a fast pace, a chain cut short, a wharf that sells nothing, a climb that ends below where it sells, no stock target set, or no coin chain ticked. A greyed button says what it waits for, and To Get tells a price not fetched yet from a good no shop sells.
 
 ### Tidal Black Stones
 

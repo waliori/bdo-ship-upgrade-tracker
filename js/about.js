@@ -67,7 +67,7 @@ export const RELEASES = [
 		id: '1.7.1',
 		name: TT('Shorter runs, and a stock of your own'),
 		date: '2026-11-25',
-		sum: TT('Of two runs that bring in the same, the shorter is laid, with your quests on the way; goods loaded when an island needs them; a keep for each good and Crow Coins on a stock day; Tidal Black Stones; a lighter, faster page.'),
+		sum: TT('Of two runs that bring in the same, the shorter is laid, with your quests on the way; goods loaded when an island needs them; a keep for each good and Crow Coins on a stock day; Tidal Black Stones; a lighter, faster page; the goal step in the game’s words, and the app says why when a run comes to nothing.'),
 		thanks: {
 			text: TT('Four players: two showed a run that sailed longer or heavier than it had to, and two asked for a stock day that does more.'),
 			who: [
@@ -90,31 +90,50 @@ export const RELEASES = [
 			],
 			foot: TT('The box is under <b>Menu \u2192 Feedback</b>. It reaches whoever runs the site.')
 		},
-		blurb: TT('When two runs bring in the same, the app lays the one that leaves fewer of your quests out, then the shorter, and moves the islands round the quest stops so the ship stops doubling back. What a run earns still comes first. Goods are loaded at the call home before the island that takes them, not all at the start. A stock day keeps a number of each good of your own and can take the Crow Coin trades worth it. Lyngbakr’s parts trade for Tidal Black Stones, and the page is lighter and its heaviest searches faster.'),
+		blurb: TT('When two runs bring in the same, the app lays the one that leaves fewer of your quests out, then the shorter, and moves the islands round the quest stops so the ship stops doubling back. What a run earns still comes first. Goods are loaded at the call home before the island that takes them, not all at the start. A stock day keeps a number of each good of your own and can take the Crow Coin trades worth it. Lyngbakr’s parts trade for Tidal Black Stones, and the page is lighter and its heaviest searches faster. The goal step speaks the game’s words, and a run that comes to nothing says why.'),
 		sections: [
 			{
 				title: TT('Shorter runs, your quests on the way'),
+				media: 'docs/media/small/same-silver-shorter.png',
+				alt: TT('The same board in 1.7.0 and in 1.7.1: the run that brings in the same 687.7m, seventeen minutes shorter'),
+				before: TT('Of two runs that brought in the same, either could be laid, the longer one too, and goods for the end of a run were all loaded at its start.'),
 				points: [
 					TT('Of two runs that bring in the same, the one that leaves out fewer of the quests you picked is laid, then the shorter. What a run earns still comes first.'),
 					TT('The islands are moved round the quest stops: a run no longer sails home past a quest giver and comes back for the quest.'),
 					TT('A run calls at a quest giver once, fetching the quest needed soonest first. A quest stop in a harbour fills the rations, so no supply call follows it.'),
 					TT('What an island pays past the planned count is left at the next storage call instead of riding to the end of the run.'),
-					TT('On a stock day, of two runs that fill alike, the one that leaves fewer quests out comes before the one that buys a little less.')
-				]
-			},
-			{
-				title: TT('Goods loaded when an island needs them'),
-				points: [
+					TT('On a stock day, of two runs that fill alike, the one that leaves fewer quests out comes before the one that buys a little less.'),
 					TT('A good from your storage that an island twenty stops on takes is loaded at the last call home before that island, not at the start, as long as the run loses nothing for it.'),
 					TT('A good bought at the Market for a later trip is bought before casting off and left in the storage at your harbour: the load list says so, and its tick puts it in the storage, not the hold. The trip it is for loads it on the way.')
 				]
 			},
 			{
-				title: TT('A stock of your own'),
-				points: [
-					TT('Each good can keep its own number: open a level under <i>Your goal</i> and type it under the good. Blank, it keeps the level’s.'),
-					TT('<i>And the Crow Coin trades paying at least</i>, under the ladder on a stock day: those trades come first, the rest of the Parley goes to the stock, and only goods over their target are cashed.')
-				]
+				title: TT('The goal step in the game’s words'),
+				media: 'docs/media/small/game-words.png',
+				alt: TT('The ladder in 1.7.0 and in 1.7.1: Level 5 T5, traded up, stock'),
+				before: TT('The goal step spoke the app’s own words: <i>Where today ends</i>, <i>climbs on</i>, <i>kept</i>.'),
+				text: TT('It is called <i>Your goal</i> now. Each level reads the game’s name and the players’ one, <i>Level 5 T5</i>; under it, <i>traded up</i>, <i>stock</i> or <i>sold</i>; and a stock level counts the exchanges <i>unlocked</i> at your <i>Total Barters</i>.')
+			},
+			{
+				title: TT('A keep for each good'),
+				media: 'docs/media/small/a-keep-each.png',
+				alt: TT('Level 5 in 1.7.0, and in 1.7.1 with a keep of 12 and 8 on two goods'),
+				before: TT('A stock target was one number for every good of a level.'),
+				text: TT('Each good can keep its own number: open a level under <i>Your goal</i> and type it under the good. Blank, it keeps the level’s.')
+			},
+			{
+				title: TT('A stock and Crow Coins on one day'),
+				media: 'docs/media/small/stock-and-coins.png',
+				alt: TT('A stock day in 1.7.0, and in 1.7.1 with the coin trades paying at least 100 a trade'),
+				before: TT('A stock day took no Crow Coins: coins were a day of their own.'),
+				text: TT('<i>And the Crow Coin trades paying at least</i>, under the ladder on a stock day: those trades come first, the rest of the Parley goes to the stock, and only goods over their target are cashed.')
+			},
+			{
+				title: TT('The app says why'),
+				media: 'docs/media/small/saying-why.png',
+				alt: TT('A run that sells nothing, in 1.7.0 and in 1.7.1'),
+				before: TT('A tile with nothing on it said only that: <i>no chain ticked sells</i>, <i>pick a chain</i>.'),
+				text: TT('A tile that comes to nothing names what stopped it and what to change: a hold too heavy for a fast pace, a chain cut short, a wharf that sells nothing, a climb that ends below where it sells, no stock target set, or no coin chain ticked. A greyed button says what it waits for, and To Get tells a price not fetched yet from a good no shop sells.')
 			},
 			{
 				title: TT('Tidal Black Stones'),
