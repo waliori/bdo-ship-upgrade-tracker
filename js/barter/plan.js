@@ -626,7 +626,7 @@ export function ladderHTML(o, { fits = null, tickedN = 0 } = {}) {
 		const coinNode = lv === COIN_LEVEL ? `<span class="rung-coin-line" aria-hidden="true"></span><button class="rung-node coin${coining ? ' on' : ''}" aria-pressed="${coining ? 'true' : 'false'}" data-act="barter-coin-node" title="${T('Cash Level 4 in at the coin islands instead of climbing on')}">${img(COIN, 'rung-coin')}</button><span class="rung-name coin">${T('Crow Coins')}</span><span class="rung-fate ${coining ? 'gold' : 'mute'}">${coining ? T('the goal') : T('or cash in')}</span>` : '';
 		return `<div class="rung${reached ? '' : ' dim'}${lv === top && !coining ? ' top' : ''}" style="--tier:${TIER(lv)}">
 			<button class="rung-node" data-act="barter-rung" data-lv="${lv}" title="${T('End the climb at Level {lv}', { lv })}"${coining ? '' : ` aria-pressed="${lv === top}"`}>${lv}</button>
-			<span class="rung-name">${T('Level {lv}', { lv })}</span>
+			<span class="rung-name">${T('Level {lv}', { lv })} <span class="rung-t" title="${T('What players call it')}">T${lv}</span></span>
 			<button class="rung-held linky" data-act="barter-level-goods" data-lv="${lv}" title="${T('See every good at this level: what you hold, and how many short')}">${heldAt.get(lv) ? T('{n} held', { n: F(heldAt.get(lv)) }) : T('none held')} <span aria-hidden="true">▦</span></button>
 			${fateHTML}${keep}${note || coinNode ? `<div class="rung-more">${note}${coinNode}</div>` : ''}
 		</div>`;

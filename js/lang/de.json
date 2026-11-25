@@ -6278,5 +6278,6 @@
 	"{n} goods keep their own number": "{n} Waren behalten ihre eigene Zahl",
 	"{n} left in the storage at {town}": "{n} im Lager von {town} gelassen",
 	"the coin trades take [Level {lv}]s, and every one you hold is under its target: lower the [Level {lv}] target to cash some": "die Münztausche nehmen [Stufe {lv}], und jede, die du hast, liegt unter ihrem Ziel: senke das Ziel für [Stufe {lv}], um welche einzulösen",
-	"no coin trade on this board pays {n} or more": "kein Münztausch auf dieser Tafel zahlt {n} oder mehr"
+	"no coin trade on this board pays {n} or more": "kein Münztausch auf dieser Tafel zahlt {n} oder mehr",
+	"What players call it": "So nennen es die Spieler"
 }

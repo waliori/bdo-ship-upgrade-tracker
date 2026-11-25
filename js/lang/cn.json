@@ -6239,5 +6239,6 @@
 	"{n} goods keep their own number": "{n} 种货物保留自己的数量",
 	"{n} left in the storage at {town}": "{n} 个留在{town}的仓库",
 	"the coin trades take [Level {lv}]s, and every one you hold is under its target: lower the [Level {lv}] target to cash some": "硬币交换要用 [等级 {lv}]，而你持有的每种都低于其目标：调低 [等级 {lv}] 的目标才能兑换一些",
-	"no coin trade on this board pays {n} or more": "此交易板上没有每次支付 {n} 枚或以上的硬币交换"
+	"no coin trade on this board pays {n} or more": "此交易板上没有每次支付 {n} 枚或以上的硬币交换",
+	"What players call it": "玩家的叫法"
 }

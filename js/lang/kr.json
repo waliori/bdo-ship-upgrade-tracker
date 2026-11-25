@@ -6239,5 +6239,6 @@
 	"{n} goods keep their own number": "물품 {n}개가 자기 수를 가짐",
 	"{n} left in the storage at {town}": "{n}개를 {town} 창고에 둠",
 	"the coin trades take [Level {lv}]s, and every one you hold is under its target: lower the [Level {lv}] target to cash some": "주화 교환은 [레벨 {lv}]을 받는데, 보유한 것이 모두 목표보다 적습니다. 일부를 환전하려면 [레벨 {lv}] 목표를 낮추세요",
-	"no coin trade on this board pays {n} or more": "이 판에는 {n} 이상을 주는 주화 교환이 없습니다"
+	"no coin trade on this board pays {n} or more": "이 판에는 {n} 이상을 주는 주화 교환이 없습니다",
+	"What players call it": "플레이어들이 부르는 이름"
 }

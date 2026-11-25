@@ -6239,5 +6239,6 @@
 	"{n} goods keep their own number": "สินค้า {n} ชนิดเก็บจำนวนของตัวเอง",
 	"{n} left in the storage at {town}": "{n} ทิ้งไว้ในคลังที่ {town}",
 	"the coin trades take [Level {lv}]s, and every one you hold is under its target: lower the [Level {lv}] target to cash some": "การแลกเหรียญใช้ [ระดับ {lv}] และทุกชิ้นที่คุณถืออยู่ยังต่ำกว่าเป้า: ลดเป้าของ [ระดับ {lv}] ลงเพื่อแลกบางส่วน",
-	"no coin trade on this board pays {n} or more": "ไม่มีการแลกเหรียญบนกระดานนี้ที่จ่าย {n} ขึ้นไป"
+	"no coin trade on this board pays {n} or more": "ไม่มีการแลกเหรียญบนกระดานนี้ที่จ่าย {n} ขึ้นไป",
+	"What players call it": "ชื่อที่ผู้เล่นเรียกกัน"
 }
