@@ -160,7 +160,8 @@ export function shapeForStock(list, fill, aboard = new Map(), ashore = new Map()
 	const targets = fill.targets || {};
 	const held = new Map(fill.held || []);
 	const away = new Map(fill.away || []);
-	const tgt = name => targets[levelOf(name)] || 0;
+	const items = fill.items || {};
+	const tgt = name => (Object.prototype.hasOwnProperty.call(items, name) ? items[name] : targets[levelOf(name)] || 0);
 	const lack = name => tgt(name) - (held.get(name) || 0);
 	const out = [];
 	for (const c of list) {

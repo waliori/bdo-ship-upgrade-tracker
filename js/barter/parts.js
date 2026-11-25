@@ -143,7 +143,7 @@ export function silverParts(me, b) {
 			const at = ports.filter(p => !from || p.name !== from.name).map(p => [p.name, store.stockAt(name, p.name)]).filter(([, n]) => n > 0);
 			if (at.length) away.push([name, at]);
 		}
-		return { targets: V.stockGoal.targets, held: [...heldAll], away };
+		return { targets: V.stockGoal.targets, ...(V.stockGoal.items ? { items: V.stockGoal.items } : {}), held: [...heldAll], away };
 	})() : null;
 	// What else the run may aim at on this board, as its orders say: the
 	// materials the builds are short of, the Lost Trade Boxes, and whether
@@ -211,7 +211,7 @@ export function silverParts(me, b) {
 	// render and froze the tab on the old board.
 	// What the sets are judged by: the stock, said as plain data so the
 	// search can take it to the worker.
-	const aim = coining ? { kind: 'coins' } : stocking ? { targets: V.stockGoal.targets, held: [...everythingHeld()], kind: V.stockGoal.aim } : null;
+	const aim = coining ? { kind: 'coins' } : stocking ? { targets: V.stockGoal.targets, ...(V.stockGoal.items ? { items: V.stockGoal.items } : {}), held: [...everythingHeld()], kind: V.stockGoal.aim } : null;
 	// Every laying of this plan judges its ways by the same aim.
 	if (aim) opts.aim = aim;
 	// Goods the chains want past what the hull moves under go ashore before

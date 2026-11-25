@@ -129,7 +129,7 @@ export function instanceOf(opts) {
 			: { P: parley.bar, H: null },
 		initial: { hold: { ...stock }, floors },
 		// `way` only so a plan kept for one way of sailing is not handed to another.
-		rules: { pace, way: orders.way || 'sea', dropPolicy: 'any', home: home.at, end: prefer ? prefer.at : home.at, underWaySpeed: ship && ship.speed > 0 ? speedMs(ship.speed, ship.cal) : speedMs(100), ...(opts.aim && opts.aim.kind === 'coins' ? { coinWorth: COIN_WORTH } : {}), ...(opts.aim && opts.aim.targets ? { stock: { kind: opts.aim.kind, targets: opts.aim.targets, held: Object.fromEntries(opts.aim.held || []) } } : {}) },
+		rules: { pace, way: orders.way || 'sea', dropPolicy: 'any', home: home.at, end: prefer ? prefer.at : home.at, underWaySpeed: ship && ship.speed > 0 ? speedMs(ship.speed, ship.cal) : speedMs(100), ...(opts.aim && opts.aim.kind === 'coins' ? { coinWorth: COIN_WORTH } : {}), ...(opts.aim && opts.aim.targets ? { stock: { kind: opts.aim.kind, targets: opts.aim.targets, ...(opts.aim.items ? { items: opts.aim.items } : {}), held: Object.fromEntries(opts.aim.held || []) } } : {}) },
 		objective: 'silver_per_hour',
 		// The quests the run takes in, weighed by the search's last pass.
 		...(opts.quests && opts.quests.list.length ? { quests: { ...opts.quests, mPerPx: METRES_PER_PX } } : {}),

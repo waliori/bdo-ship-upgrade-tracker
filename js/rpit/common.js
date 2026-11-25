@@ -89,7 +89,7 @@ export function fillOfRun(I, r) {
 	for (const [g, d] of delta) {
 		const lv = I.goods[g] ? I.goods[g].level : 0;
 		if (!lv) continue;
-		const t = S.targets[lv] || 0, c0 = S.held[g] || 0;
+		const t = S.items && Object.prototype.hasOwnProperty.call(S.items, g) ? S.items[g] : S.targets[lv] || 0, c0 = S.held[g] || 0;
 		v += lv * (Math.min(Math.max(0, c0 + d), t) - Math.min(c0, t));
 	}
 	return v;

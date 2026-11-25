@@ -10,6 +10,7 @@ import { boardData, gatedOffers } from '../barter-board.js';
 import { npcById, isleOf } from '../barter_npcs.js';
 import { COIN, COIN_LEVEL, levelOf } from '../barter.js';
 import { chains } from '../barter-chains.js';
+import { stockTarget } from '../barter-orders.js';
 import { margins } from '../barter-short.js';
 import { seaDist } from '../barter-route.js';
 import { V } from './state.js';
@@ -143,7 +144,7 @@ function tradeHeldHTML(c, stocking) {
 	} else bits.push(T('with what the trade before makes'));
 	const lv = levelOf(r.item);
 	const have = store.getStock(r.item) || 0;
-	const want = stocking && lv ? V.stockGoal.targets[lv] || 0 : 0;
+	const want = stocking && lv ? stockTarget(V.stockGoal, r.item) : 0;
 	if (want && have < want) bits.push(`<b class="amber">${T('low: {n} of {of}', { n: F(have), of: F(want) })}</b>`);
 	else if (lv && have) bits.push(T('{n} held', { n: F(have) }));
 	return bits.join(' · ');

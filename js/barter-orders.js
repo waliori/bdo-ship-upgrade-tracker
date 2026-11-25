@@ -262,6 +262,9 @@ export function sellable(name, orders) {
 
 /** How many of a good to keep back, under the orders. */
 export function floorOf(name, orders) {
+	// A good's own keep, on a stock day where the sailor set one, before
+	// its level's (`floorsBy`, stockOrders).
+	if (orders.floorsBy && Object.prototype.hasOwnProperty.call(orders.floorsBy, name)) return orders.floorsBy[name];
 	const lv = levelOf(name);
 	return (lv !== null && orders.floors && orders.floors[lv]) || 0;
 }
@@ -337,7 +340,25 @@ export function readStock(raw) {
 	if (STOCK_LEVELS.includes(Number(raw.ceiling))) out.ceiling = Number(raw.ceiling);
 	if (AIM_CHOICES.some(([a]) => a === raw.aim)) out.aim = raw.aim;
 	if (ORDER_CHOICES.some(([a]) => a === raw.order)) out.order = raw.order;
+	// A keep for one good, past its level's (Theophilos, 2026-10-05: two
+	// Level 5 goods kept, the rest of the level climbed).
+	if (raw.items && typeof raw.items === 'object') {
+		const items = {};
+		for (const [name, v] of Object.entries(raw.items)) {
+			const n = Math.floor(Number(v));
+			if (levelOf(name) !== null && Number.isFinite(n) && n >= 0) items[name] = Math.min(9999, n);
+		}
+		if (Object.keys(items).length) out.items = items;
+	}
 	return out;
+}
+
+/** What a stock day keeps of one good: its own keep where the sailor set
+ *  one, else its level's. */
+export function stockTarget(stock, name) {
+	if (stock && stock.items && Object.prototype.hasOwnProperty.call(stock.items, name)) return stock.items[name];
+	const lv = levelOf(name);
+	return (lv !== null && stock && stock.targets && stock.targets[lv]) || 0;
 }
 
 /**
@@ -348,13 +369,15 @@ export function readStock(raw) {
  */
 export function stockOrders(orders, stock, fullAt = null) {
 	const floors = { ...stock.targets };
+	const open = new Set();
 	// Filled from the top: a floor holds only under levels already full.
 	if (stock.order === 'down' && fullAt) {
 		for (const lv of STOCK_LEVELS) {
-			if (!floors[lv]) continue;
 			const above = STOCK_LEVELS.filter(m => m > lv && m <= stock.ceiling && stock.targets[m] > 0);
-			if (above.some(m => !fullAt(m))) floors[lv] = 0;
+			if (above.some(m => !fullAt(m))) { floors[lv] = 0; open.add(lv); }
 		}
 	}
-	return { ...orders, sell: NOTHING, floors };
+	const items = Object.entries(stock.items || {});
+	const floorsBy = items.length ? Object.fromEntries(items.map(([name, n]) => [name, open.has(levelOf(name)) ? 0 : n])) : null;
+	return { ...orders, sell: NOTHING, floors, ...(floorsBy ? { floorsBy } : {}) };
 }

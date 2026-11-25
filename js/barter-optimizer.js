@@ -164,7 +164,8 @@ export function scoreFor(aim, stock) {
 	// forty.
 	if (aim.kind === 'coins') return run => run.coins * 1000 + run.trades;
 	const targets = aim.targets || {};
-	const targetOf = name => targets[levelOf(name)] || 0;
+	const items = aim.items || {};
+	const targetOf = name => (Object.prototype.hasOwnProperty.call(items, name) ? items[name] : targets[levelOf(name)] || 0);
 	const held = new Map(aim.held || []);
 	return run => {
 		const fill = fillOf(run, { targetOf, held, stock });
