@@ -65,11 +65,11 @@ export const DATA = [
 export const RELEASES = [
 	{
 		id: '1.7.1',
-		name: TT('Shorter runs, your quests on the way'),
+		name: TT('Shorter runs, and a stock of your own'),
 		date: '2026-11-25',
-		sum: TT('Of two runs that bring in the same, the shorter is laid, with your quests on the way; Tidal Black Stones at the Crow Coin exchanger; fixes on the Map, the Plan and To Get.'),
+		sum: TT('Of two runs that bring in the same, the shorter is laid, with your quests on the way; goods loaded when an island needs them; a keep for each good and Crow Coins on a stock day; Tidal Black Stones; a lighter, faster page.'),
 		thanks: {
-			text: TT('Two players showed a run that sailed longer than it had to, each with the board that showed why.'),
+			text: TT('Four players: two showed a run that sailed longer or heavier than it had to, and two asked for a stock day that does more.'),
 			who: [
 				{
 					name: 'Lufance',
@@ -77,12 +77,20 @@ export const RELEASES = [
 				},
 				{
 					name: 'GodSpeedGT',
-					did: TT('Showed four Masts riding to the end of his run. What an island pays past the planned count is left at the next storage call now.')
+					did: TT('Showed four Masts riding to the end of his run, and goods loaded at the start for an island twenty stops on. What an island pays past the count is left at the next storage call now, and goods are loaded at the last call home before the island that takes them.')
+				},
+				{
+					name: 'Theophilos',
+					did: TT('Asked for a target for each good, not only for each level: a stock of two Level 5 goods, and the rest of the level climbed. Each good can keep its own number now.')
+				},
+				{
+					name: 'Oni',
+					did: TT('Asked for the stock and the Crow Coins in one run: the coin trades worth their Parley first, the rest of the bar to the stock. A stock day can take them now.')
 				}
 			],
 			foot: TT('The box is under <b>Menu \u2192 Feedback</b>. It reaches whoever runs the site.')
 		},
-		blurb: TT('When two runs bring in the same, the app lays the one that leaves fewer of your quests out, then the shorter, and moves the islands round the quest stops so the ship stops doubling back. What a run earns still comes first. Lyngbakr’s parts trade for Tidal Black Stones, and a week of fixes.'),
+		blurb: TT('When two runs bring in the same, the app lays the one that leaves fewer of your quests out, then the shorter, and moves the islands round the quest stops so the ship stops doubling back. What a run earns still comes first. Goods are loaded at the call home before the island that takes them, not all at the start. A stock day keeps a number of each good of your own and can take the Crow Coin trades worth it. Lyngbakr’s parts trade for Tidal Black Stones, and the page is lighter and its heaviest searches faster.'),
 		sections: [
 			{
 				title: TT('Shorter runs, your quests on the way'),
@@ -90,7 +98,22 @@ export const RELEASES = [
 					TT('Of two runs that bring in the same, the one that leaves out fewer of the quests you picked is laid, then the shorter. What a run earns still comes first.'),
 					TT('The islands are moved round the quest stops: a run no longer sails home past a quest giver and comes back for the quest.'),
 					TT('A run calls at a quest giver once, fetching the quest needed soonest first. A quest stop in a harbour fills the rations, so no supply call follows it.'),
-					TT('What an island pays past the planned count is left at the next storage call instead of riding to the end of the run.')
+					TT('What an island pays past the planned count is left at the next storage call instead of riding to the end of the run.'),
+					TT('On a stock day, of two runs that fill alike, the one that leaves fewer quests out comes before the one that buys a little less.')
+				]
+			},
+			{
+				title: TT('Goods loaded when an island needs them'),
+				points: [
+					TT('A good from your storage that an island twenty stops on takes is loaded at the last call home before that island, not at the start, as long as the run loses nothing for it.'),
+					TT('A good bought at the Market for a later trip is bought before casting off and left in the storage at your harbour: the load list says so, and its tick puts it in the storage, not the hold. The trip it is for loads it on the way.')
+				]
+			},
+			{
+				title: TT('A stock of your own'),
+				points: [
+					TT('Each good can keep its own number: open a level under <i>Where today ends</i> and type it under the good. Blank, it keeps the level’s.'),
+					TT('<i>And the Crow Coin trades paying at least</i>, under the ladder on a stock day: those trades come first, the rest of the Parley goes to the stock, and only goods over their target are cashed.')
 				]
 			},
 			{
@@ -107,7 +130,9 @@ export const RELEASES = [
 					TT('Tabbing out of a quantity keeps the keyboard on the row, and changing the language redraws the top bar.'),
 					TT('The Ship tab’s advice fits the hull: a Caravel no longer gets the Carrack’s parts path.'),
 					TT('A price from the Central Market says so: in <i>What it costs</i>, every silver price read <i>Falasi vendor</i>.'),
-					TT('The Plan counts the units covered as the Builds card does, the build picker files the Caravel’s and Galleass’s green parts under Parts, and To Get names a drop source once.')
+					TT('The Plan counts the units covered as the Builds card does, the build picker files the Caravel’s and Galleass’s green parts under Parts, and To Get names a drop source once.'),
+					TT('The heaviest stock days are searched about a third faster, the runs the same.'),
+					TT('The page loads 274 KB less at first: the release notes and the screenshot readers come when they are opened.')
 				]
 			}
 		]
@@ -1337,11 +1362,13 @@ export const RELEASE = RELEASES[0].id;
 export const CHANGES = [
 	{
 		date: '2026-11-25',
-		title: TT('1.7.1: shorter runs round your quests, Tidal Black Stones, fixes'),
+		title: TT('1.7.1: shorter runs round your quests, goods loaded late, a stock of your own'),
 		notes: [
 			TT('<b>Barter runs.</b> Of two runs that earn alike, the one leaving fewer quests out, then the shorter; islands moved round the quest stops; a quest giver called at once; a harbour quest stop fills the rations; a payout past the count left at the next storage call.'),
+			TT('<b>Loads.</b> A good loaded at the last call home before its island; a Market good for a later trip bought into the harbour’s storage.'),
+			TT('<b>Stock.</b> A keep for each good; the Crow Coin trades worth it on a stock day; a quest before a cheaper load.'),
 			TT('<b>Crow Coins.</b> Tidal Black Stones for Lyngbakr’s parts at the exchanger.'),
-			TT('<b>Fixes.</b> The Map’s long runs and island rows, the Parley box, <i>All done…</i>, the keyboard after a quantity, the Ship tab’s advice, Market prices named, the Plan’s units covered.')
+			TT('<b>Fixes.</b> The Map’s long runs and island rows, the Parley box, <i>All done…</i>, the keyboard after a quantity, the Ship tab’s advice, Market prices named, the Plan’s units covered; heavy days searched faster; a lighter first load.')
 		]
 	},
 	{
