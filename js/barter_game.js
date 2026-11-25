@@ -18,6 +18,9 @@
 // the Total Barters that open it; category the board's bits (2 shore->1,
 // 4 1->2, 8 2->3, 16 3->4, 32 4->5, 64 material, 128 coins, 256 coin
 // ships, 1024 6->7). k58, k8 and k64 are kept as read, not yet understood.
+// RESET is the Barter Refresh menu, read as pairs but one list: 20, 40, 50
+// points for the day's trade refreshes, 2 ship material refreshes a day at
+// 10 then 30 -- REFRESH in barter.js, which the app reads.
 
 export const BAKED = {"at":"2026-09-27","client":3458};
 export const OFFER = ["weight","give","giveMin","giveMax","recv","recvMin","recvMax","parley","perDay","gate","category","k58"];
