@@ -6237,5 +6237,7 @@
 	"left in the storage at {town}, loaded on the way": "留在{town}的倉庫，途中裝上",
 	"{n} good keeps its own number": "{n} 種貨物保留自己的數量",
 	"{n} goods keep their own number": "{n} 種貨物保留自己的數量",
-	"{n} left in the storage at {town}": "{n} 個留在{town}的倉庫"
+	"{n} left in the storage at {town}": "{n} 個留在{town}的倉庫",
+	"the coin trades take [Level {lv}]s, and every one you hold is under its target: lower the [Level {lv}] target to cash some": "硬幣交換要用 [等級 {lv}]，而你持有的每種都低於其目標：調低 [等級 {lv}] 的目標才能兌換一些",
+	"no coin trade on this board pays {n} or more": "此交易板上沒有每次支付 {n} 枚或以上的硬幣交換"
 }

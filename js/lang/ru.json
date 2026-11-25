@@ -8402,5 +8402,7 @@
 	"left in the storage at {town}, loaded on the way": "оставлено на складе {town}, грузится по пути",
 	"{n} good keeps its own number": "{n} товар держит своё число",
 	"{n} goods keep their own number": "{n} товаров держат своё число",
-	"{n} left in the storage at {town}": "{n} оставлено на складе {town}"
+	"{n} left in the storage at {town}": "{n} оставлено на складе {town}",
+	"the coin trades take [Level {lv}]s, and every one you hold is under its target: lower the [Level {lv}] target to cash some": "обмены на монеты берут [{lv} ур.], и каждый, что у вас есть, ниже своей цели: снизьте цель для [{lv} ур.], чтобы сдать часть",
+	"no coin trade on this board pays {n} or more": "ни один обмен на монеты на этой доске не платит {n} или больше"
 }

@@ -6405,5 +6405,7 @@
 	"left in the storage at {town}, loaded on the way": "dejado en el almacén de {town}, cargado por el camino",
 	"{n} good keeps its own number": "{n} mercancía guarda su propio número",
 	"{n} goods keep their own number": "{n} mercancías guardan su propio número",
-	"{n} left in the storage at {town}": "{n} dejadas en el almacén de {town}"
+	"{n} left in the storage at {town}": "{n} dejadas en el almacén de {town}",
+	"the coin trades take [Level {lv}]s, and every one you hold is under its target: lower the [Level {lv}] target to cash some": "los canjes de corvarios piden «Nivel {lv} - …», y cada uno que tienes está por debajo de su objetivo: baja el objetivo de «Nivel {lv} - …» para cobrar algunos",
+	"no coin trade on this board pays {n} or more": "ningún canje de corvarios de este tablero paga {n} o más"
 }

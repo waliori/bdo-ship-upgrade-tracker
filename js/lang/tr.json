@@ -6237,5 +6237,7 @@
 	"left in the storage at {town}, loaded on the way": "{town} deposunda bırakıldı, yolda yüklenir",
 	"{n} good keeps its own number": "{n} mal kendi sayısını tutar",
 	"{n} goods keep their own number": "{n} mal kendi sayısını tutar",
-	"{n} left in the storage at {town}": "{n} adet {town} deposunda bırakıldı"
+	"{n} left in the storage at {town}": "{n} adet {town} deposunda bırakıldı",
+	"the coin trades take [Level {lv}]s, and every one you hold is under its target: lower the [Level {lv}] target to cash some": "para takasları [Seviye {lv}] ister ve elindeki her biri hedefinin altında: bir kısmını bozdurmak için [Seviye {lv}] hedefini düşür",
+	"no coin trade on this board pays {n} or more": "bu tablodaki hiçbir para takası {n} veya daha fazla ödemiyor"
 }

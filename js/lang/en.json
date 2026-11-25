@@ -6237,5 +6237,7 @@
 	"★ mate": "★ mate",
 	"☐ Select": "☐ Select",
 	"⚑ Put it on the game's map": "⚑ Put it on the game's map",
-	"✓ Selecting": "✓ Selecting"
+	"✓ Selecting": "✓ Selecting",
+	"the coin trades take [Level {lv}]s, and every one you hold is under its target: lower the [Level {lv}] target to cash some": "the coin trades take [Level {lv}]s, and every one you hold is under its target: lower the [Level {lv}] target to cash some",
+	"no coin trade on this board pays {n} or more": "no coin trade on this board pays {n} or more"
 }
