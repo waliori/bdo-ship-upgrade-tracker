@@ -348,7 +348,7 @@ function ashoreHTML(passes = () => true) {
 	const places = all.length > 1 ? `<span class="chips ashore-places">${all.map(t => `<button class="chip tiny${V.holdAt === t.town ? ' active' : ''}" aria-pressed="${V.holdAt === t.town ? 'true' : 'false'}" data-act="barter-hold-at" data-town="${esc(t.town)}">${esc(gameName(t.town))}</button>`).join('')}</span>` : '';
 	const towns = all.filter(t => !V.holdAt || t.town === V.holdAt).map(t => ({ ...t, goods: t.goods.filter(passes) })).filter(t => t.goods.length);
 	const groups = towns.map(t => `<div class="ashore-town${t.here ? ' here' : ''}">
-		<div class="ashore-head"><b>${esc(gameName(t.town))}</b><span>${t.here ? T('the run sails from here — its goods can be loaded') : from ? T('not where the run starts') : T('choose where the run sails from to load these')}</span></div>
+		<div class="ashore-head"><b>${esc(gameName(t.town))}</b><span>${t.here ? T('the run sails from here — its goods can be loaded') : from ? T('not where the run sails from ({port}), so not loaded', { port: esc(gameName(from.name)) }) : T('choose where the run sails from to load these')}</span></div>
 		${t.goods.map(g => `<div class="barter-good ashore-good">
 			${img(g.name, 'row-icon')}
 			<span class="map-row-main">

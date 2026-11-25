@@ -6255,5 +6255,12 @@
 	"the climb ends at Level {top}, below Level {sell} where the wharf starts selling": "the climb ends at Level {top}, below Level {sell} where the wharf starts selling",
 	"the wharf only stores today: tap a level’s stock to sell it": "the wharf only stores today: tap a level’s stock to sell it",
 	"nothing comes of it: the goods its islands take are not held — see To get first": "nothing comes of it: the goods its islands take are not held — see To get first",
-	"The wharf sells nothing today: tap a level’s stock under Your goal to sell it.": "The wharf sells nothing today: tap a level’s stock under Your goal to sell it."
+	"The wharf sells nothing today: tap a level’s stock under Your goal to sell it.": "The wharf sells nothing today: tap a level’s stock under Your goal to sell it.",
+	"the climb stops here: {why}": "the climb stops here: {why}",
+	"No stop to sail yet: tick a chain under Plan the run": "No stop to sail yet: tick a chain under Plan the run",
+	"not where the run sails from ({port}), so not loaded": "not where the run sails from ({port}), so not loaded",
+	"Short of {good}: {have} of the {need} one craft takes": "Short of {good}: {have} of the {need} one craft takes",
+	"no price yet: the Central Market has not answered": "no price yet: the Central Market has not answered",
+	"No sailor hired yet: hire one first": "No sailor hired yet: hire one first",
+	"The account holds {cap} sailors at most: let one go to hire another": "The account holds {cap} sailors at most: let one go to hire another"
 }

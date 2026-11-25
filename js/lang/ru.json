@@ -8420,5 +8420,12 @@
 	"the climb ends at Level {top}, below Level {sell} where the wharf starts selling": "подъём кончается на {top} ур., ниже {sell} ур., с которого причал начинает продавать",
 	"the wharf only stores today: tap a level’s stock to sell it": "сегодня причал только хранит: нажмите «в запас» под уровнем, чтобы продавать его",
 	"nothing comes of it: the goods its islands take are not held — see To get first": "ничего не выйдет: товаров, которые берут его острова, нет — см. «Добыть заранее»",
-	"The wharf sells nothing today: tap a level’s stock under Your goal to sell it.": "Сегодня причал ничего не продаёт: нажмите «в запас» под уровнем в разделе «Ваша цель», чтобы продавать его."
+	"The wharf sells nothing today: tap a level’s stock under Your goal to sell it.": "Сегодня причал ничего не продаёт: нажмите «в запас» под уровнем в разделе «Ваша цель», чтобы продавать его.",
+	"the climb stops here: {why}": "цепочка обрывается здесь: {why}",
+	"No stop to sail yet: tick a chain under Plan the run": "Пока нет остановок: отметьте цепочку в разделе «Спланировать рейс»",
+	"not where the run sails from ({port}), so not loaded": "это не порт отправления ({port}), поэтому не грузится",
+	"Short of {good}: {have} of the {need} one craft takes": "Не хватает: {good} — {have} из {need} на одно изготовление",
+	"no price yet: the Central Market has not answered": "цены пока нет: Центральный рынок не ответил",
+	"No sailor hired yet: hire one first": "Пока никто не нанят: сначала наймите моряка",
+	"The account holds {cap} sailors at most: let one go to hire another": "На аккаунте не больше {cap} моряков: уволите одного, чтобы нанять другого"
 }

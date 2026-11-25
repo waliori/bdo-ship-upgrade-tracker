@@ -6255,5 +6255,12 @@
 	"the climb ends at Level {top}, below Level {sell} where the wharf starts selling": "爬升止于 {top} 级，低于停泊处开始出售的 {sell} 级",
 	"the wharf only stores today: tap a level’s stock to sell it": "今天停泊处只负责存放：点某个等级的“库存”即可出售",
 	"nothing comes of it: the goods its islands take are not held — see To get first": "没有产出：它的岛屿要的货物你没有——见“要先弄到”",
-	"The wharf sells nothing today: tap a level’s stock under Your goal to sell it.": "今天停泊处什么也不卖：在“你的目标”里点某个等级的“库存”即可出售。"
+	"The wharf sells nothing today: tap a level’s stock under Your goal to sell it.": "今天停泊处什么也不卖：在“你的目标”里点某个等级的“库存”即可出售。",
+	"the climb stops here: {why}": "链在这里中断：{why}",
+	"No stop to sail yet: tick a chain under Plan the run": "还没有停靠点：在“规划航行”里勾选一条链",
+	"not where the run sails from ({port}), so not loaded": "不是出航的港口（{port}），所以不会装上船",
+	"Short of {good}: {have} of the {need} one craft takes": "{good} 不够：一次制作要 {need}，你有 {have}",
+	"no price yet: the Central Market has not answered": "暂无价格：交易所还没有回应",
+	"No sailor hired yet: hire one first": "还没有雇佣船员：先雇一位",
+	"The account holds {cap} sailors at most: let one go to hire another": "账号最多容纳 {cap} 位船员：解雇一位才能再雇"
 }

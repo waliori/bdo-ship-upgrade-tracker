@@ -6273,5 +6273,12 @@
 	"the climb ends at Level {top}, below Level {sell} where the wharf starts selling": "la subida termina en el Nivel {top}, por debajo del Nivel {sell} donde el muelle empieza a vender",
 	"the wharf only stores today: tap a level’s stock to sell it": "hoy el muelle solo guarda: tocá «almacén» bajo un nivel para venderlo",
 	"nothing comes of it: the goods its islands take are not held — see To get first": "no sale nada de eso: no tenés las mercancías que piden sus islas — mirá Conseguir primero",
-	"The wharf sells nothing today: tap a level’s stock under Your goal to sell it.": "Hoy el muelle no vende nada: tocá «almacén» bajo un nivel en Tu objetivo para venderlo."
+	"The wharf sells nothing today: tap a level’s stock under Your goal to sell it.": "Hoy el muelle no vende nada: tocá «almacén» bajo un nivel en Tu objetivo para venderlo.",
+	"the climb stops here: {why}": "la cadena se detiene acá: {why}",
+	"No stop to sail yet: tick a chain under Plan the run": "Todavía no hay paradas: marcá una cadena en Planificar la ruta",
+	"not where the run sails from ({port}), so not loaded": "no es el puerto de salida ({port}), así que no se carga",
+	"Short of {good}: {have} of the {need} one craft takes": "Falta {good}: {have} de los {need} que pide una fabricación",
+	"no price yet: the Central Market has not answered": "todavía sin precio: el Mercado Central no respondió",
+	"No sailor hired yet: hire one first": "Todavía no hay marineros contratados: contratá uno primero",
+	"The account holds {cap} sailors at most: let one go to hire another": "La cuenta tiene {cap} marineros como máximo: despedí a uno para contratar otro"
 }

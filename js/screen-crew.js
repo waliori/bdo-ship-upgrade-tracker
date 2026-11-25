@@ -182,7 +182,7 @@ function board(ship, stats, totals) {
 			<h2 class="panel-title teal">${T('Manage sailors')}</h2>
 			<span class="panel-sub">${esc(hint)}</span>
 			<span class="panel-spacer"></span>
-			<button class="act quiet small" data-act="crew-auto" ${roster().length ? '' : 'disabled'} title="${T('Arrange the roster for what this boat is for')}">${T('Auto assign…')}</button>
+			<button class="act quiet small" data-act="crew-auto" ${roster().length ? '' : 'disabled'} title="${roster().length ? T('Arrange the roster for what this boat is for') : T('No sailor hired yet: hire one first')}">${T('Auto assign…')}</button>
 			<button class="act quiet small" data-act="crew-disembark-all" ${totals.seated ? '' : 'disabled'}>${T('Disembark all')}</button>
 		</div>
 		<div class="crew-board">
@@ -300,7 +300,7 @@ function rosterPanel(ship) {
 			<div class="chips">${tabs}</div>
 			<button class="act quiet small" data-act="crew-recover-all" ${n ? '' : 'disabled'} title="${T('Marks every sailor\'s condition back at 100')}">${T('Recover all')}</button>
 			<button class="act quiet small" data-act="crew-import" title="${T('Read a crew off screenshots of the game\'s own Manage Sailors window — in this browser; nothing is uploaded')}">${ico('camera')} ${T('Read screenshots')}</button>
-			<button class="act small" data-act="crew-hire" ${n >= SAILOR_CAP ? 'disabled' : ''}>${T('+ Hire')}</button>
+			<button class="act small" data-act="crew-hire" ${n >= SAILOR_CAP ? `disabled title="${T('The account holds {cap} sailors at most: let one go to hire another', { cap: SAILOR_CAP })}"` : ''}>${T('+ Hire')}</button>
 		</div>
 		<p class="crew-note">${esc(said(SAILOR_NOTE[roleOf(ship) && roleOf(ship).role.startsWith('bartering') ? 'barter' : 'hunt']))}</p>
 		${bulk}${n ? `<div class="roster-grid">${cards}</div>` : `<p class="empty">${T('Nobody hired yet. A sailor costs a {item} ({silver} silver) at {where}.', { item: esc(gameName(contract.item)), silver: F(contract.silver), where: esc(said(contract.hireAt)) })}</p>`}

@@ -6378,5 +6378,12 @@
 	"the climb ends at Level {top}, below Level {sell} where the wharf starts selling": "la montée s’arrête au Niveau {top}, sous le Niveau {sell} où le quai commence à vendre",
 	"the wharf only stores today: tap a level’s stock to sell it": "le quai ne fait qu’entreposer aujourd’hui : touchez « stock » sous un niveau pour le vendre",
 	"nothing comes of it: the goods its islands take are not held — see To get first": "il n’en sort rien : les marchandises que prennent ses îles ne sont pas en stock — voir À obtenir d’abord",
-	"The wharf sells nothing today: tap a level’s stock under Your goal to sell it.": "Le quai ne vend rien aujourd’hui : touchez « stock » sous un niveau dans Votre objectif pour le vendre."
+	"The wharf sells nothing today: tap a level’s stock under Your goal to sell it.": "Le quai ne vend rien aujourd’hui : touchez « stock » sous un niveau dans Votre objectif pour le vendre.",
+	"the climb stops here: {why}": "la chaîne s'arrête ici : {why}",
+	"No stop to sail yet: tick a chain under Plan the run": "Aucune escale à faire pour l’instant : cochez une chaîne sous Planifier la tournée",
+	"not where the run sails from ({port}), so not loaded": "ce n’est pas le port de départ ({port}), donc rien n’est chargé d’ici",
+	"Short of {good}: {have} of the {need} one craft takes": "Pas assez de {good} : {have} sur les {need} qu’une fabrication demande",
+	"no price yet: the Central Market has not answered": "pas encore de prix : le Marché central n’a pas répondu",
+	"No sailor hired yet: hire one first": "Aucun marin engagé : engagez-en un d’abord",
+	"The account holds {cap} sailors at most: let one go to hire another": "Le compte garde {cap} marins au plus : renvoyez-en un pour en engager un autre"
 }

@@ -6255,5 +6255,12 @@
 	"the climb ends at Level {top}, below Level {sell} where the wharf starts selling": "tırmanış Seviye {top} noktasında bitiyor; iskele Seviye {sell} ile satmaya başlıyor",
 	"the wharf only stores today: tap a level’s stock to sell it": "iskele bugün yalnızca depoluyor: satmak için bir seviyenin “stok” düğmesine dokun",
 	"nothing comes of it: the goods its islands take are not held — see To get first": "ondan bir şey çıkmıyor: adalarının aldığı mallar elinde yok — Önce alınacak kısmına bak",
-	"The wharf sells nothing today: tap a level’s stock under Your goal to sell it.": "İskele bugün hiçbir şey satmıyor: satmak için Hedefin altında bir seviyenin “stok” düğmesine dokun."
+	"The wharf sells nothing today: tap a level’s stock under Your goal to sell it.": "İskele bugün hiçbir şey satmıyor: satmak için Hedefin altında bir seviyenin “stok” düğmesine dokun.",
+	"the climb stops here: {why}": "zincir burada duruyor: {why}",
+	"No stop to sail yet: tick a chain under Plan the run": "Henüz gidilecek durak yok: Seferi planla altında bir zincir işaretle",
+	"not where the run sails from ({port}), so not loaded": "seferin çıktığı liman değil ({port}), bu yüzden yüklenmiyor",
+	"Short of {good}: {have} of the {need} one craft takes": "{good} yetmiyor: bir üretimin istediği {need} taneden {have}",
+	"no price yet: the Central Market has not answered": "henüz fiyat yok: Merkez Pazar yanıt vermedi",
+	"No sailor hired yet: hire one first": "Henüz tayfa yok: önce birini işe al",
+	"The account holds {cap} sailors at most: let one go to hire another": "Hesap en çok {cap} tayfa tutar: başka birini almak için birini bırak"
 }

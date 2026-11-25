@@ -21,6 +21,7 @@ import { bagFigures, bagRoom, BAG_OVER } from '../bag-shot.js';
 import { toast, openDialog, closeDialog } from '../dialogs.js';
 import { lvChips } from '../lv-chips.js';
 import { V } from './state.js';
+import { shortWhy } from './short.js';
 import { boardNow, fromPort, sailCal } from './board.js';
 import { everythingHeld } from './hold.js';
 import { materialParts } from './material.js';
@@ -81,7 +82,7 @@ export function planSheetHTML(chartIds) {
 		<span class="map-plan-aboard">${aboard.all ? T('{n} of {of} aboard', { n: aboard.done, of: aboard.all }) : T('nothing to load')}</span>
 		<button class="linky" data-act="barter-step" data-id="load">${T('Pack at the wharf')}</button>
 		<span class="panel-spacer"></span>
-		<button class="act" data-act="barter-cast-off"${ready ? '' : ' disabled'} title="${T('Each stop goes into the hold as you tick it; at the end the run is recorded')}">${img(currentShip().name, 'ship-ico')} ${T('Cast off')}</button>
+		<button class="act" data-act="barter-cast-off"${ready ? '' : ' disabled'} title="${ready ? T('Each stop goes into the hold as you tick it; at the end the run is recorded') : T('No stop to sail yet: tick a chain under Plan the run')}">${img(currentShip().name, 'ship-ico')} ${T('Cast off')}</button>
 	</div>
 	<div class="map-plan-route">${r.segs}</div>`;
 }
@@ -1190,7 +1191,7 @@ export function chainStepsDialog(id) {
 		return `<li class="chain-step${s ? '' : ' missed'}"><span class="chain-step-n">${++k}</span><div class="chain-step-body">
 			<div class="chain-step-place"><b>${esc(gameName(isleOf(npc) || r.npc))}</b><span>${esc(gameName(r.npc))}</span></div>
 			<div class="chain-step-trade">${goods(r.giveText, r.give)}<span class="faint">→</span>${goods(r.recvText, r.item)}</div>
-			<div class="chain-step-meta">${today}${s ? ` · <b>${T('this climb trades ×{n}', { n: F(s.times) })}</b>` : ` · <span class="warn">${cut && cut.npcId === r.npcId ? T('the climb stops here') : T('not reached')}</span>`}</div>
+			<div class="chain-step-meta">${today}${s ? ` · <b>${T('this climb trades ×{n}', { n: F(s.times) })}</b>` : ` · <span class="warn">${cut && cut.npcId === r.npcId ? (cut.why ? T('the climb stops here: {why}', { why: shortWhy(cut.why) }) : T('the climb stops here')) : T('not reached')}</span>`}</div>
 		</div></li>`;
 	};
 	const call = s => {

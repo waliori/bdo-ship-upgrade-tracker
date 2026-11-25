@@ -6255,5 +6255,12 @@
 	"the climb ends at Level {top}, below Level {sell} where the wharf starts selling": "การไต่จบที่ระดับ {top} ต่ำกว่าระดับ {sell} ที่ท่าเรือเริ่มขาย",
 	"the wharf only stores today: tap a level’s stock to sell it": "วันนี้ท่าเรือเก็บของอย่างเดียว: แตะ “สต็อก” ใต้ระดับเพื่อขาย",
 	"nothing comes of it: the goods its islands take are not held — see To get first": "ไม่ได้อะไรเลย: ไม่มีสินค้าที่เกาะของมันต้องการ — ดู ต้องหาก่อน",
-	"The wharf sells nothing today: tap a level’s stock under Your goal to sell it.": "วันนี้ท่าเรือไม่ขายอะไร: แตะ “สต็อก” ใต้ระดับใน เป้าหมายของคุณ เพื่อขาย"
+	"The wharf sells nothing today: tap a level’s stock under Your goal to sell it.": "วันนี้ท่าเรือไม่ขายอะไร: แตะ “สต็อก” ใต้ระดับใน เป้าหมายของคุณ เพื่อขาย",
+	"the climb stops here: {why}": "สายหยุดที่นี่: {why}",
+	"No stop to sail yet: tick a chain under Plan the run": "ยังไม่มีจุดแวะ: ติ๊กสายใน วางแผนรอบ",
+	"not where the run sails from ({port}), so not loaded": "ไม่ใช่ท่าที่ออกเรือ ({port}) จึงไม่ได้ขนขึ้น",
+	"Short of {good}: {have} of the {need} one craft takes": "{good} ไม่พอ: มี {have} จาก {need} ที่การผลิตหนึ่งครั้งต้องใช้",
+	"no price yet: the Central Market has not answered": "ยังไม่มีราคา: ตลาดกลางยังไม่ตอบ",
+	"No sailor hired yet: hire one first": "ยังไม่ได้ว่าจ้างลูกเรือ: ว่าจ้างก่อน",
+	"The account holds {cap} sailors at most: let one go to hire another": "บัญชีรับลูกเรือได้มากสุด {cap} คน: ปลดออกหนึ่งคนเพื่อจ้างคนใหม่"
 }

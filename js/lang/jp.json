@@ -6255,5 +6255,12 @@
 	"the climb ends at Level {top}, below Level {sell} where the wharf starts selling": "登りは{top}段階で終わり、船着き場が売り始める{sell}段階に届きません",
 	"the wharf only stores today: tap a level’s stock to sell it": "今日の船着き場は保管のみ。売るには段階の「在庫」をタップしてください",
 	"nothing comes of it: the goods its islands take are not held — see To get first": "何も得られません。島が求める品を持っていません。「先に入手」を参照",
-	"The wharf sells nothing today: tap a level’s stock under Your goal to sell it.": "今日の船着き場は何も売りません。売るには「あなたの目標」で段階の「在庫」をタップしてください。"
+	"The wharf sells nothing today: tap a level’s stock under Your goal to sell it.": "今日の船着き場は何も売りません。売るには「あなたの目標」で段階の「在庫」をタップしてください。",
+	"the climb stops here: {why}": "連鎖はここで止まる：{why}",
+	"No stop to sail yet: tick a chain under Plan the run": "まだ寄港先がありません。「航海を計画する」で連鎖に印を付けてください",
+	"not where the run sails from ({port}), so not loaded": "出航する港（{port}）ではないので積み込まれません",
+	"Short of {good}: {have} of the {need} one craft takes": "{good}が足りません：1回の製作に{need}必要で、{have}しかありません",
+	"no price yet: the Central Market has not answered": "まだ価格がありません：取引所から応答がありません",
+	"No sailor hired yet: hire one first": "まだ船員を雇っていません。先に雇ってください",
+	"The account holds {cap} sailors at most: let one go to hire another": "アカウントは最大{cap}人までです。別の船員を雇うには1人解雇してください"
 }

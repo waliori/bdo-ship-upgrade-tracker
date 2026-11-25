@@ -6294,5 +6294,12 @@
 	"the climb ends at Level {top}, below Level {sell} where the wharf starts selling": "der Aufstieg endet bei Stufe {top}, unter Stufe {sell}, ab der der Hafen verkauft",
 	"the wharf only stores today: tap a level’s stock to sell it": "der Hafen lagert heute nur: tippe bei einer Stufe auf „Vorrat“, um sie zu verkaufen",
 	"nothing comes of it: the goods its islands take are not held — see To get first": "es wird nichts daraus: die Waren, die seine Inseln nehmen, hast du nicht — siehe Zuerst beschaffen",
-	"The wharf sells nothing today: tap a level’s stock under Your goal to sell it.": "Der Hafen verkauft heute nichts: tippe unter Dein Ziel bei einer Stufe auf „Vorrat“, um sie zu verkaufen."
+	"The wharf sells nothing today: tap a level’s stock under Your goal to sell it.": "Der Hafen verkauft heute nichts: tippe unter Dein Ziel bei einer Stufe auf „Vorrat“, um sie zu verkaufen.",
+	"the climb stops here: {why}": "hier endet die Kette: {why}",
+	"No stop to sail yet: tick a chain under Plan the run": "Noch kein Halt anzulaufen: hake unter Die Fahrt planen eine Kette an",
+	"not where the run sails from ({port}), so not loaded": "nicht der Abfahrtshafen ({port}), daher wird nichts geladen",
+	"Short of {good}: {have} of the {need} one craft takes": "Zu wenig {good}: {have} von den {need}, die eine Herstellung braucht",
+	"no price yet: the Central Market has not answered": "noch kein Preis: der Zentralmarkt hat nicht geantwortet",
+	"No sailor hired yet: hire one first": "Noch kein Seemann angeheuert: heuere zuerst einen an",
+	"The account holds {cap} sailors at most: let one go to hire another": "Der Account fasst höchstens {cap} Seeleute: entlasse einen, um einen anderen anzuheuern"
 }
