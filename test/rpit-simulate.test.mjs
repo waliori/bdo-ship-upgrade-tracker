@@ -198,6 +198,23 @@ test('a plan\'s loads are trimmed to what it deals, and never below', () => {
 	assert.equal(trimLoads(I, trimmed), trimmed, 'nothing to trim, the same plan');
 });
 
+test('what a later island takes is loaded at the last call home before it, bought or from the storage', () => {
+	// The ten Land goods for s1 bought at the start, the four [Level 2]s for
+	// s3 loaded there, though a call home comes before each island.
+	const I = tiny();
+	const plan = { buy: { Land: 100 }, load: { L2: 4 }, visits: [{ at: 'H', sell: 'spare', drop: 'spare' }, { at: 's1', a: 10 }, { at: 's2', a: 5 }, { at: 'H', sell: 'spare', drop: 'spare' }, { at: 's3', a: 7 }, { at: 'H', sell: 'all' }] };
+	const was = robustEval(I, plan);
+	const late = trimLoads(I, plan);
+	const now = robustEval(I, late);
+	assert.deepEqual(late.load, {}, 'nothing loaded at the start');
+	assert.deepEqual(late.store, { Land: 100 }, 'bought, and left in the storage');
+	assert.deepEqual(late.visits[0].load, { Land: 100 });
+	assert.deepEqual(late.visits[3].load, { L2: 4 }, 'at the last call before s3, not the first');
+	assert.equal(now.run.trades, was.run.trades);
+	assert.ok(now.f >= was.f - 1e-6);
+	assert.equal(now.run.log[0].bought.Land, 100, 'still bought at the start');
+});
+
 test('an island sailed to that deals nothing is a pointless stop', () => {
 	// The [Level 3] island before any [Level 2] is made: nothing to give it.
 	const plan = { buy: { Land: 100 }, visits: [{ at: 's1', a: 10 }, { at: 's3', a: 5 }, { at: 's2', a: 10 }, { at: 'H', sell: 'all' }] };

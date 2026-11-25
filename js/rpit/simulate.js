@@ -58,7 +58,7 @@ export function planPolicy(plan) {
 	const off = plan.buy || plan.load || plan.bag ? 1 : 0;
 	return {
 		next(state, I) {
-			if (state.step === 0 && off) return { start: true, buy: plan.buy || {}, load: plan.load || {}, bag: plan.bag || {} };
+			if (state.step === 0 && off) return { start: true, buy: plan.buy || {}, load: plan.load || {}, bag: plan.bag || {}, store: plan.store || {} };
 			const k = state.step - off;
 			if (k >= plan.visits.length) return null;
 			const v = plan.visits[k];
@@ -276,6 +276,14 @@ export function simulate(I, policy, { mode = 'sample', seed = 1 } = {}) {
 				const cost = n * (G[g] ? G[g].b : 0);
 				state.silver -= cost; state.spent += cost;
 				entry.bought[g] = n;
+			}
+			// What is bought for a later trip goes into the home storage, to be
+			// loaded at the call home before the island that takes it.
+			for (const [g, req] of Object.entries(act.store || {})) {
+				const n = Math.min(req, h.get(g) || 0);
+				if (n <= EPS) continue;
+				add(h, g, -n); add(hw, g, -Math.min(n, hw.get(g) || 0)); add(storages[I.rules.home], g, n);
+				(entry.stored = entry.stored || {})[g] = n;
 			}
 			// What is loaded before casting off comes out of the home
 			// storage at the harbour: no call, and no leg to the wharf.

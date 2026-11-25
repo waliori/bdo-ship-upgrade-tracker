@@ -72,6 +72,7 @@ export const packedNow = x => {
 	// aboard: the tick that loaded it is the only tick it needs.
 	if (k.startsWith('a|')) return (aboardStock()[x.item] || 0) > 0;
 	if (k.startsWith('b|') || k.startsWith('t|')) return inHold(x.item) >= x.n;
+	if (k.startsWith('m|')) return !!x.town && store.stockAt(x.item, x.town) >= x.n;
 	return V.packed.has(k);
 };
 
@@ -95,6 +96,21 @@ function packChange(x, want, from) {
 		} else if (!want && has > 0) {
 			const n = Math.min(has, x.n);
 			moves.push({ item: x.item, from: store.ABOARD, to: '', n });
+			delta[x.item] = -n;
+			if (x.cost) delta[SILVER] = Math.round(x.cost * n / x.n);
+		}
+	} else if (k.startsWith('m|') && x.town) {
+		// Bought for a later trip: into the harbour's storage, as the Market
+		// delivers, and loaded at the call home before its island.
+		const has = store.stockAt(x.item, x.town);
+		if (want && has < x.n) {
+			const n = x.n - has;
+			delta[x.item] = n;
+			if (x.cost) delta[SILVER] = -Math.round(x.cost * n / x.n);
+			moves.push({ item: x.item, from: '', to: x.town, n });
+		} else if (!want && has > 0) {
+			const n = Math.min(has, x.n);
+			moves.push({ item: x.item, from: x.town, to: '', n });
 			delta[x.item] = -n;
 			if (x.cost) delta[SILVER] = Math.round(x.cost * n / x.n);
 		}
@@ -253,11 +269,22 @@ export function packingOf(plan, from, chosen = []) {
 		const times = st.times === 1 ? T('{n} trade', { n: F(st.times) }) : T('{n} trades', { n: F(st.times) });
 		return st.giveN > 1 ? `${T('{n} a trade', { n: F(st.giveN) })} · ${times}` : times;
 	};
-	const market = (plan.bought || []).filter(b => b.n > 0).map(b => ({
-		item: b.item, n: Math.ceil(b.n), cost: Math.round(Number(b.total) || 0), per: perTrade(b.item), key: `b|${b.item}`,
-		where: b.how === 'made' ? T('your workers make it') : b.each ? T('bought · {silver}', { silver: FC(b.total) }) : marketStatus().count ? T('no Market price for it') : T('unpriced until the Market answers'),
-		act: `${copyName(b.item)}<button class="chip tiny${b.how === 'made' ? ' active' : ''}" aria-pressed="${b.how === 'made' ? 'true' : 'false'}" data-act="barter-homemade" data-item="${esc(b.item)}" title="${b.how === 'made' ? T('Bought after all: price it from the Market') : T('Your workers make this: it costs the run nothing')}">${b.how === 'made' ? `✓ ${T('mine')}` : T('my workers')}</button>`
-	}));
+	// A good bought for a later trip is a row of its own: into the harbour's
+	// storage, not the hold, and loaded at the call home before its island.
+	const market = (plan.bought || []).filter(b => b.n > 0).flatMap(b => {
+		const later = from && b.store > 0 ? Math.min(Math.ceil(b.n), Math.ceil(b.store)) : 0;
+		const now = Math.ceil(b.n) - later;
+		const cost = n => Math.round((Number(b.total) || 0) * n / Math.ceil(b.n));
+		const row = (n, key, where) => ({
+			item: b.item, n, cost: cost(n), per: perTrade(b.item), key, ...(key.startsWith('m|') ? { town: from.name } : {}), where,
+			act: `${copyName(b.item)}<button class="chip tiny${b.how === 'made' ? ' active' : ''}" aria-pressed="${b.how === 'made' ? 'true' : 'false'}" data-act="barter-homemade" data-item="${esc(b.item)}" title="${b.how === 'made' ? T('Bought after all: price it from the Market') : T('Your workers make this: it costs the run nothing')}">${b.how === 'made' ? `✓ ${T('mine')}` : T('my workers')}</button>`
+		});
+		const said = n => (b.how === 'made' ? T('your workers make it') : b.each ? T('bought · {silver}', { silver: FC(cost(n)) }) : marketStatus().count ? T('no Market price for it') : T('unpriced until the Market answers'));
+		return [
+			...(now > 0 ? [row(now, `b|${b.item}`, said(now))] : []),
+			...(later > 0 ? [row(later, `m|${b.item}`, `${said(later)} · ${T('left in the storage at {town}, loaded on the way', { town: gameName(from.name) })}`)] : [])
+		];
+	});
 	const storage = [
 		...(plan.loaded || []).filter(l => l.n > 0).map(l => ({ item: l.item, n: l.n, per: perTrade(l.item), where: from ? T('from {town}', { town: gameName(from.name) }) : T('from the storage'), load: from ? { town: from.name, n: l.n } : null, key: `l|${l.item}` })),
 		...(plan.taken || []).filter(t => t.n > 0).map(t => ({ item: t.item, n: Math.ceil(t.n), per: perTrade(t.item), where: T('from your pile · {n} left', { n: F(t.left) }), key: `t|${t.item}` })),
@@ -493,7 +520,7 @@ export function packingHTML(plan, from, chosen = [], only = null) {
 	const where = from ? gameName(from.name) : '';
 	if (only) return `<div class="pack-groups pack-first">${group(T('Before casting off'), esc(only.some(x => x.over) ? T('aboard at {at}: what this run does not use, or cannot carry at once', { at: where }) : T('aboard at {at}, and not used by this run', { at: where })), only, '')}</div>`;
 	return `<div class="pack-groups">
-		${group(T('Buy at the Market'), `${plan.cost ? T('{silver} to buy', { silver: FC(Math.round(plan.cost)) }) : T('before casting off')}${p.market.length ? ` · ${T('{lt} LT to carry', { lt: FD(p.market.reduce((w, x) => w + x.n * weightOf(x.item), 0), 1) })}` : ''}`, p.market, T('nothing to buy — the run starts from what is held'))}
+		${group(T('Buy at the Market'), `${plan.cost ? T('{silver} to buy', { silver: FC(Math.round(plan.cost)) }) : T('before casting off')}${p.market.length ? ` · ${T('{lt} LT to carry', { lt: FD(p.market.filter(x => !x.key.startsWith('m|')).reduce((w, x) => w + x.n * weightOf(x.item), 0), 1) })}` : ''}`, p.market, T('nothing to buy — the run starts from what is held'))}
 		${group(T('Take from storage'), where ? esc(T('{at} wharf', { at: where })) : T('before casting off'), p.storage, T('nothing in storage is needed'))}
 		${p.bag.length ? group(T('Into your bag'), `${T('your inventory, not the hold')} · ${(lt => (plan.bag ? T('{lt} LT of the {free} it takes', { lt, free: F(plan.bag.free) }) : T('{lt} LT', { lt })))(FD(p.bag.reduce((w, x) => w + x.n * weightOf(x.item), 0), 1))} · ${(n => (plan.bag && plan.bag.slots !== null && plan.bag.slots !== undefined ? T('{n} of {of} slots', { n: F(n), of: F(plan.bag.slots) }) : T('{n} slots', { n: F(n) })))(slotsHeld(new Map(p.bag.map(x => [x.item, x.n]))))}`, p.bag, '') : ''}
 		${group(T('Already aboard'), T('checked against the hold'), p.aboard, T('nothing the run starts from is aboard yet'))}
@@ -558,7 +585,7 @@ export function toldOf(plan, from) {
 	const at = from ? from.name : '';
 	const out = [];
 	for (const x of plan.spares || []) if (x.n > 0) out.push({ g: x.sell ? 'sell' : 'store', item: x.item, n: r(x.n), at });
-	for (const b of plan.bought || []) if (b.n > 0) out.push({ g: 'buy', item: b.item, n: Math.ceil(b.n) });
+	for (const b of plan.bought || []) if (b.n > 0) out.push({ g: 'buy', item: b.item, n: Math.ceil(b.n), ...(b.store > 0 && at ? { at, store: Math.ceil(b.store) } : {}) });
 	for (const l of plan.loaded || []) if (l.n > 0) out.push({ g: 'take', item: l.item, n: r(l.n), at });
 	for (const t of plan.taken || []) if (t.n > 0) out.push({ g: 'pile', item: t.item, n: Math.ceil(t.n) });
 	for (const l of plan.bagLoaded || []) if (l.n > 0) out.push({ g: 'bag', item: l.item, n: r(l.n), at });
@@ -576,7 +603,7 @@ export function toldHTML(on) {
 	const at = x => (x.at ? gameName(x.at) : '');
 	const groups = [
 		['sell', T('Before casting off'), x => (x.g === 'sell' ? T('sold at the wharf') : T('into storage'))],
-		['buy', T('Buy at the Market'), () => ''],
+		['buy', T('Buy at the Market'), x => (x.store ? T('{n} left in the storage at {town}', { n: n1(x.store), town: at(x) }) : '')],
 		['take', T('Take from storage'), x => (x.g === 'pile' ? T('from your pile') : at(x))],
 		['bag', T('Into your bag'), x => (x.g === 'bagHold' ? T('into your bag, out of the hold') : at(x))],
 		['aboard', T('Already aboard'), () => ''],

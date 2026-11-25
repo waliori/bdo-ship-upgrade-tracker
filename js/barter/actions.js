@@ -162,7 +162,7 @@ export function barterAction(act, el, redraw) {
 		case 'barter-pack': {
 			const k = String(el.dataset.k || '');
 			const x = { key: k, item: el.dataset.item, n: Number(el.dataset.n) || 0, cost: Number(el.dataset.cost) || 0 };
-			if (/^[bltasu]\|/.test(k)) { const want = !packedNow(x); slotsSaid(packApply([x], want, fromPort())); return true; }
+			if (/^[bltasum]\|/.test(k)) { const want = !packedNow(x); slotsSaid(packApply([x], want, fromPort())); return true; }
 			if (V.packed.has(k)) V.packed.delete(k); else V.packed.add(k);
 			persist();
 			return true;
@@ -172,9 +172,9 @@ export function barterAction(act, el, redraw) {
 		case 'barter-pack-all': {
 			const want = el.dataset.on !== '1';
 			const rows = JSON.parse(el.dataset.rows || '[]');
-			const loads = rows.filter(x => /^[bltasu]\|/.test(x.key) && packedNow(x) !== want);
+			const loads = rows.filter(x => /^[bltasum]\|/.test(x.key) && packedNow(x) !== want);
 			if (loads.length) slotsSaid(packApply(loads, want, fromPort()));
-			const marks = rows.filter(x => !/^[bltasu]\|/.test(x.key));
+			const marks = rows.filter(x => !/^[bltasum]\|/.test(x.key));
 			for (const x of marks) if (want) V.packed.add(String(x.key)); else V.packed.delete(String(x.key));
 			if (marks.length) persist();
 			return true;

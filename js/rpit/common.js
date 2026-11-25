@@ -118,7 +118,10 @@ export function robustEval(I, plan, mu = 0) {
 		const fill = fillOfRun(I, r);
 		const cost = r.spent + r.P * 10;
 		const f = I.rules.stock.kind === 'trades' ? r.trades * 1e9 + fill * 1e6 - cost / 1e3 : fill * 1e9 - cost;
-		return { f: f - mu * r.T - over - waste, R: r.R, T: r.T, fill, run: r };
+		// `cost`, what f takes off for the goods and the Parley: of two that
+		// fill alike, the one leaving fewer quests out comes before the cheaper
+		// (barter-solve.js rankOf, alns.js ties).
+		return { f: f - mu * r.T - over - waste, R: r.R, T: r.T, fill, cost: I.rules.stock.kind === 'trades' ? cost / 1e3 : cost, run: r };
 	}
 	return { f: r.R - mu * r.T - over - waste + coins, R: r.R, T: r.T, run: r };
 }
@@ -394,7 +397,7 @@ export function finish(I, stationVisits, mu = 0, { calls = [], must = null } = {
 			if (e.f > best.f) { plan = wide; best = e; }
 		}
 	}
-	return { plan, f: best.f, R: best.R, T: best.T, visits, calls: cs };
+	return { plan, f: best.f, R: best.R, T: best.T, cost: best.cost || 0, visits, calls: cs };
 }
 
 /**
@@ -405,6 +408,9 @@ export function finish(I, stationVisits, mu = 0, { calls = [], must = null } = {
  * searched sent it elsewhere for no gain.
  */
 export function trimLoads(I, plan0) {
+	return loadLate(I, trimmed(I, plan0));
+}
+function trimmed(I, plan0) {
 	let best = robustEval(I, plan0);
 	if (!(best.run.pointless.loadedBack > 0)) return plan0;
 	const plan = { ...plan0, ...(plan0.load ? { load: { ...plan0.load } } : {}), visits: plan0.visits.map(v => (v.load ? { ...v, load: { ...v.load } } : v)) };
@@ -433,6 +439,61 @@ export function trimLoads(I, plan0) {
 				cut(holder, g, holder.load[g]);
 			}
 			if (!(holder.load[g] > 0)) delete holder.load[g];
+		}
+	}
+	return plan;
+}
+
+/**
+ * What is loaded from the home storage long before an island takes it is
+ * loaded at the last call home before that island instead, while the run
+ * gives up nothing for it: four Masts and five Urn Pieces rode twenty stops
+ * past five calls at Iliya (GodSpeedGT, 2026-11-23). The search never sees
+ * it -- a good carried under the limit costs nothing -- so it is laid once,
+ * on its answer, as trimLoads is.
+ */
+function loadLate(I, plan0) {
+	const home = I.rules.home;
+	if (!plan0.visits.some(v => v.at === home)) return plan0;
+	const { station, dist } = indexOf(I);
+	const ok = (e, best) => e.f >= best.f - 1e-6 && e.run.trades >= best.run.trades && e.run.deviations.starved <= best.run.deviations.starved && e.run.pointless.loadedBack <= best.run.pointless.loadedBack;
+	let plan = plan0, best = robustEval(I, plan0);
+	// Each holder in turn -- the start, then the calls home -- and each good it
+	// loads: moved to the last call home before the first island taking it.
+	for (let h = -1; h < plan.visits.length; h++) {
+		const holder = h < 0 ? plan : plan.visits[h];
+		if (h >= 0 && holder.at !== home) continue;
+		for (const g of Object.keys(holder.load || {})) {
+			const use = plan.visits.findIndex((v, i) => i > h && station.has(v.at) && station.get(v.at).in === g);
+			if (use < 0) continue;
+			let at = -1;
+			for (let i = h + 1; i < use; i++) if (plan.visits[i].at === home) at = i;
+			if (at < 0) continue;
+			const visits = plan.visits.map((v, i) => (i === at ? { ...v, load: { ...(v.load || {}), [g]: ((v.load || {})[g] || 0) + holder.load[g] } } : v));
+			const rest = { ...holder.load };
+			delete rest[g];
+			const moved = h < 0 ? { ...plan, load: rest, visits } : { ...plan, visits: visits.map((v, i) => (i === h ? { ...v, load: rest } : v)) };
+			const e = robustEval(I, moved);
+			if (ok(e, best)) { plan = moved; best = e; }
+		}
+	}
+	// What is bought at the start likewise: bought there, as the Market
+	// delivers to the harbour's storage, and loaded at the call -- when the
+	// run starts at the home storage, where the bought goods land (its
+	// wharf a few hundred metres from where the run sets out).
+	if (plan.buy && dist('start', home) < 1000) {
+		// Bought at a price: a good off the sailor's own pile stays where the
+		// pile is.
+		for (const g of Object.keys(plan.buy).filter(x => I.goods[x] && I.goods[x].b > 0)) {
+			const use = plan.visits.findIndex(v => station.has(v.at) && station.get(v.at).in === g);
+			if (use < 0) continue;
+			let at = -1;
+			for (let i = 0; i < use; i++) if (plan.visits[i].at === home) at = i;
+			if (at < 0) continue;
+			const n = plan.buy[g];
+			const moved = { ...plan, store: { ...(plan.store || {}), [g]: n }, visits: plan.visits.map((v, i) => (i === at ? { ...v, load: { ...(v.load || {}), [g]: ((v.load || {})[g] || 0) + n } } : v)) };
+			const e = robustEval(I, moved);
+			if (ok(e, best)) { plan = moved; best = e; }
 		}
 	}
 	return plan;

@@ -366,7 +366,10 @@ export function runOf(I, plan, { chosen, rowOf, stashes, parley, prices = {}, or
 	const start = r.log.find(e => e.kind === 'start') || { bought: {}, loaded: {} };
 	const boughtRows = fromPile ? [] : Object.entries(start.bought || {}).map(([item, n]) => {
 		const p = prices[item] || { each: 0, how: 'unpriced' };
-		return { item, n, each: p.each, how: p.how, total: Math.ceil(n) * p.each, stock: Number.isFinite(p.stock) ? p.stock : null };
+		// `store`: of those, left in the harbour's storage for a later trip
+		// (common.js loadLate), loaded at the call home before its island.
+		const kept = (start.stored || {})[item] || 0;
+		return { item, n, each: p.each, how: p.how, total: Math.ceil(n) * p.each, stock: Number.isFinite(p.stock) ? p.stock : null, ...(kept > 0 ? { store: kept } : {}) };
 	});
 	const takenRows = fromPile ? Object.entries(start.bought || {}).map(([item, n]) => ({ item, n, left: Math.max(0, (land.get(item) || 0) - n) })) : [];
 	const kept = Object.entries(r.hold).filter(([item, n]) => n > 1e-9 && levelOf(item) !== null)
@@ -380,7 +383,7 @@ export function runOf(I, plan, { chosen, rowOf, stashes, parley, prices = {}, or
 		// The bag as chainRun reports it: what goes into it before casting off.
 		bagLoaded: Object.entries(start.bagged || {}).map(([item, n]) => ({ item, n })), bagFromHold: [], bagShort: false,
 		bag: I.vehicle.bag ? { free: I.vehicle.bag.free, slots: Number.isFinite(I.vehicle.bag.slots) ? I.vehicle.bag.slots : null } : null,
-		landLoaded: Object.entries(start.bought || {}).map(([item, n]) => ({ item, n })),
+		landLoaded: Object.entries(start.bought || {}).map(([item, n]) => ({ item, n: n - ((start.stored || {})[item] || 0) })).filter(l => l.n > 1e-9),
 		bagPeak: 0,
 		cut, skippedWhole: [],
 		bought: boughtRows, taken: takenRows,
@@ -508,17 +511,20 @@ function edits(I, chains, chosen, plan, run, opts) {
 	const held = finish(I, seq, 0, { calls, must }).plan;
 	return better(rankOf(I, held, must), rankOf(I, bare, must)) ? held : bare;
 }
-// A plan judged in three steps, each only between plans the step before
-// finds alike: what it earns (a climb's top it misses and a starved leg
-// costing more than anything); then how many of the quests the sailor picked
-// it leaves out; then its hours, the quest stops' with them. No quest is
+// A plan judged in steps, each only between plans the step before finds
+// alike: what it earns (a climb's top it misses and a starved leg costing
+// more than anything) -- on a stock day what it fills; then how many of the
+// quests the sailor picked it leaves out; then, on a stock day, what the
+// goods cost (2026-11-25: a quest before a cheaper load); then its hours,
+// the quest stops' with them. No quest is
 // priced in silver: some pay none, and none is given up for time.
 const rankOf = (I, p, must) => {
 	const e = robustEval(I, p), dealt = new Set(e.run.log.filter(x => x.kind === 'station' && x.a > 0).map(x => x.at));
 	const q = questsOn(I, e.run);
-	return { earn: e.f - (must.filter(id => !dealt.has(id)).length + (e.run.deviations.starved || 0)) * MISSED, off: q ? q.off : 0, hours: e.T + (q ? q.hours : 0) };
+	const cost = e.cost || 0;
+	return { earn: e.f + cost - (must.filter(id => !dealt.has(id)).length + (e.run.deviations.starved || 0)) * MISSED, off: q ? q.off : 0, cost, hours: e.T + (q ? q.hours : 0) };
 };
-const better = (a, b) => a.earn > b.earn + 1e-6 || (a.earn >= b.earn - 1e-6 && (a.off < b.off || (a.off === b.off && a.hours < b.hours - 1e-9)));
+const better = (a, b) => a.earn > b.earn + 1e-6 || (a.earn >= b.earn - 1e-6 && (a.off < b.off || (a.off === b.off && (a.cost < b.cost - 1e-6 || (Math.abs(a.cost - b.cost) <= 1e-6 && a.hours < b.hours - 1e-9)))));
 
 // The plans the search found, by the chains each climbs, for the laying of
 // those chains to give back. Several: ticking goods aboard asks the search
