@@ -2,8 +2,8 @@
 //
 // Every plan the tab proposes goes to the server with the day as the
 // planner saw it and how it found the plan (the `study` barter-solve.js
-// sends back with its answer), and the run the sailor then records goes
-// after it under the same id -- so what a planner promised and what the
+// sends back with its answer), and the run sailed on it goes after it
+// under the same id, tick by tick and as recorded -- so what a planner promised and what the
 // day gave can be read together, and any planner run on that day again
 // (server/study.js, tools/rpit/study/). Sent gzipped, in idle time, and
 // forgotten if it fails: nothing the sailor sees waits on it.
@@ -65,7 +65,8 @@ export function studyOf(ids) {
 	return s ? s.id : null;
 }
 
-/** The run recorded, under the study of the plan it sailed. */
+/** The run under the study of the plan it sailed: as far as it went
+ *  (`partial`), each send replacing the last, and the record at the end. */
 export function noteSailed(id, outcome) {
 	try {
 		if (id) send(`/api/study/${id}/sailed`, outcome);

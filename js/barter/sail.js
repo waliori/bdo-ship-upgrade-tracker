@@ -512,6 +512,7 @@ export function unsyncHold(on) {
 export function abandonRun(mode = 'back') {
 	const on = V.sail;
 	if (!on) return null;
+	noteProgress(on, V.shownPlan || planOfSail(on), { dropped: mode });
 	if (V.writeTimer) { clearTimeout(V.writeTimer); V.writeTimer = null; }
 	let back = { delta: {}, moves: [] };
 	if (mode === 'back') {
@@ -531,6 +532,26 @@ export function abandonRun(mode = 'back') {
 	return { refund: Math.max(0, back.delta[SILVER] || 0), goods: back.moves.reduce((a, m) => a + m.n, 0), packed: !!on.packLog };
 }
 
+// The run as far as it went, under its study: sent when it is cast off,
+// a few seconds after each tick, and when it is dropped -- most runs are
+// never recorded, and a page closed on the way leaves the last of these
+// behind. The record, when there is one, replaces it (`partial` false).
+// ponytail: the order is the clock's -- a partial still in flight when the
+// record goes could land after it; the record waits on the timer, not on
+// the wire.
+let progressTimer = null;
+export function noteProgress(on, plan, extra = {}) {
+	clearTimeout(progressTimer);
+	progressTimer = null;
+	if (!on || !on.study) return;
+	const send = () => {
+		progressTimer = null;
+		noteSailed(on.study, { at: Date.now(), partial: true, timer: timerNow(), done: on.done.length, ticks: [...on.done], all: plan ? plan.stops.length : null, skipped: [...(V.skipped || [])], planned: plan ? { net: plan.net, hours: plan.hours, trades: plan.trades, parley: plan.parleyUsed, stops: plan.stops.length } : null, shown: on.stops || [], ...extra });
+	};
+	if (extra.dropped) send();
+	else progressTimer = setTimeout(send, 3000);
+}
+
 /**
  * A stop ticked done. At a stop with quests handed in they are claimed
  * and the rewards recorded -- but one whose pick-one reward is not
@@ -541,6 +562,7 @@ export function markDone(on, k) {
 	persist();
 	cheer();
 	const plan = V.shownPlan || planOfSail(on);
+	noteProgress(on, plan);
 	if (!plan) return;
 	const at = plan.stops.findIndex((s, i) => stopKey(s, i, plan.stops) === k || stopKeysWas(s, i, plan.stops).includes(k));
 	// The voucher's cooldown runs from the press that drew it, and a
@@ -1013,12 +1035,15 @@ export function recordTrip(plan, from, on = sailing(), { abandoned = false } = {
 	V.lastTrip = { entry: entry && entry.t, applied, goal: on.goal || V.goal, stops: on.done.length, trades: Math.round(trip.trades), silver: trip.silver, spent: trip.spent || 0, net: trip.silver - (trip.spent || 0), coins: Math.round(trip.delta[COIN] || 0), parley: parleySpent, vouchers: drawn, gave: moved(-1, SILVER), got: moved(1, SILVER) };
 	setStep('results');
 	V.cursor = null;
+	const skipped = [...(V.skipped || [])];
 	V.skipped = new Set();
 	V.packed = new Set();
 	// The run as it went, under the study of the plan it sailed: what the
 	// plan promised beside what the day gave, stop by stop and by the clock,
 	// and the route as the tab showed it -- the quest stops and refills too.
-	if (on.study) noteSailed(on.study, { at: Date.now(), abandoned, timer: timerNow(), done: on.done.length, all: plan.stops.length, stops: stopsLog, skipped: [...(V.skipped || [])], silver: trip.silver, spent: trip.spent || 0, trades: Math.round(trip.trades), parley: parleySpent, vouchers: drawnOn, coins: Math.round(trip.delta[COIN] || 0), planned: { net: plan.net, hours: plan.hours, trades: plan.trades, parley: plan.parleyUsed, stops: plan.stops.length }, shown: on.stops || [] });
+	clearTimeout(progressTimer);
+	progressTimer = null;
+	if (on.study) noteSailed(on.study, { at: Date.now(), partial: false, abandoned, timer: timerNow(), done: on.done.length, ticks: [...on.done], all: plan.stops.length, stops: stopsLog, skipped, silver: trip.silver, spent: trip.spent || 0, trades: Math.round(trip.trades), parley: parleySpent, vouchers: drawnOn, coins: Math.round(trip.delta[COIN] || 0), planned: { net: plan.net, hours: plan.hours, trades: plan.trades, parley: plan.parleyUsed, stops: plan.stops.length }, shown: on.stops || [] });
 	// The trip is in the book, so the clock that timed it is done.
 	stopTimer();
 	persist();
