@@ -6262,5 +6262,6 @@
 	"Short of {good}: {have} of the {need} one craft takes": "{good} yetmiyor: bir üretimin istediği {need} taneden {have}",
 	"no price yet: the Central Market has not answered": "henüz fiyat yok: Merkez Pazar yanıt vermedi",
 	"No sailor hired yet: hire one first": "Henüz tayfa yok: önce birini işe al",
-	"The account holds {cap} sailors at most: let one go to hire another": "Hesap en çok {cap} tayfa tutar: başka birini almak için birini bırak"
+	"The account holds {cap} sailors at most: let one go to hire another": "Hesap en çok {cap} tayfa tutar: başka birini almak için birini bırak",
+	"no coin chain is ticked: take a run above, or tick one under Chains on offer": "işaretli para zinciri yok: yukarıdan bir sefer seç ya da Sunulan zincirler altında birini işaretle"
 }

@@ -6262,5 +6262,6 @@
 	"Short of {good}: {have} of the {need} one craft takes": "{good} ไม่พอ: มี {have} จาก {need} ที่การผลิตหนึ่งครั้งต้องใช้",
 	"no price yet: the Central Market has not answered": "ยังไม่มีราคา: ตลาดกลางยังไม่ตอบ",
 	"No sailor hired yet: hire one first": "ยังไม่ได้ว่าจ้างลูกเรือ: ว่าจ้างก่อน",
-	"The account holds {cap} sailors at most: let one go to hire another": "บัญชีรับลูกเรือได้มากสุด {cap} คน: ปลดออกหนึ่งคนเพื่อจ้างคนใหม่"
+	"The account holds {cap} sailors at most: let one go to hire another": "บัญชีรับลูกเรือได้มากสุด {cap} คน: ปลดออกหนึ่งคนเพื่อจ้างคนใหม่",
+	"no coin chain is ticked: take a run above, or tick one under Chains on offer": "ยังไม่ได้ติ๊กสายแลกเหรียญ: เลือกรอบด้านบน หรือติ๊กใน สายที่มีให้"
 }

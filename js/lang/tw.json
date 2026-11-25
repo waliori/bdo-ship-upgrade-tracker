@@ -6262,5 +6262,6 @@
 	"Short of {good}: {have} of the {need} one craft takes": "{good} 不夠：一次製作要 {need}，你有 {have}",
 	"no price yet: the Central Market has not answered": "暫無價格：交易所還沒有回應",
 	"No sailor hired yet: hire one first": "還沒有雇傭船員：先雇一位",
-	"The account holds {cap} sailors at most: let one go to hire another": "帳號最多容納 {cap} 位船員：解雇一位才能再雇"
+	"The account holds {cap} sailors at most: let one go to hire another": "帳號最多容納 {cap} 位船員：解雇一位才能再雇",
+	"no coin chain is ticked: take a run above, or tick one under Chains on offer": "沒有勾選硬幣鏈：選上面的一個航次，或在「提供的鏈條」裡勾選一條"
 }

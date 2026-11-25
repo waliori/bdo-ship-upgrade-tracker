@@ -6262,5 +6262,6 @@
 	"Short of {good}: {have} of the {need} one craft takes": "{good} 不够：一次制作要 {need}，你有 {have}",
 	"no price yet: the Central Market has not answered": "暂无价格：交易所还没有回应",
 	"No sailor hired yet: hire one first": "还没有雇佣船员：先雇一位",
-	"The account holds {cap} sailors at most: let one go to hire another": "账号最多容纳 {cap} 位船员：解雇一位才能再雇"
+	"The account holds {cap} sailors at most: let one go to hire another": "账号最多容纳 {cap} 位船员：解雇一位才能再雇",
+	"no coin chain is ticked: take a run above, or tick one under Chains on offer": "没有勾选硬币链：选上面的一个航次，或在“提供的链条”里勾选一条"
 }

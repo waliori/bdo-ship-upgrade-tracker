@@ -6262,5 +6262,6 @@
 	"Short of {good}: {have} of the {need} one craft takes": "{good}が足りません：1回の製作に{need}必要で、{have}しかありません",
 	"no price yet: the Central Market has not answered": "まだ価格がありません：取引所から応答がありません",
 	"No sailor hired yet: hire one first": "まだ船員を雇っていません。先に雇ってください",
-	"The account holds {cap} sailors at most: let one go to hire another": "アカウントは最大{cap}人までです。別の船員を雇うには1人解雇してください"
+	"The account holds {cap} sailors at most: let one go to hire another": "アカウントは最大{cap}人までです。別の船員を雇うには1人解雇してください",
+	"no coin chain is ticked: take a run above, or tick one under Chains on offer": "コイン交換の連鎖に印がありません。上の航海を選ぶか、「提示されている連鎖」で印を付けてください"
 }

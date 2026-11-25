@@ -8427,5 +8427,6 @@
 	"Short of {good}: {have} of the {need} one craft takes": "Не хватает: {good} — {have} из {need} на одно изготовление",
 	"no price yet: the Central Market has not answered": "цены пока нет: Центральный рынок не ответил",
 	"No sailor hired yet: hire one first": "Пока никто не нанят: сначала наймите моряка",
-	"The account holds {cap} sailors at most: let one go to hire another": "На аккаунте не больше {cap} моряков: уволите одного, чтобы нанять другого"
+	"The account holds {cap} sailors at most: let one go to hire another": "На аккаунте не больше {cap} моряков: уволите одного, чтобы нанять другого",
+	"no coin chain is ticked: take a run above, or tick one under Chains on offer": "не отмечена ни одна цепочка на монеты: возьмите рейс выше или отметьте её в «Доступные цепочки»"
 }

@@ -6301,5 +6301,6 @@
 	"Short of {good}: {have} of the {need} one craft takes": "Zu wenig {good}: {have} von den {need}, die eine Herstellung braucht",
 	"no price yet: the Central Market has not answered": "noch kein Preis: der Zentralmarkt hat nicht geantwortet",
 	"No sailor hired yet: hire one first": "Noch kein Seemann angeheuert: heuere zuerst einen an",
-	"The account holds {cap} sailors at most: let one go to hire another": "Der Account fasst höchstens {cap} Seeleute: entlasse einen, um einen anderen anzuheuern"
+	"The account holds {cap} sailors at most: let one go to hire another": "Der Account fasst höchstens {cap} Seeleute: entlasse einen, um einen anderen anzuheuern",
+	"no coin chain is ticked: take a run above, or tick one under Chains on offer": "keine Münzkette angehakt: nimm eine Fahrt oben oder hake eine unter Angebotene Ketten an"
 }

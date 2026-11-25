@@ -6358,5 +6358,6 @@
 	"Short of {good}: {have} of the {need} one craft takes": "Falta {good}: {have} dos {need} que uma fabricação pede",
 	"no price yet: the Central Market has not answered": "ainda sem preço: o Mercado Central não respondeu",
 	"No sailor hired yet: hire one first": "Nenhum marinheiro contratado: contrate um primeiro",
-	"The account holds {cap} sailors at most: let one go to hire another": "A conta comporta no máximo {cap} marinheiros: dispense um para contratar outro"
+	"The account holds {cap} sailors at most: let one go to hire another": "A conta comporta no máximo {cap} marinheiros: dispense um para contratar outro",
+	"no coin chain is ticked: take a run above, or tick one under Chains on offer": "nenhuma cadeia de moedas marcada: escolha uma rota acima ou marque uma em Cadeias disponíveis"
 }

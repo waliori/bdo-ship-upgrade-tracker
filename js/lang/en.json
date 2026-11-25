@@ -6262,5 +6262,6 @@
 	"Short of {good}: {have} of the {need} one craft takes": "Short of {good}: {have} of the {need} one craft takes",
 	"no price yet: the Central Market has not answered": "no price yet: the Central Market has not answered",
 	"No sailor hired yet: hire one first": "No sailor hired yet: hire one first",
-	"The account holds {cap} sailors at most: let one go to hire another": "The account holds {cap} sailors at most: let one go to hire another"
+	"The account holds {cap} sailors at most: let one go to hire another": "The account holds {cap} sailors at most: let one go to hire another",
+	"no coin chain is ticked: take a run above, or tick one under Chains on offer": "no coin chain is ticked: take a run above, or tick one under Chains on offer"
 }
