@@ -105,7 +105,7 @@ export function silverParts(me, b) {
 		return {
 			secs: [
 				['parley', T('Before you sail'), esc(parleyLine(prof)), parleyHTML(prof)],
-				['ladder', T('Where today ends'), esc(goalLine(oNow)), ladderHTML(oNow)],
+				['ladder', T('Your goal'), esc(goalLine(oNow)), ladderHTML(oNow)],
 				...(short ? [['chains', T('Your short trip'), T('the board is not read yet'), canAppearHTML(b, prof, oNow)]] : []),
 				...(short ? [] : [['how', T('How to sail it'), esc(howLine(oNow)), howHTML(oNow)]]),
 				...(short ? [] : [['chains', T('Chains on offer'), T('the board is not read yet'), `${reachNote}<div class="chains-wait">${V.board.answers.length && !b.standing.length
@@ -839,7 +839,7 @@ export function silverParts(me, b) {
 	return {
 		secs: [
 			['parley', T('Before you sail'), esc(parleyLine(prof)), parleyHTML(prof)],
-			['ladder', T('Where today ends'), esc(goalLine(o)), ladderHTML(o, { fits: all.length, tickedN: chosen.length })],
+			['ladder', T('Your goal'), esc(goalLine(o)), ladderHTML(o, { fits: all.length, tickedN: chosen.length })],
 			...(short
 				? [['chains', T('Your short trip'), esc(shortSummary(chosen, worthSaid, plan)), shortHTML({ set: shortSet, picked: chosen, opts, aim, ship, from, stock, plan, pkey, stocking, coining, runFigures, heldNote, shutNote, lay: chainRun })]]
 				: [['how', T('How to sail it'), esc(howLine(o)), howHTML(o, presetFigs)],

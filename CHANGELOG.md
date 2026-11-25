@@ -37,7 +37,7 @@ The box is under **Menu → Feedback**. It reaches whoever runs the site.
 
 ### A stock of your own
 
-- Each good can keep its own number: open a level under *Where today ends* and type it under the good. Blank, it keeps the level’s.
+- Each good can keep its own number: open a level under *Your goal* and type it under the good. Blank, it keeps the level’s.
 - *And the Crow Coin trades paying at least*, under the ladder on a stock day: those trades come first, the rest of the Parley goes to the stock, and only goods over their target are cashed.
 
 ### Tidal Black Stones

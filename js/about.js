@@ -112,7 +112,7 @@ export const RELEASES = [
 			{
 				title: TT('A stock of your own'),
 				points: [
-					TT('Each good can keep its own number: open a level under <i>Where today ends</i> and type it under the good. Blank, it keeps the level’s.'),
+					TT('Each good can keep its own number: open a level under <i>Your goal</i> and type it under the good. Blank, it keeps the level’s.'),
 					TT('<i>And the Crow Coin trades paying at least</i>, under the ladder on a stock day: those trades come first, the rest of the Parley goes to the stock, and only goods over their target are cashed.')
 				]
 			},
