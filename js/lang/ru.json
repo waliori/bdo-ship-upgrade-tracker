@@ -8509,5 +8509,7 @@
 	"The fleet’s table": "Таблица флота",
 	"The game says only that the more barters you complete, the likelier a Special Barter becomes. The app now counts the barters you record since the last one into one pool, each kind weighed by the counts the community gathered on its Discord, and marks the zone where they saw it come. Signed in, you report the one that comes, and the Community tab adds the reports up into the fleet’s own table.": "Игра говорит лишь, что чем больше бартеров вы завершаете, тем вероятнее особый бартер. Теперь приложение складывает бартеры, записанные после последнего, в один запас, каждый вид весит по подсчётам, которые сообщество собрало в своём Discord, и отмечает зону, где его видели. Войдя в аккаунт, вы сообщаете о выпавшем, а вкладка «Сообщество» складывает сообщения в собственную таблицу флота.",
 	"Counted, barter by barter, how many of each kind came before a Special Barter, and shared the table on the community’s Discord. The gauge weighs each kind by those counts.": "Посчитал, бартер за бартером, сколько бартеров каждого вида проходит до особого бартера, и выложил таблицу в Discord сообщества. Шкала взвешивает каждый вид по этим подсчётам.",
-	"One player, whose counts the gauge stands on.": "Один игрок, на подсчётах которого стоит шкала."
+	"One player, whose counts the gauge stands on.": "Один игрок, на подсчётах которого стоит шкала.",
+	"Nothing counted since the last one: there is nothing to report yet.": "С последнего ничего не посчитано: сообщать пока не о чем.",
+	"past where the community ever saw one: did one come unnoticed?": "дальше, чем сообщество когда-либо видело: может, один выпал незамеченным?"
 }

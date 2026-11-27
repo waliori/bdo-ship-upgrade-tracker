@@ -80,13 +80,25 @@ export function addTo(counts, give, recv, n) {
  * The barters recorded since `since` (ms), by tier, from the profile's
  * runs: each run keeps its stops ticked, an island's as
  * { k: 'n', g: given, i: received, t: times }.
+ *
+ * A run is recorded when it ends, its stops with no time of their own, so
+ * one reported part-way would count whole towards the next. `skip` is the
+ * island stops already ticked when it was reported: the first run recorded
+ * after `since` leaves that many out, in the order they were sailed.
  */
-export function countsSince(runs, since) {
+export function countsSince(runs, since, skip = 0) {
 	const out = {};
-	for (const r of Array.isArray(runs) ? runs : []) {
-		if (!r || !(Number(r.at) > since)) continue;
-		for (const s of Array.isArray(r.stops_) ? r.stops_ : []) if (s && s.k === 'n') addTo(out, s.g, s.i, s.t);
-	}
+	const after = (Array.isArray(runs) ? runs : []).filter(r => r && Number(r.at) > since).sort((a, b) => a.at - b.at);
+	// ponytail: a run reported part-way then abandoned leaves the skip to the
+	// next run recorded; a per-stop time in stops_ would end that.
+	after.forEach((r, j) => {
+		let drop = j === 0 ? Math.max(0, Number(skip) || 0) : 0;
+		for (const s of Array.isArray(r.stops_) ? r.stops_ : []) {
+			if (!s || s.k !== 'n') continue;
+			if (drop > 0) { drop--; continue; }
+			addTo(out, s.g, s.i, s.t);
+		}
+	});
 	return out;
 }
 

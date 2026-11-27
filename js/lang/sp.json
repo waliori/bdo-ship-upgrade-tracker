@@ -6357,5 +6357,7 @@
 	"The fleet’s table": "La tabla de la flota",
 	"The game says only that the more barters you complete, the likelier a Special Barter becomes. The app now counts the barters you record since the last one into one pool, each kind weighed by the counts the community gathered on its Discord, and marks the zone where they saw it come. Signed in, you report the one that comes, and the Community tab adds the reports up into the fleet’s own table.": "El juego solo dice que mientras más intercambios completes, más probable es un Intercambio Espontáneo. Ahora la app cuenta los intercambios que registras desde el último en una sola reserva, cada tipo pesado según los conteos que la comunidad reunió en su Discord, y marca la zona donde lo vio salir. Con la sesión iniciada, avisas del que sale, y la pestaña Comunidad suma los avisos en la tabla propia de la flota.",
 	"Counted, barter by barter, how many of each kind came before a Special Barter, and shared the table on the community’s Discord. The gauge weighs each kind by those counts.": "Contó, intercambio por intercambio, cuántos de cada tipo hicieron falta antes de un Intercambio Espontáneo, y compartió la tabla en el Discord de la comunidad. El indicador pesa cada tipo con esos conteos.",
-	"One player, whose counts the gauge stands on.": "Un jugador, en cuyos conteos se apoya el indicador."
+	"One player, whose counts the gauge stands on.": "Un jugador, en cuyos conteos se apoya el indicador.",
+	"Nothing counted since the last one: there is nothing to report yet.": "Nada contado desde el último: todavía no hay nada que avisar.",
+	"past where the community ever saw one: did one come unnoticed?": "más allá de donde la comunidad vio salir uno: ¿salió alguno sin que lo notaras?"
 }

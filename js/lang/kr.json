@@ -6339,5 +6339,7 @@
 	"The fleet’s table": "선단의 표",
 	"The game says only that the more barters you complete, the likelier a Special Barter becomes. The app now counts the barters you record since the last one into one pool, each kind weighed by the counts the community gathered on its Discord, and marks the zone where they saw it come. Signed in, you report the one that comes, and the Community tab adds the reports up into the fleet’s own table.": "게임은 물물교환을 많이 할수록 돌발 물물교환이 나올 가능성이 커진다고만 말합니다. 이제 앱은 마지막 이후 기록한 물물교환을 하나의 누적치로 세고, 종류마다 커뮤니티가 디스코드에서 모은 집계로 무게를 매기며, 나온 것이 목격된 구간을 표시합니다. 로그인했다면 나온 것을 알리고, 커뮤니티 탭이 알림을 선단만의 표로 합산합니다.",
 	"Counted, barter by barter, how many of each kind came before a Special Barter, and shared the table on the community’s Discord. The gauge weighs each kind by those counts.": "돌발 물물교환 전까지 종류별로 물물교환이 몇 번 있었는지 하나하나 세어, 커뮤니티 디스코드에 표를 공유했습니다. 게이지는 그 집계로 종류마다 무게를 매깁니다.",
-	"One player, whose counts the gauge stands on.": "게이지의 바탕이 된 집계를 해 준 플레이어."
+	"One player, whose counts the gauge stands on.": "게이지의 바탕이 된 집계를 해 준 플레이어.",
+	"Nothing counted since the last one: there is nothing to report yet.": "마지막 이후 센 것이 없습니다. 아직 알릴 것이 없습니다.",
+	"past where the community ever saw one: did one come unnoticed?": "커뮤니티가 본 어떤 구간보다도 넘었습니다. 모르는 사이에 나오지 않았나요?"
 }

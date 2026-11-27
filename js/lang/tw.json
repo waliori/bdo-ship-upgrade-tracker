@@ -6339,5 +6339,7 @@
 	"The fleet’s table": "船隊的表",
 	"The game says only that the more barters you complete, the likelier a Special Barter becomes. The app now counts the barters you record since the last one into one pool, each kind weighed by the counts the community gathered on its Discord, and marks the zone where they saw it come. Signed in, you report the one that comes, and the Community tab adds the reports up into the fleet’s own table.": "遊戲只說完成的物品交換越多，突發物品交換就越可能出現。現在本程式把上次之後記錄的物品交換算進同一個累積裡，每種按社區在 Discord 上收集的統計加權，並標出大家看到它出現的區間。登入後，你可以回報出現的那一次，社區分頁會把回報彙總成船隊自己的表。",
 	"Counted, barter by barter, how many of each kind came before a Special Barter, and shared the table on the community’s Discord. The gauge weighs each kind by those counts.": "一次一次地數出突發物品交換出現前每種物品交換各有多少次，並在社區的 Discord 上分享了表格。進度條按這些統計給每種加權。",
-	"One player, whose counts the gauge stands on.": "一位玩家，進度條就建立在其統計之上。"
+	"One player, whose counts the gauge stands on.": "一位玩家，進度條就建立在其統計之上。",
+	"Nothing counted since the last one: there is nothing to report yet.": "上次之後還沒有計數：暫時沒有可回報的。",
+	"past where the community ever saw one: did one come unnoticed?": "已超出社區見過的任何區間：是不是有一次沒注意到就出現了？"
 }

@@ -6339,5 +6339,7 @@
 	"The fleet’s table": "ตารางของกองเรือ",
 	"The game says only that the more barters you complete, the likelier a Special Barter becomes. The app now counts the barters you record since the last one into one pool, each kind weighed by the counts the community gathered on its Discord, and marks the zone where they saw it come. Signed in, you report the one that comes, and the Community tab adds the reports up into the fleet’s own table.": "เกมบอกแค่ว่ายิ่งแลกเปลี่ยนสำเร็จมาก การแลกเปลี่ยนกะทันหันก็ยิ่งมีโอกาสปรากฏ ตอนนี้แอปนับการแลกเปลี่ยนที่คุณบันทึกตั้งแต่ครั้งล่าสุดรวมเป็นแต้มสะสมเดียว แต่ละชนิดถ่วงน้ำหนักตามการนับที่ชุมชนรวบรวมใน Discord ของพวกเขา และทำเครื่องหมายโซนที่พวกเขาเห็นมันปรากฏ เมื่อเข้าสู่ระบบ คุณแจ้งครั้งที่ปรากฏได้ และแท็บชุมชนจะรวมการแจ้งเป็นตารางของกองเรือเอง",
 	"Counted, barter by barter, how many of each kind came before a Special Barter, and shared the table on the community’s Discord. The gauge weighs each kind by those counts.": "นับทีละครั้งว่าก่อนการแลกเปลี่ยนกะทันหันจะปรากฏ มีการแลกเปลี่ยนแต่ละชนิดกี่ครั้ง และแชร์ตารางใน Discord ของชุมชน มาตรวัดถ่วงน้ำหนักแต่ละชนิดตามการนับนี้",
-	"One player, whose counts the gauge stands on.": "ผู้เล่นคนหนึ่งที่มาตรวัดตั้งอยู่บนการนับของเขา"
+	"One player, whose counts the gauge stands on.": "ผู้เล่นคนหนึ่งที่มาตรวัดตั้งอยู่บนการนับของเขา",
+	"Nothing counted since the last one: there is nothing to report yet.": "ยังไม่มีการนับตั้งแต่ครั้งล่าสุด: ยังไม่มีอะไรให้แจ้ง",
+	"past where the community ever saw one: did one come unnoticed?": "เลยจุดที่ชุมชนเคยเห็นมันปรากฏแล้ว: มีครั้งที่ปรากฏโดยไม่ทันสังเกตหรือเปล่า?"
 }

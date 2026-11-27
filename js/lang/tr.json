@@ -6339,5 +6339,7 @@
 	"The fleet’s table": "Filonun tablosu",
 	"The game says only that the more barters you complete, the likelier a Special Barter becomes. The app now counts the barters you record since the last one into one pool, each kind weighed by the counts the community gathered on its Discord, and marks the zone where they saw it come. Signed in, you report the one that comes, and the Community tab adds the reports up into the fleet’s own table.": "Oyun yalnızca ne kadar çok takas tamamlarsanız Ani Takas’ın o kadar olası olduğunu söyler. Uygulama artık sonuncudan beri kaydettiğiniz takasları tek bir havuzda sayıyor; her tür, topluluğun Discord’unda topladığı sayımlara göre tartılıyor ve çıktığını gördükleri bölge işaretleniyor. Giriş yapmışsanız çıkanı bildirirsiniz, Topluluk sekmesi de bildirimleri filonun kendi tablosunda toplar.",
 	"Counted, barter by barter, how many of each kind came before a Special Barter, and shared the table on the community’s Discord. The gauge weighs each kind by those counts.": "Ani Takas’tan önce her türden kaç takas geldiğini takas takas saydı ve tabloyu topluluğun Discord’unda paylaştı. Gösterge her türü bu sayımlara göre tartar.",
-	"One player, whose counts the gauge stands on.": "Göstergenin dayandığı sayımları yapan bir oyuncu."
+	"One player, whose counts the gauge stands on.": "Göstergenin dayandığı sayımları yapan bir oyuncu.",
+	"Nothing counted since the last one: there is nothing to report yet.": "Sonuncudan beri hiçbir şey sayılmadı: henüz bildirecek bir şey yok.",
+	"past where the community ever saw one: did one come unnoticed?": "topluluğun bir tane gördüğü her yerin ötesinde: biri fark edilmeden mi çıktı?"
 }

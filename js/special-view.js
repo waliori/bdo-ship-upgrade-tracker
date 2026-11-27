@@ -13,6 +13,8 @@ import * as store from './state.js';
 import { openDialog, closeDialog, toast } from './dialogs.js';
 import { me, feature, signIn } from './sync.js';
 import { COMMUNITY, TIERS, POOL, ZONE, countsSince, plus, standing, addTo } from './special-barter.js';
+import { V } from './barter/state.js';
+import { ticked } from './barter/sail.js';
 
 /** How the gauge is drawn: the bar runs a little past the zone's end. */
 const SCALE = Math.max(1.15, ZONE.hi * 1.05);
@@ -33,9 +35,27 @@ const special = () => store.getProfile('special', {}) || {};
 export function specialNow() {
 	const sp = special();
 	if (!sp.since) return null;
-	const recorded = countsSince(store.getProfile('runs', []), sp.since);
+	const runs = store.getProfile('runs', []) || [];
+	const recorded = countsSince(runs, sp.since, sp.skip);
 	const counts = plus(recorded, sp.plus);
-	return { since: sp.since, recorded, hand: sp.plus || {}, counts, ...standing(counts) };
+	// Reported part-way through the run still being sailed: its first
+	// stops belong to the one reported, until the run is recorded.
+	const skip = sp.skip > 0 && !runs.some(r => r && Number(r.at) > sp.since) ? sp.skip : 0;
+	return { since: sp.since, recorded, hand: sp.plus || {}, counts, skip, ...standing(counts) };
+}
+
+/** The island stops ticked so far on the run being sailed, by tier, and
+ *  how many. */
+function sailedSoFar() {
+	const on = V.sail;
+	const counts = {};
+	let n = 0;
+	if (on && Array.isArray(on.stops) && Array.isArray(on.done)) {
+		on.stops.forEach((s, k) => {
+			if (s && s.npcId && ticked(on.done, s, k, on.stops)) { addTo(counts, s.give, s.item, s.times); n++; }
+		});
+	}
+	return { counts, n };
 }
 
 const pct = f => `${Math.round(f * 100)}%`;
@@ -49,6 +69,7 @@ function gaugeHTML(fill) {
 /** What is left, in words. */
 function leftLine(s) {
 	if (!s.barters) return T('nothing counted since — the runs you record add to it');
+	if (s.fill > ZONE.hi) return T('past where the community ever saw one: did one come unnoticed?');
 	if (s.inside) return T('it can come any time now');
 	return T('about {lo} to {hi} more barters, as you barter', { lo: F(s.left), hi: F(s.most) });
 }
@@ -77,9 +98,10 @@ export function specialFigHTML(stops, at) {
 	const s = specialNow();
 	if (!s || at < 0) return '';
 	const run = {};
-	let before = 0;
+	let before = 0, drop = s.skip;
 	for (let k = 0; k <= at && k < stops.length; k++) {
-		if (stops[k].npcId) addTo(run, stops[k].give, stops[k].item, stops[k].times);
+		if (stops[k].npcId && drop > 0) drop--;
+		else if (stops[k].npcId) addTo(run, stops[k].give, stops[k].item, stops[k].times);
 		if (k === at - 1) before = standing(plus(s.counts, run)).fill;
 	}
 	const after = standing(plus(s.counts, run)).fill;
@@ -138,18 +160,21 @@ export function openSpecial({ editDate = false } = {}) {
 	on('[data-sp-set]', () => {
 		const ms = Date.parse(host.querySelector('[data-sp-when]').value);
 		if (!(ms > 0)) return;
-		write({ since: Math.min(ms, Date.now()) });
+		write({ since: Math.min(ms, Date.now()), skip: 0 });
 		openSpecial();
 	});
-	on('[data-sp-now]', () => { write({ since: Date.now(), plus: {} }); openSpecial(); });
+	on('[data-sp-now]', () => { write({ since: Date.now(), plus: {}, skip: 0 }); openSpecial(); });
 	on('[data-sp-back]', () => openSpecial());
 	on('[data-sp-date]', () => openSpecial({ editDate: true }));
 	on('[data-sp-signin]', () => signIn());
-	on('[data-sp-reset]', () => { write({ since: Date.now(), plus: {} }, T('Started the Special Barter gauge again')); closeDialog(); });
+	on('[data-sp-reset]', () => { write({ since: Date.now(), plus: {}, skip: sailedSoFar().n }, T('Started the Special Barter gauge again')); closeDialog(); });
 	on('[data-sp-report]', () => {
-		const now = specialNow();
-		const c = Object.fromEntries(Object.entries(now.counts).filter(([, n]) => n > 0));
-		write({ since: Date.now(), plus: {}, reports: [...(special().reports || []), { at: Date.now(), c }] }, T('Reported a Special Barter'));
+		// The stops ticked on the run being sailed came before it: they are
+		// its, and the run, once recorded, leaves them out of the next.
+		const so = sailedSoFar();
+		const c = Object.fromEntries(Object.entries(plus(specialNow().counts, so.counts)).filter(([, n]) => n > 0));
+		if (!Object.keys(c).length) { toast(T('Nothing counted since the last one: there is nothing to report yet.')); return; }
+		write({ since: Date.now(), plus: {}, skip: so.n, reports: [...(special().reports || []), { at: Date.now(), c }] }, T('Reported a Special Barter'));
 		closeDialog();
 		toast(T('Reported: the fleet’s table counts it at the next refresh, and the gauge starts again.'));
 	});

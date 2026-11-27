@@ -30,6 +30,14 @@ test('only the runs after the last Special count, and a correction adds on top',
 	assert.deepEqual(plus({ 6: 5 }, { 6: -9, 1: 3, bogus: 4 }), { 6: 0, 1: 3 });
 });
 
+test('one reported part-way through a run takes the stops before it out of the next', () => {
+	const run = { at: 500, stops_: [{ k: 'n', g: '[Level 6] X', i: '[Level 7] Y', t: 4 }, { k: 'w', p: 'Iliya' }, { k: 'n', g: 'Pure Pearl Crystal', i: '[Level 1] Z', t: 7 }, { k: 'n', g: '[Level 2] A', i: '[Level 3] B', t: 3 }] };
+	const later = { at: 900, stops_: [{ k: 'n', g: '[Level 6] X', i: '[Level 7] Y', t: 2 }] };
+	// reported at 400 with two island stops ticked: only the third counts
+	assert.deepEqual(countsSince([later, run], 400, 2), { 2: 3, 6: 2 });
+	assert.deepEqual(countsSince([run], 400, 0), { 6: 4, 0: 7, 2: 3 });
+});
+
 test('the barters left to the zone are counted in the sailor\'s own mix', () => {
 	const none = standing({});
 	assert.equal(none.left, null);

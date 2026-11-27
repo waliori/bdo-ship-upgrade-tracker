@@ -456,6 +456,8 @@ export function readProfile(raw) {
 		const sp = {};
 		const since = Math.floor(Number(raw.special.since));
 		if (since > 0) sp.since = since;
+		const skip = Math.floor(Number(raw.special.skip));
+		if (skip > 0) sp.skip = Math.min(300, skip);
 		const hand = tiers(raw.special.plus);
 		if (Object.keys(hand).length) sp.plus = hand;
 		if (Array.isArray(raw.special.reports)) {
