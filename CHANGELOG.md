@@ -5,6 +5,46 @@ someone who has been away. The same notes are in the app itself, under
 **Menu → What's new** — this file is generated from them by
 `node tools/build-changelog.mjs`, so the two cannot drift apart.
 
+## 1.7.2 — A gauge for the Special Barter
+
+*2026-11-27*
+
+The game says only that the more barters you complete, the likelier a Special Barter becomes. The app now counts the barters you record since the last one into one pool, each kind weighed by the counts the community gathered on its Discord, and marks the zone where they saw it come. Signed in, you report the one that comes, and the Community tab adds the reports up into the fleet’s own table.
+
+### Asked for by you
+
+One player, whose counts the gauge stands on.
+
+- **RENGEREL** — Counted, barter by barter, how many of each kind came before a Special Barter, and shared the table on the community’s Discord. The gauge weighs each kind by those counts.
+
+The box is under **Menu → Feedback**. It reaches whoever runs the site.
+
+### A gauge for the Special Barter
+
+![The Parley step in 1.7.1, and in 1.7.2 with the Special Barter gauge at 70%](docs/media/small/special-barter.png)
+
+**Before:** The app did not follow the Special Barter: when the next one might come was yours to count.
+
+- Beside the Parley, say once when the last one came: the barters recorded since then fill the gauge, and it says about how many more it takes.
+- Each kind weighs what the community’s counts say: a Level 6 → 7 about twelve land goods → Level 1, and a Level 4 good traded for a [Great Ocean] one apart from one traded for a plain [Level 5].
+- In the cockpit the gauge moves with each stop ticked, and the stop where it enters the zone says to watch for the message.
+
+### Each kind of barter counted
+
+![The Special Barter window: the gauge at 70%, the barters recorded kind by kind, and what one is worth](docs/media/small/special-barter-details.png)
+
+*Details* lists the barters recorded since the last one, kind by kind, with what one is worth. Barters made without the app can be added by hand, and the date can be changed.
+
+### The fleet’s table
+
+![The Community tab: the community’s counts for each kind, and the fleet’s column waiting for its first reports](docs/media/small/special-barter-fleet.png)
+
+Signed in, press *A Special Barter came — report it* when one comes: the barters it took go to *The fleet in numbers* on the Community tab, counts only, and the gauge starts again. The weights are the counts the community gathered on its Discord, and the reports refine them.
+
+### Fixes
+
+- Pasting a screenshot into an open reader, and *Read more* after a barter window is read, work again: since 1.7.1 both stopped on an error.
+
 ## 1.7.1 — Shorter runs, and a stock of your own
 
 *2026-11-25*

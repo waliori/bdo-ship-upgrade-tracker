@@ -64,6 +64,54 @@ export const DATA = [
  */
 export const RELEASES = [
 	{
+		id: '1.7.2',
+		name: TT('A gauge for the Special Barter'),
+		date: '2026-11-27',
+		sum: TT('A Special Barter gauge beside the Parley and in the cockpit, filled by the barters you record, each kind weighed by the community’s counts; a report for the signed-in, added up on the Community tab; pasting a screenshot works again.'),
+		thanks: {
+			text: TT('One player, whose counts the gauge stands on.'),
+			who: [
+				{
+					name: 'RENGEREL',
+					did: TT('Counted, barter by barter, how many of each kind came before a Special Barter, and shared the table on the community’s Discord. The gauge weighs each kind by those counts.')
+				}
+			],
+			foot: TT('The box is under <b>Menu → Feedback</b>. It reaches whoever runs the site.')
+		},
+		blurb: TT('The game says only that the more barters you complete, the likelier a Special Barter becomes. The app now counts the barters you record since the last one into one pool, each kind weighed by the counts the community gathered on its Discord, and marks the zone where they saw it come. Signed in, you report the one that comes, and the Community tab adds the reports up into the fleet’s own table.'),
+		sections: [
+			{
+				title: TT('A gauge for the Special Barter'),
+				media: 'docs/media/small/special-barter.png',
+				alt: TT('The Parley step in 1.7.1, and in 1.7.2 with the Special Barter gauge at 70%'),
+				before: TT('The app did not follow the Special Barter: when the next one might come was yours to count.'),
+				points: [
+					TT('Beside the Parley, say once when the last one came: the barters recorded since then fill the gauge, and it says about how many more it takes.'),
+					TT('Each kind weighs what the community’s counts say: a Level 6 → 7 about twelve land goods → Level 1, and a Level 4 good traded for a [Great Ocean] one apart from one traded for a plain [Level 5].'),
+					TT('In the cockpit the gauge moves with each stop ticked, and the stop where it enters the zone says to watch for the message.')
+				]
+			},
+			{
+				title: TT('Each kind of barter counted'),
+				media: 'docs/media/small/special-barter-details.png',
+				alt: TT('The Special Barter window: the gauge at 70%, the barters recorded kind by kind, and what one is worth'),
+				text: TT('<i>Details</i> lists the barters recorded since the last one, kind by kind, with what one is worth. Barters made without the app can be added by hand, and the date can be changed.')
+			},
+			{
+				title: TT('The fleet’s table'),
+				media: 'docs/media/small/special-barter-fleet.png',
+				alt: TT('The Community tab: the community’s counts for each kind, and the fleet’s column waiting for its first reports'),
+				text: TT('Signed in, press <i>A Special Barter came — report it</i> when one comes: the barters it took go to <i>The fleet in numbers</i> on the Community tab, counts only, and the gauge starts again. The weights are the counts the community gathered on its Discord, and the reports refine them.')
+			},
+			{
+				title: TT('Fixes'),
+				points: [
+					TT('Pasting a screenshot into an open reader, and <i>Read more</i> after a barter window is read, work again: since 1.7.1 both stopped on an error.')
+				]
+			}
+		]
+	},
+	{
 		id: '1.7.1',
 		name: TT('Shorter runs, and a stock of your own'),
 		date: '2026-11-25',
@@ -1379,6 +1427,14 @@ export const RELEASES = [
 export const RELEASE = RELEASES[0].id;
 
 export const CHANGES = [
+	{
+		date: '2026-11-27',
+		title: TT('1.7.2: a gauge for the Special Barter'),
+		notes: [
+			TT('<b>Special Barter.</b> A gauge beside the Parley and in the cockpit, filled by the barters recorded since the last one; each kind counted in its window, barters added by hand; a report for the signed-in, added up on the Community tab.'),
+			TT('<b>Fixes.</b> Pasting a screenshot into a reader, and <i>Read more</i> after a barter window.')
+		]
+	},
 	{
 		date: '2026-11-25',
 		title: TT('1.7.1: shorter runs round your quests, goods loaded late, a stock of your own'),
