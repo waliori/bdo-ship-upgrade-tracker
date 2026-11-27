@@ -33,6 +33,8 @@ import { openItemCard } from './item-card.js';
 import { openSailorSheet } from './screen-crew.js';
 import { T, said, gameName } from './i18n.js';
 import { loadingNote } from './loading.js';
+import { TIERS, POOL, ZONE, fillOf } from './special-barter.js';
+import { tierName, communityOf } from './special-view.js';
 
 import { ico, icoFor } from './icons.js';
 let data = null;          // the last answer from /api/community
@@ -468,6 +470,37 @@ function columns({ cat, icon, title, note, counts, labels, tip = (n, label) => `
 	</section>`;
 }
 
+/**
+ * The Special Barter, after how many barters: the community's counts
+ * beside the fleet's reports. A report is a mix of tiers, so it is read
+ * two ways -- where in the pool it came, by the community's weights (the
+ * test of those weights: a good table puts them all near 100%), and,
+ * for a report nine-tenths of one tier, as a reading of that tier's own
+ * column.
+ */
+function specialPanel(reports) {
+	if (numCat !== 'all' && numCat !== 'sea') return '';
+	const title = T('Special Barter: after how many barters');
+	if (numQ.trim() && !title.toLowerCase().includes(numQ.trim().toLowerCase())) return '';
+	const list = Array.isArray(reports) ? reports : [];
+	const fills = list.map(fillOf).filter(f => f > 0).sort((a, b) => a - b);
+	const pct = f => `${Math.round(f * 100)}%`;
+	const ownCol = t => list.filter(c => { const f = fillOf(c); return f > 0 && (c[t] || 0) / POOL[t] >= 0.9 * f; }).map(c => Math.round(fillOf(c) * POOL[t]));
+	const span = xs => (xs.length ? `${F(Math.min(...xs))}${xs.length > 1 ? `–${F(Math.max(...xs))}` : ''} <small>(${xs.length})</small>` : '—');
+	const rows = TIERS.map(t => {
+		const c = communityOf(t);
+		return `<tr><td>${esc(tierName(t))}</td><td class="num">${F(c.lo)}–${F(c.hi)} <small>(${c.n})</small></td><td class="num">${span(ownCol(t))}</td><td class="num">${(100 / POOL[t]).toFixed(2)}%</td></tr>`;
+	}).join('');
+	const fleet = fills.length
+		? T('{n} reports from the fleet came between {lo} and {hi} of the pool, half of them by {mid}.', { n: F(fills.length), lo: pct(fills[0]), hi: pct(fills[fills.length - 1]), mid: pct(fills[Math.floor((fills.length - 1) / 2)]) })
+		: T('No report from the fleet yet. Signed in, press “A Special Barter came” beside the Parley on the Barter tab when one comes.');
+	return `<section class="panel comm-bars comm-special" data-cat="sea">
+		<div class="comm-board-head"><span class="comm-board-icon" aria-hidden="true">✧</span><div class="comm-board-t"><h3 class="comm-board-title">${esc(title)}</h3><span class="comm-board-desc">${T('barters of one kind alone before one came · the community’s Discord counts, then the fleet’s reports')}</span></div><span class="comm-board-n">${fills.length ? F(fills.length) : ''}</span></div>
+		<div class="routes-table"><table class="sp-table"><thead><tr><th>${T('Barter')}</th><th class="num">${T('community')}</th><th class="num">${T('fleet')}</th><th class="num">${T('one is worth')}</th></tr></thead><tbody>${rows}</tbody></table></div>
+		<p class="comm-empty">${esc(fleet)}<small>${T('The zone the gauge marks: {lo} to {hi} of the pool.', { lo: pct(ZONE.lo), hi: pct(ZONE.hi) })}${me() ? '' : ` ${T('Reports come from signed-in sailors only.')}`}</small></p>
+	</section>`;
+}
+
 const CATS = () => [
 	['all', '▦', T('Everything')], ['ships', '⛵', T('Ships')], ['crew', '👥', T('Crew')], ['sea', '🌊', T('The sea')], ['quests', '✦', T('Quests')], ['yard', '⚒', T('The yard')], ['charts', '✎', T('Charts')]
 ];
@@ -502,6 +535,7 @@ function numbersHTML() {
 		bars({ id: 'hunts', cat: 'quests', icon: '🦈', title: T('Sea monsters most hunted'), note: T('from the hunting quests done'), table: s.hunts, name: monsterName, unit: T('hunts'), picture: k => monsterPic(k, 'sm'), link: k => ({ act: 'quest-map', monster: k }) }),
 		bars({ id: 'levels', cat: 'sea', icon: '⇄', title: T('Barter level'), note: T('as set in The sailor above the tabs'), table: s.levels, unit: T('sailors') }),
 		bars({ id: 'layouts', cat: 'sea', icon: '🗂', title: T('Barter layouts most dealt'), note: T('every board a sailor settled, once a day a layout — the record’s share beside it'), table: s.layouts, name: k => T('Layout {n}', { n: k }), sub: layoutSub, unit: T('boards') }),
+		specialPanel(s.special),
 		columns({ cat: 'sea', icon: '📅', title: T('Runs by weekday'), note: T('the last sixty runs of each sailor'), counts: s.runDays, labels: [T('Mon'), T('Tue'), T('Wed'), T('Thu'), T('Fri'), T('Sat'), T('Sun')], tip: (n, label) => T('{n} runs on a {label}', { n, label }) }),
 		columns({ cat: 'sea', icon: '⚓', title: T('Sailing mastery'), note: T('sailors at each step'), counts: s.masteryBuckets, labels: ['<500', '<1000', '<1500', '<2000', '<2500', '2500+'], tip: (n, label) => T('{n} sailors at {label}', { n, label }) }),
 		bars({ id: 'builds', cat: 'yard', icon: '⚒', title: T('Builds most queued'), note: T('what is on the Builds tab right now'), table: s.builds, unit: T('sailors'), picture: k => pic(k, 'sm'), link: item }),

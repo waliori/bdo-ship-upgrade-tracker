@@ -851,6 +851,7 @@ export function getProfile(key, fallback = null) {
 // or a hull swapped is not "your barter profile" to the person undoing it.
 const PROFILE_LABELS = {
 	barterCount: () => T('Changed your barter count'),
+	special: () => T('Changed the Special Barter gauge'),
 	valuePack: () => T('Changed the Value Pack'),
 	breezy: () => T('Changed BreezySail'),
 	level: () => T('Changed your barter level'),

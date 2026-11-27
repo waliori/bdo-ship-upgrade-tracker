@@ -45,6 +45,7 @@ import { massProcess } from './vendor_items.js';
 import { loadMarket, onMarket, setRegion as setMarketRegion } from './market.js';
 import { paintPouch, openPouch, returnToPouch } from './pouch.js';
 import { toggleSailBar, openRoutes, openPets } from './profile-bar.js';
+import { openSpecial } from './special-view.js';
 import { hidePeek, wirePeek } from './peek.js';
 import { openGuide, wireGuide } from './guide.js';
 import { renderPlan } from './screen-plan.js';
@@ -1150,6 +1151,7 @@ function wire() {
 			case 'pets': returnToPouch(); return openPets();
 			// Every threshold and where the count stands among them.
 			case 'routes': returnToPouch(); return openRoutes();
+			case 'special-open': return openSpecial();
 			case 'enh-blocked': toggleBlocked(); return render();
 			case 'open-item': hidePeek(); showView('inventory'); setSelected(el.dataset.item); return render();
 			case 'resets-edit': return openResetsDialog();

@@ -1672,3 +1672,17 @@ body.sail-scene-hold .sail-scene canvas { visibility: hidden; }
    is there, on its own line above the sale. */
 .run-onway { margin-top: 6px; display: flex; align-items: baseline; gap: 6px; font-size: 12px; color: var(--teal); }
 .run-onway > span { color: var(--ink); }
+
+/* The Special Barter gauge: the pool filled so far, and the zone where
+   the community saw it come, marked over the bar. */
+.sp-gauge { position: relative; padding: 3px 0; }
+.sp-gauge .run-bar.sp { height: 8px; margin-top: 0; }
+.sp-gauge .run-bar.sp i { background: var(--blue-bar); }
+.sp-gauge.in .run-bar.sp i { background: var(--amber); }
+.sp-zone { position: absolute; top: 0; bottom: 0; border-radius: 3px; border: 1.5px solid var(--amber); pointer-events: auto; }
+.sp-field .sp-fill, .sp-head .sp-fill { font-family: var(--font-display); font-size: 20px; font-weight: 600; }
+.sp-field .chip { justify-self: start; }
+.sp-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.sp-when { display: grid; gap: 8px; }
+.sp-table td input.purse-inline { width: 5.5em; }
+.sp-table .num { text-align: right; font-variant-numeric: tabular-nums; }

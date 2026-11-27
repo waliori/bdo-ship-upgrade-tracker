@@ -19,6 +19,7 @@ import { chainRun } from '../barter-chains.js';
 import { seaDist, routeLength } from '../barter-route.js';
 import { bagFigures, bagRoom, BAG_OVER } from '../bag-shot.js';
 import { toast, openDialog, closeDialog } from '../dialogs.js';
+import { specialFieldHTML, specialLine } from '../special-view.js';
 import { lvChips } from '../lv-chips.js';
 import { V } from './state.js';
 import { shortWhy } from './short.js';
@@ -865,7 +866,8 @@ export function parleyLine(prof) {
 	const v = prof.vouchers ? ` · ${prof.vouchers === 1 ? T('{n} voucher', { n: prof.vouchers }) : T('{n} vouchers', { n: prof.vouchers })}` : '';
 	const from = fromPort();
 	const home = from ? ` · ${T('from {port}', { port: gameName(from.name) })}` : '';
-	return parleyGuessed(prof) ? `${T('Parley {n} · assumed full', { n: F(PARLEY.max) })}${v}${home}` : `${T('Parley {n}', { n: F(Math.min(PARLEY.max, prof.parleyHeld)) })}${v}${home}`;
+	const sp = specialLine() ? ` · ${specialLine()}` : '';
+	return parleyGuessed(prof) ? `${T('Parley {n} · assumed full', { n: F(PARLEY.max) })}${v}${home}${sp}` : `${T('Parley {n}', { n: F(Math.min(PARLEY.max, prof.parleyHeld)) })}${v}${home}${sp}`;
 }
 export function parleyHTML(prof) {
 	const o = ordersNow();
@@ -878,6 +880,7 @@ export function parleyHTML(prof) {
 			<div class="parley-field"><label class="parley-field-in"><span class="summary-k">${T('Parley in the bar now')}</span><input class="purse-inline wide" type="text" inputmode="numeric" value="${held ? F(held) : ''}" placeholder="${F(PARLEY.max)}" data-act="parley-held" aria-label="${T('Parley in the bar right now')}"><em>${T('as the barter window’s head reads it')}</em></label>
 			<div class="parley-gauge${guessed ? ' guess' : ''}"><div class="run-bar parley"><i style="width:${pct.toFixed(1)}%"></i></div><div class="parley-gauge-k"><span>${guessed ? T('a full bar, taken as read — type yours above, or') : T('{n} of {max}', { n: F(held), max: F(PARLEY.max) })}</span>${guessed ? `<button class="chip tiny" data-act="barter-parley-full">${T('it really is full')}</button>` : ''}<span class="panel-spacer"></span><span>${T('{n} trades a refill', { n: F(day.tradesPerBar) })} · ${T('{each} a trade', { each: F(parleyOf(prof).perTrade) })} · ${T('refills on every Barter Refresh')}</span></div></div></div>
 			<label class="parley-field"><span class="summary-k">${img(VOUCHER, 'row-icon xs')} ${T('Vouchers carried')}</span><input class="purse-inline" type="text" inputmode="numeric" value="${prof.vouchers ? F(prof.vouchers) : ''}" placeholder="0" data-act="vouchers" aria-label="${T('Vouchers carried')}"><em>${T('each puts {n} back, on a two-hour cooldown', { n: F(PARLEY.voucher) })}</em></label>
+			${specialFieldHTML()}
 		</div>
 		<div class="order-rows plain">${orderRow('barter-set-out', T('Set out from'), V.setOut, [[0, T('where the goods are loaded')], ...ports.map(p => [p.id, gameName(p.name)])], T('The harbour the day begins at, quests taken there before casting off; the ship sails from it to where the goods are loaded'))}
 		${orderRow('barter-port', T('Load the goods at'), V.port, [[0, T('the first stop')], ...ports.map(p => [p.id, gameName(p.name)])], T('Where the run leaves from, and whose storage it loads from'))}

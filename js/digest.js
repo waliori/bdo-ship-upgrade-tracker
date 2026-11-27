@@ -83,8 +83,9 @@ export const HULL_TIER = {
  *   1  the first shape.
  *   2  the ship score reads part quality and the crystal; `sets`,
  *      `gear` and the face's `worth` are new.
+ *   7  `special`: the Special Barters the sailor reported.
  */
-export const DIGEST_V = 6;
+export const DIGEST_V = 7;
 
 const SLOT_FAMILY = 11;
 const HULL_WORTH = 1000;
@@ -420,6 +421,16 @@ function sevensOf(profile) {
 	return out;
 }
 
+/** The Special Barters the sailor reported: the barters of each tier
+ *  each one took, counts only. The fleet's table on the Community tab is
+ *  added up from these. */
+function specialOf(profile) {
+	const sp = obj(profile.special);
+	return (Array.isArray(sp.reports) ? sp.reports : []).slice(-40)
+		.map(r => Object.fromEntries(Object.entries(obj(r && r.c)).filter(([t, n]) => /^[0-6]g?$/.test(t) && Number(n) > 0).map(([t, n]) => [t, Math.min(99999, Math.floor(Number(n)))])))
+		.filter(c => Object.keys(c).length);
+}
+
 /** What each slot a layout leaves to chance showed this sailor, and how
  *  often: the fleet's share in the Today's rolls dialog is added up
  *  from these. Keyed 'layout|npc', each 'give|recv' -> times. */
@@ -481,6 +492,7 @@ export function digest(save) {
 		sevens: sevensOf(profile),
 		rolls: rollsOf(profile),
 		paid: paidOf(profile),
+		special: specialOf(profile),
 		stock: stockOf(s),
 		ship: shipOf(profile, fleet)
 	};

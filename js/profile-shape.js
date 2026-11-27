@@ -444,6 +444,29 @@ export function readProfile(raw) {
 		}
 		if (Object.keys(ratios).length) out.ratios = ratios;
 	}
+	// The Special Barter gauge: when the last one came, the barters the
+	// sailor added by hand since (made without the app), and the ones
+	// they reported -- the barters of each tier it took, which the
+	// fleet's table is made of.
+	if (isProfile(raw.special)) {
+		const tiers = c => (isProfile(c) ? Object.fromEntries(Object.entries(c)
+			.filter(([t, n]) => /^[0-6]g?$/.test(t) && Number.isFinite(Number(n)))
+			.map(([t, n]) => [t, Math.max(-99999, Math.min(99999, Math.round(Number(n))))])
+			.filter(([, n]) => n !== 0)) : {});
+		const sp = {};
+		const since = Math.floor(Number(raw.special.since));
+		if (since > 0) sp.since = since;
+		const hand = tiers(raw.special.plus);
+		if (Object.keys(hand).length) sp.plus = hand;
+		if (Array.isArray(raw.special.reports)) {
+			const reports = raw.special.reports.slice(-40)
+				.filter(r => isProfile(r) && Number(r.at) > 0)
+				.map(r => ({ at: Math.floor(Number(r.at)), c: Object.fromEntries(Object.entries(tiers(r.c)).filter(([, n]) => n > 0)) }))
+				.filter(r => Object.keys(r.c).length);
+			if (reports.length) sp.reports = reports;
+		}
+		if (Object.keys(sp).length) out.special = sp;
+	}
 	if (isProfile(raw.sevens)) {
 		const sevens = {};
 		for (const [npc, v] of Object.entries(raw.sevens).slice(0, 100)) {
