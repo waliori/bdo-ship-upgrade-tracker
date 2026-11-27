@@ -1686,3 +1686,6 @@ body.sail-scene-hold .sail-scene canvas { visibility: hidden; }
 .sp-when { display: grid; gap: 8px; }
 .sp-table td input.purse-inline { width: 5.5em; }
 .sp-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+/* The Community tab's table is wider than one card. */
+@media (min-width: 760px) { .comm-special { grid-column: span 2; } }
+.comm-special .sp-table th, .comm-special .sp-table td { padding: 6px 10px; }

@@ -489,9 +489,11 @@ function specialPanel(reports) {
 	const span = xs => (xs.length ? `${F(Math.min(...xs))}${xs.length > 1 ? `–${F(Math.max(...xs))}` : ''} <small>(${xs.length})</small>` : '—');
 	const rows = TIERS.map(t => {
 		const c = communityOf(t);
-		return `<tr><td>${esc(tierName(t))}</td><td class="num">${F(c.lo)}–${F(c.hi)} <small>(${c.n})</small></td><td class="num">${span(ownCol(t))}</td><td class="num">${(100 / POOL[t]).toFixed(2)}%</td></tr>`;
+		return `<tr><td>${esc(tierName(t))}</td><td class="num">${c.lo === c.hi ? F(c.lo) : `${F(c.lo)}–${F(c.hi)}`} <small>(${c.n})</small></td><td class="num">${span(ownCol(t))}</td><td class="num">${(100 / POOL[t]).toFixed(2)}%</td></tr>`;
 	}).join('');
-	const fleet = fills.length
+	const fleet = fills.length === 1
+		? T('One report from the fleet so far: it came at {at} of the pool.', { at: pct(fills[0]) })
+		: fills.length
 		? T('{n} reports from the fleet came between {lo} and {hi} of the pool, half of them by {mid}.', { n: F(fills.length), lo: pct(fills[0]), hi: pct(fills[fills.length - 1]), mid: pct(fills[Math.floor((fills.length - 1) / 2)]) })
 		: T('No report from the fleet yet. Signed in, press “A Special Barter came” beside the Parley on the Barter tab when one comes.');
 	return `<section class="panel comm-bars comm-special" data-cat="sea">
