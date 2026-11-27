@@ -23,7 +23,7 @@ export function tierName(t) {
 	if (t === '4g') return T('Level 4 → Great Ocean (25M)');
 	if (t === '4') return T('Level 4 → Level 5 (10M)');
 	if (t === 'mix') return T('Level 4 → 5, not noted which');
-	return T('Level {a} → Level {b}', { a: Number(t), b: Number(t) + 1 });
+	return T('Level {from} → Level {to}', { from: Number(t), to: Number(t) + 1 });
 }
 
 const special = () => store.getProfile('special', {}) || {};
@@ -129,7 +129,7 @@ export function openSpecial({ editDate = false } = {}) {
 		<div class="sp-head"><b class="sp-fill">≈ ${pct(s.fill)}</b><span>${esc(leftLine(s))}</span></div>
 		${gaugeHTML(s.fill)}
 		<p class="dialog-copy faint">${T('Counting since {date}.', { date: esc(new Date(s.since).toLocaleString()) })} <button class="linky" data-sp-date>${T('change')}</button></p>
-		<div class="routes-table"><table class="sp-table"><thead><tr><th>${T('Barter')}</th><th class="num">${T('recorded')}</th><th>${T('added by hand')}</th><th class="num">${T('one is worth')}</th></tr></thead><tbody>${rows}</tbody></table></div>
+		<div class="routes-table"><table class="sp-table"><thead><tr><th>${T('Barter')}</th><th class="num">${T('barters|recorded')}</th><th>${T('added by hand')}</th><th class="num">${T('one is worth')}</th></tr></thead><tbody>${rows}</tbody></table></div>
 		<p class="dialog-copy faint">${synced ? T('A report sends the barters of each tier it took to the fleet’s table on the Community tab — counts only — and the gauge starts again from that moment.') : T('The gauge starts again from that moment.')} ${T('The weights are the community’s counts from their Discord; the fleet’s reports refine them.')}</p>
 		<div class="dialog-actions"><button class="ghost-btn" data-close>${T('Close')}</button>${report}</div>`}`);
 

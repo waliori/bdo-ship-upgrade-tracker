@@ -246,6 +246,8 @@ const SHELL = [
 	'/js/ships.js',
 	'/js/shot-bits.js',
 	'/js/shot-reader.js',
+	'/js/special-barter.js',
+	'/js/special-view.js',
 	'/js/state.js',
 	'/js/storage-import.js',
 	'/js/storage-shot.js',
