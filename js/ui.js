@@ -1446,6 +1446,12 @@ function wire() {
 			case 'inv-kind': setInvKind(el.dataset.id); return render();
 			// Select mode: tiles tick instead of opening, and the bar above
 			// the grid moves the ticked ones to a storage together.
+			case 'put-away': {
+				const to = store.getProfile('putAwayTo', '');
+				const done = store.putAway(to, el.dataset.from !== undefined ? [el.dataset.from] : undefined);
+				if (done) toast(T('{n} put away at {town}', { n: F(done.n), town: gameName(to) }), true);
+				return;
+			}
 			case 'inv-select': setInvPicking(!invPicking); if (invPicking) setSelected(null); return render();
 			// The storage window, read off screenshots: the counts land at
 			// the storage named in the dialog, in one change.
@@ -1733,6 +1739,8 @@ function wire() {
 			else render();
 			return;
 		}
+		const pa = evt.target.closest('[data-act="put-away-to"]');
+		if (pa) { store.setProfileQuiet('putAwayTo', pa.value); return render(); }
 		const hm = evt.target.closest('[data-act="inv-home"]');
 		if (hm) return store.setHome(hm.dataset.kind, hm.value);
 

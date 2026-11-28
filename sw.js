@@ -244,6 +244,7 @@ const SHELL = [
 	'/js/ship_skins.js',
 	'/js/ship_stats.js',
 	'/js/ships.js',
+	'/js/put-away.js',
 	'/js/shot-bits.js',
 	'/js/shot-reader.js',
 	'/js/special-barter.js',

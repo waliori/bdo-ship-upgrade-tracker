@@ -13,6 +13,7 @@
 // material layouts, as the trade board is one of its forty.
 
 import { T } from './i18n.js';
+import { putAwayHTML } from './put-away.js';
 import { esc } from './fmt.js';
 import { loadingNote } from './loading.js';
 import * as store from './state.js';
@@ -92,7 +93,7 @@ export function renderBarter() {
 	// wharf, kept with the run: the live list below is laid again from
 	// the hold as it is now.
 	const loadStep = `${on ? toldHTML(on) : ''}${holdBarHTML(me, parts.packLT || 0, parts.packSlots ?? null)}${parts.load || `<p class="empty step-empty">${T('Nothing to pack yet. Tick a chain on the plan and what it needs is listed here.')}</p>`}${loadFoot}`;
-	const body = now === 'load' ? loadStep : now === 'sail' ? sailHTML() : now === 'results' ? resultsHTML() : planStep;
+	const body = now === 'load' ? loadStep : now === 'sail' ? sailHTML() : now === 'results' ? `${putAwayHTML({ quiet: true })}${resultsHTML()}` : planStep;
 	// A screenshot pasted on another step is read at the top of it.
 	return `<div class="barter-screen step-${now}">
 		<button hidden data-act="barter-redraw" tabindex="-1" aria-hidden="true"></button>

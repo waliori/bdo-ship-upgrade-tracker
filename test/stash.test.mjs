@@ -200,3 +200,39 @@ test('the item card\'s + and a typed total land a trade good on the ship only in
 	store.setHome('goods', '');
 	store.setProfile('crewShip', null);
 });
+
+test('putting away takes the bags, the character bag and the hold to one storage, the totals unmoved, in one Undo', () => {
+	const T8 = 'Tear of the Ocean';
+	store.setHome('goods', '');
+	store.setHome('materials', '');
+	store.setStock(T8, 0);
+	store.placeAll([T8], '');
+	store.setStock(Q, 0);
+	store.placeAll([Q], '');
+	store.setStock('Silver', 1000);
+	store.setStock(T8, 3);
+	store.setStockAt(T8, 'Velia', 5);            // 5 at Velia, 3 in the bags: 8
+	store.setStock(Q, 4);
+	store.setStockAt(Q, store.BAG, 2);           // 2 in the character bag, 4 aboard: 6
+	assert.deepEqual(store.whereAll()[T8], { Velia: 5, '': 3 });
+	assert.deepEqual(store.whereAll()[Q], { [store.BAG]: 2, [store.ABOARD]: 4 });
+	assert.equal(store.whereAll().Silver, undefined, 'money is in no bag');
+
+	// only the character bag
+	assert.deepEqual(store.putAway('Velia', [store.BAG]), { n: 2, kinds: 1 });
+	assert.deepEqual(placed(Q), { Velia: 2 });
+	assert.ok(store.undo());
+	// everything carried
+	const done = store.putAway('Velia');
+	assert.ok(done.n >= 3 + 2 + 4, 'other tests leave goods carried too');
+	assert.deepEqual(placed(T8), { Velia: 8 });
+	assert.deepEqual(placed(Q), { Velia: 6 });
+	assert.equal(store.getStock(T8), 8);
+	assert.equal(store.getStock(Q), 6);
+	assert.equal(store.getStock('Silver'), 1000);
+	assert.equal(store.putAway('Velia'), null, 'nothing carried any more');
+	assert.equal(store.putAway(store.ABOARD), null, 'the hold is not a storage to put away at');
+	assert.ok(store.undo());
+	assert.deepEqual(placed(T8), { Velia: 5 });
+	assert.deepEqual(placed(Q), { [store.BAG]: 2 });
+});

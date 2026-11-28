@@ -13,9 +13,10 @@ The game says only that the more barters you complete, the likelier a Special Ba
 
 ### Asked for by you
 
-One player, whose counts the gauge stands on.
+Two players: one whose counts the gauge stands on, one who asked for the put-away.
 
 - **RENGEREL** — Counted, barter by barter, how many of each kind came before a Special Barter, and shared the table on the community’s Discord. The gauge weighs each kind by those counts.
+- **ShakeNBake** — *“A button that condenses split storage between bags and a single storage city to only the storage.”* Asked for the dailies’ rewards to go from the bags to the storage in one click, as in the game. The put-away does that, and for the ship’s hold too.
 
 The box is under **Menu → Feedback**. It reaches whoever runs the site.
 
@@ -40,6 +41,16 @@ The box is under **Menu → Feedback**. It reaches whoever runs the site.
 ![The Community tab: the community’s counts for each kind, and the fleet’s column waiting for its first reports](docs/media/small/special-barter-fleet.png)
 
 Signed in, press *A Special Barter came — report it* when one comes: the barters it took go to *The fleet in numbers* on the Community tab, counts only, and the gauge starts again. The weights are the counts the community gathered on its Discord, and the reports refine them.
+
+### Put it all away
+
+![The Inventory’s Where everything is: the bags, the character bag and the ship’s hold first, then each storage, and the bar that puts it all away at Velia](docs/media/small/put-away.png)
+
+**Before:** Rewards logged from the dailies or a run landed in the bags, and taking them to a storage meant raising the storage’s count and lowering the total, item by item.
+
+- On the Inventory, **Where everything is** shows a card a place: the bags, the character bag and the ship’s hold first, then every storage, with what each holds.
+- Choose a storage once, and **Put away** notes everything carried there in one click; a card’s own button takes only what is in that place. The totals do not change, and one Undo takes it back.
+- The same bar shows on the Plan, the Quests and the Barter tab’s results whenever something is carried.
 
 ### Fixes
 

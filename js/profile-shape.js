@@ -316,6 +316,8 @@ export function readProfile(raw) {
 		}
 		if (Object.keys(homes).length) out.homes = homes;
 	}
+	// The storage "put it all away" takes what is carried to.
+	if (typeof raw.putAwayTo === 'string' && raw.putAwayTo && raw.putAwayTo.length <= 40) out.putAwayTo = raw.putAwayTo;
 	// The sailing orders: what a barter run is for. Cleaned by the
 	// module that owns the shape.
 	if (isProfile(raw.orders)) out.orders = readOrders(raw.orders);

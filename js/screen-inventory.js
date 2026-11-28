@@ -25,6 +25,7 @@ import { maxCraftable, enhanceStep, parseEnhanced, enhancedName, waysToGet, rout
 
 
 import { ico } from './icons.js';
+import { placesHTML } from './put-away.js';
 /**
  * A ship part and its ten enhancement levels are one thing you own, not
  * eleven. These roll them up: the grid shows one tile per part, and the
@@ -219,6 +220,7 @@ export function renderInventory() {
 				<button class="chip" data-act="inv-shot" title="${T("Read a storage off screenshots of the game's own window — in this browser; nothing is uploaded")}">${ico('camera')} ${T('Read a storage')}</button>
 			</div>
 			${homesHTML()}
+			${placesHTML()}
 			${storeSlotsHTML(stock, stashAll)}
 			${invPicking ? pickBar(shown.filter(k => (stock[k] || 0) > 0 || isEnhanceable(k)).map(k => (isEnhanceable(k) ? familyStats(k).at : k))) : ''}
 			${shown.length

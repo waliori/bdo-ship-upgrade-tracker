@@ -68,14 +68,19 @@ export const RELEASES = [
 		id: '1.7.2',
 		name: TT('A gauge for the Special Barter'),
 		date: '2026-11-27',
-		sum: TT('A Special Barter gauge beside the Parley and in the cockpit, filled by the barters you record, each kind weighed by the community’s counts; a report for the signed-in, added up on the Community tab; pasting a screenshot works again.'),
+		sum: TT('A Special Barter gauge beside the Parley and in the cockpit, filled by the barters you record, each kind weighed by the community’s counts; a report for the signed-in, added up on the Community tab; what you carry put away at a storage in one click; pasting a screenshot works again.'),
 		thanks: {
 			title: TT('With thanks'),
-			text: TT('One player, whose counts the gauge stands on.'),
+			text: TT('Two players: one whose counts the gauge stands on, one who asked for the put-away.'),
 			who: [
 				{
 					name: 'RENGEREL',
 					did: TT('Counted, barter by barter, how many of each kind came before a Special Barter, and shared the table on the community’s Discord. The gauge weighs each kind by those counts.')
+				},
+				{
+					name: 'ShakeNBake',
+					said: 'A button that condenses split storage between bags and a single storage city to only the storage.',
+					did: TT('Asked for the dailies’ rewards to go from the bags to the storage in one click, as in the game. The put-away does that, and for the ship’s hold too.')
 				}
 			],
 			foot: TT('The box is under <b>Menu → Feedback</b>. It reaches whoever runs the site.')
@@ -104,6 +109,17 @@ export const RELEASES = [
 				media: 'docs/media/small/special-barter-fleet.png',
 				alt: TT('The Community tab: the community’s counts for each kind, and the fleet’s column waiting for its first reports'),
 				text: TT('Signed in, press <i>A Special Barter came — report it</i> when one comes: the barters it took go to <i>The fleet in numbers</i> on the Community tab, counts only, and the gauge starts again. The weights are the counts the community gathered on its Discord, and the reports refine them.')
+			},
+			{
+				title: TT('Put it all away'),
+				media: 'docs/media/small/put-away.png',
+				alt: TT('The Inventory’s Where everything is: the bags, the character bag and the ship’s hold first, then each storage, and the bar that puts it all away at Velia'),
+				before: TT('Rewards logged from the dailies or a run landed in the bags, and taking them to a storage meant raising the storage’s count and lowering the total, item by item.'),
+				points: [
+					TT('On the Inventory, <b>Where everything is</b> shows a card a place: the bags, the character bag and the ship’s hold first, then every storage, with what each holds.'),
+					TT('Choose a storage once, and <b>Put away</b> notes everything carried there in one click; a card’s own button takes only what is in that place. The totals do not change, and one Undo takes it back.'),
+					TT('The same bar shows on the Plan, the Quests and the Barter tab’s results whenever something is carried.')
+				]
 			},
 			{
 				title: TT('Fixes'),
@@ -1435,7 +1451,8 @@ export const CHANGES = [
 		title: TT('1.7.2: a gauge for the Special Barter'),
 		notes: [
 			TT('<b>Special Barter.</b> A gauge beside the Parley and in the cockpit, filled by the barters recorded since the last one; each kind counted in its window, barters added by hand; a report for the signed-in, added up on the Community tab.'),
-			TT('<b>Fixes.</b> Pasting a screenshot into a reader, and <i>Read more</i> after a barter window.')
+			TT('<b>Put away.</b> The Inventory shows where everything is, place by place, and puts what is carried (bags, character bag, ship’s hold) at one storage in a click; the same bar on the Plan, the Quests and the Barter results.'),
+			TT('<b>Fixes.</b> Pasting a screenshot into a reader, and <i>Read more</i> after a barter window; the greyed chain’s storage line.')
 		]
 	},
 	{
