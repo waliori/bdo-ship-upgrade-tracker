@@ -38,7 +38,8 @@ export function putAwayHTML({ quiet = false } = {}) {
 	const total = [...by.values()].reduce((a, b) => a + b, 0);
 	if (!total && quiet) return '';
 	const to = store.getProfile('putAwayTo', '') || '';
-	const said = [...by].filter(([, n]) => n > 0).map(([p, n]) => T('{n} in {place}', { n: F(n), place: placeName(p) })).join(' · ');
+	// A tick a place, all ticked: the button takes only the ticked ones.
+	const said = [...by].filter(([, n]) => n > 0).map(([p, n]) => `<label class="put-away-from"><input type="checkbox" data-pa-from="${esc(p)}" checked>${T('{n} in {place}', { n: F(n), place: placeName(p) })}</label>`).join(' ');
 	return `<div class="put-away">
 		<span class="put-away-k">${total ? T('Carried: {list}', { list: said }) : T('Nothing carried: everything is in a storage.')}</span>
 		<span class="panel-spacer"></span>

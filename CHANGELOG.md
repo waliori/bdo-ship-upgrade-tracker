@@ -49,7 +49,7 @@ Signed in, press *A Special Barter came — report it* when one comes: the barte
 **Before:** Rewards logged from the dailies or a run landed in the bags, and taking them to a storage meant raising the storage’s count and lowering the total, item by item.
 
 - On the Inventory, **Where everything is** shows a card a place: the bags, the character bag and the ship’s hold first, then every storage, with what each holds.
-- Choose a storage once, and **Put away** notes everything carried there in one click; a card’s own button takes only what is in that place. The totals do not change, and one Undo takes it back.
+- Choose a storage once, and **Put away** notes what is carried there in one click; untick a place in the bar to leave it where it is, or use a card’s own button for that place alone. The totals do not change, and one Undo takes it back.
 - The same bar shows on the Plan, the Quests and the Barter tab’s results whenever something is carried.
 
 ### Fixes

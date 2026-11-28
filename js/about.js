@@ -117,7 +117,7 @@ export const RELEASES = [
 				before: TT('Rewards logged from the dailies or a run landed in the bags, and taking them to a storage meant raising the storage’s count and lowering the total, item by item.'),
 				points: [
 					TT('On the Inventory, <b>Where everything is</b> shows a card a place: the bags, the character bag and the ship’s hold first, then every storage, with what each holds.'),
-					TT('Choose a storage once, and <b>Put away</b> notes everything carried there in one click; a card’s own button takes only what is in that place. The totals do not change, and one Undo takes it back.'),
+					TT('Choose a storage once, and <b>Put away</b> notes what is carried there in one click; untick a place in the bar to leave it where it is, or use a card’s own button for that place alone. The totals do not change, and one Undo takes it back.'),
 					TT('The same bar shows on the Plan, the Quests and the Barter tab’s results whenever something is carried.')
 				]
 			},

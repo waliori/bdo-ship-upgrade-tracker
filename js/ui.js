@@ -1448,7 +1448,11 @@ function wire() {
 			// the grid moves the ticked ones to a storage together.
 			case 'put-away': {
 				const to = store.getProfile('putAwayTo', '');
-				const done = store.putAway(to, el.dataset.from !== undefined ? [el.dataset.from] : undefined);
+				const bar = el.closest('.put-away');
+				const from = el.dataset.from !== undefined ? [el.dataset.from]
+					: bar ? [...bar.querySelectorAll('[data-pa-from]:checked')].map(b => b.dataset.paFrom) : undefined;
+				if (from && !from.length) return;
+				const done = store.putAway(to, from);
 				if (done) toast(T('{n} put away at {town}', { n: F(done.n), town: gameName(to) }), true);
 				return;
 			}
