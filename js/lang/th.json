@@ -3365,7 +3365,7 @@
 	"Your Total Barters read nought — set them in the bar at the top of the page.": "จำนวนการแลกเปลี่ยนสะสมของคุณอ่านได้ศูนย์ — ตั้งมันในแถบด้านบนของหน้า",
 	"Your Total Barters read nought, which leaves almost every island shut. Set them in the bar at the top of the page — the number is in the game’s Barter Information window.": "จำนวนการแลกเปลี่ยนสะสมของคุณเป็นศูนย์ ทำให้เกือบทุกเกาะปิดอยู่ ตั้งค่าได้ที่แถบด้านบนของหน้า — ตัวเลขอยู่ในหน้าต่างข้อมูลการแลกเปลี่ยนของเกม",
 	"Your Total Barters, as the Barter Information window shows it. It decides which islands you can barter at — a run is never planned through one you have not opened. A trip recorded on the Barter tab adds its trades; type over it whenever the two drift.": "จำนวนการแลกเปลี่ยนสะสมของคุณ อย่างที่หน้าต่างข้อมูลการแลกเปลี่ยนแสดง มันตัดสินว่าคุณแลกเปลี่ยนที่เกาะไหนได้ — การออกเรือไม่เคยถูกวางแผนผ่านเกาะที่คุณยังไม่ได้เปิด การเดินทางที่บันทึกในหน้าแลกเปลี่ยนเพิ่มจำนวนการค้าของมัน; พิมพ์ทับได้ทุกเมื่อที่ทั้งสองเคลื่อนห่างกัน",
-	"Your bag": "กระเป๋าตัวละคร",
+	"Character bag": "กระเป๋าตัวละคร",
 	"Your bag as a second hold": "กระเป๋าของคุณเป็นห้องเก็บสินค้าที่สอง",
 	"Your bag as a second hold, and a day of fixes": "กระเป๋าของคุณเป็นห้องเก็บสินค้าที่สอง และหนึ่งวันแห่งการแก้ไข",
 	"Your barter count and level are set in the bar at the top of the page; the Parley under Before you sail, step 1": "จำนวนการแลกเปลี่ยนและระดับตั้งค่าที่แถบด้านบนของหน้า พลังการต่อรองอยู่ใต้ก่อนออกเรือ ขั้นที่ 1",
@@ -6366,7 +6366,7 @@
 	"On the Inventory, <b>Where everything is</b> shows a card a place: the bags, the character bag and the ship’s hold first, then every storage, with what each holds.": "ในหน้าคลัง <b>ของอยู่ที่ไหนบ้าง</b> แสดงการ์ดหนึ่งใบต่อหนึ่งแห่ง: กระเป๋า กระเป๋าตัวละคร และระวางเรือก่อน แล้วจึงเป็นแต่ละคลัง พร้อมของที่อยู่ในนั้น",
 	"Put it all away": "เก็บทั้งหมดเข้าคลัง",
 	"Rewards logged from the dailies or a run landed in the bags, and taking them to a storage meant raising the storage’s count and lowering the total, item by item.": "รางวัลที่บันทึกหลังเควสรายวันหรือการออกเรือเข้าไปอยู่ในกระเป๋า และการย้ายเข้าคลังต้องเพิ่มจำนวนในคลังแล้วลดยอดรวมทีละชิ้น",
-	"The Inventory’s Where everything is: the bags, the character bag and the ship’s hold first, then each storage, and the bar that puts it all away at Velia": "ของอยู่ที่ไหนบ้างในหน้าคลัง: กระเป๋า กระเป๋าตัวละคร และระวางเรือก่อน แล้วจึงเป็นแต่ละคลัง และแถบที่เก็บทุกอย่างเข้าคลังที่เวเลีย",
+	"The Inventory’s Where everything is, the character bag left unticked in its bar, then the same bar on the Plan, the Quests and the Barter tab’s results": "ของอยู่ที่ไหนบ้างในหน้าคลัง โดยเอาเครื่องหมายกระเป๋าตัวละครออกในแถบ ตามด้วยแถบเดียวกันในแผน เควสต์ และผลสรุปของการแลกเปลี่ยน",
 	"The same bar shows on the Plan, the Quests and the Barter tab’s results whenever something is carried.": "แถบเดียวกันจะปรากฏในแผน เควส และสรุปผลของแท็บแลกเปลี่ยนเมื่อคุณพกของอยู่",
 	"Two players: one whose counts the gauge stands on, one who asked for the put-away.": "ผู้เล่นสองคน: คนหนึ่งที่การนับของเขาเป็นฐานของมาตรวัด อีกคนที่ขอฟีเจอร์เก็บเข้าคลัง"
 }

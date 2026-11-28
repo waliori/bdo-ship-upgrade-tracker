@@ -3365,7 +3365,7 @@
 	"Your Total Barters read nought — set them in the bar at the top of the page.": "你的累计交换次数读为零 — 请在页面顶部那条栏里设定它们。",
 	"Your Total Barters read nought, which leaves almost every island shut. Set them in the bar at the top of the page — the number is in the game’s Barter Information window.": "你的总交易次数为零，几乎所有岛都因此关闭。请在页面顶部的栏里设置 —— 数字在游戏的以物易物信息窗口中。",
 	"Your Total Barters, as the Barter Information window shows it. It decides which islands you can barter at — a run is never planned through one you have not opened. A trip recorded on the Barter tab adds its trades; type over it whenever the two drift.": "你的累计交换次数，按物品交换信息窗口所显示的。它决定你能在哪些岛屿物品交换 — 一个航次绝不会规划经过你尚未开放的那些。在物品交换页记录一趟行程会加上它的交易次数；两者出现偏差时随时改写它。",
-	"Your bag": "角色背包",
+	"Character bag": "角色背包",
 	"Your bag as a second hold": "把背包当作第二个货舱",
 	"Your bag as a second hold, and a day of fixes": "把背包当作第二个货舱，以及一整天的修正",
 	"Your barter count and level are set in the bar at the top of the page; the Parley under Before you sail, step 1": "交易次数和等级在页面顶部的栏中设置；交涉力在第 1 步「出航之前」下",
@@ -6366,7 +6366,7 @@
 	"On the Inventory, <b>Where everything is</b> shows a card a place: the bags, the character bag and the ship’s hold first, then every storage, with what each holds.": "在库存页，<b>物品都在哪</b>为每个地点显示一张卡片：先是背包、角色背包和船舱，然后是每个仓库，各自装着什么。",
 	"Put it all away": "全部存入仓库",
 	"Rewards logged from the dailies or a run landed in the bags, and taking them to a storage meant raising the storage’s count and lowering the total, item by item.": "做完每日任务或一趟航行后记下的奖励都进了背包，要放进仓库就得逐件先加仓库的数量、再减总数。",
-	"The Inventory’s Where everything is: the bags, the character bag and the ship’s hold first, then each storage, and the bar that puts it all away at Velia": "库存页的“物品都在哪”：先是背包、角色背包和船舱，然后是各仓库，以及把一切存入维利亚的那一栏",
+	"The Inventory’s Where everything is, the character bag left unticked in its bar, then the same bar on the Plan, the Quests and the Barter tab’s results": "库存里的“物品都在哪”，栏中取消勾选了角色背包；下面是计划、任务和物品交换结算里的同一栏",
 	"The same bar shows on the Plan, the Quests and the Barter tab’s results whenever something is carried.": "只要身上带着东西，计划、任务和物品交换标签的结算页都会出现同一栏。",
 	"Two players: one whose counts the gauge stands on, one who asked for the put-away.": "两位玩家：一位的统计撑起了这个进度条，一位提出了一键存仓。"
 }

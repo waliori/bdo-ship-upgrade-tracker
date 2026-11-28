@@ -3365,7 +3365,7 @@
 	"Your Total Barters read nought — set them in the bar at the top of the page.": "Biriken Takas Sayımın sıfır okunuyor — onları sayfanın tepesindeki çubuktan ayarla.",
 	"Your Total Barters read nought, which leaves almost every island shut. Set them in the bar at the top of the page — the number is in the game’s Barter Information window.": "Toplam takas sayın sıfır görünüyor, bu da neredeyse her adayı kapalı bırakır. Sayfanın üstündeki çubuktan ayarla — sayı oyunun Takas Bilgisi penceresindedir.",
 	"Your Total Barters, as the Barter Information window shows it. It decides which islands you can barter at — a run is never planned through one you have not opened. A trip recorded on the Barter tab adds its trades; type over it whenever the two drift.": "Takas Bilgisi penceresinin gösterdiği hâliyle Biriken Takas Sayımın. Hangi adalarda takas yapabileceğine o karar verir — bir sefer asla açmadığın bir adadan geçirilerek planlanmaz. Takas sekmesinde kaydedilen bir yolculuk ticaretlerini ekler; ikisi ayrıldığında üstüne yaz.",
-	"Your bag": "Karakter çantası",
+	"Character bag": "Karakter çantası",
 	"Your bag as a second hold": "Envanterin ikinci bir ambar olarak",
 	"Your bag as a second hold, and a day of fixes": "Envanterin ikinci bir ambar olarak ve bir günlük düzeltmeler",
 	"Your barter count and level are set in the bar at the top of the page; the Parley under Before you sail, step 1": "Takas sayın ve seviyen sayfanın üstündeki çubukta ayarlanır; Müzakere Gücü, 1. adım Yola çıkmadan önce altında",
@@ -6366,7 +6366,7 @@
 	"On the Inventory, <b>Where everything is</b> shows a card a place: the bags, the character bag and the ship’s hold first, then every storage, with what each holds.": "Envanter’de <b>Her şey nerede</b> her yer için bir kart gösterir: önce çantalar, karakter çantası ve geminin ambarı, sonra her depo, içindekilerle.",
 	"Put it all away": "Hepsini depoya koy",
 	"Rewards logged from the dailies or a run landed in the bags, and taking them to a storage meant raising the storage’s count and lowering the total, item by item.": "Günlük görevlerden ya da bir seferden sonra kaydedilen ödüller çantalara düşüyordu ve onları depoya taşımak, eşya eşya deponun sayısını artırıp toplamı düşürmek demekti.",
-	"The Inventory’s Where everything is: the bags, the character bag and the ship’s hold first, then each storage, and the bar that puts it all away at Velia": "Envanter’de Her şey nerede: önce çantalar, karakter çantası ve geminin ambarı, sonra her depo ve her şeyi Velia’ya koyan çubuk",
+	"The Inventory’s Where everything is, the character bag left unticked in its bar, then the same bar on the Plan, the Quests and the Barter tab’s results": "Envanter’de Her şey nerede, çubukta karakter çantasının işareti kaldırılmış; ardından aynı çubuk Plan’da, Görevler’de ve Takas bilançosunda",
 	"The same bar shows on the Plan, the Quests and the Barter tab’s results whenever something is carried.": "Üzerinizde bir şey olduğu sürece aynı çubuk Plan’da, Görevler’de ve Takas sekmesinin sonuçlarında görünür.",
 	"Two players: one whose counts the gauge stands on, one who asked for the put-away.": "İki oyuncu: biri, göstergenin dayandığı sayımları yapan; diğeri, depoya koymayı isteyen."
 }

@@ -3900,7 +3900,7 @@
 	"Your Total Barters read nought — set them in the bar at the top of the page.": "Общее число бартеров — ноль. Задайте его в полосе наверху страницы.",
 	"Your Total Barters read nought, which leaves almost every island shut. Set them in the bar at the top of the page — the number is in the game’s Barter Information window.": "Число обменов равно нулю, и почти все острова закрыты. Задайте его в строке вверху страницы — число есть в игровом окне «Информация об обмене».",
 	"Your Total Barters, as the Barter Information window shows it. It decides which islands you can barter at — a run is never planned through one you have not opened. A trip recorded on the Barter tab adds its trades; type over it whenever the two drift.": "Общее число бартеров, как его показывает окно «Информация о бартере». Оно решает, на каких островах вы можете меняться, — рейс никогда не прокладывается через неоткрытый. Записанный на вкладке «Бартер» выход добавляет свои обмены; впишите своё число, когда эти два разойдутся.",
-	"Your bag": "Сумка персонажа",
+	"Character bag": "Сумка персонажа",
 	"Your bag as a second hold": "Ваш инвентарь как второй трюм",
 	"Your bag as a second hold, and a day of fixes": "Инвентарь как второй трюм и день исправлений",
 	"Your barter count and level are set in the bar at the top of the page; the Parley under Before you sail, step 1": "Число обменов и уровень задаются в панели вверху страницы; Убеждение — в разделе Перед отплытием, шаг 1",
@@ -8541,7 +8541,7 @@
 	"On the Inventory, <b>Where everything is</b> shows a card a place: the bags, the character bag and the ship’s hold first, then every storage, with what each holds.": "В Инвентаре <b>Где что лежит</b> показывает карточку на каждое место: сначала сумки, сумку персонажа и трюм, потом каждый склад, с тем, что там лежит.",
 	"Put it all away": "Убрать всё на склад",
 	"Rewards logged from the dailies or a run landed in the bags, and taking them to a storage meant raising the storage’s count and lowering the total, item by item.": "Награды, записанные после ежедневных заданий или рейса, попадали в сумки, и чтобы перенести их на склад, нужно было увеличить счёт склада и уменьшить итог, предмет за предметом.",
-	"The Inventory’s Where everything is: the bags, the character bag and the ship’s hold first, then each storage, and the bar that puts it all away at Velia": "Где что лежит, в Инвентаре: сначала сумки, сумка персонажа и трюм, потом каждый склад, и панель, которая убирает всё на склад в Велии",
+	"The Inventory’s Where everything is, the character bag left unticked in its bar, then the same bar on the Plan, the Quests and the Barter tab’s results": "Где что лежит, в Инвентаре: с сумки персонажа на панели снята галочка; ниже та же панель в Плане, в Заданиях и в итоге Бартера",
 	"The same bar shows on the Plan, the Quests and the Barter tab’s results whenever something is carried.": "Та же панель появляется в Плане, Заданиях и итогах вкладки «Бартер», как только у вас что-то есть при себе.",
 	"Two players: one whose counts the gauge stands on, one who asked for the put-away.": "Два игрока: один, на чьих подсчётах стоит шкала, другой, который попросил уборку на склад."
 }

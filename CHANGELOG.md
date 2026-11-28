@@ -44,7 +44,7 @@ Signed in, press *A Special Barter came — report it* when one comes: the barte
 
 ### Put it all away
 
-![The Inventory’s Where everything is: the bags, the character bag and the ship’s hold first, then each storage, and the bar that puts it all away at Velia](docs/media/small/put-away.png)
+![The Inventory’s Where everything is, the character bag left unticked in its bar, then the same bar on the Plan, the Quests and the Barter tab’s results](docs/media/small/put-away.png)
 
 **Before:** Rewards logged from the dailies or a run landed in the bags, and taking them to a storage meant raising the storage’s count and lowering the total, item by item.
 

@@ -362,7 +362,7 @@ function pickBar(shownItems) {
 	</div>`;
 }
 
-nameAs(store.BAG, () => T('Your bag'));
+nameAs(store.BAG, () => T('Character bag'));
 /** The storages a sailor actually uses, for the "where it is" note. */
 export const TOWNS = [
 	"Ship's hold", store.BAG, 'Velia', 'Port Epheria', 'Iliya Island', 'Olvia', 'Heidel', 'Glish', 'Calpheon City', 'Keplan', 'Trent',

@@ -3392,7 +3392,7 @@
 	"Your Total Barters read nought — set them in the bar at the top of the page.": "Deine Warentausche gesamt stehen auf null - stell sie in der Leiste oben auf der Seite ein.",
 	"Your Total Barters read nought, which leaves almost every island shut. Set them in the bar at the top of the page — the number is in the game’s Barter Information window.": "Deine Tauschzahl steht auf null, womit fast jede Insel geschlossen bleibt. Setze sie in der Leiste oben — die Zahl steht im Warentausch-Info-Fenster des Spiels.",
 	"Your Total Barters, as the Barter Information window shows it. It decides which islands you can barter at — a run is never planned through one you have not opened. A trip recorded on the Barter tab adds its trades; type over it whenever the two drift.": "Deine Warentausche gesamt, wie das Fenster Warentausch-Informationen sie zeigt. Sie entscheiden, an welchen Inseln du tauschen kannst - eine Fahrt wird nie über eine geplant, die du nicht geöffnet hast. Eine im Reiter Warentausch erfasste Fahrt zählt ihre Tausche dazu; tippe darüber, wann immer die beiden auseinanderlaufen.",
-	"Your bag": "Charakterbeutel",
+	"Character bag": "Charakterbeutel",
 	"Your bag as a second hold": "Dein Inventar als zweiter Laderaum",
 	"Your bag as a second hold, and a day of fixes": "Dein Inventar als zweiter Laderaum, und ein Tag voller Korrekturen",
 	"Your barter count and level are set in the bar at the top of the page; the Parley under Before you sail, step 1": "Tauschzahl und Stufe werden in der Leiste oben auf der Seite gesetzt; die Überzeugungskraft unter Vor dem Ablegen, Schritt 1",
@@ -6405,7 +6405,7 @@
 	"On the Inventory, <b>Where everything is</b> shows a card a place: the bags, the character bag and the ship’s hold first, then every storage, with what each holds.": "Im Inventar zeigt <b>Wo alles ist</b> eine Karte je Ort: zuerst die Beutel, der Charakterbeutel und der Laderaum, dann jedes Lager, mit dem, was darin liegt.",
 	"Put it all away": "Alles einlagern",
 	"Rewards logged from the dailies or a run landed in the bags, and taking them to a storage meant raising the storage’s count and lowering the total, item by item.": "Belohnungen aus den Tagesquests oder einer Fahrt landeten in den Beuteln, und sie ins Lager zu bringen hieß, die Zahl im Lager zu erhöhen und die Gesamtzahl zu senken, Gegenstand für Gegenstand.",
-	"The Inventory’s Where everything is: the bags, the character bag and the ship’s hold first, then each storage, and the bar that puts it all away at Velia": "Wo alles ist, im Inventar: zuerst die Beutel, der Charakterbeutel und der Laderaum, dann jedes Lager, und die Leiste, die alles in Velia einlagert",
+	"The Inventory’s Where everything is, the character bag left unticked in its bar, then the same bar on the Plan, the Quests and the Barter tab’s results": "Wo alles ist, im Inventar, der Charakterbeutel in der Leiste nicht angehakt, dann dieselbe Leiste im Plan, bei den Quests und in der Bilanz des Warentauschs",
 	"The same bar shows on the Plan, the Quests and the Barter tab’s results whenever something is carried.": "Dieselbe Leiste erscheint im Plan, bei den Quests und im Ergebnis des Warentausch-Tabs, sobald du etwas dabeihast.",
 	"Two players: one whose counts the gauge stands on, one who asked for the put-away.": "Zwei Spieler: einer, auf dessen Zählungen die Anzeige steht, einer, der sich das Einlagern gewünscht hat."
 }
