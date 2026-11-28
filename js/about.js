@@ -57,7 +57,8 @@ export const DATA = [
  * its `sum` until it is opened.
  *
  * `thanks` names the players who asked for what is in the release, in
- * their own words. It is a field of its own rather than a section
+ * their own words; its `title` replaces "Asked for by you" when they
+ * gave something other than an ask. It is a field of its own rather than a section
  * because it must not be foldable: a person who wrote in and then had
  * to open "everything else" to find themselves has been thanked in a
  * drawer.
@@ -69,6 +70,7 @@ export const RELEASES = [
 		date: '2026-11-27',
 		sum: TT('A Special Barter gauge beside the Parley and in the cockpit, filled by the barters you record, each kind weighed by the community’s counts; a report for the signed-in, added up on the Community tab; pasting a screenshot works again.'),
 		thanks: {
+			title: TT('With thanks'),
 			text: TT('One player, whose counts the gauge stands on.'),
 			who: [
 				{

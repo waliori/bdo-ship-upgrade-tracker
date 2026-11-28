@@ -2536,7 +2536,7 @@ async function openWhatsNew({ onClose = null, by = null } = {}) {
 	// has been thanked in a drawer.
 	const t = r.thanks;
 	const thanks = t && t.who && t.who.length ? `<section class="news-thanks">
-		<h3>${T('Asked for by you')}</h3>
+		<h3>${t.title ? said(t.title) : T('Asked for by you')}</h3>
 		<p>${said(t.text)}</p>
 		<ul class="news-points">${t.who.map(w => `<li><b>${esc(w.name)}</b> — ${w.said ? `<i>“${said(w.said)}”</i> ` : ''}${said(w.did)}</li>`).join('')}</ul>
 		${t.also && t.also.length ? `<p>${T('Bugs reported and runs tested by {names}.', { names: t.also.map(n => `<b>${esc(n)}</b>`).join(', ') })}</p>` : ''}
