@@ -4,6 +4,7 @@
 
 import { handsIn, fetchOnly } from '../quest-places.js';
 import { esc, F, FC } from '../fmt.js';
+import { specialFigHTML } from '../special-view.js';
 import { T, gameName } from '../i18n.js';
 import { img, iconSrc } from '../ui-bits.js';
 import { barterProfile } from '../ui-state.js';
@@ -470,6 +471,7 @@ export function cockpitHTML({ map = false } = {}) {
 		<div class="cockpit-fig"><div class="cockpit-fig-k"><span>${T('hold')}</span><span>${bars.sl && bars.sl.over ? T('more goods than the hull has slots for') : bars.w.note || ''}</span></div><div class="cockpit-fig-v">${holdBefore !== bars.w.total ? `<span>${F(holdBefore)}</span><i>→</i>` : ''}<b class="${bars.w.state === 'heavy' || bars.w.state === 'dead' ? 'warn' : bars.over ? 'amber' : ''}">${esc(bars.w.text)}</b></div>${bars.sl ? `<div class="cockpit-fig-v slots">${slotsBefore !== bars.sl.used ? `<span>${F(slotsBefore)}</span><i>→</i>` : ''}<b class="${bars.sl.over ? 'warn' : bars.sl.full ? 'amber' : ''}">${esc(bars.sl.text)}</b></div>` : ''}<div class="run-bar"><i style="width:${bars.w.fill.toFixed(1)}%"></i><i class="over" style="width:${bars.w.extra.toFixed(1)}%"></i><i class="heavy" style="width:${bars.w.worse.toFixed(1)}%"></i></div></div>
 		${row ? `<div class="cockpit-fig"><div class="cockpit-fig-k"><span>${T('parley')}</span><span>${s.npcId && row.spent ? `−${F(row.spent)}` : ''}</span></div><div class="cockpit-fig-v">${row.before != null && Math.round(row.before) !== Math.round(row.after) ? `<span>${F(row.before)}</span><i>→</i>` : ''}<b class="${row.short ? 'warn' : ''}">${F(row.after)}</b></div><div class="run-bar parley"><i style="width:${Math.min(100, row.pct).toFixed(1)}%"></i></div>${row.voucher && !s.wait ? '' : parleyNotes(book, at, s).note}<label class="parley-fix" title="${T('What the game’s Barter window shows now, before this barter: the bar is counted from it for the rest of the run')}"><span>${T('game shows')}</span><input class="purse-inline narrow" inputmode="numeric" data-act="barter-parley-fix" data-k="${esc(key)}"${map ? ' data-map="1"' : ''} value="${on.parleyFix && on.parleyFix.k === key ? esc(String(on.parleyFix.bar)) : ''}" placeholder="${F(row.before)}" aria-label="${T('What the game’s Barter window shows now, before this barter: the bar is counted from it for the rest of the run')}"></label></div>` : ''}
 		${rationsFig}
+		${specialFigHTML(stops, at)}
 	</div>`;
 	// A voucher drawn at this stop is a thing the sailor does in game,
 	// so it stands as its own block above the press, icon and all,

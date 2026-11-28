@@ -455,3 +455,14 @@ test('a save never read into memory still adds its barter counts, read with the 
 	assert.equal(after, before + 3);
 	assert.equal(heldSave('2010'), null, 'counting the fleet pulled a save into the cache');
 });
+
+test('a Special Barter reported in a signed-in save reaches the fleet\'s table, counts only, readable signed out', async () => {
+	const { writeSave } = await import('../server/db.js');
+	const { invalidate } = await import('../server/community.js');
+	await upsertUser({ id: '2011', username: 'Lucky', avatar: null });
+	const profile = { special: { since: 9, reports: [{ at: 8, c: { 6: 71, 0: 12 } }] } };
+	await writeSave('2011', { rev: 1, payload: JSON.stringify(save(profile)), updatedAt: Date.now(), device: 'x' });
+	invalidate();
+	const special = (await (await call('GET', '/api/community')).json()).stats.special;
+	assert.ok(special.some(c => JSON.stringify(c) === JSON.stringify({ 0: 12, 6: 71 })), JSON.stringify(special));
+});

@@ -5,6 +5,58 @@ someone who has been away. The same notes are in the app itself, under
 **Menu → What's new** — this file is generated from them by
 `node tools/build-changelog.mjs`, so the two cannot drift apart.
 
+## 1.7.2 — A gauge for the Special Barter
+
+*2026-11-27*
+
+The game says only that the more barters you complete, the likelier a Special Barter becomes. The app now counts the barters you record since the last one into one pool, each kind weighed by the counts the community gathered on its Discord, and marks the zone where they saw it come. Signed in, you report the one that comes, and the Community tab adds the reports up into the fleet’s own table.
+
+### Asked for by you
+
+Two players: one whose counts the gauge stands on, one who asked for the put-away.
+
+- **RENGEREL** — Counted, barter by barter, how many of each kind came before a Special Barter, and shared the table on the community’s Discord. The gauge weighs each kind by those counts.
+- **ShakeNBake** — *“A button that condenses split storage between bags and a single storage city to only the storage.”* Asked for the dailies’ rewards to go from the bags to the storage in one click, as in the game. The put-away does that, and for the ship’s hold too.
+
+The box is under **Menu → Feedback**. It reaches whoever runs the site.
+
+### A gauge for the Special Barter
+
+![The Parley step in 1.7.1, and in 1.7.2 with the Special Barter gauge at 70%](docs/media/small/special-barter.png)
+
+**Before:** The app did not follow the Special Barter: when the next one might come was yours to count.
+
+- Beside the Parley, say once when the last one came: the barters recorded since then fill the gauge, and it says about how many more it takes.
+- Each kind weighs what the community’s counts say: a Level 6 → 7 about twelve land goods → Level 1, and a Level 4 good traded for a [Great Ocean] one apart from one traded for a plain [Level 5].
+- In the cockpit the gauge moves with each stop ticked, and the stop where it enters the zone says to watch for the message.
+
+### Each kind of barter counted
+
+![The Special Barter window: the gauge at 70%, the barters recorded kind by kind, and what one is worth](docs/media/small/special-barter-details.png)
+
+*Details* lists the barters recorded since the last one, kind by kind, with what one is worth. Barters made without the app can be added by hand, and the date can be changed.
+
+### The fleet’s table
+
+![The Community tab: the community’s counts for each kind, and the fleet’s column waiting for its first reports](docs/media/small/special-barter-fleet.png)
+
+Signed in, press *A Special Barter came — report it* when one comes: the barters it took go to *The fleet in numbers* on the Community tab, counts only, and the gauge starts again. The weights are the counts the community gathered on its Discord, and the reports refine them.
+
+### Put it all away
+
+![The Inventory’s Where everything is: the bags, the character bag and the ship’s hold first, then each storage, and the bar that puts it all away at Velia](docs/media/small/put-away.png)
+
+**Before:** Rewards logged from the dailies or a run landed in the bags, and taking them to a storage meant raising the storage’s count and lowering the total, item by item.
+
+- On the Inventory, **Where everything is** shows a card a place: the bags, the character bag and the ship’s hold first, then every storage, with what each holds.
+- Choose a storage once, and **Put away** notes everything carried there in one click; a card’s own button takes only what is in that place. The totals do not change, and one Undo takes it back.
+- The same bar shows on the Plan, the Quests and the Barter tab’s results whenever something is carried.
+
+### Fixes
+
+- Pasting a screenshot into an open reader, and *Read more* after a barter window is read, work again: since 1.7.1 both stopped on an error.
+- A chain greyed for want of its land good on the Central Market, when you keep enough of it, now says which order to change: *land goods* set to *from my storage*. The old line looked like a button and was not one.
+
 ## 1.7.1 — Shorter runs, and a stock of your own
 
 *2026-11-25*

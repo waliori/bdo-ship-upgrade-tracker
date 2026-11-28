@@ -23,6 +23,7 @@ import { T, said, gameName, gameNamesFor } from './i18n.js';
 import { openDialog, closeDialog, toast } from './dialogs.js';
 import { triage, readWords, wireShotIntake, close as closeReader, shotLang, queuedNote } from './shot-reader.js';
 import { npcs, isleOf, whoOf } from './barter_npcs.js';
+import { pickShots } from './shot-bits.js';
 export { shotGuideHTML, pickShots } from './shot-bits.js';
 import { img } from './ui-bits.js';
 import * as store from './state.js';

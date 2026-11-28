@@ -45,6 +45,7 @@ import { massProcess } from './vendor_items.js';
 import { loadMarket, onMarket, setRegion as setMarketRegion } from './market.js';
 import { paintPouch, openPouch, returnToPouch } from './pouch.js';
 import { toggleSailBar, openRoutes, openPets } from './profile-bar.js';
+import { openSpecial } from './special-view.js';
 import { hidePeek, wirePeek } from './peek.js';
 import { openGuide, wireGuide } from './guide.js';
 import { renderPlan } from './screen-plan.js';
@@ -1150,6 +1151,7 @@ function wire() {
 			case 'pets': returnToPouch(); return openPets();
 			// Every threshold and where the count stands among them.
 			case 'routes': returnToPouch(); return openRoutes();
+			case 'special-open': return openSpecial();
 			case 'enh-blocked': toggleBlocked(); return render();
 			case 'open-item': hidePeek(); showView('inventory'); setSelected(el.dataset.item); return render();
 			case 'resets-edit': return openResetsDialog();
@@ -1444,6 +1446,12 @@ function wire() {
 			case 'inv-kind': setInvKind(el.dataset.id); return render();
 			// Select mode: tiles tick instead of opening, and the bar above
 			// the grid moves the ticked ones to a storage together.
+			case 'put-away': {
+				const to = store.getProfile('putAwayTo', '');
+				const done = store.putAway(to, el.dataset.from !== undefined ? [el.dataset.from] : undefined);
+				if (done) toast(T('{n} put away at {town}', { n: F(done.n), town: gameName(to) }), true);
+				return;
+			}
 			case 'inv-select': setInvPicking(!invPicking); if (invPicking) setSelected(null); return render();
 			// The storage window, read off screenshots: the counts land at
 			// the storage named in the dialog, in one change.
@@ -1731,6 +1739,8 @@ function wire() {
 			else render();
 			return;
 		}
+		const pa = evt.target.closest('[data-act="put-away-to"]');
+		if (pa) { store.setProfileQuiet('putAwayTo', pa.value); return render(); }
 		const hm = evt.target.closest('[data-act="inv-home"]');
 		if (hm) return store.setHome(hm.dataset.kind, hm.value);
 
@@ -2534,7 +2544,7 @@ async function openWhatsNew({ onClose = null, by = null } = {}) {
 	// has been thanked in a drawer.
 	const t = r.thanks;
 	const thanks = t && t.who && t.who.length ? `<section class="news-thanks">
-		<h3>${T('Asked for by you')}</h3>
+		<h3>${t.title ? said(t.title) : T('Asked for by you')}</h3>
 		<p>${said(t.text)}</p>
 		<ul class="news-points">${t.who.map(w => `<li><b>${esc(w.name)}</b> — ${w.said ? `<i>“${said(w.said)}”</i> ` : ''}${said(w.did)}</li>`).join('')}</ul>
 		${t.also && t.also.length ? `<p>${T('Bugs reported and runs tested by {names}.', { names: t.also.map(n => `<b>${esc(n)}</b>`).join(', ') })}</p>` : ''}

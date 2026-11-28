@@ -198,7 +198,7 @@ function aggregate(rows) {
 }
 
 /** The barter counts of a digest, the part every signed-in save gives. */
-const barterPart = d => ({ level: d.level, barters: d.barters, sevens: d.sevens || {}, rolls: d.rolls || {}, paid: d.paid || {} });
+const barterPart = d => ({ level: d.level, barters: d.barters, sevens: d.sevens || {}, rolls: d.rolls || {}, paid: d.paid || {}, special: Array.isArray(d.special) ? d.special : [] });
 
 /**
  * What the fleet saw at the islands, added up over every signed-in
@@ -213,7 +213,12 @@ function barterTotals(parts) {
 	// that pays a range pay so; the band is the sender's barter level and
 	// Total Barters, so a sailor is shown what sailors like them were paid
 	const paid = {};
+	// Every Special Barter a sailor reported: the barters of each tier it
+	// took. Kept whole, not summed -- a report is one reading of where
+	// the pool ran over, and the table is made of readings.
+	const special = [];
 	for (const d of parts) {
+		for (const c of d.special || []) if (special.length < 20000) special.push(c);
 		for (const [npc, counts] of Object.entries(d.sevens)) {
 			const at = sevens[npc] || (sevens[npc] = {});
 			for (const [item, c] of Object.entries(counts || {})) add(at, item, c);
@@ -229,7 +234,7 @@ function barterTotals(parts) {
 			for (const [v, c] of Object.entries(counts || {})) add(b, v, c);
 		}
 	}
-	return { sevens, rolls, paid };
+	return { sevens, rolls, paid, special };
 }
 
 /** Each signed-in save's barter counts, by account, with the revision

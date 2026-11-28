@@ -316,6 +316,8 @@ export function readProfile(raw) {
 		}
 		if (Object.keys(homes).length) out.homes = homes;
 	}
+	// The storage "put it all away" takes what is carried to.
+	if (typeof raw.putAwayTo === 'string' && raw.putAwayTo && raw.putAwayTo.length <= 40) out.putAwayTo = raw.putAwayTo;
 	// The sailing orders: what a barter run is for. Cleaned by the
 	// module that owns the shape.
 	if (isProfile(raw.orders)) out.orders = readOrders(raw.orders);
@@ -443,6 +445,31 @@ export function readProfile(raw) {
 			if (Object.keys(clean).length) ratios[k] = clean;
 		}
 		if (Object.keys(ratios).length) out.ratios = ratios;
+	}
+	// The Special Barter gauge: when the last one came, the barters the
+	// sailor added by hand since (made without the app), and the ones
+	// they reported -- the barters of each tier it took, which the
+	// fleet's table is made of.
+	if (isProfile(raw.special)) {
+		const tiers = c => (isProfile(c) ? Object.fromEntries(Object.entries(c)
+			.filter(([t, n]) => /^[0-6]g?$/.test(t) && Number.isFinite(Number(n)))
+			.map(([t, n]) => [t, Math.max(-99999, Math.min(99999, Math.round(Number(n))))])
+			.filter(([, n]) => n !== 0)) : {});
+		const sp = {};
+		const since = Math.floor(Number(raw.special.since));
+		if (since > 0) sp.since = since;
+		const skip = Math.floor(Number(raw.special.skip));
+		if (skip > 0) sp.skip = Math.min(300, skip);
+		const hand = tiers(raw.special.plus);
+		if (Object.keys(hand).length) sp.plus = hand;
+		if (Array.isArray(raw.special.reports)) {
+			const reports = raw.special.reports.slice(-40)
+				.filter(r => isProfile(r) && Number(r.at) > 0)
+				.map(r => ({ at: Math.floor(Number(r.at)), c: Object.fromEntries(Object.entries(tiers(r.c)).filter(([, n]) => n > 0)) }))
+				.filter(r => Object.keys(r.c).length);
+			if (reports.length) sp.reports = reports;
+		}
+		if (Object.keys(sp).length) out.special = sp;
 	}
 	if (isProfile(raw.sevens)) {
 		const sevens = {};

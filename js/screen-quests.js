@@ -13,6 +13,7 @@
 // run every day can be starred, or kept as a named group.
 
 import { esc, F } from './fmt.js';
+import { putAwayHTML } from './put-away.js';
 import { T, said, gameName } from './i18n.js';
 import * as store from './state.js';
 import { img, codexName } from './ui-bits.js';
@@ -300,7 +301,7 @@ export function renderQuests() {
 		: filter === 'fav' ? T('No favourites yet — star a quest and it lands here.')
 		: T('Nothing pays in what you are short of right now.');
 
-	return `${clocks}<div class="controls quests-controls">
+	return `${clocks}${putAwayHTML({ quiet: true })}<div class="controls quests-controls">
 		<input class="field" type="search" placeholder="${T('Search quests, places and rewards…')}" value="${esc(query)}" data-act="query" aria-label="${T('Search quests, places and rewards')}">
 		<div class="chips">${chips}</div>
 		<div class="pay-row">${payControl()}</div>

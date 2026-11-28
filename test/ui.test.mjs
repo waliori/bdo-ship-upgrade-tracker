@@ -3541,7 +3541,7 @@ test('the shell answers the keyboard: digits and 0 switch tabs from the page, no
 	assert.equal(await page.evaluate(() => location.hash), '#barter', '0 is the tenth tab');
 	await page.keyboard.press('1'); await wait(300);
 	assert.equal(await page.evaluate(() => location.hash), '#plan');
-	await page.focus('.chip'); await page.keyboard.press('3'); await wait(300);
+	await page.focus('.chip:not([disabled])'); await page.keyboard.press('3'); await wait(300);
 	assert.equal(await page.evaluate(() => location.hash), '#plan', 'a digit on a chip is the chip\'s');
 	await page.evaluate(() => window.dispatchEvent(new CustomEvent('tracker-save-failed', { detail: { reason: 'quota' } })));
 	assert.match(await text(page, '#save-badge'), /Not saving — storage full/);

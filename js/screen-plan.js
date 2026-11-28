@@ -2,6 +2,7 @@
 // what stands between you and done, with the one next step called out.
 
 import { esc, F } from './fmt.js';
+import { putAwayHTML } from './put-away.js';
 import { T, gameName, nameHas } from './i18n.js';
 import { todayStrip } from './today.js';
 import * as store from './state.js';
@@ -89,8 +90,8 @@ export function renderPlan() {
 		// With nothing queued the four figures are four zeros, and they
 		// stood above the steps that say how to start; the steps lead,
 		// and the figures wait for something to count.
-		if (nothingQueued) return startHere() + readyHTML;
-		return (readyHTML || nextStep()) + statHTML + controlsHTML(filters)
+		if (nothingQueued) return startHere() + putAwayHTML({ quiet: true }) + readyHTML;
+		return (readyHTML || nextStep()) + putAwayHTML({ quiet: true }) + statHTML + controlsHTML(filters)
 			+ `<div class="panel"><p class="empty">${T('Nothing matches that filter.')}</p></div>`;
 	}
 
@@ -104,7 +105,7 @@ export function renderPlan() {
 
 	// What can be crafted is the next step whenever there is any: the
 	// strip names each recipe, so it stands where the banner would.
-	return (readyHTML || nextStep()) + todayStrip() + statHTML + controlsHTML(filters) + groupHTML;
+	return (readyHTML || nextStep()) + putAwayHTML({ quiet: true }) + todayStrip() + statHTML + controlsHTML(filters) + groupHTML;
 }
 
 /** One concrete thing to do next, based on where the plan actually stands. */

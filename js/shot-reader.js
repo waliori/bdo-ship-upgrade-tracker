@@ -31,6 +31,7 @@ import { T, readerLang } from './i18n.js';
 import { whileLoading } from './loading.js';
 // The few pieces the page draws before any reading: kept apart so the
 // reader itself is fetched only when a screenshot is read.
+import { imagesOn } from './shot-bits.js';
 export { imagesOn, pasteManyNote } from './shot-bits.js';
 
 /**

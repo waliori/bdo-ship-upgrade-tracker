@@ -851,6 +851,7 @@ export function getProfile(key, fallback = null) {
 // or a hull swapped is not "your barter profile" to the person undoing it.
 const PROFILE_LABELS = {
 	barterCount: () => T('Changed your barter count'),
+	special: () => T('Changed the Special Barter gauge'),
 	valuePack: () => T('Changed the Value Pack'),
 	breezy: () => T('Changed BreezySail'),
 	level: () => T('Changed your barter level'),
@@ -1264,6 +1265,58 @@ export function placeAll(items, town, label) {
 	return commit('profile', label || (town ? `${what} moved to ${town}` : `${what} back in the bags`), () => {
 		state.profile = next;
 	});
+}
+
+/** What is carried rather than stored: the bags (what no storage
+ *  claims, '' here), the character bag, the ship's hold. */
+export const CARRIED = ['', BAG, ABOARD];
+// Money sits in the stock but in no bag: it is never put away.
+const WALLET = new Set(['Silver', 'Crow Coin']);
+
+/**
+ * Where everything owned is, item by item: { item: { place: n } }, the
+ * place '' for the bags. What no storage claims is in the bags, or
+ * aboard for a trade good.
+ */
+export function whereAll() {
+	const out = {};
+	const stash = state.profile.stash || {};
+	for (const [item, own] of Object.entries(getAllStock())) {
+		if (!(own > 0) || WALLET.has(item)) continue;
+		const at = {};
+		for (const [t, n] of Object.entries(stash[item] || {})) if (n > 0) at[t] = n;
+		const loose = Math.max(0, own - Object.values(at).reduce((a, b) => a + b, 0));
+		if (loose) { const p = kindOf(item) === 'goods' ? ABOARD : ''; at[p] = (at[p] || 0) + loose; }
+		if (Object.keys(at).length) out[item] = at;
+	}
+	return out;
+}
+
+/**
+ * Everything carried put at one storage, as one change and one Undo:
+ * the bags, the character bag and the ship's hold, or only the places
+ * in `from`. The totals do not move; only where they are noted.
+ * Returns { n, kinds } moved, or null when there was nothing to move.
+ */
+export function putAway(town, from = CARRIED) {
+	if (!town || CARRIED.includes(town)) return null;
+	const stash = { ...(state.profile.stash || {}) };
+	let n = 0, kinds = 0;
+	for (const [item, at] of Object.entries(whereAll())) {
+		const move = Object.entries(at).filter(([p]) => CARRIED.includes(p) && from.includes(p));
+		const qty = move.reduce((a, [, k]) => a + k, 0);
+		if (!qty) continue;
+		const towns = { ...(stash[item] || {}) };
+		for (const [p] of move) delete towns[p];
+		towns[town] = (towns[town] || 0) + qty;
+		stash[item] = towns;
+		n += qty;
+		kinds++;
+	}
+	if (!kinds) return null;
+	const next = readProfile({ ...state.profile, stash });
+	commit('profile', T('Put away at {town}', { town }), () => { state.profile = next; });
+	return { n, kinds };
 }
 
 /**
