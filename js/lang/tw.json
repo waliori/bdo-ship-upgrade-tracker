@@ -3365,7 +3365,7 @@
 	"Your Total Barters read nought — set them in the bar at the top of the page.": "你的累計交換次數讀為零 — 請在頁面頂部那條欄裡設定它們。",
 	"Your Total Barters read nought, which leaves almost every island shut. Set them in the bar at the top of the page — the number is in the game’s Barter Information window.": "你的總交易次數為零，幾乎所有島都因此關閉。請在頁面頂部的欄裡設定 —— 數字在遊戲的以物易物資訊視窗中。",
 	"Your Total Barters, as the Barter Information window shows it. It decides which islands you can barter at — a run is never planned through one you have not opened. A trip recorded on the Barter tab adds its trades; type over it whenever the two drift.": "你的累計交換次數，按物品交換資訊視窗所顯示的。它決定你能在哪些島嶼物品交換 — 一個航次絕不會規劃經過你尚未開放的那些。在物品交換頁記錄一趟行程會加上它的交易次數；兩者出現偏差時隨時改寫它。",
-	"Your bag": "角色背包",
+	"Character bag": "角色背包",
 	"Your bag as a second hold": "把背包當作第二個貨艙",
 	"Your bag as a second hold, and a day of fixes": "把背包當作第二個貨艙，以及一整天的修正",
 	"Your barter count and level are set in the bar at the top of the page; the Parley under Before you sail, step 1": "交易次數和等級在頁面頂部的欄中設定；交涉力在第 1 步「出航之前」下",
@@ -6366,7 +6366,7 @@
 	"On the Inventory, <b>Where everything is</b> shows a card a place: the bags, the character bag and the ship’s hold first, then every storage, with what each holds.": "在庫存頁，<b>物品都在哪</b>為每個地點顯示一張卡片：先是背包、角色背包和船艙，然後是每個倉庫，各自裝著什麼。",
 	"Put it all away": "全部存入倉庫",
 	"Rewards logged from the dailies or a run landed in the bags, and taking them to a storage meant raising the storage’s count and lowering the total, item by item.": "做完每日任務或一趟航行後記下的獎勵都進了背包，要放進倉庫就得逐件先加倉庫的數量、再減總數。",
-	"The Inventory’s Where everything is: the bags, the character bag and the ship’s hold first, then each storage, and the bar that puts it all away at Velia": "庫存頁的「物品都在哪」：先是背包、角色背包和船艙，然後是各倉庫，以及把一切存入維利亞的那一欄",
+	"The Inventory’s Where everything is, the character bag left unticked in its bar, then the same bar on the Plan, the Quests and the Barter tab’s results": "庫存裡的「物品都在哪」，列中取消勾選了角色背包；下面是計劃、任務和物品交換結算裡的同一列",
 	"The same bar shows on the Plan, the Quests and the Barter tab’s results whenever something is carried.": "只要身上帶著東西，計畫、任務和物品交換分頁的結算頁都會出現同一欄。",
 	"Two players: one whose counts the gauge stands on, one who asked for the put-away.": "兩位玩家：一位的統計撐起了這個進度條，一位提出了一鍵存倉。"
 }

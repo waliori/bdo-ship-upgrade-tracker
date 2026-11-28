@@ -113,7 +113,7 @@ export const RELEASES = [
 			{
 				title: TT('Put it all away'),
 				media: 'docs/media/small/put-away.png',
-				alt: TT('The Inventory’s Where everything is: the bags, the character bag and the ship’s hold first, then each storage, and the bar that puts it all away at Velia'),
+				alt: TT('The Inventory’s Where everything is, the character bag left unticked in its bar, then the same bar on the Plan, the Quests and the Barter tab’s results'),
 				before: TT('Rewards logged from the dailies or a run landed in the bags, and taking them to a storage meant raising the storage’s count and lowering the total, item by item.'),
 				points: [
 					TT('On the Inventory, <b>Where everything is</b> shows a card a place: the bags, the character bag and the ship’s hold first, then every storage, with what each holds.'),

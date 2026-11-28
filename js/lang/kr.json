@@ -3365,7 +3365,7 @@
 	"Your Total Barters read nought — set them in the bar at the top of the page.": "누적 교환 횟수가 0으로 되어 있습니다 — 페이지 상단 바에서 설정하세요.",
 	"Your Total Barters read nought, which leaves almost every island shut. Set them in the bar at the top of the page — the number is in the game’s Barter Information window.": "총 거래 수가 0이라 거의 모든 섬이 닫혀 있습니다. 페이지 위쪽 막대에서 설정하세요 — 숫자는 게임의 물물교환 정보 창에 있습니다.",
 	"Your Total Barters, as the Barter Information window shows it. It decides which islands you can barter at — a run is never planned through one you have not opened. A trip recorded on the Barter tab adds its trades; type over it whenever the two drift.": "물물교환 정보 창에 나오는 그대로의 누적 교환 횟수. 이것이 어느 섬에서 물물교환할 수 있는지 정합니다 — 열지 않은 섬을 지나는 항해는 결코 계획되지 않습니다. 물물교환 탭에 기록한 항해가 그 거래 횟수를 더합니다. 둘이 어긋나면 언제든 덮어써 주세요.",
-	"Your bag": "캐릭터 가방",
+	"Character bag": "캐릭터 가방",
 	"Your bag as a second hold": "캐릭터 가방을 두 번째 화물칸으로",
 	"Your bag as a second hold, and a day of fixes": "캐릭터 가방을 두 번째 화물칸으로, 그리고 수정의 하루",
 	"Your barter count and level are set in the bar at the top of the page; the Parley under Before you sail, step 1": "교역 횟수와 등급은 페이지 상단 바에서 설정합니다. 교섭력은 1단계 출항 전에에서",
@@ -6366,7 +6366,7 @@
 	"On the Inventory, <b>Where everything is</b> shows a card a place: the bags, the character bag and the ship’s hold first, then every storage, with what each holds.": "인벤토리의 <b>어디에 무엇이 있나</b>는 장소마다 카드를 보여 줍니다: 먼저 가방, 캐릭터 가방, 배의 적재칸, 그다음 각 창고와 그 안의 물건.",
 	"Put it all away": "모두 창고에 맡기기",
 	"Rewards logged from the dailies or a run landed in the bags, and taking them to a storage meant raising the storage’s count and lowering the total, item by item.": "일일 퀘스트나 항해 뒤에 기록한 보상은 가방에 들어갔고, 창고로 옮기려면 창고 수를 올리고 합계를 내리는 일을 물건마다 해야 했습니다.",
-	"The Inventory’s Where everything is: the bags, the character bag and the ship’s hold first, then each storage, and the bar that puts it all away at Velia": "인벤토리의 어디에 무엇이 있나: 먼저 가방, 캐릭터 가방, 배의 적재칸, 그다음 각 창고, 그리고 모두를 벨리아에 맡기는 막대",
+	"The Inventory’s Where everything is, the character bag left unticked in its bar, then the same bar on the Plan, the Quests and the Barter tab’s results": "인벤토리의 '어디에 무엇이 있나', 막대에서 캐릭터 가방의 체크를 해제한 모습, 그리고 계획·의뢰·물물교환 결산에 나오는 같은 막대",
 	"The same bar shows on the Plan, the Quests and the Barter tab’s results whenever something is carried.": "무언가를 소지하고 있으면 계획, 퀘스트, 물물교환 탭의 결과에도 같은 막대가 나타납니다.",
 	"Two players: one whose counts the gauge stands on, one who asked for the put-away.": "두 플레이어: 게이지의 바탕이 된 집계를 한 사람, 창고에 맡기기를 요청한 사람."
 }

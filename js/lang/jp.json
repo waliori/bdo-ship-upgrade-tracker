@@ -3365,7 +3365,7 @@
 	"Your Total Barters read nought — set them in the bar at the top of the page.": "累積交換回数が0になっています — ページ上部のバーで設定してください。",
 	"Your Total Barters read nought, which leaves almost every island shut. Set them in the bar at the top of the page — the number is in the game’s Barter Information window.": "累積交換回数がゼロのため、ほとんどの島が閉じています。ページ上部のバーで設定してください——数字はゲームの物々交換情報ウィンドウにあります。",
 	"Your Total Barters, as the Barter Information window shows it. It decides which islands you can barter at — a run is never planned through one you have not opened. A trip recorded on the Barter tab adds its trades; type over it whenever the two drift.": "物々交換情報ウィンドウに表示される累積交換回数です。どの島で物々交換できるかを決め、開放していない島を通る航海が計画されることはありません。物々交換タブで航海を記録すればその累積交換回数が加算されます。ずれたらいつでも上書き入力してください。",
-	"Your bag": "キャラクターバッグ",
+	"Character bag": "キャラクターバッグ",
 	"Your bag as a second hold": "キャラクターバッグを第二の船倉に",
 	"Your bag as a second hold, and a day of fixes": "キャラクターバッグを第二の船倉に、そして修正の一日",
 	"Your barter count and level are set in the bar at the top of the page; the Parley under Before you sail, step 1": "交易回数とレベルはページ上部のバーで設定します。交渉力はステップ1「出航の前に」で",
@@ -6366,7 +6366,7 @@
 	"On the Inventory, <b>Where everything is</b> shows a card a place: the bags, the character bag and the ship’s hold first, then every storage, with what each holds.": "インベントリーの<b>どこに何があるか</b>は場所ごとにカードを表示します。まずバッグ、キャラクターバッグ、船倉、次に各倉庫と、それぞれの中身です。",
 	"Put it all away": "すべて倉庫に預ける",
 	"Rewards logged from the dailies or a run landed in the bags, and taking them to a storage meant raising the storage’s count and lowering the total, item by item.": "日課や航海の後に記録した報酬はバッグに入り、倉庫へ移すには倉庫の数を増やしてから合計を減らす作業を一品ずつ行う必要がありました。",
-	"The Inventory’s Where everything is: the bags, the character bag and the ship’s hold first, then each storage, and the bar that puts it all away at Velia": "インベントリーの「どこに何があるか」：まずバッグ、キャラクターバッグ、船倉、次に各倉庫、そしてすべてをベリアに預けるバー",
+	"The Inventory’s Where everything is, the character bag left unticked in its bar, then the same bar on the Plan, the Quests and the Barter tab’s results": "インベントリーの「どこに何があるか」。バーでキャラクターバッグのチェックを外した状態と、計画・依頼・物々交換の収支に出る同じバー",
 	"The same bar shows on the Plan, the Quests and the Barter tab’s results whenever something is carried.": "何かを所持している間は、計画、クエスト、物々交換タブの結果にも同じバーが表示されます。",
 	"Two players: one whose counts the gauge stands on, one who asked for the put-away.": "二人のプレイヤー：ゲージの土台となる集計をした人と、倉庫に預ける機能を要望した人。"
 }

@@ -3443,7 +3443,7 @@
 	"Your Total Barters read nought — set them in the bar at the top of the page.": "Tu cantidad acumulada de trueques está a cero — ajústala en la barra de arriba de la página.",
 	"Your Total Barters read nought, which leaves almost every island shut. Set them in the bar at the top of the page — the number is in the game’s Barter Information window.": "Tu cantidad acumulada de trueques está a cero, lo que cierra casi todas las islas. Ponlo en la barra de arriba: el número está en la ventana de Información de trueques del juego.",
 	"Your Total Barters, as the Barter Information window shows it. It decides which islands you can barter at — a run is never planned through one you have not opened. A trip recorded on the Barter tab adds its trades; type over it whenever the two drift.": "Tu cantidad acumulada de trueques, tal como los muestra la ventana de Información de trueques. Deciden en qué islas puedes hacer trueques: un viaje nunca se planifica por una que no hayas abierto. Un viaje anotado en la pestaña Trueque suma sus cambios; reescríbelos cuando los dos se separen.",
-	"Your bag": "Bolsa del personaje",
+	"Character bag": "Bolsa del personaje",
 	"Your bag as a second hold": "Tu inventario como segunda bodega",
 	"Your bag as a second hold, and a day of fixes": "Tu inventario como segunda bodega, y un día de arreglos",
 	"Your barter count and level are set in the bar at the top of the page; the Parley under Before you sail, step 1": "Tu cantidad acumulada de trueques y tu nivel se ponen en la barra de arriba de la página; la persuasión en Antes de zarpar, paso 1",
@@ -6534,7 +6534,7 @@
 	"On the Inventory, <b>Where everything is</b> shows a card a place: the bags, the character bag and the ship’s hold first, then every storage, with what each holds.": "En el Inventario, <b>Dónde está todo</b> muestra una tarjeta por lugar: primero las bolsas, la bolsa del personaje y la bodega del barco, luego cada almacén, con lo que guarda cada uno.",
 	"Put it all away": "Guardarlo todo",
 	"Rewards logged from the dailies or a run landed in the bags, and taking them to a storage meant raising the storage’s count and lowering the total, item by item.": "Las recompensas apuntadas tras las diarias o una ruta caían en las bolsas, y llevarlas a un almacén obligaba a subir la cuenta del almacén y bajar el total, objeto por objeto.",
-	"The Inventory’s Where everything is: the bags, the character bag and the ship’s hold first, then each storage, and the bar that puts it all away at Velia": "Dónde está todo, en el Inventario: primero las bolsas, la bolsa del personaje y la bodega del barco, luego cada almacén, y la barra que lo guarda todo en Velia",
+	"The Inventory’s Where everything is, the character bag left unticked in its bar, then the same bar on the Plan, the Quests and the Barter tab’s results": "Dónde está todo, en el Inventario, con la bolsa del personaje desmarcada en la barra, y luego la misma barra en el Plan, las Misiones y el Balance del Trueque",
 	"The same bar shows on the Plan, the Quests and the Barter tab’s results whenever something is carried.": "La misma barra aparece en el Plan, las Misiones y el resultado de la pestaña Trueque en cuanto llevas algo.",
 	"Two players: one whose counts the gauge stands on, one who asked for the put-away.": "Dos jugadores: uno en cuyos recuentos se apoya el indicador, otro que pidió el guardado."
 }
