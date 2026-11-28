@@ -4850,7 +4850,6 @@
 	"you hold {held} — enough for {afford}": "{held}持っています — {afford}分に足ります",
 	"you hold {n}": "{n}個持っています",
 	"you hold {what}": "{what}を持っています",
-	"you keep {n}: take land goods <i>from my storage</i>": "{n}個残します：陸の品は<i>自分の倉庫から</i>取ります",
 	"you saw": "あなたが見たもの",
 	"you saw the same": "あなたも同じものを見ました",
 	"you took {where} off the route": "{where} を航路から外しました",
@@ -6342,5 +6341,7 @@
 	"One player, whose counts the gauge stands on.": "ゲージの土台となる集計をしてくれたプレイヤー。",
 	"Nothing counted since the last one: there is nothing to report yet.": "前回以降、何も数えられていません。まだ報告するものはありません。",
 	"past where the community ever saw one: did one come unnoticed?": "コミュニティが見たどの範囲よりも先です。気づかないうちに発生していませんか？",
-	"With thanks": "感謝を込めて"
+	"With thanks": "感謝を込めて",
+	"you have {n} in storage: set <i>land goods</i> to <i>from my storage</i> to start from them": "倉庫に{n}個あります：<i>陸の品</i>を<i>自分の倉庫から</i>にすると、そこから始められます",
+	"A chain greyed for want of its land good on the Central Market, when you keep enough of it, now says which order to change: <i>land goods</i> set to <i>from my storage</i>. The old line looked like a button and was not one.": "取引所に陸の品がなくて灰色になったチェーンは、倉庫に十分あるとき、変えるべき指示を示すようになりました：<i>陸の品</i>を<i>自分の倉庫から</i>に。以前の行はボタンのように見えて、ボタンではありませんでした。"
 }

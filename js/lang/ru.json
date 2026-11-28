@@ -5600,7 +5600,6 @@
 	"you hold {held} — enough for {afford}": "у вас {held} — хватит на {afford}",
 	"you hold {n}": "у вас {n}",
 	"you hold {what}": "у вас {what}",
-	"you keep {n}: take land goods <i>from my storage</i>": "у вас есть {n}: брать сухопутные товары <i>со своего склада</i>",
 	"you saw": "вы видели",
 	"you saw the same": "вы видели то же",
 	"you took {where} off the route": "вы убрали {where} с маршрута",
@@ -8512,5 +8511,7 @@
 	"One player, whose counts the gauge stands on.": "Один игрок, на подсчётах которого стоит шкала.",
 	"Nothing counted since the last one: there is nothing to report yet.": "С последнего ничего не посчитано: сообщать пока не о чем.",
 	"past where the community ever saw one: did one come unnoticed?": "дальше, чем сообщество когда-либо видело: может, один выпал незамеченным?",
-	"With thanks": "С благодарностью"
+	"With thanks": "С благодарностью",
+	"you have {n} in storage: set <i>land goods</i> to <i>from my storage</i> to start from them": "у вас на складе {n}: выберите для <i>товаров с суши</i> вариант <i>с моего склада</i>, чтобы начать с них",
+	"A chain greyed for want of its land good on the Central Market, when you keep enough of it, now says which order to change: <i>land goods</i> set to <i>from my storage</i>. The old line looked like a button and was not one.": "Цепочка, затенённая из-за того, что на Центральном рынке нет её товара с суши, теперь, если у вас его хватает на складе, говорит, какой приказ изменить: для <i>товаров с суши</i> вариант <i>с моего склада</i>. Старая строка выглядела как кнопка, но ею не была."
 }

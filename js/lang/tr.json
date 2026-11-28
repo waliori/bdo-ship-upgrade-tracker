@@ -4850,7 +4850,6 @@
 	"you hold {held} — enough for {afford}": "elinde {held} var — {afford} için yeter",
 	"you hold {n}": "elinde {n} var",
 	"you hold {what}": "elinde {what} var",
-	"you keep {n}: take land goods <i>from my storage</i>": "{n} tanesini saklıyorsun: kara mallarını <i>depomdan</i> al",
 	"you saw": "gördün",
 	"you saw the same": "aynısını gördün",
 	"you took {where} off the route": "{where} adasını rotadan çıkardın",
@@ -6342,5 +6341,7 @@
 	"One player, whose counts the gauge stands on.": "Göstergenin dayandığı sayımları yapan bir oyuncu.",
 	"Nothing counted since the last one: there is nothing to report yet.": "Sonuncudan beri hiçbir şey sayılmadı: henüz bildirecek bir şey yok.",
 	"past where the community ever saw one: did one come unnoticed?": "topluluğun bir tane gördüğü her yerin ötesinde: biri fark edilmeden mi çıktı?",
-	"With thanks": "Teşekkürlerimizle"
+	"With thanks": "Teşekkürlerimizle",
+	"you have {n} in storage: set <i>land goods</i> to <i>from my storage</i> to start from them": "depoda {n} tane var: bunlardan başlamak için <i>kara malları</i> ayarını <i>depomdan</i> yap",
+	"A chain greyed for want of its land good on the Central Market, when you keep enough of it, now says which order to change: <i>land goods</i> set to <i>from my storage</i>. The old line looked like a button and was not one.": "Merkez Pazarda kara malı olmadığı için grileşen bir zincir, depoda yeterince varsa, artık hangi talimatı değiştireceğini söylüyor: <i>kara malları</i> ayarını <i>depomdan</i> yap. Eski satır düğme gibi görünüyordu ama değildi."
 }

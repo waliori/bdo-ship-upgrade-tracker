@@ -44,6 +44,7 @@ Signed in, press *A Special Barter came — report it* when one comes: the barte
 ### Fixes
 
 - Pasting a screenshot into an open reader, and *Read more* after a barter window is read, work again: since 1.7.1 both stopped on an error.
+- A chain greyed for want of its land good on the Central Market, when you keep enough of it, now says which order to change: *land goods* set to *from my storage*. The old line looked like a button and was not one.
 
 ## 1.7.1 — Shorter runs, and a stock of your own
 

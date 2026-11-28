@@ -4937,7 +4937,6 @@
 	"you hold {held} — enough for {afford}": "você tem {held} — dá para {afford}",
 	"you hold {n}": "você tem {n}",
 	"you hold {what}": "você tem {what}",
-	"you keep {n}: take land goods <i>from my storage</i>": "você guarda {n}: pegar bens de terra <i>do meu armazém</i>",
 	"you saw": "você viu",
 	"you saw the same": "você viu o mesmo",
 	"you took {where} off the route": "você tirou {where} da rota",
@@ -6438,5 +6437,7 @@
 	"One player, whose counts the gauge stands on.": "Um jogador, em cujas contagens o medidor se apoia.",
 	"Nothing counted since the last one: there is nothing to report yet.": "Nada contado desde a última: ainda não há nada para avisar.",
 	"past where the community ever saw one: did one come unnoticed?": "além de onde a comunidade já viu uma sair: saiu alguma sem você notar?",
-	"With thanks": "Com agradecimento"
+	"With thanks": "Com agradecimento",
+	"you have {n} in storage: set <i>land goods</i> to <i>from my storage</i> to start from them": "você tem {n} no armazém: ponha <i>bens de terra</i> em <i>do meu armazém</i> para começar por eles",
+	"A chain greyed for want of its land good on the Central Market, when you keep enough of it, now says which order to change: <i>land goods</i> set to <i>from my storage</i>. The old line looked like a button and was not one.": "Uma cadeia esmaecida por falta do seu bem de terra no Mercado Central, quando você guarda o suficiente, agora diz qual ordem mudar: <i>bens de terra</i> em <i>do meu armazém</i>. A linha antiga parecia um botão e não era."
 }

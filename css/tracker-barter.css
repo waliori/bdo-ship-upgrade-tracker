@@ -165,7 +165,6 @@
 .chain.dry .chain-right b.none { color: var(--red-soft); font-size: 12px; }
 .chain-dry { display: flex; align-items: center; gap: 6px; margin: 2px 0 3px; padding: 4px 8px; font-size: 11.5px; line-height: 1.35; color: var(--red-soft); background: rgba(var(--red-rgb), 0.08); border: 1px solid var(--red-edge); border-radius: 7px; }
 .chain-dry b { color: var(--red); }
-.chain-dry i { font-style: normal; color: var(--ink-mid); }
 .chain-dry img { flex: none; }
 .chain-starts .chip.dry { opacity: 0.6; cursor: not-allowed; border-style: dashed; text-decoration: line-through; text-decoration-color: rgba(var(--red-rgb), 0.6); }
 .chain-starts .chip.dry .dry-why { text-decoration: none; display: inline-block; color: var(--red-soft); }

@@ -4952,7 +4952,6 @@
 	"you hold {held} — enough for {afford}": "tienes {held}: suficiente para {afford}",
 	"you hold {n}": "tienes {n}",
 	"you hold {what}": "tienes {what}",
-	"you keep {n}: take land goods <i>from my storage</i>": "te quedas con {n}: coger las mercancías terrestres <i>de mi almacén</i>",
 	"you saw": "viste",
 	"you saw the same": "viste lo mismo",
 	"you took {where} off the route": "quitaste {where} de la ruta",
@@ -6510,5 +6509,7 @@
 	"One player, whose counts the gauge stands on.": "Un jugador, sobre cuyos recuentos se apoya el indicador.",
 	"Nothing counted since the last one: there is nothing to report yet.": "Nada contado desde el último: todavía no hay nada que avisar.",
 	"past where the community ever saw one: did one come unnoticed?": "más allá de donde la comunidad vio salir uno: ¿salió alguno sin que lo notaras?",
-	"With thanks": "Con agradecimiento"
+	"With thanks": "Con agradecimiento",
+	"you have {n} in storage: set <i>land goods</i> to <i>from my storage</i> to start from them": "tienes {n} en tu almacén: pon <i>mercancías de tierra</i> en <i>de mi almacén</i> para empezar con ellas",
+	"A chain greyed for want of its land good on the Central Market, when you keep enough of it, now says which order to change: <i>land goods</i> set to <i>from my storage</i>. The old line looked like a button and was not one.": "Una cadena atenuada porque el Mercado central no tiene su mercancía de tierra, si guardas suficiente, ahora dice qué orden cambiar: <i>mercancías de tierra</i> en <i>de mi almacén</i>. La línea anterior parecía un botón y no lo era."
 }

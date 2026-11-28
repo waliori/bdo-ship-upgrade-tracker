@@ -4886,7 +4886,6 @@
 	"you hold {held} — enough for {afford}": "du hast {held} — genug für {afford}",
 	"you hold {n}": "du hast {n}",
 	"you hold {what}": "du hast {what}",
-	"you keep {n}: take land goods <i>from my storage</i>": "du behältst {n}: Landwaren <i>aus meinem Lager</i> nehmen",
 	"you saw": "du hast gesehen",
 	"you saw the same": "du hast dasselbe gesehen",
 	"you took {where} off the route": "du hast {where} von der Route genommen",
@@ -6381,5 +6380,7 @@
 	"One player, whose counts the gauge stands on.": "Ein Spieler, auf dessen Zählungen die Anzeige steht.",
 	"Nothing counted since the last one: there is nothing to report yet.": "Seit dem letzten nichts gezählt: Es gibt noch nichts zu melden.",
 	"past where the community ever saw one: did one come unnoticed?": "weiter, als die Community je einen sah: Kam einer unbemerkt?",
-	"With thanks": "Mit Dank"
+	"With thanks": "Mit Dank",
+	"you have {n} in storage: set <i>land goods</i> to <i>from my storage</i> to start from them": "du hast {n} im Lager: stelle <i>Landwaren</i> auf <i>aus meinem Lager</i>, dann geht es von diesen los",
+	"A chain greyed for want of its land good on the Central Market, when you keep enough of it, now says which order to change: <i>land goods</i> set to <i>from my storage</i>. The old line looked like a button and was not one.": "Eine Kette, die ausgegraut ist, weil der Zentralmarkt ihre Landware nicht hat, sagt jetzt, wenn du genug davon im Lager hast, welche Anweisung du ändern musst: <i>Landwaren</i> auf <i>aus meinem Lager</i>. Die alte Zeile sah wie ein Knopf aus und war keiner."
 }

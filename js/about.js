@@ -108,7 +108,8 @@ export const RELEASES = [
 			{
 				title: TT('Fixes'),
 				points: [
-					TT('Pasting a screenshot into an open reader, and <i>Read more</i> after a barter window is read, work again: since 1.7.1 both stopped on an error.')
+					TT('Pasting a screenshot into an open reader, and <i>Read more</i> after a barter window is read, work again: since 1.7.1 both stopped on an error.'),
+					TT('A chain greyed for want of its land good on the Central Market, when you keep enough of it, now says which order to change: <i>land goods</i> set to <i>from my storage</i>. The old line looked like a button and was not one.')
 				]
 			}
 		]

@@ -4850,7 +4850,6 @@
 	"you hold {held} — enough for {afford}": "你持有 {held} — 足够 {afford}",
 	"you hold {n}": "你持有 {n} 个",
 	"you hold {what}": "你持有 {what}",
-	"you keep {n}: take land goods <i>from my storage</i>": "你留下 {n} 个：<i>从我的仓库取</i>陆地货物",
 	"you saw": "你看到",
 	"you saw the same": "你看到了同样的",
 	"you took {where} off the route": "你把 {where} 从航线去掉了",
@@ -6342,5 +6341,7 @@
 	"One player, whose counts the gauge stands on.": "一位玩家，进度条就建立在其统计之上。",
 	"Nothing counted since the last one: there is nothing to report yet.": "上次之后还没有计数：暂时没有可上报的。",
 	"past where the community ever saw one: did one come unnoticed?": "已超出社区见过的任何区间：是不是有一次没注意到就出现了？",
-	"With thanks": "致谢"
+	"With thanks": "致谢",
+	"you have {n} in storage: set <i>land goods</i> to <i>from my storage</i> to start from them": "你仓库里有 {n} 个：把<i>陆地货物</i>设为<i>从我的仓库取</i>，就能从这些开始",
+	"A chain greyed for want of its land good on the Central Market, when you keep enough of it, now says which order to change: <i>land goods</i> set to <i>from my storage</i>. The old line looked like a button and was not one.": "因交易所没有其陆地货物而变灰的链，若你仓库里有足够的量，现在会说明该改哪项命令：把<i>陆地货物</i>设为<i>从我的仓库取</i>。旧的那行看起来像按钮，其实不是。"
 }

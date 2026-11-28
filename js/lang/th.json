@@ -4850,7 +4850,6 @@
 	"you hold {held} — enough for {afford}": "คุณถือ {held} — พอสำหรับ {afford}",
 	"you hold {n}": "คุณถือ {n}",
 	"you hold {what}": "คุณถือ {what}",
-	"you keep {n}: take land goods <i>from my storage</i>": "คุณเก็บ {n}: เอาสินค้าบก<i>จากคลังของฉัน</i>",
 	"you saw": "คุณเห็น",
 	"you saw the same": "คุณเห็นเหมือนกัน",
 	"you took {where} off the route": "คุณเอา {where} ออกจากเส้นทาง",
@@ -6342,5 +6341,7 @@
 	"One player, whose counts the gauge stands on.": "ผู้เล่นคนหนึ่งที่มาตรวัดตั้งอยู่บนการนับของเขา",
 	"Nothing counted since the last one: there is nothing to report yet.": "ยังไม่มีการนับตั้งแต่ครั้งล่าสุด: ยังไม่มีอะไรให้แจ้ง",
 	"past where the community ever saw one: did one come unnoticed?": "เลยจุดที่ชุมชนเคยเห็นมันปรากฏแล้ว: มีครั้งที่ปรากฏโดยไม่ทันสังเกตหรือเปล่า?",
-	"With thanks": "ขอขอบคุณ"
+	"With thanks": "ขอขอบคุณ",
+	"you have {n} in storage: set <i>land goods</i> to <i>from my storage</i> to start from them": "คุณมี {n} ในคลัง: ตั้ง<i>สินค้าบก</i>เป็น<i>จากคลังของฉัน</i> เพื่อเริ่มจากของเหล่านั้น",
+	"A chain greyed for want of its land good on the Central Market, when you keep enough of it, now says which order to change: <i>land goods</i> set to <i>from my storage</i>. The old line looked like a button and was not one.": "เชนที่เป็นสีเทาเพราะตลาดกลางไม่มีสินค้าบกของมัน ถ้าคุณมีพอในคลัง ตอนนี้จะบอกว่าต้องเปลี่ยนคำสั่งไหน: ตั้ง<i>สินค้าบก</i>เป็น<i>จากคลังของฉัน</i> บรรทัดเดิมดูเหมือนปุ่มแต่ไม่ใช่ปุ่ม"
 }

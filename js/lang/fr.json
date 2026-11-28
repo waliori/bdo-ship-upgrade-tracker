@@ -4973,7 +4973,6 @@
 	"you hold {held} — enough for {afford}": "vous en avez {held} — de quoi faire {afford}",
 	"you hold {n}": "vous en avez {n}",
 	"you hold {what}": "vous avez {what}",
-	"you keep {n}: take land goods <i>from my storage</i>": "vous en gardez {n} : prendre les marchandises de terre <i>dans mon entrepôt</i>",
 	"you saw": "vous avez vu",
 	"you saw the same": "vous avez vu la même chose",
 	"you took {where} off the route": "vous avez retiré {where} de la route",
@@ -6465,5 +6464,7 @@
 	"One player, whose counts the gauge stands on.": "Un joueur, dont les relevés portent la jauge.",
 	"Nothing counted since the last one: there is nothing to report yet.": "Rien de compté depuis le dernier : il n’y a encore rien à signaler.",
 	"past where the community ever saw one: did one come unnoticed?": "au-delà de tout ce que la communauté a vu : un est-il passé sans être noté ?",
-	"With thanks": "Avec nos remerciements"
+	"With thanks": "Avec nos remerciements",
+	"you have {n} in storage: set <i>land goods</i> to <i>from my storage</i> to start from them": "vous en avez {n} en entrepôt : réglez <i>marchandises terrestres</i> sur <i>depuis mon entrepôt</i> pour partir de celles-là",
+	"A chain greyed for want of its land good on the Central Market, when you keep enough of it, now says which order to change: <i>land goods</i> set to <i>from my storage</i>. The old line looked like a button and was not one.": "Une chaîne grisée faute de sa marchandise terrestre au Marché central, quand vous en avez assez en entrepôt, dit maintenant quel réglage changer : <i>marchandises terrestres</i> sur <i>depuis mon entrepôt</i>. L’ancienne ligne ressemblait à un bouton et n’en était pas un."
 }

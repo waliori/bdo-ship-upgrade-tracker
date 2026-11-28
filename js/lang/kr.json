@@ -4850,7 +4850,6 @@
 	"you hold {held} — enough for {afford}": "{held} 보유 — {afford}에 충분",
 	"you hold {n}": "{n}개 보유",
 	"you hold {what}": "{what} 보유",
-	"you keep {n}: take land goods <i>from my storage</i>": "{n}개 남겨 둡니다: 육지 물품을 <i>내 창고에서</i> 가져오세요",
 	"you saw": "본 것",
 	"you saw the same": "같은 것을 보았습니다",
 	"you took {where} off the route": "{where}을(를) 항로에서 뺐습니다",
@@ -6342,5 +6341,7 @@
 	"One player, whose counts the gauge stands on.": "게이지의 바탕이 된 집계를 해 준 플레이어.",
 	"Nothing counted since the last one: there is nothing to report yet.": "마지막 이후 센 것이 없습니다. 아직 알릴 것이 없습니다.",
 	"past where the community ever saw one: did one come unnoticed?": "커뮤니티가 본 어떤 구간보다도 넘었습니다. 모르는 사이에 나오지 않았나요?",
-	"With thanks": "감사의 말"
+	"With thanks": "감사의 말",
+	"you have {n} in storage: set <i>land goods</i> to <i>from my storage</i> to start from them": "창고에 {n}개 있습니다: <i>육지 물품</i>을 <i>내 창고에서</i>로 바꾸면 그것으로 시작합니다",
+	"A chain greyed for want of its land good on the Central Market, when you keep enough of it, now says which order to change: <i>land goods</i> set to <i>from my storage</i>. The old line looked like a button and was not one.": "거래소에 육지 물품이 없어 회색으로 표시된 체인은, 창고에 충분히 있으면 이제 바꿀 지시를 알려 줍니다: <i>육지 물품</i>을 <i>내 창고에서</i>로. 이전 줄은 버튼처럼 보였지만 버튼이 아니었습니다."
 }

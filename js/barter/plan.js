@@ -1046,7 +1046,7 @@ export function chainRow(c, on, solo, dockName, from, ladder = null, shut = null
 	// saying why on its own face. One already ticked stays pressable, so
 	// it can be unticked.
 	const dry = marketDead(solo);
-	const dryLine = dry ? `<span class="chain-dry">${img(dry.good, 'row-icon xs')}<span>${dry.listed ? T('only <b>{n}</b> on the Central Market', { n: F(dry.listed) }) : T('<b>none</b> on the Central Market')} · ${T('{n} needed a trade', { n: F(dry.want) })}${dry.held >= dry.want ? ` · ${T('you keep {n}: take land goods <i>from my storage</i>', { n: F(dry.held) })}` : ''}</span></span>` : '';
+	const dryLine = dry ? `<span class="chain-dry">${img(dry.good, 'row-icon xs')}<span>${dry.listed ? T('only <b>{n}</b> on the Central Market', { n: F(dry.listed) }) : T('<b>none</b> on the Central Market')} · ${T('{n} needed a trade', { n: F(dry.want) })}${dry.held >= dry.want ? ` · ${T('you have {n} in storage: set <i>land goods</i> to <i>from my storage</i> to start from them', { n: F(dry.held) })}` : ''}</span></span>` : '';
 	// The card's own start, when another ticked chain leaves it too few:
 	// a card not ticked asks first; one ticked says it gets none, and why.
 	const mine = claimOf(c);
